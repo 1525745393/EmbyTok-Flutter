@@ -14,6 +14,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../models/local_video_item.dart';
 import '../../models/media_item.dart';
+import '../../services/local_chapter_service.dart';
 import '../../services/local_video_service.dart';
 import '../../services/tmdb_service.dart';
 import '../../utils/pip_util.dart';
@@ -228,6 +229,90 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
       title: scraped.title ?? item.name,
       year: scraped.year,
       isTv: scraped.type == 'tv',
+    );
+  }
+
+  /// 外部播放器打开
+  Future<void> _playWithExternal() async {
+    final path = item.isAppDirFile ? item.path : _resolvedPath;
+    if (path == null || path.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('无法获取文件路径')),
+        );
+      }
+      return;
+    }
+    try {
+      await Share.shareXFiles([XFile(path)], subject: item.name);
+    } catch (_) {}
+  }
+
+  /// 章节选择（ffprobe 读取内嵌章节）
+  Future<void> _showChapters(BuildContext context) async {
+    final path = item.networkUrl ?? (item.isAppDirFile ? item.path : _resolvedPath);
+    if (path == null) return;
+    final chapters = await LocalChapterService.getChapters(path);
+    if (!context.mounted) return;
+    if (chapters.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('该文件无内嵌章节')),
+      );
+      return;
+    }
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E1E),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('章节', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+              ),
+            ),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: chapters.length,
+                itemBuilder: (_, i) => ListTile(
+                  leading: Text('${chapters[i].startTime.inSeconds}s', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                  title: Text(chapters[i].title, style: const TextStyle(color: Colors.white)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _playerKey.currentState?.seekTo(chapters[i].startTime);
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 删除本地视频
+  void _deleteVideo(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('删除视频'),
+        content: Text('确定删除 "${item.name}"？此操作不可恢复。'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await LocalVideoService().deleteVideo(item.pathHash);
+              if (mounted) Navigator.pop(context);
+            },
+            child: const Text('删除', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -579,6 +664,55 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
         await _playerKey.currentState?.seekTo(Duration(milliseconds: ms));
       } catch (_) {}
     }
+  }
+
+  /// 构建演员头像（对齐在线 feed PosterAvatar）
+  Widget _buildActorAvatar(BuildContext context) {
+    final scraped = ref.read(localVideoProvider).scrapedMap[item.pathHash];
+    String? avatarUrl;
+    if (scraped != null && scraped.cast.isNotEmpty) {
+      final pp = scraped.cast.first['profilePath'];
+      if (pp != null && pp.isNotEmpty) {
+        avatarUrl = 'https://image.tmdb.org/t/p/w185$pp';
+      }
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white38, width: 2),
+            color: Colors.white12,
+          ),
+          child: ClipOval(
+            child: avatarUrl != null
+                ? CachedNetworkImage(
+                    imageUrl: avatarUrl,
+                    fit: BoxFit.cover,
+                    errorWidget: (_, __, ___) =>
+                        const Icon(Icons.person, color: Colors.white54, size: 24),
+                  )
+                : const Icon(Icons.person, color: Colors.white54, size: 24),
+          ),
+        ),
+        const SizedBox(height: 4),
+        SizedBox(
+          width: 56,
+          child: Text(
+            scraped?.cast.isNotEmpty == true
+                ? (scraped!.cast.first['name'] ?? '')
+                : '',
+            style: const TextStyle(color: Colors.white70, fontSize: 10),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -1058,7 +1192,10 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // 按钮顺序对齐在线 feed 右侧操作栏：点赞→分享→画中画→评论→信息→字幕→音轨→比例→夜间模式
+                    // 演员头像（对齐在线 feed PosterAvatar）
+                    _buildActorAvatar(context),
+                    const SizedBox(height: 12),
+                    // 按钮顺序对齐在线 feed：点赞→分享→外部播放→画中画→评论→信息→章节→删除→字幕→音轨→比例→夜间模式
                     IconButton(
                       icon: const Icon(Icons.favorite_border,
                           color: Colors.white, size: 26),
@@ -1069,6 +1206,12 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                       icon: const Icon(Icons.share_outlined,
                           color: Colors.white, size: 26),
                       onPressed: () => _share(context),
+                    ),
+                    const SizedBox(height: 8),
+                    IconButton(
+                      icon: const Icon(Icons.open_in_new,
+                          color: Colors.white, size: 26),
+                      onPressed: _playWithExternal,
                     ),
                     const SizedBox(height: 8),
                     IconButton(
@@ -1087,6 +1230,18 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                       icon: Icon(Icons.info_outline,
                           color: Colors.white, size: 26),
                       onPressed: () => _showInfo(context),
+                    ),
+                    const SizedBox(height: 8),
+                    IconButton(
+                      icon: const Icon(Icons.list_alt_outlined,
+                          color: Colors.white, size: 26),
+                      onPressed: () => _showChapters(context),
+                    ),
+                    const SizedBox(height: 8),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline,
+                          color: Colors.white, size: 26),
+                      onPressed: () => _deleteVideo(context),
                     ),
                     const SizedBox(height: 8),
                     IconButton(
