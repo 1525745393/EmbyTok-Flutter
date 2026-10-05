@@ -367,13 +367,33 @@ class ScrapeService {
       }
       return base;
     } else {
-      final results = await TmdbService.searchMovies(parsed.title);
+      final results = await TmdbService.searchMovies(parsed.title, year: parsed.year);
       if (results.isEmpty) return null;
-      final first = results.first;
-      final movieId = first['id'] as int;
+      final best = _pickBestMovie(results, parsed);
+      final movieId = best['id'] as int;
       final details = await TmdbService.getMovieDetails(movieId);
-      return _fromMovieDetails(details, first, parsed, movieId);
+      return _fromMovieDetails(details, best, parsed, movieId);
     }
+  }
+
+  /// 从搜索结果中选最佳匹配：优先年份吻合，其次标题相似
+  static Map<String, dynamic> _pickBestMovie(
+      List<Map<String, dynamic>> results, ParsedName p) {
+    if (results.length == 1) return results.first;
+    if (p.year == null) return results.first;
+    // 优先年份精确匹配
+    for (final r in results) {
+      final rd = r['release_date'] as String?;
+      if (rd != null && rd.startsWith('${p.year}')) return r;
+    }
+    // 容差 ±1 年
+    for (final r in results) {
+      final rd = r['release_date'] as String?;
+      if (rd == null) continue;
+      final y = int.tryParse(rd.substring(0, 4));
+      if (y != null && (y - p.year!).abs() <= 1) return r;
+    }
+    return results.first;
   }
 
   static ScrapedMedia? _fromMovieDetails(Map<String, dynamic> d,

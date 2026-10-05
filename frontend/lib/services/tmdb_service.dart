@@ -123,12 +123,14 @@ class TmdbService {
   }
 
   /// 搜索影片
-  static Future<List<Map<String, dynamic>>> searchMovies(String query) async {
+  static Future<List<Map<String, dynamic>>> searchMovies(String query,
+      {int? year, String language = 'zh-CN'}) async {
     if (!isConfigured || query.isEmpty) return [];
     try {
       final encoded = Uri.encodeQueryComponent(query);
+      final yp = year != null ? '&year=$year' : '';
       final r = await http
-          .get(Uri.parse('$_base/search/movie?api_key=$_apiKey&query=$encoded'))
+          .get(Uri.parse('$_base/search/movie?api_key=$_apiKey&query=$encoded$yp&language=$language'))
           .timeout(const Duration(seconds: 6));
       if (r.statusCode != 200) return [];
       final data = jsonDecode(r.body);
