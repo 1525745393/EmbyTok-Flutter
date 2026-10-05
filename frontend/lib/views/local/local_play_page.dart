@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/local_video_item.dart';
 import '../../providers/local_video_provider.dart';
 import '../../utils/local_video_adapter.dart';
-import '../video/video_page_item.dart';
+import '../../widgets/video/video_page_item.dart';
 
 class LocalPlayPage extends ConsumerStatefulWidget {
   const LocalPlayPage({

@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/local_video_item.dart';
 import '../../providers/local_video_provider.dart';
-import 'local_play_page.dart';
+import '../../utils/local_video_adapter.dart';
+import '../../widgets/video/video_page_item.dart';
 
 /// 本地视频流：抖音式上下滑播放本地媒体库视频
 /// 可选 sourceId 只播放某个文件源
@@ -61,11 +62,18 @@ class _LocalFeedPageState extends ConsumerState<LocalFeedPage> {
       itemCount: items.length,
       physics: const PageScrollPhysics(),
       onPageChanged: (i) => ref.read(localFeedPlayingIndexProvider.notifier).state = i,
-      itemBuilder: (_, i) => LocalPlayPage(
-        items: items,
-        initialIndex: i,
-        embedded: widget.embedded,
-      ),
+      itemBuilder: (_, i) {
+        final m = LocalVideoAdapter.toMediaItem(
+          items[i],
+          scraped: state.scrapedMap[items[i].pathHash],
+        );
+        return VideoPageItem(
+          key: ValueKey(m.id),
+          item: m,
+          isCurrentPage: i == 0, // PageView 内部由 onPageChanged 驱动
+          source: 'local_feed',
+        );
+      },
     );
     if (widget.embedded) {
       // 嵌入主 feed：直接返回 PageView，由主 feed 的顶部标签/底部导航接管 chrome。
