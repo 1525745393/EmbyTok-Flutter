@@ -1,3 +1,10 @@
+# [2.351.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.350.5...v2.351.0) (2026-10-05)
+
+
+### Features
+
+* 进度条播放中3秒自动隐藏，点击底部区域显示 ([8d89944](https://github.com/1525745393/EmbyTok-Flutter/commit/8d89944824772f68248a780d3f4494ce57f60322))
+
 ## [2.350.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.350.4...v2.350.5) (2026-10-05)
 
 
