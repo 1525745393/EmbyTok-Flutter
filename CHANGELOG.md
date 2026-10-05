@@ -1,3 +1,10 @@
+# [2.367.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.366.0...v2.367.0) (2026-10-05)
+
+
+### Features
+
+* UI本地文件优先(LocalPosterImage/BackdropImage/CastAvatar)+卡片/详情backdrop接入 ([76eeaae](https://github.com/1525745393/EmbyTok-Flutter/commit/76eeaae758250494f1764881a997ac4cd82ec819))
+
 # [2.366.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.365.0...v2.366.0) (2026-10-05)
 
 
