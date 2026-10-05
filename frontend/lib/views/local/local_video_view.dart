@@ -19,7 +19,7 @@ import '../../providers/file_sources_provider.dart';
 import '../../services/local_video_service.dart';
 import '../../services/scrape_service.dart';
 import '../../services/tmdb_service.dart';
-import 'local_player_page.dart';
+import 'local_play_page.dart';
 import 'local_directory_browser_view.dart';
 import 'tmdb_search_page.dart';
 
@@ -1381,7 +1381,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
     final idx = list.indexWhere((e) => e.id == item.id);
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => LocalPlayerPage(
+        builder: (_) => LocalPlayPage(
           items: list,
           initialIndex: idx < 0 ? 0 : idx,
         ),
@@ -2483,7 +2483,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => LocalPlayerPage(
+        builder: (_) => LocalPlayPage(
           items: items,
           initialIndex: index,
         ),
@@ -2619,7 +2619,7 @@ class _GroupListPage extends StatelessWidget {
           onPlay: () => Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => LocalPlayerPage(items: items, initialIndex: i),
+              builder: (_) => LocalPlayPage(items: items, initialIndex: i),
             ),
           ),
         ),
@@ -2748,7 +2748,7 @@ class _FavSection extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => LocalPlayerPage(items: [it], initialIndex: 0),
+                          builder: (_) => LocalPlayPage(items: [it], initialIndex: 0),
                         ),
                       );
                     }),
@@ -3082,7 +3082,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                           ),
                           icon: const Icon(Icons.play_arrow, size: 18),
                           label: const Text('播放', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LocalPlayerPage(items: sorted, initialIndex: 0))),
+                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LocalPlayPage(items: sorted, initialIndex: 0))),
                         ),
                         const SizedBox(width: 8),
                         IconButton(
@@ -3259,7 +3259,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
               final overview = info?['overview'] as String?;
               final epNum = ep?.episode ?? i + 1;
               return InkWell(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LocalPlayerPage(items: sorted, initialIndex: i))),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LocalPlayPage(items: sorted, initialIndex: i))),
                 borderRadius: BorderRadius.circular(10),
                 child: Container(
                   decoration: BoxDecoration(color: Colors.grey[850], borderRadius: BorderRadius.circular(10)),
@@ -3400,7 +3400,7 @@ class _AllEpisodesPage extends StatelessWidget {
           final runtime = info?['runtime'] as int?;
           final overview = info?['overview'] as String?;
           return ListTile(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LocalPlayerPage(items: sorted, initialIndex: i))),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LocalPlayPage(items: sorted, initialIndex: i))),
             leading: ClipRRect(
               borderRadius: BorderRadius.circular(6),
               child: SizedBox(

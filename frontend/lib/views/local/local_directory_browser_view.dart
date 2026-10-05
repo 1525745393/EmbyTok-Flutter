@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../models/local_video_item.dart';
-import 'local_player_page.dart';
+import 'local_play_page.dart';
 
 /// 取路径最后一段作为文件名（替代 path 包）
 String _basename(String path) {
@@ -149,7 +149,7 @@ class _LocalDirectoryBrowserViewState extends State<LocalDirectoryBrowserView> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => LocalPlayerPage(items: [item]),
+        builder: (_) => LocalPlayPage(items: [item]),
       ),
     );
   }

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/local_video_item.dart';
 import '../../providers/local_video_provider.dart';
-import 'local_player_page.dart';
+import 'local_play_page.dart';
 
 /// 本地视频流：抖音式上下滑播放本地媒体库视频
 /// 可选 sourceId 只播放某个文件源
@@ -61,7 +61,7 @@ class _LocalFeedPageState extends ConsumerState<LocalFeedPage> {
       itemCount: items.length,
       physics: const PageScrollPhysics(),
       onPageChanged: (i) => ref.read(localFeedPlayingIndexProvider.notifier).state = i,
-      itemBuilder: (_, i) => LocalPlayerPage(
+      itemBuilder: (_, i) => LocalPlayPage(
         items: items,
         initialIndex: i,
         embedded: widget.embedded,

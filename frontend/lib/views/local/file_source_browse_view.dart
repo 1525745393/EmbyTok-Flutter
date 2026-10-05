@@ -13,7 +13,7 @@ import '../../services/scrape_service.dart';
 import '../../services/smb_scanner.dart';
 import '../../services/tmdb_service.dart';
 import '../../services/webdav_scanner.dart';
-import 'local_player_page.dart';
+import 'local_play_page.dart';
 
 /// 源内浏览页（P1 第三批 + P0 增强）
 ///
@@ -484,7 +484,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => LocalPlayerPage(items: _items, initialIndex: index),
+          builder: (_) => LocalPlayPage(items: _items, initialIndex: index),
         ),
       ),
       onLongPress: () => _showLongPressMenu(item),
@@ -598,7 +598,7 @@ class _SeriesEpisodePage extends StatelessWidget {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => LocalPlayerPage(items: sorted, initialIndex: i),
+                builder: (_) => LocalPlayPage(items: sorted, initialIndex: i),
               ),
             ),
           );
