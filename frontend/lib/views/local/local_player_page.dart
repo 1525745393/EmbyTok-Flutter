@@ -1403,7 +1403,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
               ),
             ),
           ),
-          // 底部控制栏
+          // 底部信息卡（随控制栏显隐）
           Positioned(
             left: 0, right: 0, bottom: 0,
             child: IgnorePointer(
@@ -1415,7 +1415,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                   padding: EdgeInsets.only(
                     left: 16,
                     right: 16,
-                    bottom: MediaQuery.of(context).padding.bottom + 8,
+                    bottom: MediaQuery.of(context).padding.bottom + 40,
                     top: 8,
                   ),
                   decoration: const BoxDecoration(
@@ -1504,14 +1504,24 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                           );
                         },
                       ),
-                      const SizedBox(height: 12),
-                      _activeController != null
-                          ? SeekableProgressBar(controller: _activeController!, formatDuration: _formatDur)
-                          : const SizedBox(height: 2),
                     ],
                   ),
                 ),
               ),
+            ),
+          ),
+          // 进度条（始终可见，播放中可拖动）
+          Positioned(
+            left: 0, right: 0, bottom: 0,
+            child: Container(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                bottom: MediaQuery.of(context).padding.bottom + 8,
+              ),
+              child: _activeController != null
+                  ? SeekableProgressBar(controller: _activeController!, formatDuration: _formatDur)
+                  : const SizedBox(height: 2),
             ),
           ),
         ],
