@@ -1428,19 +1428,67 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        icon: const Icon(Icons.fullscreen_exit,
+                            color: Colors.white, size: 28),
                         onPressed: () => Navigator.pop(context),
+                        tooltip: '退出全屏',
                       ),
-                      const Spacer(),
+                      Expanded(
+                        child: Text(
+                          item.name,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      // 方向切换
                       IconButton(
-                        icon: const Icon(Icons.fullscreen, color: Colors.white, size: 22),
+                        icon: Icon(
+                          _orientationPref == _OrientationPref.landscape
+                              ? Icons.screen_lock_portrait
+                              : _orientationPref == _OrientationPref.portrait
+                                  ? Icons.screen_rotation
+                                  : Icons.screen_lock_landscape,
+                          color: Colors.white, size: 24),
                         onPressed: () {
                           setState(() {
-                            _orientationPref = _orientationPref == _OrientationPref.landscape
-                                ? _OrientationPref.portrait
-                                : _OrientationPref.landscape;
+                            switch (_orientationPref) {
+                              case _OrientationPref.landscape:
+                                _orientationPref = _OrientationPref.portrait;
+                                break;
+                              case _OrientationPref.portrait:
+                                _orientationPref = _OrientationPref.sensor;
+                                break;
+                              case _OrientationPref.sensor:
+                                _orientationPref = _OrientationPref.landscape;
+                                break;
+                            }
                           });
                         },
+                      ),
+                      // 画中画
+                      IconButton(
+                        icon: const Icon(Icons.picture_in_picture_alt,
+                            color: Colors.white, size: 24),
+                        onPressed: () => PipUtil.enterPip(),
+                        tooltip: '画中画',
+                      ),
+                      // 设置
+                      IconButton(
+                        icon: const Icon(Icons.settings,
+                            color: Colors.white, size: 24),
+                        onPressed: () => _showSettingsPanel(context),
+                        tooltip: '设置',
+                      ),
+                      // 锁屏
+                      IconButton(
+                        icon: Icon(_locked ? Icons.lock : Icons.lock_open,
+                            color: Colors.white, size: 24),
+                        onPressed: () => setState(() => _locked = !_locked),
+                        tooltip: '锁屏',
                       ),
                     ],
                   ),
@@ -1827,26 +1875,94 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
               ),
             ),
           ),
-          // 进度条（播放中3秒自动隐藏，点击底部区域显示）
+          // 底部控制栏：进度条 + 传输控制（对齐在线全屏页）
           Positioned(
             left: 0, right: 0, bottom: 0,
-            child: GestureDetector(
-              onTap: _showProgressTemporarily,
-              behavior: HitTestBehavior.opaque,
-              child: IgnorePointer(
-                ignoring: !_showProgress,
-                child: AnimatedOpacity(
-                  opacity: _showProgress ? 1 : 0,
-                  duration: const Duration(milliseconds: 200),
-                  child: Container(
-                    padding: EdgeInsets.only(
-                      left: 16,
-                      right: 16,
-                      bottom: MediaQuery.of(context).padding.bottom + 8,
+            child: IgnorePointer(
+              ignoring: !_showControls,
+              child: AnimatedOpacity(
+                opacity: _showControls ? 1 : 0,
+                duration: const Duration(milliseconds: 200),
+                child: Container(
+                  padding: EdgeInsets.only(
+                    left: 16,
+                    right: 16,
+                    bottom: MediaQuery.of(context).padding.bottom + 8,
+                  ),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter, end: Alignment.topCenter,
+                      colors: [Colors.black54, Colors.transparent],
                     ),
-                    child: _activeController != null
-                        ? SeekableProgressBar(controller: _activeController!, formatDuration: _formatDur)
-                        : const SizedBox(height: 2),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_activeController != null)
+                        SeekableProgressBar(controller: _activeController!, formatDuration: _formatDur),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.skip_previous, color: Colors.white),
+                            onPressed: _index > 0 ? () => _jumpTo(_index - 1) : null,
+                          ),
+                          ValueListenableBuilder<VideoPlayerValue>(
+                            valueListenable: _activeController ?? VideoPlayerController.networkUrl(Uri.parse('')),
+                            builder: (context, value, child) {
+                              return IconButton(
+                                icon: Icon(
+                                  value.isPlaying
+                                      ? Icons.pause_circle_filled
+                                      : Icons.play_circle_filled,
+                                  color: Colors.white, size: 44,
+                                ),
+                                onPressed: () {
+                                  final c = _activeController;
+                                  if (c == null) return;
+                                  setState(() {
+                                    if (c.value.isPlaying) {
+                                      c.pause();
+                                      _showControls = true;
+                                    } else {
+                                      c.play();
+                                      _showControls = !ref.read(isAutoPlayProvider);
+                                    }
+                                  });
+                                },
+                              );
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.skip_next, color: Colors.white),
+                            onPressed: _index < widget.items.length - 1
+                                ? () => _jumpTo(_index + 1)
+                                : null,
+                          ),
+                          const Spacer(),
+                          // 倍速
+                          GestureDetector(
+                            onTap: () => _showSpeedPicker(context),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.white24,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text('${_playbackSpeed}x',
+                                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // 画面比例
+                          IconButton(
+                            icon: const Icon(Icons.aspect_ratio, color: Colors.white, size: 22),
+                            onPressed: () => _showAspectPicker(context),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
