@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../models/local_video_item.dart';
 import '../../models/media_item.dart';
@@ -766,8 +767,12 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
     }
     return GestureDetector(
       onTap: actor != null && (actor['id'] ?? '').isNotEmpty
-          ? () => Navigator.pushNamed(context, '/person',
-              arguments: {'personId': actor!['id'], 'name': actor['name']})
+          ? () => context.push('/person/${actor!['id']}',
+              extra: MediaItem(
+                id: actor['id']!,
+                title: actor['name'] ?? '',
+                type: 'Person',
+              ))
           : null,
       child: Column(
         mainAxisSize: MainAxisSize.min,
