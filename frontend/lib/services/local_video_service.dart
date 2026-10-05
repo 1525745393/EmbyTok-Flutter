@@ -312,7 +312,49 @@ class LocalVideoService {
     final target = File(newPath);
     if (await target.exists()) throw Exception('目标文件名已存在');
     await oldFile.rename(newPath);
+    // P2#10 记录重命名历史用于撤销
+    await _recordRename(item.path, newPath);
     return newPath;
+  }
+
+  static const _renameHistoryKey = 'rename_history';
+
+  /// 记录重命名（old→new），最多保留 50 条
+  Future<void> _recordRename(String oldPath, String newPath) async {
+    try {
+      final sp = await SharedPreferences.getInstance();
+      final list = sp.getStringList(_renameHistoryKey) ?? [];
+      list.insert(0, '$oldPath|$newPath');
+      if (list.length > 50) list.removeRange(50, list.length);
+      await sp.setStringList(_renameHistoryKey, list);
+    } catch (_) {}
+  }
+
+  /// 获取最近重命名历史：list of (oldPath, newPath)
+  Future<List<MapEntry<String, String>>> getRenameHistory() async {
+    final sp = await SharedPreferences.getInstance();
+    final list = sp.getStringList(_renameHistoryKey) ?? [];
+    return list.map((s) {
+      final i = s.indexOf('|');
+      return MapEntry(s.substring(0, i), s.substring(i + 1));
+    }).toList();
+  }
+
+  /// 撤销最近一次重命名（把 newPath 改回 oldPath）
+  Future<String> undoLastRename() async {
+    final sp = await SharedPreferences.getInstance();
+    final list = sp.getStringList(_renameHistoryKey) ?? [];
+    if (list.isEmpty) throw Exception('没有可撤销的重命名');
+    final first = list.first;
+    final i = first.indexOf('|');
+    final oldPath = first.substring(0, i);
+    final newPath = first.substring(i + 1);
+    final f = File(newPath);
+    if (!await f.exists()) throw Exception('文件已不存在，无法撤销');
+    await f.rename(oldPath);
+    list.removeAt(0);
+    await sp.setStringList(_renameHistoryKey, list);
+    return oldPath;
   }
 
   /// 根据刮削元数据一键重命名文件
