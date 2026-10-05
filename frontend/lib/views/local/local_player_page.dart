@@ -1631,6 +1631,21 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // 海报
+                if (scraped?.posterPath != null && scraped!.posterPath!.isNotEmpty) ...[
+                  Center(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: CachedNetworkImage(
+                        imageUrl: 'https://image.tmdb.org/t/p/w342${scraped.posterPath}',
+                        width: 140,
+                        height: 210,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 // 标题
                 Text(scraped?.title ?? item.name,
                     style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
