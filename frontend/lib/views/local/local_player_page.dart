@@ -1177,7 +1177,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
                       GestureDetector(
                         onTap: () {
                           setState(() => _muted = !_muted);
-                          _controller?.setVolume(_muted ? 0.0 : 1.0);
+                          _activeController?.setVolume(_muted ? 0.0 : 1.0);
                         },
                         child: RotationTransition(
                           turns: _discRotation,
