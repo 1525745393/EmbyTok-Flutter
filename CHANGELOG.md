@@ -1,3 +1,10 @@
+# [2.353.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.352.0...v2.353.0) (2026-10-05)
+
+
+### Features
+
+* 信息面板显示季集信息和单集标题 ([c5399c0](https://github.com/1525745393/EmbyTok-Flutter/commit/c5399c040641ed45078ecdc0f4fac047ac6efde7))
+
 # [2.352.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.351.0...v2.352.0) (2026-10-05)
 
 
