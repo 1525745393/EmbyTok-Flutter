@@ -1,3 +1,10 @@
+# [2.363.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.362.0...v2.363.0) (2026-10-05)
+
+
+### Features
+
+* TMDB API key可在设置页配置，用户key优先于内置 ([00f7ded](https://github.com/1525745393/EmbyTok-Flutter/commit/00f7ded7353d3247c816c1e7b992ba4f4016f5fa))
+
 # [2.362.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.361.0...v2.362.0) (2026-10-05)
 
 
