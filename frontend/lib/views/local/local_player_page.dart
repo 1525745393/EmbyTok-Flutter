@@ -1072,6 +1072,26 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // 顶部固定：全屏按钮（对齐在线 Icons.fullscreen）
+                      GestureDetector(
+                        onTap: () {
+                          SystemChrome.setPreferredOrientations([
+                            DeviceOrientation.landscapeLeft,
+                            DeviceOrientation.landscapeRight,
+                          ]);
+                        },
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white24,
+                          ),
+                          child: const Icon(Icons.fullscreen,
+                              color: Colors.white70, size: 22),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       // 连播开关（纯净模式同在线：一个按钮控制连播+控制栏自动隐藏）
                       Consumer(
                         builder: (context, ref, _) {
@@ -1443,6 +1463,26 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // 顶部固定：全屏按钮（对齐在线 Icons.fullscreen）
+                      GestureDetector(
+                        onTap: () {
+                          SystemChrome.setPreferredOrientations([
+                            DeviceOrientation.landscapeLeft,
+                            DeviceOrientation.landscapeRight,
+                          ]);
+                        },
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white24,
+                          ),
+                          child: const Icon(Icons.fullscreen,
+                              color: Colors.white70, size: 22),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       // 连播开关（纯净模式同在线：一个按钮控制连播+控制栏自动隐藏）
                       Consumer(
                         builder: (context, ref, _) {
