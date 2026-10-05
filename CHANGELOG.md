@@ -1,3 +1,17 @@
+# [2.352.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.351.0...v2.352.0) (2026-10-05)
+
+
+### Bug Fixes
+
+* 修复演员头像方法括号不匹配导致的编译错误 ([5a7e312](https://github.com/1525745393/EmbyTok-Flutter/commit/5a7e31251012ffb1d9137783017ff24d96d5cb0e))
+* 演员头像可点击进入演员详情页 ([831cdb5](https://github.com/1525745393/EmbyTok-Flutter/commit/831cdb5be8c546ea03121b45d09c0c975e30e0c0))
+
+
+### Features
+
+* 信息面板补全刮削元数据（评分/类型/简介/导演/演员列表） ([4a2d887](https://github.com/1525745393/EmbyTok-Flutter/commit/4a2d88719c566f07f1cfca4787b00debba6e18f1))
+* 章节按钮电视剧显示剧集列表，电影显示内嵌章节 ([97131c0](https://github.com/1525745393/EmbyTok-Flutter/commit/97131c05a84f3cf57d0063a76742fb56c5313cf0))
+
 # [2.351.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.350.5...v2.351.0) (2026-10-05)
 
 
