@@ -50,7 +50,7 @@ class LocalPlayerPage extends ConsumerStatefulWidget {
   ConsumerState<LocalPlayerPage> createState() => _LocalPlayerPageState();
 }
 
-class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
+class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTickerProviderStateMixin {
   late int _index;
   String? _resolvedPath; // 系统媒体库视频的真实文件路径（异步获取）
   final _playerKey = GlobalKey<VideoPlayerWidgetState>();
@@ -67,6 +67,10 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   int _selectedSubtitleIdx = 0; // 0=关闭, >0=外挂字幕索引（从1开始）
   bool _nightMode = false; // 夜间模式（降低屏幕亮度）
   bool _pureMode = false; // 纯净模式（隐藏所有UI，沉浸式播放）
+  bool _muted = false; // 静音
+  late final AnimationController _discController;
+  late final Animation<double> _discRotation;
+  String? _posterUrl;
   // 方向锁定三态：landscape=横屏锁定, portrait=竖屏锁定, sensor=自动旋转
   _OrientationPref _orientationPref = _OrientationPref.landscape;
 
@@ -76,6 +80,12 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
     _index = widget.initialIndex.clamp(0, widget.items.length - 1);
     _resolvePath();
     _loadPlaybackSpeed();
+    // 唱片旋转动画
+    _discController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 8),
+    )..repeat();
+    _discRotation = Tween(begin: 0.0, end: 1.0).animate(_discController);
     // 每 5 秒保存一次播放进度，避免退出时子组件已 dispose 导致丢失
     _saveTimer = Timer.periodic(const Duration(seconds: 5), (_) => _saveResume());
   }
@@ -723,6 +733,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   void dispose() {
     _saveTimer?.cancel();
     _hideTimer?.cancel();
+    _discController.dispose();
     _saveResume(); // 最后再保存一次（此时子组件可能已销毁，但 timer 已积累最新位置）
     // 退出时恢复竖屏
     SystemChrome.setPreferredOrientations([
@@ -860,6 +871,11 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 设置唱片封面 URL
+    final scrapedForDisc = ref.read(localVideoProvider).scrapedMap[item.pathHash];
+    if (scrapedForDisc?.posterPath != null && scrapedForDisc!.posterPath!.isNotEmpty) {
+      _posterUrl = 'https://image.tmdb.org/t/p/w185${scrapedForDisc.posterPath}';
+    }
     // 本地视频流模式：监听当前可见页，非当前页暂停
     final playingIdx = ref.watch(localFeedPlayingIndexProvider);
     final isCurrent = playingIdx < 0 || playingIdx == widget.initialIndex;
@@ -1155,6 +1171,39 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                         icon: const Icon(Icons.aspect_ratio,
                             color: Colors.white, size: 26),
                         onPressed: () => _showAspectPicker(context),
+                      ),
+                      const SizedBox(height: 8),
+                      // 唱片封面（旋转 + 静音切换）
+                      GestureDetector(
+                        onTap: () {
+                          setState(() => _muted = !_muted);
+                          _controller?.setVolume(_muted ? 0.0 : 1.0);
+                        },
+                        child: RotationTransition(
+                          turns: _discRotation,
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white24,
+                              border: Border.all(
+                                color: _muted ? Colors.pinkAccent : Colors.white38,
+                                width: 2,
+                              ),
+                              image: _posterUrl != null
+                                  ? DecorationImage(
+                                      image: CachedNetworkImageProvider(_posterUrl!),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                            ),
+                            child: _posterUrl == null
+                                ? Icon(_muted ? Icons.volume_off : Icons.music_note,
+                                    color: Colors.white, size: 20)
+                                : null,
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 8),
                       IconButton(
@@ -1485,6 +1534,39 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                       icon: const Icon(Icons.aspect_ratio,
                           color: Colors.white, size: 26),
                       onPressed: () => _showAspectPicker(context),
+                    ),
+                    const SizedBox(height: 8),
+                    // 唱片封面（旋转 + 静音切换）
+                    GestureDetector(
+                      onTap: () {
+                        setState(() => _muted = !_muted);
+                        _activeController?.setVolume(_muted ? 0.0 : 1.0);
+                      },
+                      child: RotationTransition(
+                        turns: _discRotation,
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white24,
+                            border: Border.all(
+                              color: _muted ? Colors.pinkAccent : Colors.white38,
+                              width: 2,
+                            ),
+                            image: _posterUrl != null
+                                ? DecorationImage(
+                                    image: CachedNetworkImageProvider(_posterUrl!),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
+                          ),
+                          child: _posterUrl == null
+                              ? Icon(_muted ? Icons.volume_off : Icons.music_note,
+                                  color: Colors.white, size: 20)
+                              : null,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 8),
                     IconButton(
