@@ -703,48 +703,54 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   Widget _buildActorAvatar(BuildContext context) {
     final scraped = ref.read(localVideoProvider).scrapedMap[item.pathHash];
     String? avatarUrl;
+    Map<String, String>? actor;
     if (scraped != null && scraped.cast.isNotEmpty) {
-      final pp = scraped.cast.first['profilePath'];
+      actor = scraped.cast.first;
+      final pp = actor['profilePath'];
       if (pp != null && pp.isNotEmpty) {
         avatarUrl = 'https://image.tmdb.org/t/p/w185$pp';
       }
     }
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white38, width: 2),
-            color: Colors.white12,
+    return GestureDetector(
+      onTap: actor != null && (actor['id'] ?? '').isNotEmpty
+          ? () => Navigator.pushNamed(context, '/person',
+              arguments: {'personId': actor!['id'], 'name': actor['name']})
+          : null,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white38, width: 2),
+              color: Colors.white12,
+            ),
+            child: ClipOval(
+              child: avatarUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: avatarUrl,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) =>
+                          const Icon(Icons.person, color: Colors.white54, size: 24),
+                    )
+                  : const Icon(Icons.person, color: Colors.white54, size: 24),
+            ),
           ),
-          child: ClipOval(
-            child: avatarUrl != null
-                ? CachedNetworkImage(
-                    imageUrl: avatarUrl,
-                    fit: BoxFit.cover,
-                    errorWidget: (_, __, ___) =>
-                        const Icon(Icons.person, color: Colors.white54, size: 24),
-                  )
-                : const Icon(Icons.person, color: Colors.white54, size: 24),
+          const SizedBox(height: 4),
+          SizedBox(
+            width: 56,
+            child: Text(
+              actor?['name'] ?? '',
+              style: const TextStyle(color: Colors.white70, fontSize: 10),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
-        const SizedBox(height: 4),
-        SizedBox(
-          width: 56,
-          child: Text(
-            scraped?.cast.isNotEmpty == true
-                ? (scraped!.cast.first['name'] ?? '')
-                : '',
-            style: const TextStyle(color: Colors.white70, fontSize: 10),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
