@@ -125,18 +125,21 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
     });
   }
 
-  /// 单击切换控制栏（锁定时不响应）
-  /// 点按视频：直接切换播放/暂停
+  /// 点按视频：直接切换播放/暂停；暂停时显示控制栏，播放时隐藏
   void _toggleControls() {
     if (_locked) return;
     final c = _activeController;
     if (c != null && c.value.isInitialized) {
       try {
-        if (c.value.isPlaying) {
-          c.pause();
-        } else {
-          c.play();
-        }
+        setState(() {
+          if (c.value.isPlaying) {
+            c.pause();
+            _showControls = true; // 暂停时显示控制栏
+          } else {
+            c.play();
+            _showControls = false; // 播放时隐藏控制栏
+          }
+        });
       } catch (_) {}
     }
   }
