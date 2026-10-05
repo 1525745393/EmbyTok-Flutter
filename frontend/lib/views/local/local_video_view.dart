@@ -124,12 +124,29 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                   );
                 case 'sources':
                   context.push('/file-sources');
+                case 'undoRename':
+                  try {
+                    final path = await LocalVideoService().undoLastRename();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('已撤销重命名: ${path.split('/').last}')),
+                      );
+                      notifier.refresh();
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('撤销失败: $e')),
+                      );
+                    }
+                  }
               }
             },
             itemBuilder: (_) => const [
               PopupMenuItem(value: 'rescan', child: Text('重新扫描')),
               PopupMenuItem(value: 'scrape', child: Text('刮削未识别')),
               PopupMenuItem(value: 'sources', child: Text('管理文件源')),
+              PopupMenuItem(value: 'undoRename', child: Text('撤销最近重命名')),
             ],
           ),
         ],
@@ -163,9 +180,20 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
             else if (state.scrapeTotal > 0 && !state.scraping)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: Text(
-                  '刮削完成：成功 ${state.scrapeOk} · 失败 ${state.scrapeFail}',
-                  style: TextStyle(fontSize: 11, color: state.scrapeFail > 0 ? Colors.orange : Colors.green),
+                child: Row(
+                  children: [
+                    Text(
+                      '刮削完成：成功 ${state.scrapeOk} · 失败 ${state.scrapeFail}',
+                      style: TextStyle(fontSize: 11, color: state.scrapeFail > 0 ? Colors.orange : Colors.green),
+                    ),
+                    if (state.scrapeFail > 0) ...[
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => notifier.scrapeMissing(),
+                        child: const Text('重试失败', style: TextStyle(fontSize: 11, color: Colors.blue, decoration: TextDecoration.underline)),
+                      ),
+                    ],
+                  ],
                 ),
               ),
 
@@ -1545,6 +1573,17 @@ class _GridCardState extends State<_GridCard> {
                         child: const Icon(Icons.movie, size: 32),
                       ),
           ),
+          // P2#2 lowConfidence 角标
+          if (widget.scraped?.lowConfidence == true)
+            Positioned(
+              top: 4,
+              left: 4,
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: const BoxDecoration(color: Colors.orange, shape: BoxShape.circle),
+                child: const Icon(Icons.help_outline, color: Colors.white, size: 12),
+              ),
+            ),
           // 评分角标右上（刮削 P0）
           if (widget.scraped?.rating != null)
             Positioned(

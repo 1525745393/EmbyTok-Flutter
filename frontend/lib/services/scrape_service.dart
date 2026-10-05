@@ -44,6 +44,7 @@ class ScrapedMedia {
   final int? tvId; // 剧集聚合用
   final String? certification; // 家长分级（如 PG-13 / 15+）
   final int scrapedAt;
+  final bool lowConfidence; // P2#2：年份未精确匹配时标记
 
   const ScrapedMedia({
     required this.tmdbId,
@@ -66,6 +67,7 @@ class ScrapedMedia {
     this.tvId,
     this.certification,
     required this.scrapedAt,
+    this.lowConfidence = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -89,6 +91,7 @@ class ScrapedMedia {
         'tvId': tvId,
         'certification': certification,
         'scrapedAt': scrapedAt,
+        'lowConfidence': lowConfidence,
       };
 
   factory ScrapedMedia.fromJson(Map<String, dynamic> j) => ScrapedMedia(
@@ -115,6 +118,7 @@ class ScrapedMedia {
         tvId: j['tvId'] as int?,
         certification: j['certification'] as String?,
         scrapedAt: j['scrapedAt'] as int? ?? 0,
+        lowConfidence: j['lowConfidence'] as bool? ?? false,
       );
 }
 
@@ -373,30 +377,44 @@ class ScrapeService {
       final results = await TmdbService.searchMovies(parsed.title, year: parsed.year);
       if (results.isEmpty) return null;
       final best = _pickBestMovie(results, parsed);
-      final movieId = best['id'] as int;
+      final movieId = best.result['id'] as int;
       final details = await TmdbService.getMovieDetails(movieId);
-      return _fromMovieDetails(details, best, parsed, movieId);
+      final m = _fromMovieDetails(details, best.result, parsed, movieId);
+      return m == null ? null : _copyWithLowConfidence(m, best.lowConfidence);
     }
   }
 
+  static ScrapedMedia _copyWithLowConfidence(ScrapedMedia m, bool lc) {
+    return ScrapedMedia(
+      tmdbId: m.tmdbId, type: m.type, title: m.title, year: m.year,
+      posterPath: m.posterPath, backdropPath: m.backdropPath,
+      overview: m.overview, rating: m.rating, genres: m.genres,
+      cast: m.cast, directors: m.directors, studios: m.studios,
+      imdbId: m.imdbId, stillPath: m.stillPath, episodeTitle: m.episodeTitle,
+      season: m.season, episode: m.episode, tvId: m.tvId,
+      certification: m.certification, scrapedAt: m.scrapedAt,
+      lowConfidence: lc,
+    );
+  }
+
   /// 从搜索结果中选最佳匹配：优先年份吻合，其次标题相似
-  static Map<String, dynamic> _pickBestMovie(
+  static ({Map<String, dynamic> result, bool lowConfidence}) _pickBestMovie(
       List<Map<String, dynamic>> results, ParsedName p) {
-    if (results.length == 1) return results.first;
-    if (p.year == null) return results.first;
+    if (results.length == 1) return (result: results.first, lowConfidence: false);
+    if (p.year == null) return (result: results.first, lowConfidence: false);
     // 优先年份精确匹配
     for (final r in results) {
       final rd = r['release_date'] as String?;
-      if (rd != null && rd.startsWith('${p.year}')) return r;
+      if (rd != null && rd.startsWith('${p.year}')) return (result: r, lowConfidence: false);
     }
     // 容差 ±1 年
     for (final r in results) {
       final rd = r['release_date'] as String?;
       if (rd == null) continue;
       final y = int.tryParse(rd.substring(0, 4));
-      if (y != null && (y - p.year!).abs() <= 1) return r;
+      if (y != null && (y - p.year!).abs() <= 1) return (result: r, lowConfidence: false);
     }
-    return results.first;
+    return (result: results.first, lowConfidence: true);
   }
 
   static ScrapedMedia? _fromMovieDetails(Map<String, dynamic> d,
