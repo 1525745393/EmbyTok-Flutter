@@ -1,3 +1,16 @@
+# [2.358.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.357.1...v2.358.0) (2026-10-05)
+
+
+### Bug Fixes
+
+* _controller改为_activeController修复编译错误 ([04bed4c](https://github.com/1525745393/EmbyTok-Flutter/commit/04bed4c04b65546d8b7c17c711043ff9ece0ed7d))
+* 底部信息条显示季集号和单集标题 ([366f503](https://github.com/1525745393/EmbyTok-Flutter/commit/366f50337fde9f0ceb88aff15d422f0bae6b93ff))
+
+
+### Features
+
+* 右侧栏加旋转唱片封面按钮（点击静音）+ 修复演员头像GoRouter路由 ([d1eb232](https://github.com/1525745393/EmbyTok-Flutter/commit/d1eb232489a1aac339201e292cba28b01635afa0))
+
 ## [2.357.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.357.0...v2.357.1) (2026-10-05)
 
 
