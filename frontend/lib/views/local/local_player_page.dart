@@ -66,6 +66,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
   VideoPlayerController? _activeController; // 当前控制器（供缓冲/错误监听）
   int _selectedSubtitleIdx = 0; // 0=关闭, >0=外挂字幕索引（从1开始）
   bool _nightMode = false; // 夜间模式（降低屏幕亮度）
+  bool _autoPlay = true; // 连播开关
   bool _pureMode = false; // 纯净模式（隐藏所有UI，沉浸式播放）
   bool _muted = false; // 静音
   late final AnimationController _discController;
@@ -714,7 +715,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
   void _onPlaybackEnded() {
     // 播放完成：清除续播记录
     LocalVideoService().clearResume(item.pathHash);
-    if (_index < widget.items.length - 1) {
+    if (_autoPlay && _index < widget.items.length - 1) {
       _jumpTo(_index + 1);
     }
   }
@@ -1071,13 +1072,13 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // 纯净模式
+                      // 连播开关
                       GestureDetector(
                         onTap: () {
-                          setState(() => _pureMode = !_pureMode);
+                          setState(() => _autoPlay = !_autoPlay);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(_pureMode ? '纯净模式已开启' : '纯净模式已关闭'),
+                              content: Text(_autoPlay ? '连播已开启' : '连播已关闭'),
                               duration: const Duration(milliseconds: 800),
                             ),
                           );
@@ -1087,10 +1088,10 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
                           height: 40,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: _pureMode ? Colors.pinkAccent.withValues(alpha: 0.8) : Colors.white24,
+                            color: _autoPlay ? Colors.pinkAccent.withValues(alpha: 0.8) : Colors.white24,
                           ),
                           child: Icon(Icons.all_inclusive,
-                              color: _pureMode ? Colors.white : Colors.white70, size: 22),
+                              color: _autoPlay ? Colors.white : Colors.white70, size: 22),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -1437,13 +1438,13 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // 纯净模式
+                      // 连播开关
                       GestureDetector(
                         onTap: () {
-                          setState(() => _pureMode = !_pureMode);
+                          setState(() => _autoPlay = !_autoPlay);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(_pureMode ? '纯净模式已开启' : '纯净模式已关闭'),
+                              content: Text(_autoPlay ? '连播已开启' : '连播已关闭'),
                               duration: const Duration(milliseconds: 800),
                             ),
                           );
@@ -1453,10 +1454,10 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
                           height: 40,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: _pureMode ? Colors.pinkAccent.withValues(alpha: 0.8) : Colors.white24,
+                            color: _autoPlay ? Colors.pinkAccent.withValues(alpha: 0.8) : Colors.white24,
                           ),
                           child: Icon(Icons.all_inclusive,
-                              color: _pureMode ? Colors.white : Colors.white70, size: 22),
+                              color: _autoPlay ? Colors.white : Colors.white70, size: 22),
                         ),
                       ),
                       const SizedBox(height: 16),
