@@ -1,3 +1,11 @@
+## [2.364.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.364.2...v2.364.3) (2026-10-05)
+
+
+### Bug Fixes
+
+* 恢复被sed损坏的video_sheet_utils.dart并改用LocalPlayPage ([65fcc75](https://github.com/1525745393/EmbyTok-Flutter/commit/65fcc7591d9fe7ec0d2ed38440e54aa10e28b325))
+* 本地feed直接用VideoPageItem-修复双层PageView和import路径 ([fc7e66e](https://github.com/1525745393/EmbyTok-Flutter/commit/fc7e66e58fd33827af923ed452fe9e5330ff5627))
+
 ## [2.364.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.364.1...v2.364.2) (2026-10-05)
 
 
