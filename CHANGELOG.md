@@ -1,3 +1,10 @@
+# [2.365.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.364.3...v2.365.0) (2026-10-05)
+
+
+### Features
+
+* TV刮削年份置信度校验+失败原因记录failedMap+只重试失败项 ([5058e3d](https://github.com/1525745393/EmbyTok-Flutter/commit/5058e3d889b3e2a6b54ba316a3d6c3e4890ffa64))
+
 ## [2.364.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.364.2...v2.364.3) (2026-10-05)
 
 
