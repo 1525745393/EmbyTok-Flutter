@@ -1050,6 +1050,37 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        // 方向切换
+                        IconButton(
+                          icon: const Icon(Icons.screen_rotation, color: Colors.white, size: 22),
+                          onPressed: () {
+                            final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+                            SystemChrome.setPreferredOrientations(isLandscape
+                                ? [DeviceOrientation.portraitUp]
+                                : [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+                          },
+                        ),
+                        // PiP
+                        IconButton(
+                          icon: const Icon(Icons.picture_in_picture_alt, color: Colors.white, size: 22),
+                          onPressed: () => _enterPip(),
+                        ),
+                        // 锁屏
+                        IconButton(
+                          icon: Icon(_locked ? Icons.lock : Icons.lock_open, color: Colors.white, size: 22),
+                          onPressed: () {
+                            setState(() {
+                              _locked = !_locked;
+                              if (_locked) {
+                                _hideTimer?.cancel();
+                                _showControls = false;
+                              } else {
+                                _showControls = true;
+                                _scheduleHide();
+                              }
+                            });
+                          },
+                        ),
                         IconButton(
                           icon: const Icon(Icons.settings, color: Colors.white, size: 22),
                           onPressed: () => _showSettingsPanel(context),
@@ -1352,54 +1383,38 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
                                     color: Colors.white, size: 22),
                                 onPressed: () => _showEpisodeList(context),
                               ),
+                            // 字幕（对齐在线）
+                            IconButton(
+                              icon: const Icon(Icons.subtitles_outlined,
+                                  color: Colors.white, size: 22),
+                              onPressed: () => _showSubtitlePicker(context),
+                            ),
+                            // 章节（多集时显示）
+                            if (widget.items.length > 1)
+                              IconButton(
+                                icon: const Icon(Icons.list,
+                                    color: Colors.white, size: 22),
+                                onPressed: () => _showChapters(context),
+                              ),
+                            // 倍速（文字按钮，对齐在线）
                             GestureDetector(
                               onTap: () => _showSpeedPicker(context),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.white24,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
                                 child: Text(
-                                  '${_playbackSpeed}x',
+                                  '${_playbackSpeed.toStringAsFixed(1)}x',
                                   style: const TextStyle(
-                                      color: Colors.white, fontSize: 12),
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600),
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            // 屏幕锁定
+                            // 画面比例（对齐在线）
                             IconButton(
-                              icon: Icon(
-                                _locked ? Icons.lock : Icons.lock_open,
-                                color: Colors.white,
-                                size: 22,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _locked = !_locked;
-                                  if (_locked) {
-                                    _hideTimer?.cancel();
-                                    _showControls = false;
-                                  } else {
-                                    _showControls = true;
-                                    _scheduleHide();
-                                  }
-                                });
-                              },
-                            ),
-                            const SizedBox(width: 4),
-                            IconButton(
-                              icon: const Icon(Icons.fullscreen,
-                                  color: Colors.white, size: 24),
-                              onPressed: () {
-                                // 横屏：锁定方向
-                                SystemChrome.setPreferredOrientations([
-                                  DeviceOrientation.landscapeLeft,
-                                  DeviceOrientation.landscapeRight,
-                                ]);
-                              },
+                              icon: const Icon(Icons.aspect_ratio,
+                                  color: Colors.white, size: 22),
+                              onPressed: () => _showAspectPicker(context),
                             ),
                           ],
                         ),
