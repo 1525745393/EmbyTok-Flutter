@@ -21,6 +21,7 @@ import '../../services/local_video_service.dart';
 import '../../services/tmdb_service.dart';
 import '../../utils/pip_util.dart';
 import '../../providers/local_video_provider.dart';
+import '../../providers/video_playback_controller.dart';
 import '../../providers/favorites_provider.dart';
 import '../../providers/app_preferences_providers.dart';
 import '../../widgets/video/gesture_overlay.dart';
@@ -66,7 +67,6 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
   VideoPlayerController? _activeController; // 当前控制器（供缓冲/错误监听）
   int _selectedSubtitleIdx = 0; // 0=关闭, >0=外挂字幕索引（从1开始）
   bool _nightMode = false; // 夜间模式（降低屏幕亮度）
-  bool _autoPlay = true; // 连播开关
   bool _muted = false; // 静音
   late final AnimationController _discController;
   late final Animation<double> _discRotation;
@@ -167,7 +167,8 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
             _showControls = true; // 暂停时显示控制栏
           } else {
             c.play();
-            _showControls = false; // 播放时隐藏控制栏
+            // 纯净模式（isAutoPlay=true）播放时自动隐藏控制栏；关闭时保持显示
+            _showControls = !ref.read(isAutoPlayProvider);
           }
         });
       } catch (_) {}
@@ -714,7 +715,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
   void _onPlaybackEnded() {
     // 播放完成：清除续播记录
     LocalVideoService().clearResume(item.pathHash);
-    if (_autoPlay && _index < widget.items.length - 1) {
+    if (ref.read(isAutoPlayProvider) && _index < widget.items.length - 1) {
       _jumpTo(_index + 1);
     }
   }
@@ -1071,27 +1072,32 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // 连播开关
-                      GestureDetector(
-                        onTap: () {
-                          setState(() => _autoPlay = !_autoPlay);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(_autoPlay ? '连播已开启' : '连播已关闭'),
-                              duration: const Duration(milliseconds: 800),
+                      // 连播开关（纯净模式同在线：一个按钮控制连播+控制栏自动隐藏）
+                      Consumer(
+                        builder: (context, ref, _) {
+                          final isAuto = ref.watch(isAutoPlayProvider);
+                          return GestureDetector(
+                            onTap: () {
+                              ref.read(isAutoPlayProvider.notifier).toggle();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(isAuto ? '连播模式已关闭' : '连播模式已开启'),
+                                  duration: const Duration(milliseconds: 800),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isAuto ? Colors.pinkAccent.withValues(alpha: 0.8) : Colors.white24,
+                              ),
+                              child: Icon(Icons.all_inclusive,
+                                  color: isAuto ? Colors.white : Colors.white70, size: 22),
                             ),
                           );
                         },
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: _autoPlay ? Colors.pinkAccent.withValues(alpha: 0.8) : Colors.white24,
-                          ),
-                          child: Icon(Icons.all_inclusive,
-                              color: _autoPlay ? Colors.white : Colors.white70, size: 22),
-                        ),
                       ),
                       const SizedBox(height: 16),
                       // 演员头像
@@ -1437,27 +1443,32 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // 连播开关
-                      GestureDetector(
-                        onTap: () {
-                          setState(() => _autoPlay = !_autoPlay);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(_autoPlay ? '连播已开启' : '连播已关闭'),
-                              duration: const Duration(milliseconds: 800),
+                      // 连播开关（纯净模式同在线：一个按钮控制连播+控制栏自动隐藏）
+                      Consumer(
+                        builder: (context, ref, _) {
+                          final isAuto = ref.watch(isAutoPlayProvider);
+                          return GestureDetector(
+                            onTap: () {
+                              ref.read(isAutoPlayProvider.notifier).toggle();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(isAuto ? '连播模式已关闭' : '连播模式已开启'),
+                                  duration: const Duration(milliseconds: 800),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isAuto ? Colors.pinkAccent.withValues(alpha: 0.8) : Colors.white24,
+                              ),
+                              child: Icon(Icons.all_inclusive,
+                                  color: isAuto ? Colors.white : Colors.white70, size: 22),
                             ),
                           );
                         },
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: _autoPlay ? Colors.pinkAccent.withValues(alpha: 0.8) : Colors.white24,
-                          ),
-                          child: Icon(Icons.all_inclusive,
-                              color: _autoPlay ? Colors.white : Colors.white70, size: 22),
-                        ),
                       ),
                       const SizedBox(height: 16),
                       // 演员头像
