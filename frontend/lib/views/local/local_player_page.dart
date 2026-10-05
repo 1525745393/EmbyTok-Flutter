@@ -1612,32 +1612,110 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
     );
   }
 
-  /// 详情弹窗（P1：文件名/大小/分辨率/时长/路径）
+  /// 详情弹窗：刮削元数据 + 文件信息
   void _showInfo(BuildContext context) {
+    final scraped = ref.read(localVideoProvider).scrapedMap[item.pathHash];
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1E1E1E),
+      isScrollControlled: true,
       builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(item.name,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600)),
-              const SizedBox(height: 16),
-              _infoRow('分辨率', item.resolutionLabel),
-              _infoRow('时长', item.durationLabel),
-              _infoRow('大小', item.sizeLabel),
-              _infoRow('修改时间',
-                  '${item.modifiedAt.year}-${item.modifiedAt.month.toString().padLeft(2, '0')}-${item.modifiedAt.day.toString().padLeft(2, '0')}'),
-              if (item.isAppDirFile) _infoRow('路径', item.relativePath ?? item.path),
-              const SizedBox(height: 12),
-            ],
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (_, scrollController) => SingleChildScrollView(
+            controller: scrollController,
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 标题
+                Text(scraped?.title ?? item.name,
+                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                if (scraped != null && scraped.year != null)
+                  Text('${scraped.year}', style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                const SizedBox(height: 16),
+                // 评分 + 类型
+                if (scraped != null && (scraped.rating != null || scraped.genres.isNotEmpty))
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (scraped.rating != null && scraped.rating! > 0)
+                        Chip(
+                          backgroundColor: Colors.pinkAccent.withValues(alpha: 0.2),
+                          label: Text('★ ${scraped.rating!.toStringAsFixed(1)}',
+                              style: const TextStyle(color: Colors.pinkAccent, fontSize: 12)),
+                        ),
+                      ...scraped.genres.take(4).map((g) => Chip(
+                            backgroundColor: Colors.white12,
+                            label: Text(g, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                          )),
+                    ],
+                  ),
+                if (scraped != null && (scraped.rating != null || scraped.genres.isNotEmpty))
+                  const SizedBox(height: 16),
+                // 简介
+                if (scraped != null && scraped.overview != null && scraped.overview!.isNotEmpty) ...[
+                  const Text('简介', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 6),
+                  Text(scraped.overview!, style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.5)),
+                  const SizedBox(height: 16),
+                ],
+                // 导演
+                if (scraped != null && scraped.directors.isNotEmpty) ...[
+                  _infoRow('导演', scraped.directors.join('、')),
+                  const SizedBox(height: 8),
+                ],
+                // 演员
+                if (scraped != null && scraped.cast.isNotEmpty) ...[
+                  const Text('演职人员', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  ...scraped.cast.take(8).map((c) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 16,
+                              backgroundColor: Colors.white12,
+                              backgroundImage: c['profilePath'] != null && c['profilePath']!.isNotEmpty
+                                  ? NetworkImage('https://image.tmdb.org/t/p/w92${c['profilePath']}')
+                                  : null,
+                              child: c['profilePath'] == null || c['profilePath']!.isEmpty
+                                  ? const Icon(Icons.person, size: 16, color: Colors.white54)
+                                  : null,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(c['name'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 13)),
+                                  if (c['character'] != null && c['character']!.isNotEmpty)
+                                    Text(c['character']!, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )),
+                  const SizedBox(height: 16),
+                ],
+                // 媒体信息
+                const Text('媒体信息', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                _infoRow('文件名', item.name),
+                _infoRow('分辨率', item.resolutionLabel),
+                _infoRow('时长', item.durationLabel),
+                _infoRow('大小', item.sizeLabel),
+                _infoRow('修改时间',
+                    '${item.modifiedAt.year}-${item.modifiedAt.month.toString().padLeft(2, '0')}-${item.modifiedAt.day.toString().padLeft(2, '0')}'),
+                if (item.isAppDirFile) _infoRow('路径', item.relativePath ?? item.path),
+              ],
+            ),
           ),
         ),
       ),
