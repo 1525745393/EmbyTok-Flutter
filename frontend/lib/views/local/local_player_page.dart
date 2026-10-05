@@ -1635,6 +1635,13 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                 Text(scraped?.title ?? item.name,
                     style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
+                // 季集信息
+                if (scraped != null && scraped.season != null && scraped.episode != null)
+                  Text('第${scraped.season}季 第${scraped.episode}集',
+                      style: const TextStyle(color: Colors.pinkAccent, fontSize: 13, fontWeight: FontWeight.w600)),
+                if (scraped?.episodeTitle != null && scraped!.episodeTitle!.isNotEmpty)
+                  Text(scraped.episodeTitle!,
+                      style: const TextStyle(color: Colors.white70, fontSize: 13)),
                 if (scraped != null && scraped.year != null)
                   Text('${scraped.year}', style: const TextStyle(color: Colors.white54, fontSize: 13)),
                 const SizedBox(height: 16),
