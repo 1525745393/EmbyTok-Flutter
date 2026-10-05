@@ -65,7 +65,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   VideoPlayerController? _activeController; // 当前控制器（供缓冲/错误监听）
   int _selectedSubtitleIdx = 0; // 0=关闭, >0=外挂字幕索引（从1开始）
   bool _nightMode = false; // 夜间模式（降低屏幕亮度）
-  bool _autoPlay = true; // 连播开关
+  bool _pureMode = false; // 纯净模式（隐藏所有UI，沉浸式播放）
   // 方向锁定三态：landscape=横屏锁定, portrait=竖屏锁定, sensor=自动旋转
   _OrientationPref _orientationPref = _OrientationPref.landscape;
 
@@ -965,9 +965,9 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
               left: 0,
               right: 0,
               child: IgnorePointer(
-                ignoring: !_showControls,
+                ignoring: !_showControls || _pureMode,
                 child: AnimatedOpacity(
-                  opacity: _showControls ? 1 : 0,
+                  opacity: (!_showControls || _pureMode) ? 0 : 1,
                   duration: const Duration(milliseconds: 200),
                   child: Container(
                     padding: EdgeInsets.only(
@@ -1043,20 +1043,20 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
               right: 12,
               bottom: MediaQuery.of(context).padding.bottom + 110,
               child: IgnorePointer(
-                ignoring: !_showControls,
+                ignoring: !_showControls || _pureMode,
                 child: AnimatedOpacity(
-                  opacity: _showControls ? 1 : 0,
+                  opacity: (!_showControls || _pureMode) ? 0 : 1,
                   duration: const Duration(milliseconds: 200),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // 连播开关
+                      // 纯净模式
                       GestureDetector(
                         onTap: () {
-                          setState(() => _autoPlay = !_autoPlay);
+                          setState(() => _pureMode = !_pureMode);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(_autoPlay ? '连播已开启' : '连播已关闭'),
+                              content: Text(_pureMode ? '纯净模式已开启' : '纯净模式已关闭'),
                               duration: const Duration(milliseconds: 800),
                             ),
                           );
@@ -1066,10 +1066,10 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                           height: 40,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: _autoPlay ? Colors.pinkAccent.withValues(alpha: 0.8) : Colors.white24,
+                            color: _pureMode ? Colors.pinkAccent.withValues(alpha: 0.8) : Colors.white24,
                           ),
                           child: Icon(Icons.all_inclusive,
-                              color: _autoPlay ? Colors.white : Colors.white70, size: 22),
+                              color: _pureMode ? Colors.white : Colors.white70, size: 22),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -1171,9 +1171,9 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
               right: 0,
               bottom: 0,
               child: IgnorePointer(
-                ignoring: !_showControls,
+                ignoring: !_showControls || _pureMode,
                 child: AnimatedOpacity(
-                  opacity: _showControls ? 1 : 0,
+                  opacity: (!_showControls || _pureMode) ? 0 : 1,
                   duration: const Duration(milliseconds: 200),
                   child: Container(
                     padding: EdgeInsets.only(
@@ -1383,13 +1383,13 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // 连播开关
+                      // 纯净模式
                       GestureDetector(
                         onTap: () {
-                          setState(() => _autoPlay = !_autoPlay);
+                          setState(() => _pureMode = !_pureMode);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(_autoPlay ? '连播已开启' : '连播已关闭'),
+                              content: Text(_pureMode ? '纯净模式已开启' : '纯净模式已关闭'),
                               duration: const Duration(milliseconds: 800),
                             ),
                           );
@@ -1399,10 +1399,10 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                           height: 40,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: _autoPlay ? Colors.pinkAccent.withValues(alpha: 0.8) : Colors.white24,
+                            color: _pureMode ? Colors.pinkAccent.withValues(alpha: 0.8) : Colors.white24,
                           ),
                           child: Icon(Icons.all_inclusive,
-                              color: _autoPlay ? Colors.white : Colors.white70, size: 22),
+                              color: _pureMode ? Colors.white : Colors.white70, size: 22),
                         ),
                       ),
                       const SizedBox(height: 16),
