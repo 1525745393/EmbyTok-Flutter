@@ -1,3 +1,11 @@
+## [2.357.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.357.0...v2.357.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* 演员头像点击跳转改用context.push GoRouter路由 ([beb0fd7](https://github.com/1525745393/EmbyTok-Flutter/commit/beb0fd70623a2a88dc00b671332325975ace7199))
+* 顶部按钮改为纯净模式，开启后隐藏所有UI沉浸式播放 ([3f491df](https://github.com/1525745393/EmbyTok-Flutter/commit/3f491dfa3fdd2867cfb9dae524c511a512532ebc))
+
 # [2.357.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.356.0...v2.357.0) (2026-10-05)
 
 
