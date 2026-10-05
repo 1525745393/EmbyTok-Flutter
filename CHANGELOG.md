@@ -1,3 +1,10 @@
+# [2.357.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.356.0...v2.357.0) (2026-10-05)
+
+
+### Features
+
+* 演员头像上方加连播开关按钮，与在线对齐 ([cb506ea](https://github.com/1525745393/EmbyTok-Flutter/commit/cb506ea587b454526567255a836aca7ce772c2f2))
+
 # [2.356.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.355.0...v2.356.0) (2026-10-05)
 
 
