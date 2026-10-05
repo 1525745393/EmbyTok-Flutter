@@ -113,7 +113,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
-            onSelected: (v) {
+            onSelected: (v) async {
               switch (v) {
                 case 'rescan':
                   notifier.refresh();
@@ -1223,7 +1223,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
     final items = state.items.where((e) => ids.contains(e.id)).toList();
     for (final it in items) {
       // 清除缓存后重刮
-      await ScrapeService.saveCache(it.pathHash, ScrapedMedia(type: '', title: '', scrapedAt: 0));
+      await ScrapeService.saveCache(it.pathHash, const ScrapedMedia(tmdbId: 0, type: '', title: '', scrapedAt: 0));
     }
     notifier.exitSelecting();
     notifier.scrapeMissing();
