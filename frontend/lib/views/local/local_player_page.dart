@@ -1717,6 +1717,18 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
                                     Text(' (${scraped.year})', style: const TextStyle(color: Colors.white70, fontSize: 14)),
                                 ],
                               ),
+                              // 季集信息
+                              if (scraped != null && scraped.season != null && scraped.episode != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    '第${scraped.season}季 第${scraped.episode}集'
+                                    '${scraped.episodeTitle != null && scraped.episodeTitle!.isNotEmpty ? ' · ${scraped.episodeTitle}' : ''}',
+                                    style: const TextStyle(color: Colors.pinkAccent, fontSize: 13, fontWeight: FontWeight.w600),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
                               if (scraped != null && (scraped.rating != null && scraped.rating! > 0 || item.duration.inSeconds > 0))
                                 Padding(
                                   padding: const EdgeInsets.only(top: 4),
