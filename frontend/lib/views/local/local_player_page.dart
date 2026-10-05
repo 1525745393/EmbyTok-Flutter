@@ -55,7 +55,9 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   int _seekToken = 0; // 续播 seek 竞态保护：快速切换视频时使旧 seek 失效
   Timer? _saveTimer; // 周期保存播放位置（dispose 时子组件已销毁，无法在 dispose 中读位置）
   bool _showControls = true; // 控制栏显隐（单击切换）
+  bool _showProgress = true; // 进度条显隐（拖动后3秒自动隐藏，点击进度条区域显示）
   Timer? _hideTimer;
+  Timer? _progressHideTimer;
   double _playbackSpeed = 1.0;
   bool _locked = false; // 屏幕锁定（隐藏控制栏，禁用手势）
   VideoPlayerController? _activeController; // 当前控制器（供缓冲/错误监听）
@@ -123,6 +125,20 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
     _hideTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) setState(() => _showControls = false);
     });
+  }
+
+  /// 显示进度条，3秒后自动隐藏（播放中）；暂停时常驻
+  void _showProgressTemporarily() {
+    _progressHideTimer?.cancel();
+    if (mounted) setState(() => _showProgress = true);
+    final c = _activeController;
+    if (c != null && c.value.isPlaying) {
+      _progressHideTimer = Timer(const Duration(seconds: 3), () {
+        if (mounted && _activeController?.value.isPlaying == true) {
+          setState(() => _showProgress = false);
+        }
+      });
+    }
   }
 
   /// 点按视频：直接切换播放/暂停；暂停时显示控制栏，播放时隐藏
@@ -1510,18 +1526,29 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
               ),
             ),
           ),
-          // 进度条（始终可见，播放中可拖动）
+          // 进度条（播放中3秒自动隐藏，点击底部区域显示）
           Positioned(
             left: 0, right: 0, bottom: 0,
-            child: Container(
-              padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                bottom: MediaQuery.of(context).padding.bottom + 8,
+            child: GestureDetector(
+              onTap: _showProgressTemporarily,
+              behavior: HitTestBehavior.opaque,
+              child: IgnorePointer(
+                ignoring: !_showProgress,
+                child: AnimatedOpacity(
+                  opacity: _showProgress ? 1 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Container(
+                    padding: EdgeInsets.only(
+                      left: 16,
+                      right: 16,
+                      bottom: MediaQuery.of(context).padding.bottom + 8,
+                    ),
+                    child: _activeController != null
+                        ? SeekableProgressBar(controller: _activeController!, formatDuration: _formatDur)
+                        : const SizedBox(height: 2),
+                  ),
+                ),
               ),
-              child: _activeController != null
-                  ? SeekableProgressBar(controller: _activeController!, formatDuration: _formatDur)
-                  : const SizedBox(height: 2),
             ),
           ),
         ],
