@@ -979,7 +979,8 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
                 ),
               ),
             ),
-            // 播放信息 OSD（左上角半透明：分辨率/时长）
+            // 播放信息 OSD（仅嵌入模式显示在左上角；独立页有返回按钮会重叠，隐藏）
+            if (widget.embedded)
             Positioned(
               top: MediaQuery.of(context).padding.top + 8,
               left: 12,
