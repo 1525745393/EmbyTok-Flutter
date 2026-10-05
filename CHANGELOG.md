@@ -1,3 +1,11 @@
+## [2.364.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.364.1...v2.364.2) (2026-10-05)
+
+
+### Bug Fixes
+
+* 横屏对齐在线-顶部加方向/PiP/锁屏，底部加字幕/章节/比例 ([556ca14](https://github.com/1525745393/EmbyTok-Flutter/commit/556ca14a1d6a019c15452d9510c6a7d4ce7de648))
+* 竖屏嵌入模式对齐在线feed-底部只留进度条+信息卡 ([3d92887](https://github.com/1525745393/EmbyTok-Flutter/commit/3d928877683b4b7e440e499cb30f01c0a902be2d))
+
 ## [2.364.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.364.0...v2.364.1) (2026-10-05)
 
 
