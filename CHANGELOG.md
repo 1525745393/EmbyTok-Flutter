@@ -1,3 +1,10 @@
+# [2.361.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.360.1...v2.361.0) (2026-10-05)
+
+
+### Features
+
+* P0刮削优化-searchMovies传year/language+匹配置信度 ([bfb2ac0](https://github.com/1525745393/EmbyTok-Flutter/commit/bfb2ac0d98b66510207e2c2575853b55b51d14b0))
+
 ## [2.360.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.360.0...v2.360.1) (2026-10-05)
 
 
