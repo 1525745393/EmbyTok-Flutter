@@ -1,3 +1,10 @@
+## [2.350.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.350.1...v2.350.2) (2026-10-05)
+
+
+### Bug Fixes
+
+* 点按逻辑对齐在线（显示/隐藏控制栏，中央暂停图标可点播放） ([98c24fd](https://github.com/1525745393/EmbyTok-Flutter/commit/98c24fde6a6c141a13e85444ac1799b4777a30fd))
+
 ## [2.350.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.350.0...v2.350.1) (2026-10-04)
 
 
