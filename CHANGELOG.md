@@ -1,3 +1,10 @@
+# [2.356.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.355.0...v2.356.0) (2026-10-05)
+
+
+### Features
+
+* 演员头像右下角+关注按钮，与在线对齐 ([779c2bf](https://github.com/1525745393/EmbyTok-Flutter/commit/779c2bfe6140db617419216e6a7331ace722cc9c))
+
 # [2.355.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.354.0...v2.355.0) (2026-10-05)
 
 
