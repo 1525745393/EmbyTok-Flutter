@@ -49,6 +49,7 @@ class LocalVideoState {
   final int scrapeTotal;
   final int scrapeOk; // P2 #11：成功数
   final int scrapeFail; // P2 #11：失败数
+  final Map<String, String> failedMap; // P2 #6：pathHash→失败原因
   final String? typeFilter; // 类型筛选（P1 #6）：null=全部/movie/tv/none
 
   const LocalVideoState({
@@ -71,6 +72,7 @@ class LocalVideoState {
     this.scrapeTotal = 0,
     this.scrapeOk = 0,
     this.scrapeFail = 0,
+    this.failedMap = const {},
     this.typeFilter,
   });
 
@@ -94,6 +96,7 @@ class LocalVideoState {
     int? scrapeTotal,
     int? scrapeOk,
     int? scrapeFail,
+    Map<String, String>? failedMap,
     String? typeFilter,
   }) =>
       LocalVideoState(
@@ -116,6 +119,7 @@ class LocalVideoState {
         scrapeTotal: scrapeTotal ?? this.scrapeTotal,
         scrapeOk: scrapeOk ?? this.scrapeOk,
         scrapeFail: scrapeFail ?? this.scrapeFail,
+        failedMap: failedMap ?? this.failedMap,
         typeFilter: typeFilter ?? this.typeFilter,
       );
 
@@ -262,8 +266,14 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
     final todo = state.items
         .where((e) => !state.scrapedMap.containsKey(e.pathHash))
         .toList();
-    state = state.copyWith(scraping: true, scrapeDone: 0, scrapeTotal: todo.length);
+    state = state.copyWith(
+      scraping: true,
+      scrapeDone: 0,
+      scrapeTotal: todo.length,
+      failedMap: const {},
+    );
     final cached = Map<String, ScrapedMedia>.from(state.scrapedMap);
+    final failed = <String, String>{};
     var done = 0, ok = 0, fail = 0;
     // 并发限制：4 并发，对齐 TMDB 免费层 ~40req/10s
     const concurrency = 4;
@@ -286,16 +296,70 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
           if (m != null) {
             cached[item.pathHash] = m;
             await ScrapeService.saveCache(item.pathHash, m);
+            failed.remove(item.pathHash);
             ok++;
           } else {
+            failed[item.pathHash] = '未找到匹配';
             fail++;
           }
-        } catch (_) {
+        } catch (e) {
+          failed[item.pathHash] = e.toString();
           fail++;
         }
         done++;
         if (_mounted) {
-          state = state.copyWith(scrapedMap: cached, scrapeDone: done);
+          state = state.copyWith(scrapedMap: cached, scrapeDone: done, failedMap: Map.unmodifiable(failed));
+        }
+      }
+    }
+    await Future.wait(List.generate(concurrency, (_) => worker()));
+    if (_mounted) {
+      state = state.copyWith(scraping: false, scrapeOk: ok, scrapeFail: fail);
+    }
+  }
+
+  /// 只重试上次刮削失败的项
+  Future<void> retryFailed() async {
+    if (state.scraping) return;
+    final hashes = state.failedMap.keys.toSet();
+    if (hashes.isEmpty) return;
+    final todo = state.items.where((e) => hashes.contains(e.pathHash)).toList();
+    state = state.copyWith(
+      scraping: true,
+      scrapeDone: 0,
+      scrapeTotal: todo.length,
+    );
+    final cached = Map<String, ScrapedMedia>.from(state.scrapedMap);
+    final failed = <String, String>{};
+    var done = 0, ok = 0, fail = 0;
+    const concurrency = 4;
+    var i = 0;
+    Future<void> worker() async {
+      while (i < todo.length) {
+        final idx = i++;
+        final item = todo[idx];
+        try {
+          final m = await ScrapeService.scrapeFile(
+            item.pathHash,
+            item.name,
+            parentDir: item.relativePath,
+            mediaTypeHint: item.mediaType,
+          );
+          if (m != null) {
+            cached[item.pathHash] = m;
+            await ScrapeService.saveCache(item.pathHash, m);
+            ok++;
+          } else {
+            failed[item.pathHash] = '未找到匹配';
+            fail++;
+          }
+        } catch (e) {
+          failed[item.pathHash] = e.toString();
+          fail++;
+        }
+        done++;
+        if (_mounted) {
+          state = state.copyWith(scrapedMap: cached, scrapeDone: done, failedMap: Map.unmodifiable(failed));
         }
       }
     }

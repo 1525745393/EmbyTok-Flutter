@@ -337,10 +337,14 @@ class ScrapeService {
     if (parsed.type == 'tv') {
       final results = await TmdbService.searchTv(parsed.title, year: parsed.year);
       if (results.isEmpty) return null;
-      final first = results.first;
+      final best = _pickBestTv(results, parsed);
+      final first = best.result;
       final tvId = first['id'] as int;
       final details = await TmdbService.getTvDetails(tvId);
-      final base = _fromTvDetails(details, first, parsed, tvId);
+      var base = _fromTvDetails(details, first, parsed, tvId);
+      if (base != null && best.lowConfidence) {
+        base = _copyWithLowConfidence(base, true);
+      }
       // 拉取单集剧照和标题（剧名保留，集名单独存）
       if (base != null && parsed.season != null && parsed.episode != null) {
         try {
@@ -410,6 +414,24 @@ class ScrapeService {
     // 容差 ±1 年
     for (final r in results) {
       final rd = r['release_date'] as String?;
+      if (rd == null) continue;
+      final y = int.tryParse(rd.substring(0, 4));
+      if (y != null && (y - p.year!).abs() <= 1) return (result: r, lowConfidence: false);
+    }
+    return (result: results.first, lowConfidence: true);
+  }
+
+  /// TV 版最佳匹配：用 first_air_date 做年份校验
+  static ({Map<String, dynamic> result, bool lowConfidence}) _pickBestTv(
+      List<Map<String, dynamic>> results, ParsedName p) {
+    if (results.length == 1) return (result: results.first, lowConfidence: false);
+    if (p.year == null) return (result: results.first, lowConfidence: false);
+    for (final r in results) {
+      final rd = r['first_air_date'] as String?;
+      if (rd != null && rd.startsWith('${p.year}')) return (result: r, lowConfidence: false);
+    }
+    for (final r in results) {
+      final rd = r['first_air_date'] as String?;
       if (rd == null) continue;
       final y = int.tryParse(rd.substring(0, 4));
       if (y != null && (y - p.year!).abs() <= 1) return (result: r, lowConfidence: false);

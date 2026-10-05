@@ -189,7 +189,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                     if (state.scrapeFail > 0) ...[
                       const SizedBox(width: 8),
                       GestureDetector(
-                        onTap: () => notifier.scrapeMissing(),
+                        onTap: () => notifier.retryFailed(),
                         child: const Text('重试失败', style: TextStyle(fontSize: 11, color: Colors.blue, decoration: TextDecoration.underline)),
                       ),
                     ],
