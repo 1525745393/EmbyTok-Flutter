@@ -1,3 +1,10 @@
+# [2.355.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.354.0...v2.355.0) (2026-10-05)
+
+
+### Features
+
+* 信息面板backdrop模糊背景+海报缩略图并排 ([ab651e8](https://github.com/1525745393/EmbyTok-Flutter/commit/ab651e856c252df4124a463e449aaeca9e2aab80))
+
 # [2.354.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.353.0...v2.354.0) (2026-10-05)
 
 
