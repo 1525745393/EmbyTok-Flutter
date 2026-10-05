@@ -470,6 +470,30 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
     );
   }
 
+  /// 应用方向锁定
+  void _applyOrientation() {
+    switch (_orientationPref) {
+      case _OrientationPref.landscape:
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+        break;
+      case _OrientationPref.portrait:
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+        ]);
+        break;
+      case _OrientationPref.sensor:
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+        break;
+    }
+  }
+
   /// 设置面板（统一底部弹层：字幕/音轨/倍速/画面比例）
   void _showSettingsPanel(BuildContext context) {
     showModalBottomSheet(
@@ -1467,6 +1491,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
                                 break;
                             }
                           });
+                          _applyOrientation();
                         },
                       ),
                       // 画中画
@@ -1756,21 +1781,16 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
               ),
             ),
           ),
-          // 底部信息卡（随控制栏显隐）
+          // 底部信息卡（位于控制栏上方）
           Positioned(
-            left: 0, right: 0, bottom: 0,
+            left: 0, right: 0, bottom: 110,
             child: IgnorePointer(
               ignoring: !_showControls,
               child: AnimatedOpacity(
                 opacity: _showControls ? 1 : 0,
                 duration: const Duration(milliseconds: 200),
                 child: Container(
-                  padding: EdgeInsets.only(
-                    left: 16,
-                    right: 16,
-                    bottom: MediaQuery.of(context).padding.bottom + 40,
-                    top: 8,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.bottomCenter, end: Alignment.topCenter,
@@ -1908,9 +1928,10 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
                             icon: const Icon(Icons.skip_previous, color: Colors.white),
                             onPressed: _index > 0 ? () => _jumpTo(_index - 1) : null,
                           ),
-                          ValueListenableBuilder<VideoPlayerValue>(
-                            valueListenable: _activeController ?? VideoPlayerController.networkUrl(Uri.parse('')),
-                            builder: (context, value, child) {
+                          if (_activeController != null)
+                            ValueListenableBuilder<VideoPlayerValue>(
+                              valueListenable: _activeController!,
+                              builder: (context, value, child) {
                               return IconButton(
                                 icon: Icon(
                                   value.isPlaying
@@ -1933,7 +1954,13 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
                                 },
                               );
                             },
-                          ),
+                          )
+                          else
+                            const IconButton(
+                              icon: Icon(Icons.play_circle_filled,
+                                  color: Colors.white, size: 44),
+                              onPressed: null,
+                            ),
                           IconButton(
                             icon: const Icon(Icons.skip_next, color: Colors.white),
                             onPressed: _index < widget.items.length - 1
