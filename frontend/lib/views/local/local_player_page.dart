@@ -65,6 +65,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   VideoPlayerController? _activeController; // 当前控制器（供缓冲/错误监听）
   int _selectedSubtitleIdx = 0; // 0=关闭, >0=外挂字幕索引（从1开始）
   bool _nightMode = false; // 夜间模式（降低屏幕亮度）
+  bool _autoPlay = true; // 连播开关
   // 方向锁定三态：landscape=横屏锁定, portrait=竖屏锁定, sensor=自动旋转
   _OrientationPref _orientationPref = _OrientationPref.landscape;
 
@@ -1049,6 +1050,29 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // 连播开关
+                      GestureDetector(
+                        onTap: () {
+                          setState(() => _autoPlay = !_autoPlay);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(_autoPlay ? '连播已开启' : '连播已关闭'),
+                              duration: const Duration(milliseconds: 800),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _autoPlay ? Colors.pinkAccent.withValues(alpha: 0.8) : Colors.white24,
+                          ),
+                          child: Icon(Icons.all_inclusive,
+                              color: _autoPlay ? Colors.white : Colors.white70, size: 22),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       // 演员头像
                       _buildActorAvatar(context),
                       const SizedBox(height: 12),
@@ -1359,6 +1383,29 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // 连播开关
+                      GestureDetector(
+                        onTap: () {
+                          setState(() => _autoPlay = !_autoPlay);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(_autoPlay ? '连播已开启' : '连播已关闭'),
+                              duration: const Duration(milliseconds: 800),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _autoPlay ? Colors.pinkAccent.withValues(alpha: 0.8) : Colors.white24,
+                          ),
+                          child: Icon(Icons.all_inclusive,
+                              color: _autoPlay ? Colors.white : Colors.white70, size: 22),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       // 演员头像
                       _buildActorAvatar(context),
                       const SizedBox(height: 8),
