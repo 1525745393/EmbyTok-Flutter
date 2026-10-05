@@ -1,3 +1,10 @@
+## [2.350.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.350.2...v2.350.3) (2026-10-05)
+
+
+### Bug Fixes
+
+* 点按视频直接切换播放/暂停 ([bba7e14](https://github.com/1525745393/EmbyTok-Flutter/commit/bba7e142ba021515c127ff3cca7cdcfe2c4bc778))
+
 ## [2.350.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.350.1...v2.350.2) (2026-10-05)
 
 
