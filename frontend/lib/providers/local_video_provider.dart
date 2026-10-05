@@ -257,31 +257,36 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
     state = state.copyWith(scraping: true, scrapeDone: 0, scrapeTotal: todo.length);
     final cached = Map<String, ScrapedMedia>.from(state.scrapedMap);
     var done = 0;
-    for (final item in todo) {
-      try {
-        // 短视频源不刮削，直接跳过（按文件名显示）
-        if (item.mediaType == 'short') {
-          done++;
-          continue;
+    // 并发限制：4 并发，对齐 TMDB 免费层 ~40req/10s
+    const concurrency = 4;
+    var i = 0;
+    Future<void> worker() async {
+      while (i < todo.length) {
+        final idx = i++;
+        final item = todo[idx];
+        try {
+          if (item.mediaType == 'short') {
+            done++;
+            continue;
+          }
+          final m = await ScrapeService.scrapeFile(
+            item.pathHash,
+            item.name,
+            parentDir: item.relativePath,
+            mediaTypeHint: item.mediaType,
+          );
+          if (m != null) {
+            cached[item.pathHash] = m;
+            await ScrapeService.saveCache(item.pathHash, m);
+          }
+        } catch (_) {}
+        done++;
+        if (_mounted) {
+          state = state.copyWith(scrapedMap: cached, scrapeDone: done);
         }
-        // parentDir 传完整父目录路径，extractSeriesName 自动跳过 Season 文件夹
-        final m = await ScrapeService.scrapeFile(
-          item.pathHash,
-          item.name,
-          parentDir: item.relativePath,
-          mediaTypeHint: item.mediaType,
-        );
-        if (m != null) {
-          cached[item.pathHash] = m;
-          await ScrapeService.saveCache(item.pathHash, m);
-        }
-      } catch (_) {}
-      done++;
-      if (_mounted) {
-        state = state.copyWith(scrapedMap: cached, scrapeDone: done);
       }
-      await Future.delayed(const Duration(milliseconds: 300));
     }
+    await Future.wait(List.generate(concurrency, (_) => worker()));
     if (_mounted) state = state.copyWith(scraping: false);
   }
 
