@@ -1066,15 +1066,35 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
         itemCount: grouped.length,
         itemBuilder: (_, i) {
           final it = grouped[i];
-          // 计算该剧集的总集数
+          // 计算该剧集的总集数 + 缺集
           final s = state.scrapedMap[it.pathHash];
           int epCount = 1;
+          String? missingLabel;
           if (s != null && s.type == 'tv') {
-            epCount = items
+            final eps = items
                 .where((e) =>
                     state.scrapedMap[e.pathHash]?.type == 'tv' &&
                     state.scrapedMap[e.pathHash]?.title == s.title)
-                .length;
+                .map((e) => state.scrapedMap[e.pathHash]!.episode ?? 0)
+                .where((e) => e > 0)
+                .toSet()
+                .toList()
+              ..sort();
+            epCount = eps.length;
+            // P2#8 缺集检测：1..max 中缺失的
+            if (eps.isNotEmpty) {
+              final maxEp = eps.last;
+              final have = eps.toSet();
+              final missing = List.generate(maxEp, (i) => i + 1)
+                  .where((n) => !have.contains(n))
+                  .toList();
+              if (missing.isNotEmpty) {
+                final shown = missing.take(3).join('、E');
+                missingLabel = missing.length > 3
+                    ? '缺 E$shown 等${missing.length}集'
+                    : '缺 E$shown';
+              }
+            }
           }
           return _GridCard(
             item: it,
@@ -1083,6 +1103,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
             isFavorite: state.favoriteHashes.contains(it.pathHash),
             scraped: state.scrapedMap[it.pathHash],
             episodeCount: epCount > 1 ? epCount : null,
+            missingLabel: missingLabel,
             onTap: () {
               if (state.selecting) {
                 notifier.toggleSelected(it.id);
@@ -1372,6 +1393,7 @@ class _GridCard extends StatefulWidget {
   final bool isFavorite;
   final ScrapedMedia? scraped; // 刮削结果（P0）
   final int? episodeCount; // 剧集总集数（聚合显示）
+  final String? missingLabel; // P2#8 缺集提示
   final VoidCallback onTap;
   final VoidCallback onLongPress;
   final VoidCallback onFavoriteToggle;
@@ -1382,6 +1404,7 @@ class _GridCard extends StatefulWidget {
     required this.isFavorite,
     this.scraped,
     this.episodeCount,
+    this.missingLabel,
     required this.onTap,
     required this.onLongPress,
     required this.onFavoriteToggle,
@@ -1485,17 +1508,36 @@ class _GridCardState extends State<_GridCard> {
             Positioned(
               top: 24,
               right: 4,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  '${widget.episodeCount} 集',
-                  style: const TextStyle(color: Colors.white, fontSize: 9),
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      '${widget.episodeCount} 集',
+                      style: const TextStyle(color: Colors.white, fontSize: 9),
+                    ),
+                  ),
+                  if (widget.missingLabel != null) ...[
+                    const SizedBox(height: 2),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade700,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        widget.missingLabel!,
+                        style: const TextStyle(color: Colors.white, fontSize: 8),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             )
           else if (widget.scraped?.type == 'tv' &&
