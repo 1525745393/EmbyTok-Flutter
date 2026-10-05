@@ -1,3 +1,10 @@
+## [2.358.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.358.1...v2.358.2) (2026-10-05)
+
+
+### Bug Fixes
+
+* 连播改用全局isAutoPlayProvider，纯净模式同在线一按钮控制 ([c7c4927](https://github.com/1525745393/EmbyTok-Flutter/commit/c7c4927f07a8cdc9a7e0d87aff5e9ff51b05db6b))
+
 ## [2.358.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.358.0...v2.358.1) (2026-10-05)
 
 
