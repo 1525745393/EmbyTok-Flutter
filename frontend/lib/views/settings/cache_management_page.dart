@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../utils/logger.dart';
 import '../../services/scrape_service.dart';
+import '../../services/tmdb_service.dart';
 
 class CacheManagementPage extends StatefulWidget {
   const CacheManagementPage({super.key});
@@ -167,6 +168,14 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
                     child: const Text('清除'),
                   ),
                 ),
+                // TMDB API Key 配置
+                ListTile(
+                  leading: const Icon(Icons.key, color: Colors.blue),
+                  title: const Text('TMDB API Key'),
+                  subtitle: const Text('配置自己的 TMDB key（留空使用内置演示 key）'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _editTmdbKey(context),
+                ),
                 const Divider(),
                 Padding(
                   padding: const EdgeInsets.all(16),
@@ -179,5 +188,34 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
               ],
             ),
     );
+  }
+
+  Future<void> _editTmdbKey(BuildContext context) async {
+    final current = await TmdbService.getUserKey();
+    final controller = TextEditingController(text: current ?? '');
+    if (!context.mounted) return;
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('TMDB API Key'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: '输入自己的 TMDB API key',
+            helperText: '留空则恢复使用内置演示 key',
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(onPressed: () => Navigator.pop(ctx, controller.text), child: const Text('保存')),
+        ],
+      ),
+    );
+    if (result != null) {
+      await TmdbService.setUserKey(result);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已保存')));
+      }
+    }
   }
 }

@@ -1,14 +1,40 @@
 // TMDB API Service
 // 用于演示模式获取真实影片元数据和海报
-// API key 通过 --dart-define=TMDB_API_KEY=xxx 注入，不硬编码
+// API key 优先级：设置页用户配置 > --dart-define > 内置默认（仅演示）
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TmdbService {
-  static const String _apiKey = String.fromEnvironment(
-    'TMDB_API_KEY',
-    defaultValue: '21e1b8e8a506b3247bbdeba79611c5e5',
-  );
+  static const String _defaultKey = '21e1b8e8a506b3247bbdeba79611c5e5';
+  static const String _spKey = 'tmdb_api_key';
+  static String? _userKey;
+
+  /// 用户在设置页配置的 key（运行时加载）
+  static Future<void> setUserKey(String key) async {
+    _userKey = key.trim().isEmpty ? null : key.trim();
+    final sp = await SharedPreferences.getInstance();
+    if (_userKey == null) {
+      await sp.remove(_spKey);
+    } else {
+      await sp.setString(_spKey, _userKey!);
+    }
+  }
+
+  static Future<String?> getUserKey() async {
+    if (_userKey != null) return _userKey;
+    final sp = await SharedPreferences.getInstance();
+    _userKey = sp.getString(_spKey);
+    return _userKey;
+  }
+
+  static String get _apiKey {
+    if (_userKey != null && _userKey!.isNotEmpty) return _userKey!;
+    const env = String.fromEnvironment('TMDB_API_KEY');
+    if (env.isNotEmpty) return env;
+    return _defaultKey;
+  }
+
   static const String _base = 'https://api.themoviedb.org/3';
   static const String _imgBase = 'https://image.tmdb.org/t/p';
 
