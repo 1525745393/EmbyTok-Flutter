@@ -799,7 +799,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
               textAlign: TextAlign.center,
             ),
           ),
-        ),
+        ],
       ),
     );
   }
