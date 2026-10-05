@@ -1,3 +1,10 @@
+## [2.358.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.358.0...v2.358.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* 右侧栏首按钮改为连播开关(对齐在线AutoPlayButton)，纯净模式移除 ([1dc1c9b](https://github.com/1525745393/EmbyTok-Flutter/commit/1dc1c9b986013e8e5fa43e78639606b89a246d0c))
+
 # [2.358.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.357.1...v2.358.0) (2026-10-05)
 
 
