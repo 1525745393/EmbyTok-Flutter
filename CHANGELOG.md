@@ -1,3 +1,10 @@
+# [2.354.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.353.0...v2.354.0) (2026-10-05)
+
+
+### Features
+
+* 信息面板顶部显示海报 ([7930332](https://github.com/1525745393/EmbyTok-Flutter/commit/7930332e076ab43dc81331d5c86b9c3de7ea921e))
+
 # [2.353.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.352.0...v2.353.0) (2026-10-05)
 
 
