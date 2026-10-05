@@ -1,3 +1,10 @@
+# [2.360.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.359.0...v2.360.0) (2026-10-05)
+
+
+### Features
+
+* 本地独立页横屏顶部栏+底部控制栏对齐在线全屏页 ([1ba6784](https://github.com/1525745393/EmbyTok-Flutter/commit/1ba6784e48c9862fa5b7307bedb28786c29c64d0))
+
 # [2.359.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.358.2...v2.359.0) (2026-10-05)
 
 
