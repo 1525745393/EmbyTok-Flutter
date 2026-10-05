@@ -2,6 +2,7 @@
 // 对应 PRD《本地模式》§4.4；支持连播（P3）+ 续播位置保存（P2）
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1615,37 +1616,80 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   /// 详情弹窗：刮削元数据 + 文件信息
   void _showInfo(BuildContext context) {
     final scraped = ref.read(localVideoProvider).scrapedMap[item.pathHash];
+    final backdropUrl = scraped?.backdropPath != null && scraped!.backdropPath!.isNotEmpty
+        ? 'https://image.tmdb.org/t/p/w1280${scraped.backdropPath}'
+        : null;
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E1E1E),
+      backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => SafeArea(
-        child: DraggableScrollableSheet(
-          initialChildSize: 0.7,
-          minChildSize: 0.4,
-          maxChildSize: 0.95,
-          expand: false,
-          builder: (_, scrollController) => SingleChildScrollView(
-            controller: scrollController,
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 海报
-                if (scraped?.posterPath != null && scraped!.posterPath!.isNotEmpty) ...[
-                  Center(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: CachedNetworkImage(
-                        imageUrl: 'https://image.tmdb.org/t/p/w342${scraped.posterPath}',
-                        width: 140,
-                        height: 210,
-                        fit: BoxFit.cover,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (_, scrollController) => ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          child: Stack(
+            children: [
+              // 背景模糊 backdrop
+              if (backdropUrl != null)
+                Positioned.fill(
+                  child: Image.network(backdropUrl, fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(color: const Color(0xFF1E1E1E))),
+                ),
+              if (backdropUrl != null)
+                Positioned.fill(
+                  child: BackdropFilter(
+                    filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                    child: Container(color: const Color(0xFF1E1E1E).withValues(alpha: 0.7)),
+                  ),
+                ),
+              if (backdropUrl == null)
+                Container(color: const Color(0xFF1E1E1E)),
+              // 内容
+              SingleChildScrollView(
+                controller: scrollController,
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40, height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
+                    const SizedBox(height: 16),
+                    // 海报 + 缩略图
+                    if (scraped?.posterPath != null && scraped!.posterPath!.isNotEmpty)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: CachedNetworkImage(
+                              imageUrl: 'https://image.tmdb.org/t/p/w342${scraped.posterPath}',
+                              width: 110, height: 165, fit: BoxFit.cover,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          if (scraped.backdropPath != null && scraped.backdropPath!.isNotEmpty)
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: CachedNetworkImage(
+                                  imageUrl: 'https://image.tmdb.org/t/p/w300${scraped.backdropPath}',
+                                  height: 165, fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    if (scraped?.posterPath != null) const SizedBox(height: 16),
                 // 标题
                 Text(scraped?.title ?? item.name,
                     style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
@@ -1739,10 +1783,12 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
               ],
             ),
           ),
-        ),
+        ],
       ),
-    );
-  }
+    ),
+    ),
+  );
+}
 
   Widget _infoRow(String label, String value) {
     return Padding(
