@@ -1,3 +1,10 @@
+## [2.360.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.360.0...v2.360.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* 修复null controller泄漏/方向不生效/信息卡重叠 ([ed02aaa](https://github.com/1525745393/EmbyTok-Flutter/commit/ed02aaac53c43e8de5e3002678a8a7b14d82ce13))
+
 # [2.360.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.359.0...v2.360.0) (2026-10-05)
 
 
