@@ -642,7 +642,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                             width: 40,
                             height: 60,
                             child: s?.posterPath != null
-                                ? CachedNetworkImage(imageUrl: TmdbService.posterUrl(s!.posterPath!), fit: BoxFit.cover)
+                                ? LocalPosterImage(item: it, posterPath: s!.posterPath)
                                 : const Icon(Icons.movie),
                           ),
                           title: Text(s?.title ?? it.name, maxLines: 1),
@@ -1541,31 +1541,14 @@ class _GridCardState extends State<_GridCard> {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: widget.scraped?.posterPath != null
-                ? CachedNetworkImage(
-                    imageUrl: TmdbService.posterUrl(widget.scraped!.posterPath!),
-                    fit: BoxFit.cover,
-                    placeholder: (_, __) => Container(
-                      color: scheme.surfaceContainerHighest,
-                      child: const Center(
-                          child: SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2))),
-                    ),
-                    errorWidget: (_, __, ___) => _thumb != null
-                        ? Image.memory(_thumb!, fit: BoxFit.cover)
-                        : Container(
-                            color: scheme.surfaceContainerHighest,
-                            child: const Icon(Icons.movie, size: 32),
-                          ),
-                  )
+                ? LocalPosterImage(item: widget.item, posterPath: widget.scraped!.posterPath)
                 : _thumb != null
                     ? Image.memory(_thumb!, fit: BoxFit.cover)
                     : Container(
                         color: scheme.surfaceContainerHighest,
                         child: const Icon(Icons.movie, size: 32),
                       ),
-          ),
+                  ),
           // P2#2 lowConfidence 角标
           if (widget.scraped?.lowConfidence == true)
             Positioned(
