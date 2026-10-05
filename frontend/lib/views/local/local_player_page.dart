@@ -816,6 +816,87 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
     );
   }
 
+  /// 竖屏嵌入模式底部信息卡：类型chip + 标题+年份+评分+时长 + 简介 + 导演/演员
+  Widget _buildPortraitInfoCard(BuildContext context) {
+    final scraped = ref.read(localVideoProvider).scrapedMap[item.pathHash];
+    final genres = scraped?.genres ?? const [];
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (genres.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.pinkAccent.withValues(alpha: 0.8),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(genres.first,
+                  style: const TextStyle(color: Colors.white, fontSize: 12)),
+            ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  scraped?.title ?? item.name,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (scraped?.rating != null && scraped!.rating! > 0) ...[
+                const SizedBox(width: 8),
+                Text('★ ${scraped.rating!.toStringAsFixed(1)}',
+                    style: const TextStyle(
+                        color: Colors.pinkAccent,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600)),
+              ],
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            [
+              if (scraped?.year != null) '${scraped!.year}',
+              if (_activeController?.value.duration != null)
+                _formatDur(_activeController!.value.duration),
+            ].join('  '),
+            style: const TextStyle(color: Colors.white60, fontSize: 13),
+          ),
+          if (scraped?.overview != null && scraped!.overview!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              scraped.overview!,
+              style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+          if (scraped != null && (scraped.directors.isNotEmpty || scraped.cast.isNotEmpty)) ...[
+            const SizedBox(height: 6),
+            Text(
+              [
+                if (scraped.directors.isNotEmpty) '导演：${scraped.directors.take(2).join('、')}',
+                if (scraped.cast.isNotEmpty) '主演：${scraped.cast.take(3).join('、')}',
+              ].join('  '),
+              style: const TextStyle(color: Colors.white54, fontSize: 12),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // 设置唱片封面 URL
@@ -1220,12 +1301,18 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        // 竖屏嵌入模式：底部信息卡（类型/标题/年份/评分/简介），对齐在线 feed
+                        if (widget.embedded &&
+                            MediaQuery.of(context).orientation == Orientation.portrait)
+                          _buildPortraitInfoCard(context),
                         _activeController != null
                             ? SeekableProgressBar(
                                 controller: _activeController!,
                                 formatDuration: _formatDur,
                               )
                             : const SizedBox(height: 2),
+                        // 横屏才显示播放控制按钮行；竖屏嵌入只留进度条（对齐在线 feed）
+                        if (MediaQuery.of(context).orientation == Orientation.landscape)
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -1322,6 +1409,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
                 ),
               ),
             ),
+            // 底部信息卡（竖屏嵌入模式）
           ],
         ),
       );
