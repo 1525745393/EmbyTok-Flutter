@@ -67,7 +67,6 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
   int _selectedSubtitleIdx = 0; // 0=关闭, >0=外挂字幕索引（从1开始）
   bool _nightMode = false; // 夜间模式（降低屏幕亮度）
   bool _autoPlay = true; // 连播开关
-  bool _pureMode = false; // 纯净模式（隐藏所有UI，沉浸式播放）
   bool _muted = false; // 静音
   late final AnimationController _discController;
   late final Animation<double> _discRotation;
@@ -987,9 +986,9 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
               left: 0,
               right: 0,
               child: IgnorePointer(
-                ignoring: !_showControls || _pureMode,
+                ignoring: !_showControls,
                 child: AnimatedOpacity(
-                  opacity: (!_showControls || _pureMode) ? 0 : 1,
+                  opacity: (!_showControls) ? 0 : 1,
                   duration: const Duration(milliseconds: 200),
                   child: Container(
                     padding: EdgeInsets.only(
@@ -1065,9 +1064,9 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
               right: 12,
               bottom: MediaQuery.of(context).padding.bottom + 110,
               child: IgnorePointer(
-                ignoring: !_showControls || _pureMode,
+                ignoring: !_showControls,
                 child: AnimatedOpacity(
-                  opacity: (!_showControls || _pureMode) ? 0 : 1,
+                  opacity: (!_showControls) ? 0 : 1,
                   duration: const Duration(milliseconds: 200),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -1226,9 +1225,9 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
               right: 0,
               bottom: 0,
               child: IgnorePointer(
-                ignoring: !_showControls || _pureMode,
+                ignoring: !_showControls,
                 child: AnimatedOpacity(
-                  opacity: (!_showControls || _pureMode) ? 0 : 1,
+                  opacity: (!_showControls) ? 0 : 1,
                   duration: const Duration(milliseconds: 200),
                   child: Container(
                     padding: EdgeInsets.only(
