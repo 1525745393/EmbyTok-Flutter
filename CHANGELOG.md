@@ -1,3 +1,20 @@
+# [2.364.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.363.0...v2.364.0) (2026-10-05)
+
+
+### Bug Fixes
+
+* CI编译错误-onSelected加async+ScrapedMedia补tmdbId ([d323416](https://github.com/1525745393/EmbyTok-Flutter/commit/d323416abfff48d5394cba9d3d8a6ead2faebf28))
+* 本地独立页竖屏顶栏精简为返回+标题，对齐在线feed ([75a6ab0](https://github.com/1525745393/EmbyTok-Flutter/commit/75a6ab076a444f480628a4133c9ebc792147e11e))
+
+
+### Features
+
+* P2[#10](https://github.com/1525745393/EmbyTok-Flutter/issues/10) 重命名历史记录+撤销最近一次 ([abee642](https://github.com/1525745393/EmbyTok-Flutter/commit/abee6421a2f5a1a084901948e2a66328160aa45c))
+* P2[#11](https://github.com/1525745393/EmbyTok-Flutter/issues/11) 刮削进度显示成功/失败统计 ([510e93d](https://github.com/1525745393/EmbyTok-Flutter/commit/510e93d462af8bf29d426eb016e16795511b4cdb))
+* P2[#8](https://github.com/1525745393/EmbyTok-Flutter/issues/8) 剧集缺集检测+橙色缺集角标 ([0e6860c](https://github.com/1525745393/EmbyTok-Flutter/commit/0e6860c4bd5a7b109b281e5b10fdbd4be8c7ab74))
+* P2[#9](https://github.com/1525745393/EmbyTok-Flutter/issues/9) 多选模式批量重刮+批量按刮削重命名 ([c0a2d9a](https://github.com/1525745393/EmbyTok-Flutter/commit/c0a2d9a694586869423df43cefc37973e4766a19))
+* P2补全-撤销重命名UI+失败重试+lowConfidence橙色?角标 ([4bf657a](https://github.com/1525745393/EmbyTok-Flutter/commit/4bf657a3a8c25e067420fbad48b4c7f1ff129c22))
+
 # [2.363.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.362.0...v2.363.0) (2026-10-05)
 
 
