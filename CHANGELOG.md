@@ -1,3 +1,10 @@
+## [2.364.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.364.0...v2.364.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* 独立页隐藏左上角OSD避免与返回按钮重叠 ([a7febd4](https://github.com/1525745393/EmbyTok-Flutter/commit/a7febd45c9ef373b7c3de016227c509b64a7c539))
+
 # [2.364.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.363.0...v2.364.0) (2026-10-05)
 
 
