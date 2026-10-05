@@ -9,6 +9,7 @@ import '../models/local_video_item.dart';
 import '../models/file_source.dart';
 import '../services/local_video_service.dart';
 import '../services/scrape_service.dart';
+import '../services/scrape_media_store.dart';
 import 'file_sources_provider.dart';
 
 /// 服务单例
@@ -206,6 +207,8 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
 
   Future<void> _init() async {
     final svc = _ref.read(localVideoServiceProvider);
+    // 迁移旧 SharedPreferences 缓存到文件（幂等）
+    await ScrapeMediaStore.migrateFromPrefs();
     // 先读缓存，再后台刷新
     final cached = await svc.loadCache();
     final ps = await LocalVideoService.currentPermission();
@@ -235,6 +238,8 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
       final recent = await svc.getRecentPlayHashes();
       final favs = await svc.getFavorites();
       final cached = await ScrapeService.loadCache();
+      final central = await ScrapeMediaStore.loadCentralAll();
+      cached.addAll(central); // 文件存储优先（覆盖 prefs）
       state = state.copyWith(
           items: items,
           recentHashes: recent,
@@ -296,6 +301,7 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
           if (m != null) {
             cached[item.pathHash] = m;
             await ScrapeService.saveCache(item.pathHash, m);
+            await ScrapeMediaStore.save(item, m);
             failed.remove(item.pathHash);
             ok++;
           } else {
@@ -348,6 +354,7 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
           if (m != null) {
             cached[item.pathHash] = m;
             await ScrapeService.saveCache(item.pathHash, m);
+            await ScrapeMediaStore.save(item, m);
             ok++;
           } else {
             failed[item.pathHash] = '未找到匹配';
@@ -455,7 +462,13 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
     for (final id in ids) {
       final item = state.items.where((e) => e.id == id).firstOrNull;
       if (item == null) continue;
-      if (await svc.delete(item)) ok++;
+      if (await svc.delete(item)) {
+        ok++;
+        await ScrapeMediaStore.delete(item);
+        // 同时清理 prefs 旧缓存
+        final sp = await SharedPreferences.getInstance();
+        await sp.remove('scrape_${item.pathHash}');
+      }
     }
     if (ok > 0) {
       state = state.copyWith(
