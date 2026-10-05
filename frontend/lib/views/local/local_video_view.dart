@@ -69,6 +69,30 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
       ),
       child: Scaffold(
       backgroundColor: Colors.transparent,
+      bottomNavigationBar: state.selecting && state.selected.isNotEmpty
+          ? BottomAppBar(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  TextButton.icon(
+                    icon: const Icon(Icons.refresh, color: Colors.blue),
+                    label: const Text('重刮'),
+                    onPressed: () => _batchRescrape(state, notifier),
+                  ),
+                  TextButton.icon(
+                    icon: const Icon(Icons.auto_fix_high, color: Colors.green),
+                    label: const Text('批量重命名'),
+                    onPressed: () => _batchRename(state, notifier),
+                  ),
+                  TextButton.icon(
+                    icon: const Icon(Icons.close, color: Colors.grey),
+                    label: const Text('取消'),
+                    onPressed: () => notifier.exitSelecting(),
+                  ),
+                ],
+              ),
+            )
+          : null,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         title: const Text('我的媒体库',
@@ -1163,6 +1187,45 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
         ),
       ),
     );
+  }
+
+  /// P2#9 批量重新刮削
+  Future<void> _batchRescrape(LocalVideoState state, LocalVideoNotifier notifier) async {
+    final ids = state.selected.toList();
+    final items = state.items.where((e) => ids.contains(e.id)).toList();
+    for (final it in items) {
+      // 清除缓存后重刮
+      await ScrapeService.saveCache(it.pathHash, ScrapedMedia(type: '', title: '', scrapedAt: 0));
+    }
+    notifier.exitSelecting();
+    notifier.scrapeMissing();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('已请求重新刮削 ${items.length} 个文件')),
+      );
+    }
+  }
+
+  /// P2#9 批量按刮削重命名
+  Future<void> _batchRename(LocalVideoState state, LocalVideoNotifier notifier) async {
+    final ids = state.selected.toList();
+    final items = state.items.where((e) => ids.contains(e.id)).toList();
+    int ok = 0, fail = 0;
+    for (final it in items) {
+      final s = state.scrapedMap[it.pathHash];
+      if (s == null || s.title.isEmpty) { fail++; continue; }
+      try {
+        await LocalVideoService().renameByScraped(it, s);
+        ok++;
+      } catch (_) { fail++; }
+    }
+    notifier.exitSelecting();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('批量重命名完成：成功 $ok，失败 $fail')),
+      );
+      notifier.refresh();
+    }
   }
 
   /// 长按菜单：手动匹配 TMDB（P1）
