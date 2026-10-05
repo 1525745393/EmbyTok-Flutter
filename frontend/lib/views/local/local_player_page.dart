@@ -1452,10 +1452,10 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.fullscreen_exit,
+                        icon: const Icon(Icons.arrow_back,
                             color: Colors.white, size: 28),
                         onPressed: () => Navigator.pop(context),
-                        tooltip: '退出全屏',
+                        tooltip: '返回',
                       ),
                       Expanded(
                         child: Text(
@@ -1467,53 +1467,6 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      // 方向切换
-                      IconButton(
-                        icon: Icon(
-                          _orientationPref == _OrientationPref.landscape
-                              ? Icons.screen_lock_portrait
-                              : _orientationPref == _OrientationPref.portrait
-                                  ? Icons.screen_rotation
-                                  : Icons.screen_lock_landscape,
-                          color: Colors.white, size: 24),
-                        onPressed: () {
-                          setState(() {
-                            switch (_orientationPref) {
-                              case _OrientationPref.landscape:
-                                _orientationPref = _OrientationPref.portrait;
-                                break;
-                              case _OrientationPref.portrait:
-                                _orientationPref = _OrientationPref.sensor;
-                                break;
-                              case _OrientationPref.sensor:
-                                _orientationPref = _OrientationPref.landscape;
-                                break;
-                            }
-                          });
-                          _applyOrientation();
-                        },
-                      ),
-                      // 画中画
-                      IconButton(
-                        icon: const Icon(Icons.picture_in_picture_alt,
-                            color: Colors.white, size: 24),
-                        onPressed: () => PipUtil.enterPip(),
-                        tooltip: '画中画',
-                      ),
-                      // 设置
-                      IconButton(
-                        icon: const Icon(Icons.settings,
-                            color: Colors.white, size: 24),
-                        onPressed: () => _showSettingsPanel(context),
-                        tooltip: '设置',
-                      ),
-                      // 锁屏
-                      IconButton(
-                        icon: Icon(_locked ? Icons.lock : Icons.lock_open,
-                            color: Colors.white, size: 24),
-                        onPressed: () => setState(() => _locked = !_locked),
-                        tooltip: '锁屏',
                       ),
                     ],
                   ),
