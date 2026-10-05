@@ -1,7 +1,6 @@
 // 本地视频全屏播放页：复用 VideoPlayerWidget（三引擎），isLocal=true
 // 对应 PRD《本地模式》§4.4；支持连播（P3）+ 续播位置保存（P2）
 import 'dart:async';
-import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -29,8 +28,6 @@ import '../../widgets/video/video_comments_sheet.dart';
 import '../../widgets/video/video_player_widget.dart';
 import '../../widgets/video/video_progress_bars.dart';
 
-/// 方向锁定三态（对齐在线全屏页）
-enum _OrientationPref { landscape, portrait, sensor }
 
 class LocalPlayerPage extends ConsumerStatefulWidget {
   /// 播放列表（连播用）；单文件播放时传 [items.length=1]
@@ -59,7 +56,6 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
   int _seekToken = 0; // 续播 seek 竞态保护：快速切换视频时使旧 seek 失效
   Timer? _saveTimer; // 周期保存播放位置（dispose 时子组件已销毁，无法在 dispose 中读位置）
   bool _showControls = true; // 控制栏显隐（单击切换）
-  bool _showProgress = true; // 进度条显隐（拖动后3秒自动隐藏，点击进度条区域显示）
   Timer? _hideTimer;
   Timer? _progressHideTimer;
   double _playbackSpeed = 1.0;
@@ -71,8 +67,6 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
   late final AnimationController _discController;
   late final Animation<double> _discRotation;
   String? _posterUrl;
-  // 方向锁定三态：landscape=横屏锁定, portrait=竖屏锁定, sensor=自动旋转
-  _OrientationPref _orientationPref = _OrientationPref.landscape;
 
   @override
   void initState() {
@@ -139,20 +133,6 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
     _hideTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) setState(() => _showControls = false);
     });
-  }
-
-  /// 显示进度条，3秒后自动隐藏（播放中）；暂停时常驻
-  void _showProgressTemporarily() {
-    _progressHideTimer?.cancel();
-    if (mounted) setState(() => _showProgress = true);
-    final c = _activeController;
-    if (c != null && c.value.isPlaying) {
-      _progressHideTimer = Timer(const Duration(seconds: 3), () {
-        if (mounted && _activeController?.value.isPlaying == true) {
-          setState(() => _showProgress = false);
-        }
-      });
-    }
   }
 
   /// 点按视频：直接切换播放/暂停；暂停时显示控制栏，播放时隐藏
@@ -434,64 +414,6 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> with SingleTi
         await ScreenBrightness().resetScreenBrightness();
       }
     } catch (_) {}
-  }
-
-  /// 睡眠定时器（定时暂停/退出）
-  void _showSleepTimer(BuildContext context) {
-    final options = [15, 30, 45, 60, 90];
-    showModalBottomSheet(
-      context: context,
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const ListTile(title: Text('睡眠定时器')),
-            ...options.map((m) => ListTile(
-                  title: Text('$m 分钟'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Future.delayed(Duration(minutes: m), () {
-                      if (mounted) {
-                        _activeController?.pause();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('已暂停播放（${m}分钟定时）')),
-                        );
-                      }
-                    });
-                  },
-                )),
-            ListTile(
-              title: const Text('关闭定时器'),
-              onTap: () => Navigator.pop(context),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// 应用方向锁定
-  void _applyOrientation() {
-    switch (_orientationPref) {
-      case _OrientationPref.landscape:
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.landscapeLeft,
-          DeviceOrientation.landscapeRight,
-        ]);
-        break;
-      case _OrientationPref.portrait:
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.portraitUp,
-        ]);
-        break;
-      case _OrientationPref.sensor:
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.portraitUp,
-          DeviceOrientation.landscapeLeft,
-          DeviceOrientation.landscapeRight,
-        ]);
-        break;
-    }
   }
 
   /// 设置面板（统一底部弹层：字幕/音轨/倍速/画面比例）
