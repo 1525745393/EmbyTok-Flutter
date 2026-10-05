@@ -1,3 +1,10 @@
+## [2.350.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.350.4...v2.350.5) (2026-10-05)
+
+
+### Bug Fixes
+
+* 进度条始终可见，播放中可拖动调节进度 ([0d09c45](https://github.com/1525745393/EmbyTok-Flutter/commit/0d09c45eae347427c4d9f62e3b91fe2c2e1bf3c8))
+
 ## [2.350.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.350.3...v2.350.4) (2026-10-05)
 
 
