@@ -47,6 +47,8 @@ class LocalVideoState {
   final bool scraping; // 是否正在批量刮削
   final int scrapeDone; // 刮削进度（P1 #4）
   final int scrapeTotal;
+  final int scrapeOk; // P2 #11：成功数
+  final int scrapeFail; // P2 #11：失败数
   final String? typeFilter; // 类型筛选（P1 #6）：null=全部/movie/tv/none
 
   const LocalVideoState({
@@ -67,6 +69,8 @@ class LocalVideoState {
     this.scraping = false,
     this.scrapeDone = 0,
     this.scrapeTotal = 0,
+    this.scrapeOk = 0,
+    this.scrapeFail = 0,
     this.typeFilter,
   });
 
@@ -88,6 +92,8 @@ class LocalVideoState {
     bool? scraping,
     int? scrapeDone,
     int? scrapeTotal,
+    int? scrapeOk,
+    int? scrapeFail,
     String? typeFilter,
   }) =>
       LocalVideoState(
@@ -108,6 +114,8 @@ class LocalVideoState {
         scraping: scraping ?? this.scraping,
         scrapeDone: scrapeDone ?? this.scrapeDone,
         scrapeTotal: scrapeTotal ?? this.scrapeTotal,
+        scrapeOk: scrapeOk ?? this.scrapeOk,
+        scrapeFail: scrapeFail ?? this.scrapeFail,
         typeFilter: typeFilter ?? this.typeFilter,
       );
 
@@ -256,7 +264,7 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
         .toList();
     state = state.copyWith(scraping: true, scrapeDone: 0, scrapeTotal: todo.length);
     final cached = Map<String, ScrapedMedia>.from(state.scrapedMap);
-    var done = 0;
+    var done = 0, ok = 0, fail = 0;
     // 并发限制：4 并发，对齐 TMDB 免费层 ~40req/10s
     const concurrency = 4;
     var i = 0;
@@ -278,8 +286,13 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
           if (m != null) {
             cached[item.pathHash] = m;
             await ScrapeService.saveCache(item.pathHash, m);
+            ok++;
+          } else {
+            fail++;
           }
-        } catch (_) {}
+        } catch (_) {
+          fail++;
+        }
         done++;
         if (_mounted) {
           state = state.copyWith(scrapedMap: cached, scrapeDone: done);
@@ -287,7 +300,9 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
       }
     }
     await Future.wait(List.generate(concurrency, (_) => worker()));
-    if (_mounted) state = state.copyWith(scraping: false);
+    if (_mounted) {
+      state = state.copyWith(scraping: false, scrapeOk: ok, scrapeFail: fail);
+    }
   }
 
   bool get _mounted => true;

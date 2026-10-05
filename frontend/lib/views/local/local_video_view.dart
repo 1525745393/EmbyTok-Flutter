@@ -119,11 +119,30 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
           children: [
             // 刮削进度条
             if (state.scraping)
-              LinearProgressIndicator(
-                value: state.scrapeTotal > 0
-                    ? state.scrapeDone / state.scrapeTotal
-                    : null,
-                minHeight: 2,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    LinearProgressIndicator(
+                      value: state.scrapeTotal > 0
+                          ? state.scrapeDone / state.scrapeTotal
+                          : null,
+                      minHeight: 2,
+                    ),
+                    const SizedBox(height: 2),
+                    Text('刮削中 ${state.scrapeDone}/${state.scrapeTotal}',
+                        style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                  ],
+                ),
+              )
+            else if (state.scrapeTotal > 0 && !state.scraping)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Text(
+                  '刮削完成：成功 ${state.scrapeOk} · 失败 ${state.scrapeFail}',
+                  style: TextStyle(fontSize: 11, color: state.scrapeFail > 0 ? Colors.orange : Colors.green),
+                ),
               ),
 
             // ── 播放记录（继续观看）──
