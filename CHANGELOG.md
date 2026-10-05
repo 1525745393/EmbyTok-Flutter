@@ -1,3 +1,11 @@
+# [2.366.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.365.0...v2.366.0) (2026-10-05)
+
+
+### Features
+
+* 双轨落盘核心 ScrapeMediaStore + provider接入(save/delete/migrate) ([ed48599](https://github.com/1525745393/EmbyTok-Flutter/commit/ed485999014d8afa9d6de4938e1fd7b30ba53842))
+* 双轨落盘核心 ScrapeMediaStore + provider接入(save/delete/migrate) ([7427733](https://github.com/1525745393/EmbyTok-Flutter/commit/74277330eef8c0696707a8e657cf3328c80d82b7))
+
 # [2.365.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.364.3...v2.365.0) (2026-10-05)
 
 
