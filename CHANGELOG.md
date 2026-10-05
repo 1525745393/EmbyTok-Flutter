@@ -1,3 +1,10 @@
+# [2.359.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.358.2...v2.359.0) (2026-10-05)
+
+
+### Features
+
+* 右侧栏顶部加固定全屏按钮(对齐在线Icons.fullscreen) ([a41c9b0](https://github.com/1525745393/EmbyTok-Flutter/commit/a41c9b06f039ea56f3b447579a8fbf6294a8ccdf))
+
 ## [2.358.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.358.1...v2.358.2) (2026-10-05)
 
 
