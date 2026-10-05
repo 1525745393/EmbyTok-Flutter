@@ -1,3 +1,10 @@
+## [2.350.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.350.3...v2.350.4) (2026-10-05)
+
+
+### Bug Fixes
+
+* 暂停时显示控制栏，播放时隐藏（修复点按后无法呼出控制栏） ([0580aed](https://github.com/1525745393/EmbyTok-Flutter/commit/0580aed98702e722134e07ca8625fd939593a02c))
+
 ## [2.350.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.350.2...v2.350.3) (2026-10-05)
 
 
