@@ -10,6 +10,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
 import 'local_detail_view.dart';
 import 'person_detail_view.dart';
+import '../../widgets/local/local_images.dart';
 
 import '../../models/local_video_item.dart';
 import '../../providers/app_preferences_providers.dart';
@@ -520,11 +521,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
   Widget _buildSeriesPoster(LocalVideoItem first, LocalVideoState state) {
     final s = state.scrapedMap[first.pathHash];
     if (s?.posterPath != null) {
-      return CachedNetworkImage(
-        imageUrl: TmdbService.posterUrl(s!.posterPath!),
-        fit: BoxFit.cover,
-        errorWidget: (_, __, ___) => _posterPlaceholder(),
-      );
+      return LocalPosterImage(item: first, posterPath: s!.posterPath, placeholder: _posterPlaceholder());
     }
     return _posterPlaceholder();
   }
@@ -565,11 +562,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                   fit: StackFit.expand,
                   children: [
                     scraped?.posterPath != null
-                        ? CachedNetworkImage(
-                            imageUrl: TmdbService.posterUrl(scraped!.posterPath!),
-                            fit: BoxFit.cover,
-                            errorWidget: (_, __, ___) => _thumbPlaceholder(item),
-                          )
+                        ? LocalPosterImage(item: item, posterPath: scraped!.posterPath, placeholder: _thumbPlaceholder(item))
                         : _thumbPlaceholder(item),
                     // 刮削成功角标
                     if (scraped != null)

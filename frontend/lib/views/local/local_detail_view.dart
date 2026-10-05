@@ -9,6 +9,7 @@ import '../../services/local_video_service.dart';
 import '../../services/tmdb_service.dart';
 import '../../services/scrape_service.dart';
 import 'person_detail_view.dart';
+import '../../widgets/local/local_images.dart';
 
 /// 本地视频详情页（P1 #7）
 class LocalDetailPage extends ConsumerStatefulWidget {
@@ -69,11 +70,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                 fit: StackFit.expand,
                 children: [
                   scraped?.backdropPath != null
-                      ? CachedNetworkImage(
-                          imageUrl: TmdbService.backdropUrl(scraped!.backdropPath!),
-                          fit: BoxFit.cover,
-                          errorWidget: (_, __, ___) => Container(color: scheme.surfaceContainerHighest),
-                        )
+                      ? LocalBackdropImage(item: widget.item, backdropPath: scraped!.backdropPath)
                       : Container(color: scheme.surfaceContainerHighest),
                   DecoratedBox(
                     decoration: BoxDecoration(
