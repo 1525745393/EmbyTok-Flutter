@@ -1,3 +1,15 @@
+# [2.362.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.361.0...v2.362.0) (2026-10-05)
+
+
+### Features
+
+* P1刮削-缓存TTL(电影30天/剧集14天)+失败日志 ([bd9a1b2](https://github.com/1525745393/EmbyTok-Flutter/commit/bd9a1b26280f2fee05baa87c26b8ce40a309c017))
+
+
+### Performance Improvements
+
+* 批量刮削改4并发，移除串行300ms延迟 ([08d0ac3](https://github.com/1525745393/EmbyTok-Flutter/commit/08d0ac377ac6d9cb5eaf89f6ed4c273fc20f412b))
+
 # [2.361.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.360.1...v2.361.0) (2026-10-05)
 
 
