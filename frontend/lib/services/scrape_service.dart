@@ -2,6 +2,7 @@
 // 参考 VidHub：仅按文件名匹配，与文件夹名无关
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/logger.dart';
 import 'tmdb_service.dart';
 
 /// 文件名解析结果
@@ -363,7 +364,9 @@ class ScrapeService {
               scrapedAt: base.scrapedAt,
             );
           }
-        } catch (_) {}
+        } catch (e) {
+          AppLogger.warn('刮削单集详情失败', data: {'error': e.toString()});
+        }
       }
       return base;
     } else {
@@ -533,13 +536,20 @@ class ScrapeService {
   static Future<Map<String, ScrapedMedia>> loadCache() async {
     final sp = await SharedPreferences.getInstance();
     final result = <String, ScrapedMedia>{};
+    final now = DateTime.now().millisecondsSinceEpoch;
+    const movieTtl = 30 * 24 * 3600 * 1000;
+    const tvTtl = 14 * 24 * 3600 * 1000;
     for (final key in sp.getKeys()) {
       if (!key.startsWith(_prefix)) continue;
       final raw = sp.getString(key);
       if (raw == null) continue;
       try {
         final j = jsonDecode(raw) as Map<String, dynamic>;
-        result[key.substring(_prefix.length)] = ScrapedMedia.fromJson(j);
+        final media = ScrapedMedia.fromJson(j);
+        final age = now - (media.scrapedAt ?? 0);
+        final ttl = media.type == 'tv' ? tvTtl : movieTtl;
+        if (age > ttl) continue;
+        result[key.substring(_prefix.length)] = media;
       } catch (_) {}
     }
     return result;
