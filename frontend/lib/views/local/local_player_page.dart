@@ -126,11 +126,19 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   }
 
   /// 单击切换控制栏（锁定时不响应）
-  /// 点按视频：显示/隐藏控制栏（与在线全屏页逻辑一致）
+  /// 点按视频：直接切换播放/暂停
   void _toggleControls() {
     if (_locked) return;
-    setState(() => _showControls = !_showControls);
-    if (_showControls) _scheduleHide();
+    final c = _activeController;
+    if (c != null && c.value.isInitialized) {
+      try {
+        if (c.value.isPlaying) {
+          c.pause();
+        } else {
+          c.play();
+        }
+      } catch (_) {}
+    }
   }
 
   String _formatDur(Duration d) {
@@ -822,17 +830,6 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                         if (!value.isInitialized || value.isBuffering) {
                           return const CircularProgressIndicator(
                               color: Colors.white);
-                        }
-                        // 暂停时中央显示大播放图标，点击恢复播放（与在线一致）
-                        if (!value.isPlaying && !_showControls) {
-                          return GestureDetector(
-                            onTap: () {
-                              final c = _activeController;
-                              if (c != null) c.play();
-                            },
-                            child: const Icon(Icons.play_arrow,
-                                color: Colors.white54, size: 64),
-                          );
                         }
                         return const SizedBox.shrink();
                       },
