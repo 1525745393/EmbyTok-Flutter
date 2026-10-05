@@ -20,6 +20,7 @@ import '../../services/local_video_service.dart';
 import '../../services/tmdb_service.dart';
 import '../../utils/pip_util.dart';
 import '../../providers/local_video_provider.dart';
+import '../../providers/favorites_provider.dart';
 import '../../providers/app_preferences_providers.dart';
 import '../../widgets/video/gesture_overlay.dart';
 import '../../widgets/video/video_comments_sheet.dart';
@@ -770,23 +771,69 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
+          SizedBox(
             width: 48,
             height: 48,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white38, width: 2),
-              color: Colors.white12,
-            ),
-            child: ClipOval(
-              child: avatarUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: avatarUrl,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) =>
-                          const Icon(Icons.person, color: Colors.white54, size: 24),
-                    )
-                  : const Icon(Icons.person, color: Colors.white54, size: 24),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                ClipOval(
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white38, width: 2),
+                      color: Colors.white12,
+                    ),
+                    child: avatarUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: avatarUrl,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) =>
+                                const Icon(Icons.person, color: Colors.white54, size: 24),
+                          )
+                        : const Icon(Icons.person, color: Colors.white54, size: 24),
+                  ),
+                ),
+                // + 关注按钮
+                if (actor != null && (actor['id'] ?? '').isNotEmpty)
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: GestureDetector(
+                      onTap: () {
+                        final actorId = actor!['id']!;
+                        final isFav = ref.read(favoritesProvider).favoriteIds.contains(actorId);
+                        ref.read(favoritesProvider.notifier).toggleFavorite(
+                              MediaItem(
+                                id: actorId,
+                                title: actor['name'] ?? '',
+                                type: 'Person',
+                              ),
+                            );
+                      },
+                      child: Consumer(
+                        builder: (_, ref, __) {
+                          final actorId = actor!['id']!;
+                          final isFav = ref.watch(favoritesProvider
+                              .select((s) => s.favoriteIds.contains(actorId)));
+                          return Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isFav ? Colors.green : Colors.amber,
+                              border: Border.all(color: Colors.white, width: 1.5),
+                            ),
+                            child: Icon(isFav ? Icons.check : Icons.add,
+                                color: Colors.white, size: 12),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(height: 4),
