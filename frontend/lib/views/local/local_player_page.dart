@@ -281,8 +281,58 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
     } catch (_) {}
   }
 
-  /// 章节选择（ffprobe 读取内嵌章节）
+  /// 章节/剧集列表：电视剧显示集数列表，电影显示内嵌章节
   Future<void> _showChapters(BuildContext context) async {
+    // 电视剧：显示所有集数
+    if (widget.items.length > 1) {
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: const Color(0xFF1E1E1E),
+        builder: (_) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('剧集列表', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                ),
+              ),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: widget.items.length,
+                  itemBuilder: (_, i) {
+                    final it = widget.items[i];
+                    final scraped = ref.read(localVideoProvider).scrapedMap[it.pathHash];
+                    final isCurrent = i == _index;
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: isCurrent ? Colors.pinkAccent : Colors.white24,
+                        child: Text('${i + 1}', style: TextStyle(color: isCurrent ? Colors.white : Colors.white70, fontSize: 13)),
+                      ),
+                      title: Text(scraped?.title ?? it.name,
+                          style: TextStyle(color: isCurrent ? Colors.pinkAccent : Colors.white, fontSize: 14)),
+                      subtitle: scraped != null && scraped.overview != null && scraped.overview!.isNotEmpty
+                          ? Text(scraped.overview!, maxLines: 1, overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: Colors.white54, fontSize: 12))
+                          : null,
+                      onTap: () {
+                        Navigator.pop(context);
+                        if (i != _index) _jumpTo(i);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+    // 电影：读取内嵌章节
     final path = item.networkUrl ?? (item.isAppDirFile ? item.path : _resolvedPath);
     if (path == null) return;
     final chapters = await LocalChapterService.getChapters(path);
