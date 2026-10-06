@@ -1,3 +1,10 @@
+## [2.371.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.0...v2.371.1) (2026-10-06)
+
+
+### Bug Fixes
+
+* 相册视频去重改用pathHash,修复path=''导致所有asset collapse成1条 ([46ee69c](https://github.com/1525745393/EmbyTok-Flutter/commit/46ee69c52fff7924c7358e642d613ba60195df6d))
+
 # [2.371.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.370.5...v2.371.0) (2026-10-06)
 
 
