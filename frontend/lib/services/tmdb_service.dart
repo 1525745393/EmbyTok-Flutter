@@ -156,7 +156,7 @@ class TmdbService {
       final encoded = Uri.encodeQueryComponent(query);
       final yp = year != null ? '&year=$year' : '';
       final r = await http
-          .get(Uri.parse('$_base/search/movie?api_key=$_apiKey&query=$encoded$yp&language=$language'))
+          .get(Uri.parse('$_base/search/movie?api_key=$_apiKey&query=$encoded$yp&language=$language&include_adult=false'))
           .timeout(const Duration(seconds: 6));
       if (r.statusCode != 200) return [];
       final data = jsonDecode(r.body);

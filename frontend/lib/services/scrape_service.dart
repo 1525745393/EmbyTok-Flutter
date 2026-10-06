@@ -125,6 +125,10 @@ class ScrapedMedia {
 class ScrapeService {
   static const _prefix = 'scrape_';
 
+  /// TV 系列详情缓存（同一部剧只拉一次 getTvDetails）
+  static final Map<int, Map<String, dynamic>> _tvDetailsCache = {};
+  static final Map<int, Map<String, dynamic>> _movieDetailsCache = {};
+
   /// 文件名解析：提取片名、年份、季集号
   static ParsedName parseFilename(String filename, {String? parentDir}) {
     // 去扩展名
@@ -340,7 +344,11 @@ class ScrapeService {
       final best = _pickBestTv(results, parsed);
       final first = best.result;
       final tvId = first['id'] as int;
-      final details = await TmdbService.getTvDetails(tvId);
+      var details = _tvDetailsCache[tvId];
+      if (details == null) {
+        details = await TmdbService.getTvDetails(tvId);
+        if (details.isNotEmpty) _tvDetailsCache[tvId] = details;
+      }
       var base = _fromTvDetails(details, first, parsed, tvId);
       if (base != null && best.lowConfidence) {
         base = _copyWithLowConfidence(base, true);
@@ -382,7 +390,11 @@ class ScrapeService {
       if (results.isEmpty) return null;
       final best = _pickBestMovie(results, parsed);
       final movieId = best.result['id'] as int;
-      final details = await TmdbService.getMovieDetails(movieId);
+      var details = _movieDetailsCache[movieId];
+      if (details == null) {
+        details = await TmdbService.getMovieDetails(movieId);
+        if (details.isNotEmpty) _movieDetailsCache[movieId] = details;
+      }
       final m = _fromMovieDetails(details, best.result, parsed, movieId);
       return m == null ? null : _copyWithLowConfidence(m, best.lowConfidence);
     }
@@ -586,9 +598,12 @@ class ScrapeService {
       try {
         final j = jsonDecode(raw) as Map<String, dynamic>;
         final media = ScrapedMedia.fromJson(j);
-        final age = now - (media.scrapedAt ?? 0);
-        final ttl = media.type == 'tv' ? tvTtl : movieTtl;
-        if (age > ttl) continue;
+        // scrapedAt=0 表示旧版本缓存，视为永不过期（不丢弃）
+        if (media.scrapedAt > 0) {
+          final age = now - media.scrapedAt;
+          final ttl = media.type == 'tv' ? tvTtl : movieTtl;
+          if (age > ttl) continue;
+        }
         result[key.substring(_prefix.length)] = media;
       } catch (_) {}
     }
