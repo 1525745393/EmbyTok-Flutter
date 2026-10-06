@@ -211,6 +211,8 @@ class ApiClient {
 
   // 更新 baseUrl
   void setBaseUrl(String url) {
+    // 本地模式 serverUrl 为 local://，Dio 不接受非 http(s) URL，直接忽略
+    if (!url.startsWith('http://') && !url.startsWith('https://')) return;
     _dio.options.baseUrl = url;
   }
 

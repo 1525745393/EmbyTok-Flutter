@@ -426,7 +426,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   // dispose 时返回缓存值，防止 ref after disposed 异常
   String? _authServerUrl() {
     if (_disposed) return _cachedServerUrl;
-    return _cachedServerUrl ?? ref.read(authProvider).embyServerUrl;
+    final url = _cachedServerUrl ?? ref.read(authProvider).embyServerUrl;
+    // 本地模式 serverUrl 为 local://，不发 Emby API 请求
+    if (url == null || !url.startsWith('http')) return null;
+    return url;
   }
   String? _authToken() {
     if (_disposed) return _cachedToken;

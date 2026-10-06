@@ -116,6 +116,7 @@ extension _VideoPageItemActions on _VideoPageItemState {
 
   void _onVideoChanged() {
     if (!mounted) return;
+    try {
     final controller = _videoController;
     if (controller == null) return;
     // 播放状态：仅在变化时同步 Provider（避免每帧 setState 等效操作）
@@ -159,6 +160,9 @@ extension _VideoPageItemActions on _VideoPageItemState {
           ref.read(autoPlayNextTriggerProvider.notifier).state++;
         }
       }
+    } catch (_) {
+      // dispose 阶段 ProviderScope 已释放，忽略
+    }
   }
 
   String _newPlaySessionId() =>
