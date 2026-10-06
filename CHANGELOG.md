@@ -1,3 +1,10 @@
+## [2.370.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.370.1...v2.370.2) (2026-10-06)
+
+
+### Bug Fixes
+
+* pathHash含/:/导致文件路径不存在,改用md5安全文件名+wrapper存原始id ([84db3a6](https://github.com/1525745393/EmbyTok-Flutter/commit/84db3a677d01abb2ff1fdbdea51dc132c7dbf11e))
+
 ## [2.370.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.370.0...v2.370.1) (2026-10-06)
 
 
