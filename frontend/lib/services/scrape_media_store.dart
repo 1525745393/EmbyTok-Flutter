@@ -5,6 +5,7 @@
 // 展示时本地文件优先，缺失时 fallback TMDB CDN URL
 import 'dart:convert';
 import 'dart:io';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
@@ -35,6 +36,10 @@ class ScrapeMediaStore {
     return i > 0 ? b.substring(0, i) : b;
   }
 
+  // pathHash 可能含 / : 等字符，做 md5 作为安全文件名
+  static String _safeName(String pathHash) =>
+      md5.convert(utf8.encode(pathHash)).toString();
+
   // ---- 目录 ----
   static Future<Directory> _centralRoot() async {
     final docs = await getApplicationDocumentsDirectory();
@@ -64,8 +69,8 @@ class ScrapeMediaStore {
         await File('$base.nfo').writeAsString(jsonEncode(media.toJson()));
       } else {
         final dir = await _subDir('metadata');
-        await File(_join(dir.path, '${item.pathHash}.json'))
-            .writeAsString(jsonEncode(media.toJson()));
+        await File(_join(dir.path, '${_safeName(item.pathHash)}.json'))
+            .writeAsString(jsonEncode({'id': item.pathHash, 'media': media.toJson()}));
       }
       final jobs = <Future>[];
       jobs.add(_downloadImage(
@@ -101,21 +106,21 @@ class ScrapeMediaStore {
     final base = _siblingBase(item);
     if (base != null) return '$base-poster.jpg';
     final dir = await _subDir('posters');
-    return _join(dir.path, '${item.pathHash}.jpg');
+    return _join(dir.path, '${_safeName(item.pathHash)}.jpg');
   }
 
   static Future<String?> _backdropPath(LocalVideoItem item) async {
     final base = _siblingBase(item);
     if (base != null) return '$base-backdrop.jpg';
     final dir = await _subDir('backdrops');
-    return _join(dir.path, '${item.pathHash}.jpg');
+    return _join(dir.path, '${_safeName(item.pathHash)}.jpg');
   }
 
   static Future<String?> _stillPath(LocalVideoItem item) async {
     final base = _siblingBase(item);
     if (base != null) return '$base-still.jpg';
     final dir = await _subDir('stills');
-    return _join(dir.path, '${item.pathHash}.jpg');
+    return _join(dir.path, '${_safeName(item.pathHash)}.jpg');
   }
 
   static Future<File?> posterFile(LocalVideoItem item) async {
@@ -158,10 +163,10 @@ class ScrapeMediaStore {
         final metaDir = await _subDir('metadata');
         for (final sub in ['posters', 'backdrops', 'stills']) {
           final dir = await _subDir(sub);
-          final f = File(_join(dir.path, '${item.pathHash}.jpg'));
+          final f = File(_join(dir.path, '${_safeName(item.pathHash)}.jpg'));
           if (await f.exists()) await f.delete();
         }
-        final mf = File(_join(metaDir.path, '${item.pathHash}.json'));
+        final mf = File(_join(metaDir.path, '${_safeName(item.pathHash)}.json'));
         if (await mf.exists()) await mf.delete();
       }
     } catch (e) {
@@ -209,9 +214,12 @@ class ScrapeMediaStore {
       await for (final e in dir.list()) {
         if (e is! File || !e.path.endsWith('.json')) continue;
         try {
-          final raw = await e.readAsString();
-          final m = ScrapedMedia.fromJson(jsonDecode(raw) as Map<String, dynamic>);
-          out[_baseName(e.path)] = m;
+          final raw = jsonDecode(await e.readAsString()) as Map<String, dynamic>;
+          // wrapper: {"id": pathHash, "media": {...}}; 兼容旧格式直接 media map
+          final id = raw['id'] as String?;
+          final mediaMap = raw['media'] as Map<String, dynamic>? ?? raw;
+          final m = ScrapedMedia.fromJson(mediaMap);
+          out[id ?? _baseName(e.path)] = m;
         } catch (_) {}
       }
     } catch (_) {}
