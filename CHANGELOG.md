@@ -1,3 +1,10 @@
+## [2.371.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.5...v2.371.6) (2026-10-06)
+
+
+### Bug Fixes
+
+* 删除文件源时清理该源下视频的刮削缓存 ([9f5dab7](https://github.com/1525745393/EmbyTok-Flutter/commit/9f5dab74fcc45c8bf87b515a6d54636e783c8185))
+
 ## [2.371.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.4...v2.371.5) (2026-10-06)
 
 
