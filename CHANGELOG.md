@@ -1,3 +1,10 @@
+# [2.369.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.368.0...v2.369.0) (2026-10-06)
+
+
+### Features
+
+* 演员详情页头像本地优先(castFile fallback CDN) ([8ca05e1](https://github.com/1525745393/EmbyTok-Flutter/commit/8ca05e134d3899c590fdc566e696ec9e9b05dfb1))
+
 # [2.368.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.367.0...v2.368.0) (2026-10-06)
 
 
