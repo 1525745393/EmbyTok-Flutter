@@ -165,16 +165,16 @@ class ScrapeMediaStore {
           final f = File('$base$s');
           if (await f.exists()) await f.delete();
         }
-      } else {
-        final metaDir = await _subDir('metadata');
-        for (final sub in ['posters', 'backdrops', 'stills']) {
-          final dir = await _subDir(sub);
-          final f = File(_join(dir.path, '${_safeName(item.pathHash)}.jpg'));
-          if (await f.exists()) await f.delete();
-        }
-        final mf = File(_join(metaDir.path, '${_safeName(item.pathHash)}.json'));
-        if (await mf.exists()) await mf.delete();
       }
+      // 同时清理 App 沙箱内中央目录缓存
+      final metaDir = await _subDir('metadata');
+      for (final sub in ['posters', 'backdrops', 'stills']) {
+        final dir = await _subDir(sub);
+        final f = File(_join(dir.path, '${_safeName(item.pathHash)}.jpg'));
+        if (await f.exists()) await f.delete();
+      }
+      final mf = File(_join(metaDir.path, '${_safeName(item.pathHash)}.json'));
+      if (await mf.exists()) await mf.delete();
     } catch (e) {
       AppLogger.warn('ScrapeMediaStore.delete 失败', data: {'error': e.toString()});
     }
