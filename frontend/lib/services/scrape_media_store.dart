@@ -35,11 +35,6 @@ class ScrapeMediaStore {
     return i > 0 ? b.substring(0, i) : b;
   }
 
-  static String _dirOf(String p) {
-    final s = p.lastIndexOf('/');
-    return s >= 0 ? p.substring(0, s) : '.';
-  }
-
   // ---- 目录 ----
   static Future<Directory> _centralRoot() async {
     final docs = await getApplicationDocumentsDirectory();
@@ -72,16 +67,17 @@ class ScrapeMediaStore {
         await File(_join(dir.path, '${item.pathHash}.json'))
             .writeAsString(jsonEncode(media.toJson()));
       }
-      await _downloadImage(
+      final jobs = <Future>[];
+      jobs.add(_downloadImage(
           TmdbService.posterUrl(media.posterPath ?? '', size: 'w342'),
-          await _posterPath(item));
-      await _downloadImage(
+          await _posterPath(item)));
+      jobs.add(_downloadImage(
           TmdbService.backdropUrl(media.backdropPath ?? '', size: 'w780'),
-          await _backdropPath(item));
+          await _backdropPath(item)));
       if (media.stillPath != null) {
-        await _downloadImage(
+        jobs.add(_downloadImage(
             TmdbService.posterUrl(media.stillPath!, size: 'w300'),
-            await _stillPath(item));
+            await _stillPath(item)));
       }
       for (final c in media.cast) {
         final pid = c['id'];
@@ -90,11 +86,12 @@ class ScrapeMediaStore {
           final castDir = await _subDir('cast');
           final f = File(_join(castDir.path, '$pid.jpg'));
           if (!await f.exists()) {
-            await _downloadImage(
-                TmdbService.posterUrl(profile, size: 'w185'), f.path);
+            jobs.add(_downloadImage(
+                TmdbService.posterUrl(profile, size: 'w185'), f.path));
           }
         }
       }
+      await Future.wait(jobs);
     } catch (e) {
       AppLogger.warn('ScrapeMediaStore.save 失败', data: {'error': e.toString()});
     }
@@ -247,10 +244,12 @@ class ScrapeMediaStore {
       }
       if (old.isNotEmpty) {
         final metaDir = await _subDir('metadata');
+        final futures = <Future>[];
         old.forEach((k, v) {
           final hash = k.substring('scrape_'.length);
-          File(_join(metaDir.path, '$hash.json')).writeAsString(v);
+          futures.add(File(_join(metaDir.path, '$hash.json')).writeAsString(v));
         });
+        await Future.wait(futures);
       }
       await sp.setBool(_migratedFlag, true);
     } catch (e) {
