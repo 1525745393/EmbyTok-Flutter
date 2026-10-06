@@ -1,3 +1,10 @@
+## [2.371.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.4...v2.371.5) (2026-10-06)
+
+
+### Bug Fixes
+
+* 文件源副标题显示多文件夹,local_default加刮削/重扫入口,菜单按类型过滤 ([9ba7c0b](https://github.com/1525745393/EmbyTok-Flutter/commit/9ba7c0b5bdb1001a032e74a0a1b7ec8520c2c48a))
+
 ## [2.371.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.3...v2.371.4) (2026-10-06)
 
 
