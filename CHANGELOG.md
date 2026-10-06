@@ -1,3 +1,10 @@
+# [2.368.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.367.0...v2.368.0) (2026-10-06)
+
+
+### Features
+
+* 收藏列表+网格卡片海报接入LocalPosterImage本地优先 ([1007cc6](https://github.com/1525745393/EmbyTok-Flutter/commit/1007cc64c0bdf50acd6830ae0dc15c08ab889b07))
+
 # [2.367.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.366.0...v2.367.0) (2026-10-05)
 
 
