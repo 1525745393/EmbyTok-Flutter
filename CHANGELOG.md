@@ -1,3 +1,10 @@
+# [2.370.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.369.0...v2.370.0) (2026-10-06)
+
+
+### Features
+
+* 重命名联动ScrapeMediaStore.rename+清除缓存联动clearCentral ([12ba00f](https://github.com/1525745393/EmbyTok-Flutter/commit/12ba00f7d96e2fa8a75546bcef1c8bda4dd9f9ac))
+
 # [2.369.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.368.0...v2.369.0) (2026-10-06)
 
 
