@@ -20,6 +20,7 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
   int _imageCacheSize = 0;
   int _tempCacheSize = 0;
   int _logSize = 0;
+  int _scrapeCacheSize = 0;
   bool _scanning = true;
 
   @override
@@ -63,6 +64,9 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
       _logSize = await _dirSize(logDir);
       // 图片缓存通常在 temp 下
       _imageCacheSize = _tempCacheSize;
+      // 刮削元数据目录（posters/backdrops/cast/metadata）
+      final scrapeDir = Directory('${appDocDir.path}/scrape_media');
+      _scrapeCacheSize = await _dirSize(scrapeDir);
     } catch (e) {
       AppLogger.error('扫描缓存失败', error: e);
     }
@@ -119,6 +123,7 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('刮削元数据缓存已清除（含本地图片）')));
       }
+      await _scanCache();
     } catch (e) {
       AppLogger.error('清除刮削缓存失败', error: e);
     }
@@ -126,7 +131,7 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
 
   @override
   Widget build(BuildContext context) {
-    final total = _imageCacheSize + _logSize;
+    final total = _imageCacheSize + _logSize + _scrapeCacheSize;
     return Scaffold(
       appBar: AppBar(title: const Text('缓存管理')),
       body: _scanning
@@ -164,7 +169,7 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
                 ListTile(
                   leading: const Icon(Icons.cloud_download, color: Colors.purple),
                   title: const Text('TMDB 刮削元数据'),
-                  subtitle: const Text('本地视频自动匹配的海报/简介/评分'),
+                  subtitle: Text('本地视频自动匹配的海报/简介/评分（${_formatSize(_scrapeCacheSize)}）'),
                   trailing: TextButton(
                     onPressed: () => _clearScrapeCache(context),
                     child: const Text('清除'),
