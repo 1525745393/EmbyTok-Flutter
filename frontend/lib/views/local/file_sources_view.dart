@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/file_source.dart';
 import '../../providers/file_sources_provider.dart';
 import '../../providers/local_video_provider.dart';
+import '../../services/scrape_media_store.dart';
 import 'file_source_browse_view.dart';
 import 'file_source_edit_view.dart';
 import 'local_directory_browser_view.dart';
@@ -305,10 +306,19 @@ class FileSourcesView extends ConsumerWidget {
             child: const Text('取消'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
+              // 清理该源下视频的刮削缓存
+              try {
+                final videos = ref.read(localVideoProvider).items;
+                for (final v in videos) {
+                  if (v.sourceId == s.id) {
+                    try { await ScrapeMediaStore.delete(v); } catch (_) {}
+                  }
+                }
+              } catch (_) {}
               ref.read(fileSourcesProvider.notifier).remove(s.id);
               ref.read(localVideoProvider.notifier).refresh();
-              Navigator.pop(context);
+              if (context.mounted) Navigator.pop(context);
             },
             child: const Text('删除', style: TextStyle(color: Colors.red)),
           ),
