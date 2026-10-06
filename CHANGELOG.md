@@ -1,3 +1,10 @@
+## [2.371.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.3...v2.371.4) (2026-10-06)
+
+
+### Bug Fixes
+
+* 缓存管理页统计scrape_media目录大小,清除后刷新 ([143bc0f](https://github.com/1525745393/EmbyTok-Flutter/commit/143bc0f52ed1a50f88cc935eb48125e5c734ec77))
+
 ## [2.371.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.2...v2.371.3) (2026-10-06)
 
 
