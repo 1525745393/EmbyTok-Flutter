@@ -194,9 +194,9 @@ class LocalVideoService {
     }
     // App 专属目录始终包含（用户下载的视频）
     all.addAll(await _scanAppDir());
-    // 去重（按 path）
+    // 去重（按 pathHash：asset 用 assetId，localDir 用真实路径，避免 path='' 空串 collapse）
     final seen = <String>{};
-    all.retainWhere((e) => seen.add(e.path));
+    all.retainWhere((e) => seen.add(e.pathHash));
     all.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
     await _writeCache(all);
     return all;
