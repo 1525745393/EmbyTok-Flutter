@@ -37,6 +37,19 @@ class FileSourcesView extends ConsumerWidget {
     );
   }
 
+  /// 本地文件夹源副标题：优先多文件夹 paths，回退单 path
+  String _dirSubtitle(FileSource s) {
+    final paths = <String>[];
+    final raw = s.config['paths'];
+    if (raw != null && raw.isNotEmpty) {
+      paths.addAll(raw.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty));
+    }
+    final old = s.config['path'];
+    if (old != null && old.isNotEmpty && !paths.contains(old)) paths.add(old);
+    if (paths.isEmpty) return '';
+    return paths.join(', ');
+  }
+
   Widget _buildSourceCard(
     BuildContext context,
     WidgetRef ref,
@@ -75,11 +88,11 @@ class FileSourcesView extends ConsumerWidget {
                 isLocal
                     ? '手机媒体库'
                     : (s.type == FileSourceType.localDir
-                        ? s.config['path'] ?? ''
+                        ? _dirSubtitle(s)
                         : s.type == FileSourceType.webdav
                             ? s.config['url'] ?? ''
                             : '${s.config['host'] ?? ''}:${s.config['port'] ?? '445'}'),
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
               // 启用/禁用开关（本地源也允许切换，用于临时隐藏手机相册）
@@ -93,9 +106,8 @@ class FileSourcesView extends ConsumerWidget {
                       ref.read(localVideoProvider.notifier).refresh();
                     },
                   ),
-                  // local_default（手机媒体库）不显示菜单，其他源都有
-                  if (s.id != 'local_default')
-                    PopupMenuButton<String>(
+                  // 所有源都有菜单；local_default 不可删
+                  PopupMenuButton<String>(
                       onSelected: (v) async {
                         if (v == 'edit') {
                           if (s.type == FileSourceType.localDir) {
@@ -114,7 +126,7 @@ class FileSourcesView extends ConsumerWidget {
                                     s.copyWith(config: {...s.config, 'path': path}),
                                   );
                             }
-                          } else {
+                          } else if (s.type != FileSourceType.local) {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -123,12 +135,16 @@ class FileSourcesView extends ConsumerWidget {
                             );
                           }
                         } else if (v == 'rescan') {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => FileSourceBrowseView(source: s),
-                            ),
-                          );
+                          if (s.type == FileSourceType.local) {
+                            ref.read(localVideoProvider.notifier).refresh();
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => FileSourceBrowseView(source: s),
+                              ),
+                            );
+                          }
                         } else if (v == 'rename') {
                           final ctrl = TextEditingController(text: s.name);
                           final newName = await showDialog<String>(
@@ -199,12 +215,15 @@ class FileSourcesView extends ConsumerWidget {
                         }
                       },
                       itemBuilder: (_) => [
-                        const PopupMenuItem(value: 'rescan', child: Text('重新扫描')),
-                        const PopupMenuItem(value: 'addfolder', child: Text('添加文件夹到此媒体库')),
+                        PopupMenuItem(value: 'rescan', child: Text(s.type == FileSourceType.local ? '重新扫描' : '进入浏览/重扫')),
+                        if (s.type == FileSourceType.localDir)
+                          const PopupMenuItem(value: 'addfolder', child: Text('添加文件夹到此媒体库')),
                         const PopupMenuItem(value: 'rename', child: Text('重命名媒体库')),
                         const PopupMenuItem(value: 'scrape', child: Text('刮削此媒体库')),
-                        const PopupMenuItem(value: 'edit', child: Text('编辑/换目录')),
-                        const PopupMenuItem(value: 'delete', child: Text('删除')),
+                        if (s.type != FileSourceType.local)
+                          const PopupMenuItem(value: 'edit', child: Text('编辑/换目录')),
+                        if (s.id != 'local_default')
+                          const PopupMenuItem(value: 'delete', child: Text('删除')),
                       ],
                     ),
                 ],
