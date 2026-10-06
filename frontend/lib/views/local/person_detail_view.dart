@@ -3,6 +3,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/local_video_provider.dart';
 import '../../services/tmdb_service.dart';
+import '../../services/scrape_media_store.dart';
+import 'dart:io';
 
 /// 演员详情页（本地模式，基于 TMDB）
 class PersonDetailPage extends ConsumerStatefulWidget {
@@ -95,9 +97,17 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                 fit: StackFit.expand,
                 children: [
                   widget.profilePath != null
-                      ? CachedNetworkImage(
-                          imageUrl: TmdbService.personUrl(widget.profilePath!, size: 'h632'),
-                          fit: BoxFit.cover,
+                      ? FutureBuilder<File?>(
+                          future: ScrapeMediaStore.castFile(widget.personId),
+                          builder: (_, snap) {
+                            if (snap.hasData && snap.data != null) {
+                              return Image.file(snap.data!, fit: BoxFit.cover);
+                            }
+                            return CachedNetworkImage(
+                              imageUrl: TmdbService.personUrl(widget.profilePath!, size: 'h632'),
+                              fit: BoxFit.cover,
+                            );
+                          },
                         )
                       : Container(color: scheme.surfaceContainerHighest),
                   DecoratedBox(
