@@ -1,3 +1,10 @@
+## [2.371.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.2...v2.371.3) (2026-10-06)
+
+
+### Bug Fixes
+
+* 删除视频时同时清理视频旁sidecar和中央目录缓存 ([5685ff4](https://github.com/1525745393/EmbyTok-Flutter/commit/5685ff4c9222fbe2f6093535629c56fb2d5ac35d))
+
 ## [2.371.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.1...v2.371.2) (2026-10-06)
 
 
