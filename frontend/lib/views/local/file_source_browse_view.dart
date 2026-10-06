@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/file_source.dart';
 import '../../models/local_video_item.dart';
 import '../../providers/file_sources_provider.dart';
+import '../../providers/local_video_provider.dart';
 import '../../services/local_dir_scanner.dart';
 import '../../services/local_video_service.dart';
 import '../../services/scrape_service.dart';
@@ -76,7 +77,10 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           );
           break;
         case FileSourceType.local:
-          items = [];
+          // 手机相册：从已扫描的本地视频中筛选 sourceId 匹配的
+          items = ref.read(localVideoProvider).items
+              .where((e) => e.sourceId == widget.source.id)
+              .toList();
           break;
         case FileSourceType.localDir:
           // 支持多文件夹挂载
@@ -125,20 +129,30 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       _scraping = true;
       _scrapedCount = 0;
     });
-    for (final item in _items) {
-      try {
-        final pathHash = item.pathHash;
-        // parentDir 传完整父目录路径，extractSeriesName 自动跳过 Season 文件夹
-        final m = await ScrapeService.scrapeFile(
-          pathHash,
-          item.name,
-          parentDir: item.relativePath,
-          mediaTypeHint: widget.source.config['mediaType'],
-        );
-        if (m != null) await ScrapeService.saveCache(pathHash, m);
-      } catch (_) {}
+    // 并发限流 4，串行避免 TMDB 限速
+    const concurrency = 4;
+    var i = 0;
+    var success = 0;
+    while (i < _items.length) {
+      final batch = _items.skip(i).take(concurrency).toList();
+      await Future.wait(batch.map((item) async {
+        try {
+          final pathHash = item.pathHash;
+          final m = await ScrapeService.scrapeFile(
+            pathHash,
+            item.name,
+            parentDir: item.relativePath,
+            mediaTypeHint: widget.source.config['mediaType'],
+          );
+          if (m != null) {
+            await ScrapeService.saveCache(pathHash, m);
+            success++;
+          }
+        } catch (_) {}
+      }));
+      i += concurrency;
       if (!mounted) return;
-      setState(() => _scrapedCount++);
+      setState(() => _scrapedCount = i > _items.length ? _items.length : i);
     }
     if (mounted) {
       final cache = await ScrapeService.loadCache();
@@ -147,7 +161,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         _scraping = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('刮削完成：共 $_scrapedCount 个视频')),
+        SnackBar(content: Text('刮削完成：成功 $success / 共 ${_items.length} 个视频')),
       );
     }
   }
