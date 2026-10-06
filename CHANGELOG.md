@@ -1,3 +1,10 @@
+## [2.370.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.370.0...v2.370.1) (2026-10-06)
+
+
+### Bug Fixes
+
+* refresh加载App目录.nfo恢复刮削+迁移await+图片并行下载+删死代码 ([c025b4c](https://github.com/1525745393/EmbyTok-Flutter/commit/c025b4c412a11c93ffbdc98dcd67793a9bd2e0aa))
+
 # [2.370.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.369.0...v2.370.0) (2026-10-06)
 
 
