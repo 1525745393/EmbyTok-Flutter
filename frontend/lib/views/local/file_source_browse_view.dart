@@ -411,7 +411,10 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         if (RegExp(r'[\/\\][Ss]eason\s*\d+$', caseSensitive: false).hasMatch(parent)) continue;
         final seasonDir = Directory('$parent/Season $season');
         if (!await seasonDir.exists()) await seasonDir.create(recursive: true);
-        final newPath = '$parent/Season $season/${item.name}';
+        // item.name 不含扩展名，需从原 path 拼回
+        final dot = item.path.lastIndexOf('.');
+        final ext = dot > 0 ? item.path.substring(dot) : '';
+        final newPath = '$parent/Season $season/${item.name}$ext';
         if (!await File(newPath).exists()) {
           await File(item.path).rename(newPath);
           ok++;
