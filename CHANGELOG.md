@@ -1,3 +1,10 @@
+## [2.371.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.1...v2.371.2) (2026-10-06)
+
+
+### Bug Fixes
+
+* localDir共享存储路径isAppDirFile=false,避免视频旁.nfo写入权限错误,统一走中央目录 ([02a8c1a](https://github.com/1525745393/EmbyTok-Flutter/commit/02a8c1aeebc19e84e14268504cd52ca2313ec03b))
+
 ## [2.371.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.0...v2.371.1) (2026-10-06)
 
 
