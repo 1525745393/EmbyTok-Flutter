@@ -1,3 +1,10 @@
+## [2.371.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.6...v2.371.7) (2026-10-06)
+
+
+### Bug Fixes
+
+* 文件源浏览页刮削并发4+统计成功数,手机相册源显示已扫描视频 ([b1738b4](https://github.com/1525745393/EmbyTok-Flutter/commit/b1738b4ea5a63e5fb02c391ca1b4b68f5f5469e5))
+
 ## [2.371.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.5...v2.371.6) (2026-10-06)
 
 
