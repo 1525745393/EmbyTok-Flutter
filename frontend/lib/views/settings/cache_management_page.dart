@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../utils/logger.dart';
 import '../../services/scrape_service.dart';
+import '../../services/scrape_media_store.dart';
 import '../../services/tmdb_service.dart';
 
 class CacheManagementPage extends StatefulWidget {
@@ -113,9 +114,10 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
   Future<void> _clearScrapeCache(BuildContext context) async {
     try {
       await ScrapeService.clearCache();
+      await ScrapeMediaStore.clearCentral();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('刮削元数据缓存已清除')));
+            const SnackBar(content: Text('刮削元数据缓存已清除（含本地图片）')));
       }
     } catch (e) {
       AppLogger.error('清除刮削缓存失败', error: e);

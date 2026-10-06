@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/local_video_item.dart';
 import 'local_dir_scanner.dart';
 import 'scrape_service.dart' show ScrapedMedia;
+import 'scrape_media_store.dart';
 
 class LocalVideoService {
   static const _cacheKey = 'local_video_cache_v1';
@@ -314,6 +315,10 @@ class LocalVideoService {
     await oldFile.rename(newPath);
     // P2#10 记录重命名历史用于撤销
     await _recordRename(item.path, newPath);
+    // 双轨落盘：同步重命名视频旁刮削文件
+    try {
+      await ScrapeMediaStore.rename(item.path, newPath);
+    } catch (_) {}
     return newPath;
   }
 
