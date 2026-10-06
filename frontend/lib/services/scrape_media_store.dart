@@ -73,13 +73,19 @@ class ScrapeMediaStore {
             .writeAsString(jsonEncode({'id': item.pathHash, 'media': media.toJson()}));
       }
       final jobs = <Future>[];
-      jobs.add(_downloadImage(
-          TmdbService.posterUrl(media.posterPath ?? '', size: 'w342'),
-          await _posterPath(item)));
-      jobs.add(_downloadImage(
-          TmdbService.backdropUrl(media.backdropPath ?? '', size: 'w780'),
-          await _backdropPath(item)));
-      if (media.stillPath != null) {
+      final poster = media.posterPath;
+      if (poster != null && poster.isNotEmpty) {
+        jobs.add(_downloadImage(
+            TmdbService.posterUrl(poster, size: 'w342'),
+            await _posterPath(item)));
+      }
+      final backdrop = media.backdropPath;
+      if (backdrop != null && backdrop.isNotEmpty) {
+        jobs.add(_downloadImage(
+            TmdbService.backdropUrl(backdrop, size: 'w780'),
+            await _backdropPath(item)));
+      }
+      if (media.stillPath != null && media.stillPath!.isNotEmpty) {
         jobs.add(_downloadImage(
             TmdbService.posterUrl(media.stillPath!, size: 'w300'),
             await _stillPath(item)));

@@ -201,8 +201,15 @@ class LocalVideoState {
 
 class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
   final Ref _ref;
+  bool _disposed = false;
   LocalVideoNotifier(this._ref) : super(const LocalVideoState()) {
     _init();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 
   Future<void> _init() async {
@@ -383,7 +390,7 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
     }
   }
 
-  bool get _mounted => true;
+  bool get _mounted => !_disposed;
 
   /// 切换本地收藏（P3）
   Future<void> toggleFavorite(String pathHash) async {
