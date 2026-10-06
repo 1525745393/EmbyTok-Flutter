@@ -1,3 +1,10 @@
+## [2.370.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.370.2...v2.370.3) (2026-10-06)
+
+
+### Bug Fixes
+
+* 本地模式local://不设baseUrl+_authServerUrl返回null+dispose阶段ref.read try/catch ([1f70437](https://github.com/1525745393/EmbyTok-Flutter/commit/1f70437f24e187293db447abcf5ebaa8cf3f953a))
+
 ## [2.370.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.370.1...v2.370.2) (2026-10-06)
 
 
