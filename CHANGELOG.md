@@ -1,3 +1,10 @@
+## [2.370.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.370.3...v2.370.4) (2026-10-06)
+
+
+### Bug Fixes
+
+* TV/Movie details按id内存缓存避免每集重复请求+scrapedAt=0旧缓存不丢弃+searchMovies加include_adult=false ([f3c64b3](https://github.com/1525745393/EmbyTok-Flutter/commit/f3c64b3d9024bb80c5fc8abd7accd99e580d3040))
+
 ## [2.370.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.370.2...v2.370.3) (2026-10-06)
 
 
