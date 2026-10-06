@@ -42,7 +42,7 @@ class LocalDirScanner {
             height: 0,
             mimeType: 'video/*',
             modifiedAt: stat.modified,
-            isAppDirFile: true,
+            isAppDirFile: false, // 共享存储路径，不走视频旁 .nfo，统一用中央目录
             relativePath: parent,
           ));
         } catch (_) {}
