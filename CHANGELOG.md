@@ -1,3 +1,10 @@
+## [2.371.8](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.7...v2.371.8) (2026-10-06)
+
+
+### Bug Fixes
+
+* 文件源表单校验必填字段,localDir换目录同步更新paths并刷新 ([4fdaadc](https://github.com/1525745393/EmbyTok-Flutter/commit/4fdaadc7d6ec52a5c9d6952363ac45be2aad7b20))
+
 ## [2.371.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.6...v2.371.7) (2026-10-06)
 
 
