@@ -1,3 +1,10 @@
+## [2.370.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.370.4...v2.370.5) (2026-10-06)
+
+
+### Bug Fixes
+
+* 空poster/backdrop/stillPath跳过图片下载+notifier dispose后不再setState ([8c63a73](https://github.com/1525745393/EmbyTok-Flutter/commit/8c63a733789f64e3c72b25c6b25e0c727941563c))
+
 ## [2.370.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.370.3...v2.370.4) (2026-10-06)
 
 
