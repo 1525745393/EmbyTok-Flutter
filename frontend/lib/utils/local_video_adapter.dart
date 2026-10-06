@@ -1,7 +1,9 @@
 import '../models/local_video_item.dart';
 import '../models/media_item.dart';
 import '../models/media_source.dart';
+import '../models/person.dart';
 import '../services/scrape_service.dart';
+import '../services/tmdb_service.dart';
 
 /// 本地视频 → Emby MediaItem 适配器
 /// 让本地视频能直接注入主 feed 的 videoListProvider，
@@ -9,6 +11,18 @@ import '../services/scrape_service.dart';
 class LocalVideoAdapter {
   static MediaItem toMediaItem(LocalVideoItem it, {ScrapedMedia? scraped}) {
     final isTv = scraped?.type == 'tv';
+    // 演员列表：ScrapedMedia.cast 是 [{id,name,role,profilePath}]
+    final people = scraped?.cast
+        .map((c) => Person(
+              name: c['name'] ?? '',
+              id: c['id'],
+              role: c['role'] ?? '',
+              type: 'Actor',
+              imageUrl: (c['profilePath']?.isNotEmpty ?? false)
+                  ? TmdbService.personUrl(c['profilePath']!)
+                  : null,
+            ))
+        .toList();
     return MediaItem(
       // id 加 local_ 前缀，避免与 Emby item id 冲突
       id: 'local_${it.id}',
@@ -23,11 +37,15 @@ class LocalVideoAdapter {
       overview: scraped?.overview ?? '',
       communityRating: scraped?.rating,
       genres: scraped?.genres,
+      studioNames: scraped?.studios,
+      people: people,
       // 本地刮削后：把 TMDB poster URL 放进 imageTags['Primary']，复用现有海报渲染
       imageTags: scraped?.posterPath != null
           ? {'Primary': 'https://image.tmdb.org/t/p/w300${scraped!.posterPath}'}
           : const {},
-      backdropImageTags: const [],
+      backdropImageTags: scraped?.backdropPath != null
+          ? ['https://image.tmdb.org/t/p/w780${scraped!.backdropPath}']
+          : const [],
       isLocalFile: true,
       localPath: it.networkUrl != null && it.networkUrl!.isNotEmpty ? null : it.path,
       localNetworkUrl: it.networkUrl,
