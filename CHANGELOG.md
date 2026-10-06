@@ -1,3 +1,10 @@
+# [2.371.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.370.5...v2.371.0) (2026-10-06)
+
+
+### Features
+
+* adapter传cast/studios/backdrop给feed,演员头像和导演在信息面板可见 ([04bbfb2](https://github.com/1525745393/EmbyTok-Flutter/commit/04bbfb29f9f2ea64d30e3aee31ffcb20620499e9))
+
 ## [2.370.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.370.4...v2.370.5) (2026-10-06)
 
 
