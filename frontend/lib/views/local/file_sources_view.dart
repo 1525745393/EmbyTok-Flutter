@@ -123,9 +123,23 @@ class FileSourcesView extends ConsumerWidget {
                               ),
                             );
                             if (path != null) {
+                              // 同步更新 path 和 paths（多文件夹）
+                              final paths = <String>[];
+                              final raw = s.config['paths'];
+                              if (raw != null && raw.isNotEmpty) {
+                                paths.addAll(raw.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty));
+                              }
+                              if (!paths.contains(path)) paths.add(path);
                               ref.read(fileSourcesProvider.notifier).update(
-                                    s.copyWith(config: {...s.config, 'path': path}),
+                                    s.copyWith(config: {
+                                      ...s.config,
+                                      'path': path,
+                                      'paths': paths.join(','),
+                                    }),
                                   );
+                              if (context.mounted) {
+                                ref.read(localVideoProvider.notifier).refresh();
+                              }
                             }
                           } else if (s.type != FileSourceType.local) {
                             Navigator.push(

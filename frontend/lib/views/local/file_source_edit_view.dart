@@ -164,6 +164,19 @@ class _FileSourceEditViewState extends ConsumerState<FileSourceEditView> {
   }
 
   void _save() {
+    // 校验必填字段
+    if (_name.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请输入名称')));
+      return;
+    }
+    if (_type == FileSourceType.webdav && _url.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请输入 WebDAV 地址')));
+      return;
+    }
+    if (_type != FileSourceType.webdav && _host.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请输入主机地址')));
+      return;
+    }
     final cfg = <String, String>{};
     if (_type == FileSourceType.webdav) {
       cfg['url'] = _url.text.trim();
