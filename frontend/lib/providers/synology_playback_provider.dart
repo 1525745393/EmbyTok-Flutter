@@ -26,7 +26,6 @@ import 'audio_focus_provider.dart';
 import 'audio_handler_provider.dart';
 import 'recent_playbacks_provider.dart';
 import 'synology_auth_provider.dart';
-part 'synology_parts/synology_playback_internal.dart';
 
 /// 播放模式
 enum SynologyPlaybackMode {
@@ -518,6 +517,244 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
         .read(synologyAuthProvider.notifier)
         .api
         .getSongCoverUrl(song.id);
+  }
+
+  // ==================== 播放内部实现（原 synology_playback_internal.dart） ====================
+
+  Future<void> _persistPlayback({bool persistPosition = true}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final data = {
+        'queue': state.queue.map((s) => s.toJson()).toList(),
+        'currentIndex': state.currentIndex,
+        'position': persistPosition ? state.position.inSeconds : 0,
+        'mode': state.mode.name,
+      };
+      await prefs.setString(
+          SynologyPlaybackNotifier._persistKey, jsonEncode(data));
+    } catch (e) {
+      AppLogger.warn('持久化播放状态失败', data: {'error': e.toString()});
+    }
+  }
+
+  int _randomIndex(int length) {
+    if (length <= 1) return 0;
+    final current = state.currentIndex;
+    var idx = _random.nextInt(length);
+    if (idx == current) idx = (idx + 1) % length;
+    return idx;
+  }
+
+  void _tickSleepTimer() {
+    final endsAt = state.sleepTimerEndsAtMs;
+    if (endsAt == null) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final remainingMs = endsAt - now;
+    final remainingSec = remainingMs / 1000.0;
+    if (remainingMs <= 0) {
+      _stopBySleepTimer();
+      return;
+    }
+    if (state.sleepTimerFadeOut && remainingSec <= 30.0) {
+      final ratio = (remainingSec / 30.0).clamp(0.0, 1.0);
+      final controller = _controller;
+      if (controller != null && controller.value.isInitialized) {
+        controller.setVolume(ratio);
+      }
+    }
+  }
+
+  Future<void> _stopBySleepTimer() async {
+    final behavior = state.sleepTimerBehavior;
+    if (_controller != null && _controller!.value.isInitialized) {
+      await _controller!.setVolume(_normalVolume);
+    }
+    if (behavior == SleepTimerBehavior.currentSongEnd) {
+      _stopAfterThisSong = true;
+      state = state.copyWith(clearSleepTimer: true);
+      await _persistSleepTimer();
+      AppLogger.info('睡眠定时器：等待当前歌曲结束后停止');
+      return;
+    }
+    _stopAfterThisSong = false;
+    state = state.copyWith(clearSleepTimer: true);
+    await _persistSleepTimer();
+    await pause();
+    AppLogger.info('睡眠定时器：立即停止播放');
+  }
+
+  Future<void> _persistSleepTimer() async {
+    final prefs = await SharedPreferences.getInstance();
+    final endsAt = state.sleepTimerEndsAtMs;
+    if (endsAt == null) {
+      await prefs.remove(SynologyPlaybackNotifier._kSleepTimerKey);
+      return;
+    }
+    await prefs.setString(
+        SynologyPlaybackNotifier._kSleepTimerKey,
+        json.encode({
+          'endsAt': endsAt,
+          'behavior': state.sleepTimerBehavior.name,
+          'fadeOut': state.sleepTimerFadeOut,
+        }));
+  }
+
+  void _syncMediaSession({
+    required bool isPlaying,
+    Duration? position,
+    Duration? duration,
+  }) {
+    final song = state.currentSong;
+    if (song == null) return;
+    try {
+      final handler = _ref.read(audioHandlerProvider);
+      if (isPlaying || position != null) {
+        handler.syncMusicMediaItem(
+          title: song.title,
+          artist: song.artistDisplay.isEmpty ? '群晖音乐' : song.artistDisplay,
+          artUri: state.coverUrl,
+          duration: duration,
+        );
+      }
+      handler.syncMusicPlaybackState(
+        isPlaying: isPlaying,
+        position: position,
+        duration: duration,
+      );
+    } catch (e) {
+      AppLogger.warn('同步系统媒体控制失败', data: {'error': e.toString()});
+    }
+  }
+
+  Future<void> _loadLyrics(AudioSong song) async {
+    state = state.copyWith(isLoadingLyrics: true, lyrics: null);
+    final api = _ref.read(synologyAuthProvider.notifier).api;
+    var lyrics = await lyricsEditStore.read(song.id);
+    lyrics ??= await api.getLyrics(song.id);
+    if ((lyrics == null || lyrics.trim().isEmpty)) {
+      lyrics = await lrclibService.fetchLyrics(
+        artist: song.artistDisplay,
+        title: song.title,
+        album: song.albumDisplay,
+        durationSec: song.audio?.duration,
+      );
+    }
+    if (!_disposed && state.currentSong?.id == song.id) {
+      state = state.copyWith(isLoadingLyrics: false, lyrics: lyrics);
+    }
+  }
+
+  Future<void> _playSong(AudioSong song) async {
+    await _controller?.dispose();
+    _controller = null;
+    final api = _ref.read(synologyAuthProvider.notifier).api;
+    try {
+      await _ref.read(audioSessionHandlerProvider).requestFocus();
+      final localPath =
+          await SynologyDownloadService.instance.localPathFor(song.id);
+      VideoPlayerController controller;
+      if (localPath != null) {
+        controller = VideoPlayerController.file(
+          File(localPath),
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: false),
+        );
+      } else {
+        final streamUrl = api.getStreamUrl(song.id);
+        if (streamUrl == null) {
+          state = state.copyWith(isLoading: false, error: '未登录群晖或流地址不可用');
+          return;
+        }
+        controller = VideoPlayerController.networkUrl(
+          Uri.parse(streamUrl),
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: false),
+        );
+      }
+      _controller = controller;
+      await controller.initialize();
+      if (_disposed) {
+        await controller.dispose();
+        return;
+      }
+      await controller.play();
+      final pending = _pendingSeek;
+      if (pending != null && pending.inSeconds > 0) {
+        await controller.seekTo(pending);
+        _pendingSeek = null;
+      }
+      _startPositionTimer();
+      _consecutiveFailures = 0;
+      state = state.copyWith(
+        isLoading: false,
+        isPlaying: true,
+        duration: controller.value.duration,
+        error: null,
+      );
+      _syncMediaSession(
+        isPlaying: true,
+        position: controller.value.position,
+        duration: controller.value.duration,
+      );
+      _loadLyrics(song);
+    } catch (e, st) {
+      AppLogger.error('音乐播放失败',
+          data: {'song': song.title}, error: e, stackTrace: st);
+      _consecutiveFailures++;
+      final idx = state.currentIndex;
+      if (_consecutiveFailures >=
+          SynologyPlaybackNotifier._kMaxConsecutiveFailures) {
+        AppLogger.warn('连续播放失败，停止自动切歌', data: {'count': _consecutiveFailures});
+        state = state.copyWith(
+            isLoading: false, isPlaying: false, error: '连续播放失败，请检查网络或服务器后重试');
+        return;
+      }
+      if (idx >= 0 && idx < state.queue.length - 1) {
+        await playQueue(state.queue, idx + 1);
+      } else {
+        state = state.copyWith(
+            isLoading: false, isPlaying: false, error: '播放失败：$e');
+      }
+    }
+  }
+
+  void _startPositionTimer() {
+    _positionTimer?.cancel();
+    _positionTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      final controller = _controller;
+      if (controller == null || !controller.value.isInitialized) return;
+      final pos = controller.value.position;
+      final dur = controller.value.duration;
+      final playing = controller.value.isPlaying;
+      if (SynologyPlaybackNotifier.isNaturalFinish(
+        controllerPlaying: playing,
+        statePlaying: state.isPlaying,
+        position: pos,
+        duration: dur,
+      )) {
+        if (_stopAfterThisSong) {
+          _stopAfterThisSong = false;
+          pause();
+          AppLogger.info('睡眠定时器：当前歌曲已播完，停止播放');
+          return;
+        }
+        next();
+        return;
+      }
+      state = state.copyWith(
+        position: pos,
+        duration: dur,
+        isPlaying: playing,
+      );
+      _syncMediaSession(isPlaying: playing, position: pos, duration: dur);
+      _tickSleepTimer();
+    });
+  }
+
+  Future<void> _handleFocusLost() async {
+    await pause();
+  }
+
+  Future<void> _handleFocusGained() async {
+    await resume();
   }
 
   @override
