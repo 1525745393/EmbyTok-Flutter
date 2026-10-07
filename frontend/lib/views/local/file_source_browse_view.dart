@@ -11,6 +11,7 @@ import '../../providers/local_video_provider.dart';
 import '../../services/local_dir_scanner.dart';
 import '../../services/local_video_service.dart';
 import '../../services/scrape_service.dart';
+import '../../services/scrape_media_store.dart';
 import '../../services/smb_scanner.dart';
 import '../../services/tmdb_service.dart';
 import '../../services/webdav_scanner.dart';
@@ -146,6 +147,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           );
           if (m != null) {
             await ScrapeService.saveCache(pathHash, m);
+            // 写视频同目录 .nfo/-poster.jpg/-backdrop.jpg
+            await ScrapeMediaStore.save(item, m);
             success++;
           }
         } catch (_) {}
@@ -348,6 +351,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
             ? ScrapeService.applyEpisodeInfo(base, ep.season, ep.episode)
             : base;
         await ScrapeService.saveCache(item.pathHash, media);
+        // 写每集视频旁 .nfo/-poster.jpg
+        await ScrapeMediaStore.save(item, media);
       } catch (_) {}
       if (!mounted) return;
       setState(() => _scrapedCount = ++done);
