@@ -1,3 +1,10 @@
+## [2.371.10](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.9...v2.371.10) (2026-10-07)
+
+
+### Bug Fixes
+
+* 自动检测SxxExx剧集模式分组,重命名文件夹取剧根目录而非Season子目录 ([4557aee](https://github.com/1525745393/EmbyTok-Flutter/commit/4557aeeb15c188f7ab19b7b76f196187594a1498))
+
 ## [2.371.9](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.8...v2.371.9) (2026-10-06)
 
 
