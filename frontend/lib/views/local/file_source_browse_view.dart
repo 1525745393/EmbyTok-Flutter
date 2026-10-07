@@ -239,7 +239,10 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   Set<String> _expandedFolders = {};
 
   Widget _buildBody() {
-    final isTv = widget.source.config['mediaType'] == 'tv';
+    // mediaType=tv 或文件名含 SxxExx 模式时按文件夹分组
+    final hasTvPattern = _items.any((it) =>
+        RegExp(r'[Ss]\d{1,2}[._ -]?[Ee]\d{1,2}').hasMatch(it.name));
+    final isTv = widget.source.config['mediaType'] == 'tv' || hasTvPattern;
     // TV 类型按文件夹分组
     if (isTv) {
       // 按剧名分组（自动跳过 Season 子目录）
@@ -249,7 +252,11 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         final folder = ScrapeService.extractSeriesName(it.relativePath) ??
             (it.relativePath?.split('/').where((s) => s.isNotEmpty).last ?? '未分组');
         groups.putIfAbsent(folder, () => []).add(it);
-        groupDir[folder] = it.relativePath ?? '';
+        // 剧根目录：去掉 Season 子目录后缀，避免重命名改错目录
+        final rel = it.relativePath ?? '';
+        final m = RegExp(r'[\/\\][Ss]eason\s*\d+[\/\\]?.*$', caseSensitive: false).firstMatch(rel);
+        final rootPath = m != null ? rel.substring(0, m.start) : rel;
+        groupDir.putIfAbsent(folder, () => rootPath);
       }
       return ListView(
         padding: const EdgeInsets.all(16),
