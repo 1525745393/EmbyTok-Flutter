@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -326,10 +327,10 @@ class FileSourcesView extends ConsumerWidget {
                 final videos = ref.read(localVideoProvider).items;
                 for (final v in videos) {
                   if (v.sourceId == s.id) {
-                    try { await ScrapeMediaStore.delete(v); } catch (_) {}
+                    try { await ScrapeMediaStore.delete(v); } catch (e) { debugPrint('删除元数据失败 ${v.name}: $e'); }
                   }
                 }
-              } catch (_) {}
+              } catch (e) { debugPrint('清理源元数据失败: $e'); }
               ref.read(fileSourcesProvider.notifier).remove(s.id);
               ref.read(localVideoProvider.notifier).refresh();
               if (context.mounted) Navigator.pop(context);

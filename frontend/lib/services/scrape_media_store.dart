@@ -212,7 +212,7 @@ class ScrapeMediaStore {
         await f.parent.create(recursive: true);
         await f.writeAsBytes(r.bodyBytes);
       }
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('下载海报失败', data: {'url': url, 'error': e.toString()}); }
   }
 
   // ---- 加载 ----
@@ -229,9 +229,9 @@ class ScrapeMediaStore {
           final mediaMap = raw['media'] as Map<String, dynamic>? ?? raw;
           final m = ScrapedMedia.fromJson(mediaMap);
           out[id ?? _baseName(e.path)] = m;
-        } catch (_) {}
+        } catch (err) { AppLogger.warn('元数据文件解析失败', data: {'file': e.path, 'error': err.toString()}); }
       }
-    } catch (_) {}
+    } catch (err) { AppLogger.warn('加载中央元数据失败', data: {'error': err.toString()}); }
     return out;
   }
 

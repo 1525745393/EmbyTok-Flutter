@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -151,7 +152,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
             await ScrapeMediaStore.save(item, m);
             success++;
           }
-        } catch (_) {}
+          } catch (e) { debugPrint('刮削失败 ${item.name}: $e'); }
       }));
       i += concurrency;
       if (!mounted) return;
@@ -334,7 +335,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     ScrapedMedia? base;
     try {
       base = await ScrapeService.scrapeTvSeries(seriesName);
-    } catch (_) {}
+    } catch (e) { debugPrint('剧集刮削失败 $seriesName: $e'); }
     if (base == null) {
       if (mounted) {
         setState(() => _scraping = false);
@@ -353,7 +354,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         await ScrapeService.saveCache(item.pathHash, media);
         // 写每集视频旁 .nfo/-poster.jpg
         await ScrapeMediaStore.save(item, media);
-      } catch (_) {}
+      } catch (e) { debugPrint('单集元数据保存失败 ${item.name}: $e'); }
       if (!mounted) return;
       setState(() => _scrapedCount = ++done);
     }

@@ -606,7 +606,7 @@ class ScrapeService {
           if (age > ttl) continue;
         }
         result[key.substring(_prefix.length)] = media;
-      } catch (_) {}
+      } catch (e) { AppLogger.warn('刮削缓存解析失败', data: {'key': key, 'error': e.toString()}); }
     }
     return result;
   }
