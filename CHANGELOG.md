@@ -1,3 +1,11 @@
+## [2.371.21](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.20...v2.371.21) (2026-10-07)
+
+
+### Bug Fixes
+
+* P2-1 测试数据填充页16处use_build_context_synchronously补mounted守卫 ([e4ad433](https://github.com/1525745393/EmbyTok-Flutter/commit/e4ad43322d2f3a96ebd819957efa41851776cdeb))
+* P3-3/P3-4 pubspec锁版本 http ^1.6.0, dio下限抬到^5.11.0 ([774b4c0](https://github.com/1525745393/EmbyTok-Flutter/commit/774b4c0415777ee1eb8f8cde9be9c094d02d91ac))
+
 ## [2.371.20](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.19...v2.371.20) (2026-10-07)
 
 
