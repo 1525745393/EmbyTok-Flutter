@@ -34,11 +34,11 @@ class YearReportPage extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
-            onPressed: () => Share.share(
-              '我在 EmbyTok ${now.year} 年观看了 $totalHours 小时内容，'
+            onPressed: () => SharePlus.instance.share(ShareParams(
+              text: '我在 EmbyTok ${now.year} 年观看了 $totalHours 小时内容，'
               '共 $totalPlays 次播放，活跃 $uniqueDays 天！',
               subject: 'EmbyTok 年度报告',
-            ),
+            )),
           ),
         ],
       ),

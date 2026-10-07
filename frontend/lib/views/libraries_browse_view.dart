@@ -671,13 +671,13 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
           await service.markAsPlayed(item.id,
               serverUrl: auth.embyServerUrl, token: auth.token);
         }
-        if (!mounted) return;
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(played ? '已标记为未观看' : '已标记为已观看')),
         );
       } catch (e, st) {
         AppLogger.error('标记观看状态失败', error: e, stackTrace: st);
-        if (mounted && rolledBack != null && idx >= 0) {
+        if (context.mounted && rolledBack != null && idx >= 0) {
           setState(() => _items[idx] = rolledBack!);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('操作失败，请重试')),

@@ -755,7 +755,7 @@ void _resetInfoHideTimer() {
       text = '${item.title}\n（来自 EmbyTok）';
     }
     try {
-      await Share.share(text, subject: item.title);
+      await SharePlus.instance.share(ShareParams(text: text, subject: item.title));
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1129,7 +1129,7 @@ Widget _buildPage(BuildContext context) {
                   (widget.item.userData?.isWatchlisted ?? false);
               try {
                 await notifier.toggle(widget.item, current);
-                if (!mounted) return;
+                if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(current ? '已取消书签' : '已加入书签'),
@@ -1137,7 +1137,7 @@ Widget _buildPage(BuildContext context) {
                   ),
                 );
               } catch (e) {
-                if (!mounted) return;
+                if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('书签操作失败: $e')),
                 );

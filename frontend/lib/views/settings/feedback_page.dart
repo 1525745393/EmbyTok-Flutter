@@ -43,10 +43,10 @@ class _FeedbackPageState extends State<FeedbackPage> {
         buffer.writeln(logs.join('\n'));
       }
 
-      await Share.share(
-        buffer.toString(),
+      await SharePlus.instance.share(ShareParams(
+        text: buffer.toString(),
         subject: 'EmbyTok 反馈',
-      );
+      ));
 
       if (context.mounted) {
         ScaffoldMessenger.of(context)

@@ -83,7 +83,7 @@ class _LogViewerPageState extends State<LogViewerPage> {
             onPressed: () async {
               final path = await AppLogger.getLogFilePath();
               if (path != null) {
-                await Share.shareXFiles([XFile(path)]);
+                await SharePlus.instance.share(ShareParams(files: [XFile(path)]));
               }
             },
           ),

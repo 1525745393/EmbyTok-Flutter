@@ -46,8 +46,8 @@ class _TestConfigTransferPageState extends State<TestConfigTransferPage> {
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/embytok_test_config.json');
       await file.writeAsString(json);
-      await Share.shareXFiles([XFile(file.path)],
-          subject: 'EmbyTok 测试配置');
+      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)],
+          subject: 'EmbyTok 测试配置'));
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)

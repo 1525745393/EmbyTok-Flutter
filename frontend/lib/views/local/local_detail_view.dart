@@ -139,7 +139,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                               tooltip: isFav ? '取消收藏' : '收藏',
                             ),
                             IconButton(
-                              onPressed: () => Share.shareXFiles([XFile(widget.item.path)], subject: widget.item.name),
+                              onPressed: () => SharePlus.instance.share(ShareParams(files: [XFile(widget.item.path)], subject: widget.item.name)),
                               icon: const Icon(Icons.share, color: Colors.white),
                               tooltip: '分享',
                             ),

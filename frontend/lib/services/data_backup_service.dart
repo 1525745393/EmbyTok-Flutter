@@ -165,7 +165,7 @@ class DataBackupService {
 
   Future<void> shareTextFile(String fileName, String content) async {
     final f = await _writeTemp(fileName, content);
-    await Share.shareXFiles([XFile(f.path)], subject: fileName);
+    await SharePlus.instance.share(ShareParams(files: [XFile(f.path)], subject: fileName));
   }
 
   /// 让用户选择一个文本文件，返回内容（取消返回 null）

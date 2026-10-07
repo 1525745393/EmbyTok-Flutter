@@ -2983,7 +2983,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withOpacity(0.85)],
+                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.85)],
                   ),
                 ),
               ),
@@ -3073,7 +3073,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                           icon: Icon(allFaved ? Icons.favorite : Icons.favorite_border, color: allFaved ? Colors.pink : Colors.white),
                         ),
                         IconButton(
-                          onPressed: () => Share.shareXFiles([XFile(first.path)], subject: first.name),
+                          onPressed: () => SharePlus.instance.share(ShareParams(files: [XFile(first.path)], subject: first.name)),
                           icon: const Icon(Icons.share, color: Colors.white),
                         ),
                         IconButton(
@@ -3152,7 +3152,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                   if (meta.rating != null)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: Colors.amber.withOpacity(0.2), borderRadius: BorderRadius.circular(4)),
+                      decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
                       child: Row(mainAxisSize: MainAxisSize.min, children: [
                         const Icon(Icons.star, size: 12, color: Colors.amber),
                         const SizedBox(width: 2),
@@ -3263,7 +3263,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                             // 播放按钮
                             Positioned(
                               right: 6, bottom: 4,
-                              child: Icon(Icons.play_circle_fill, color: Colors.white.withOpacity(0.9), size: 22),
+                              child: Icon(Icons.play_circle_fill, color: Colors.white.withValues(alpha: 0.9), size: 22),
                             ),
                           ],
                         ),

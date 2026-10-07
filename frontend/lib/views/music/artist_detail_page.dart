@@ -636,7 +636,7 @@ Widget _buildContent(
           // 分享（次要按钮）
           OutlinedButton.icon(
             onPressed: () {
-              Share.share('歌手：$_artistName\n\n来自 EmbyTok 音乐APP');
+              SharePlus.instance.share(ShareParams(text: '歌手：$_artistName\n\n来自 EmbyTok 音乐APP'));
             },
             icon: const Icon(Icons.share),
             label: const Text('分享'),
