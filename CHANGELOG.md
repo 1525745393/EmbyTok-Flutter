@@ -1,3 +1,10 @@
+## [2.371.19](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.18...v2.371.19) (2026-10-07)
+
+
+### Bug Fixes
+
+* P2-1 本地媒体库use_build_context_synchronously补mounted守卫 ([17cc636](https://github.com/1525745393/EmbyTok-Flutter/commit/17cc6363e1a493c4ef3e406c7632141cde83c175))
+
 ## [2.371.18](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.17...v2.371.18) (2026-10-07)
 
 
