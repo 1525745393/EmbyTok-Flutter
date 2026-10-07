@@ -13,8 +13,6 @@ import '../providers/providers.dart';
 import '../theme/actor_type_colors.dart';
 import '../utils/utils.dart';
 import '../widgets/person_avatar_image.dart';
-part 'actor_parts/actor_actions.dart';
-part 'actor_parts/actor_builders.dart';
 
 class ActorsView extends ConsumerStatefulWidget {
   const ActorsView({super.key, this.useScaffold = true});
@@ -344,6 +342,564 @@ class _ActorsViewState extends ConsumerState<ActorsView>
   // 构建优化的加载动画
 
   // 构建空状态提示
+
+  // === 合并自 actor_builders.dart ===
+Widget _buildSortChip(String label, String mode) {
+    final scheme = Theme.of(context).colorScheme;
+    final isSelected = _sortMode == mode;
+
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (selected) {
+        if (!selected) return;
+        setState(() {
+          _sortMode = mode;
+        });
+        _saveSortMode(mode);
+      },
+      backgroundColor: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      selectedColor: scheme.primaryContainer,
+      labelStyle: TextStyle(
+        color: isSelected ? scheme.onPrimaryContainer : scheme.onSurface,
+        fontSize: 13,
+      ),
+      side: BorderSide.none,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+    );
+  }
+
+  Widget _buildTypeFilterChip(String label, String? type, ActorsState state) {
+    final scheme = Theme.of(context).colorScheme;
+    final isSelected = state.selectedPersonType == type;
+
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (selected) {
+        if (!selected) return;
+        _saveSelectedType(type);
+        ref.read(actorsProvider.notifier).setSelectedType(type);
+        // 如果正在搜索，切换类型后重新搜索
+        if (state.searchQuery.isNotEmpty) {
+          ref.read(actorsProvider.notifier).searchActors(state.searchQuery);
+        }
+      },
+      backgroundColor: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      selectedColor: scheme.primaryContainer,
+      labelStyle: TextStyle(
+        color: isSelected ? scheme.onPrimaryContainer : scheme.onSurface,
+        fontSize: 13,
+      ),
+      side: BorderSide.none,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+    );
+  }
+
+  Widget _buildActorGrid(
+    List<Person> actors,
+    String? embyServerUrl,
+    String? token,
+    Set<String> favoritedIds,
+    bool isSearchActive, {
+    bool isFavoriteTab = false,
+  }) {
+    if (actors.isEmpty) {
+      return SliverFillRemaining(
+        child: _buildEmptyState(
+          isSearchEmpty: isSearchActive,
+          // "已关注"Tab 空列表且非搜索状态时显示"暂无关注的演员"引导
+          isFavoriteEmpty: isFavoriteTab && !isSearchActive,
+        ),
+      );
+    }
+    return SliverPadding(
+      padding: const EdgeInsets.all(16),
+      sliver: SliverGrid(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: _gridColumns,
+          childAspectRatio: 0.75,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 16,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final actor = actors[index];
+            return _ActorCard(
+              actor: actor,
+              embyServerUrl: embyServerUrl,
+              token: token,
+              isFavorited: favoritedIds.contains(actor.id),
+              onFavoriteTap: () =>
+                  ref.read(actorsProvider.notifier).toggleFavorite(actor),
+              onTap: () => _navigateToPersonDetail(actor),
+            );
+          },
+          childCount: actors.length,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabContent({
+    required List<Person> actors,
+    required String? embyServerUrl,
+    required String? token,
+    required Set<String> favoritedIds,
+    required bool isSearchActive,
+    required bool loading,
+    required bool isSearching,
+    required bool isLoadingMore,
+    required String? error,
+    required ColorScheme scheme,
+    required bool hasScrollController,
+    bool isFavoriteTab = false,
+  }) {
+    // 加载中
+    if (loading) {
+      return _buildLoading();
+    }
+
+    // 搜索中
+    if (isSearching) {
+      return _buildLoading(message: '正在搜索...');
+    }
+
+    // 出错
+    if (error != null) {
+      return _buildError(scheme);
+    }
+
+    // 三个 Tab 统一：RefreshIndicator + CustomScrollView + AlwaysScrollableScrollPhysics
+    return RefreshIndicator(
+      onRefresh: _onRefresh,
+      child: CustomScrollView(
+        controller: hasScrollController ? _scrollController : null,
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          _buildActorGrid(
+              actors, embyServerUrl, token, favoritedIds, isSearchActive,
+              isFavoriteTab: isFavoriteTab),
+          // 加载更多提示
+          if (hasScrollController && isLoadingMore)
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: 12),
+                      Text(
+                        '加载更多演员...',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          // 已加载全部演员的提示（仅在有滚动控制器的 Tab 显示，避免重复）
+          if (hasScrollController && !loading && actors.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: Text(
+                    '已加载全部 ${actors.length} 位演员',
+                    style: TextStyle(
+                      color: scheme.onSurface.withValues(alpha: 0.5),
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoading({String message = '正在加载演员...'}) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 48,
+            height: 48,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: TextStyle(
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.6),
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(
+      {bool isSearchEmpty = false, bool isFavoriteEmpty = false}) {
+    final scheme = Theme.of(context).colorScheme;
+
+    if (isSearchEmpty) {
+      final query = ref.read(actorsProvider).searchQuery;
+      return _SearchNoResultHint(
+        query: query,
+        onClear: () {
+          _searchController.clear();
+          ref.read(actorsProvider.notifier).clearSearch();
+          _saveSearchQuery('');
+        },
+      );
+    }
+
+    if (isFavoriteEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.favorite_border,
+              size: 64,
+              color: scheme.onSurface.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '暂无关注的演员',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: scheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '快去关注你喜欢的演员吧',
+              style: TextStyle(
+                fontSize: 14,
+                color: scheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: scheme.primaryContainer.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.touch_app,
+                    size: 16,
+                    color: scheme.primary,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '点击演员卡片上的爱心图标即可关注',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: scheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // 默认空状态
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.people_outline,
+            size: 64,
+            color: scheme.onSurface.withValues(alpha: 0.3),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '暂无演员',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: scheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '请检查 Emby 服务器是否正常',
+            style: TextStyle(
+              fontSize: 14,
+              color: scheme.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildError(ColorScheme scheme) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.error_outline,
+            color: scheme.error,
+            size: 48,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '加载演员列表失败',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: scheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '请检查 Emby 服务器是否正常运行',
+            style: TextStyle(
+              color: scheme.onSurface.withValues(alpha: 0.6),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: scheme.primary,
+              foregroundColor: scheme.onPrimary,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('重试'),
+            onPressed: _onRefresh,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // === 合并自 actor_actions.dart ===
+Future<void> _restoreState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // 恢复类型筛选
+      // 用 containsKey 判断键是否存在，兼容旧版本可能写入的 'null' 字符串数据
+      if (prefs.containsKey(kStorageKeyActorsSelectedType)) {
+        final savedType = prefs.getString(kStorageKeyActorsSelectedType);
+        // 兼容旧版本写入的 'null' 字符串：视为无筛选（null）
+        if (savedType != null && savedType.isNotEmpty && savedType != 'null') {
+          ref.read(actorsProvider.notifier).setSelectedType(savedType);
+        }
+      }
+
+      // 恢复 Tab 索引
+      final savedTab = prefs.getInt(kStorageKeyActorsSelectedTab);
+      if (savedTab != null &&
+          savedTab >= 0 &&
+          savedTab < _ActorsViewState._actorTabsCount) {
+        _tabController.index = savedTab;
+      }
+
+      // 恢复搜索关键词
+      final savedSearch = prefs.getString(kStorageKeyActorsSearchQuery);
+      if (savedSearch != null && savedSearch.isNotEmpty) {
+        _searchController.text = savedSearch;
+        ref.read(actorsProvider.notifier).searchActors(savedSearch);
+      }
+
+      // 恢复排序模式
+      final savedSortMode = prefs.getString(kStorageKeyActorsSortMode);
+      if (savedSortMode != null &&
+          (savedSortMode == kActorsSortDefault ||
+              savedSortMode == kActorsSortName ||
+              savedSortMode == kActorsSortFavoritedAt)) {
+        _sortMode = savedSortMode;
+      }
+
+      // 恢复网格列数
+      final savedGridColumns = prefs.getInt(kStorageKeyActorsGridColumns);
+      if (savedGridColumns == 3 || savedGridColumns == 4) {
+        _gridColumns = savedGridColumns as int;
+      }
+    } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
+  }
+
+  Future<void> _saveSelectedType(String? type) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (type == null) {
+        // "全部"类型：移除保存的键，而非写入 'null' 占位符
+        await prefs.remove(kStorageKeyActorsSelectedType);
+      } else {
+        await prefs.setString(kStorageKeyActorsSelectedType, type);
+      }
+    } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
+  }
+
+  Future<void> _saveSelectedTab(int index) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(kStorageKeyActorsSelectedTab, index);
+    } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
+  }
+
+  Future<void> _saveSearchQuery(String query) async {
+    _searchSaveDebounceTimer?.cancel();
+    _searchSaveDebounceTimer =
+        Timer(const Duration(milliseconds: 300), () async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(kStorageKeyActorsSearchQuery, query);
+      } catch (_) {
+        // 存储操作失败不影响主流程，静默处理
+      }
+    });
+  }
+
+  Future<void> _saveSortMode(String mode) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(kStorageKeyActorsSortMode, mode);
+    } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
+  }
+
+  Future<void> _saveGridColumns(int columns) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(kStorageKeyActorsGridColumns, columns);
+    } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
+  }
+
+  void _saveScrollOffset() {
+    _scrollSaveTimer?.cancel();
+    _scrollSaveTimer = Timer(const Duration(milliseconds: 500), () async {
+      try {
+        if (!_scrollController.hasClients) return;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setDouble(
+            kStorageKeyActorsScrollOffset, _scrollController.offset);
+      } catch (_) {
+        // 存储操作失败不影响主流程，静默处理
+      }
+    });
+  }
+
+  Future<void> _restoreScrollOffset() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final offset = prefs.getDouble(kStorageKeyActorsScrollOffset);
+      if (offset != null && offset > 0 && _scrollController.hasClients) {
+        final maxScroll = _scrollController.position.maxScrollExtent;
+        final safeOffset = offset.clamp(0.0, maxScroll);
+        _scrollController.jumpTo(safeOffset);
+      }
+    } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
+  }
+
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging) return;
+    _saveSelectedTab(_tabController.index);
+  }
+
+  void _onScroll() {
+    _saveScrollOffset();
+  }
+
+  Future<void> _onRefresh() async {
+    await ref.read(actorsProvider.notifier).loadActors(forceRefresh: true);
+  }
+
+  List<Person> _applySort(List<Person> list, Set<String> favIds) {
+    if (_sortMode == kActorsSortDefault) {
+      return list;
+    }
+    final indexed = List.generate(list.length, (i) => MapEntry(i, list[i]));
+    if (_sortMode == kActorsSortName) {
+      indexed.sort((a, b) {
+        final cmp =
+            a.value.name.toLowerCase().compareTo(b.value.name.toLowerCase());
+        return cmp != 0 ? cmp : a.key.compareTo(b.key);
+      });
+    } else if (_sortMode == kActorsSortFavoritedAt) {
+      indexed.sort((a, b) {
+        final aFav = favIds.contains(a.value.id) ? 0 : 1;
+        final bFav = favIds.contains(b.value.id) ? 0 : 1;
+        final cmp = aFav.compareTo(bFav);
+        return cmp != 0 ? cmp : a.key.compareTo(b.key);
+      });
+    }
+    return indexed.map((e) => e.value).toList();
+  }
+
+  void _navigateToPersonDetail(Person actor) {
+    // 确保 personId 不为空，否则路由匹配失败
+    final personId = actor.id ?? '';
+    if (personId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('该演员缺少 ID，无法查看详情')),
+      );
+      return;
+    }
+    final mediaItem = MediaItem(
+      id: personId,
+      title: actor.name,
+      type: 'Person',
+      thumbnailUrl: actor.imageUrl,
+      overview: actor.overview,
+    );
+    context.push('/person/$personId', extra: {
+      'item': mediaItem,
+      'personType': actor.type,
+    });
+  }
 }
 
 // 演员卡片组件
