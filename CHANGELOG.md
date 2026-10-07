@@ -1,3 +1,10 @@
+## [2.371.16](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.15...v2.371.16) (2026-10-07)
+
+
+### Bug Fixes
+
+* 按审查报告修复P0-P1问题-删除泄露签名私钥,修复Dio5证书开关死代码,TLS仅放行私网,后端补日志和URL校验 ([eb0b939](https://github.com/1525745393/EmbyTok-Flutter/commit/eb0b93945ac5dd5f8104032d3c01ba1e37f25054))
+
 ## [2.371.15](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.14...v2.371.15) (2026-10-07)
 
 
