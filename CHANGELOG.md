@@ -1,3 +1,10 @@
+## [2.371.13](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.12...v2.371.13) (2026-10-07)
+
+
+### Bug Fixes
+
+* ScrapeService.loadCache用sp.get替代sp.getString,旧数据把bool写入刮削key时不再类型转换崩溃 ([c5a82b1](https://github.com/1525745393/EmbyTok-Flutter/commit/c5a82b17b614163c5932faa025562bcfc1f06cdc))
+
 ## [2.371.12](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.11...v2.371.12) (2026-10-07)
 
 
