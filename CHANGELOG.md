@@ -1,3 +1,10 @@
+## [2.371.11](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.10...v2.371.11) (2026-10-07)
+
+
+### Bug Fixes
+
+* FileSource.fromJson防御config中的bool/int旧数据,LocalVideoItem.fromJson统一toString避免类型转换崩溃 ([be36a58](https://github.com/1525745393/EmbyTok-Flutter/commit/be36a5830535653023b141276f2e4e217cd74947))
+
 ## [2.371.10](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.9...v2.371.10) (2026-10-07)
 
 
