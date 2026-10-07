@@ -17,7 +17,7 @@ dependencies:
     sdk: flutter
   flutter_riverpod: ^2.5.0
   go_router: ^13.0.0
-  dio: ^5.4.3
+  dio: ^5.11.0
   shared_preferences: ^2.2.0
   flutter_secure_storage: ^9.2.0
   cached_network_image: ^3.3.0
@@ -44,7 +44,7 @@ dependencies:
   audio_service: ^0.18.15
   home_widget: ^0.9.4
 
-  http: any
+  http: ^1.6.0
   share_plus: ^12.0.2
   # 本地模式 PRD：扫描手机系统媒体库视频（photo_manager 官方包）
   photo_manager: ^3.6.0
