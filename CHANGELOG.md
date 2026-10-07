@@ -1,3 +1,11 @@
+## [2.371.20](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.19...v2.371.20) (2026-10-07)
+
+
+### Bug Fixes
+
+* P2-1 详情页/浏览页/视频流use_build_context_synchronously补mounted守卫 ([dbb9210](https://github.com/1525745393/EmbyTok-Flutter/commit/dbb9210f3b73bd38d7de41fa38ce81230b323215))
+* 修复video_page_item_build.dart多余括号导致编译失败 ([e0d2677](https://github.com/1525745393/EmbyTok-Flutter/commit/e0d2677231f931039641aa0d1c9aa5f596b4b564))
+
 ## [2.371.19](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.18...v2.371.19) (2026-10-07)
 
 
