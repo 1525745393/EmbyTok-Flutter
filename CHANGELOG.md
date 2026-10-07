@@ -1,3 +1,10 @@
+## [2.371.9](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.8...v2.371.9) (2026-10-06)
+
+
+### Bug Fixes
+
+* 整理文件结构时补回视频扩展名,避免移动后文件无.mp4无法播放 ([95682fe](https://github.com/1525745393/EmbyTok-Flutter/commit/95682fecd837a2f24e762464243e41671b4bc25e))
+
 ## [2.371.8](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.7...v2.371.8) (2026-10-06)
 
 
