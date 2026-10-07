@@ -42,6 +42,7 @@ extension _RecommendViewActions on _RecommendViewState {
             selected: {_gridColumns},
             onSelectionChanged: (newSelection) {
               final value = newSelection.first;
+              // ignore: invalid_use_of_protected_member
               setState(() => _gridColumns = value);
               _saveGridColumns(value);
             },

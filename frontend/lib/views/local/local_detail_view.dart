@@ -58,8 +58,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                     await ScrapeService.saveCache(widget.item.pathHash, result);
                     final cached = Map<String, ScrapedMedia>.from(ref.read(localVideoProvider).scrapedMap);
                     cached[widget.item.pathHash] = result;
-                    ref.read(localVideoProvider.notifier).state =
-                        ref.read(localVideoProvider).copyWith(scrapedMap: cached);
+                    ref.read(localVideoProvider.notifier).updateScrapedMap(cached);
                     messenger.showSnackBar(const SnackBar(content: Text('刮削完成')));
                   }
                 },

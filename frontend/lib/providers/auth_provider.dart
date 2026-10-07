@@ -227,6 +227,31 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
     state = const AuthState();
   }
+
+  /// 进入演示模式：注入 mock 登录状态（替代外部直接 .state = 赋值）
+  void enterDemoMode() {
+    state = AuthState(
+      isAuthenticated: true,
+      user: const User(id: 'demo_user', name: '演示用户', accessToken: 'demo_token'),
+      embyServerUrl: 'https://demo.emby.local',
+      token: 'demo_token',
+    );
+  }
+
+  /// 进入本地媒体库模式：注入 mock 登录状态
+  void enterLocalMode() {
+    state = AuthState(
+      isAuthenticated: true,
+      user: const User(id: 'local_user', name: '本地用户', accessToken: 'local_token'),
+      embyServerUrl: 'local://',
+      token: 'local_token',
+    );
+  }
+
+  /// 重置为未登录状态（替代外部直接 .state = const AuthState()）
+  void reset() {
+    state = const AuthState();
+  }
 }
 
 /// 顶层认证 Provider：管理整个应用的登录状态、用户信息和访问令牌

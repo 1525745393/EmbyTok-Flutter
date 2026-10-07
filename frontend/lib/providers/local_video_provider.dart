@@ -455,6 +455,11 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
 
   void enterSelecting() => state = state.copyWith(selecting: true, selected: {});
   void exitSelecting() => state = state.copyWith(selecting: false, selected: {});
+
+  /// 外部刮削完成后更新 scrapedMap（替代直接 .state = 赋值）
+  void updateScrapedMap(Map<String, ScrapedMedia> map) {
+    state = state.copyWith(scrapedMap: map);
+  }
   void toggleSelected(String id) {
     final s = {...state.selected};
     if (s.contains(id)) {

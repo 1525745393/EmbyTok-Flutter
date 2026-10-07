@@ -445,9 +445,10 @@ class SettingsView extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () {
+              // ignore: invalid_use_of_protected_member
               ref.read(localModeProvider.notifier).state = false;
               // 重置认证状态
-              ref.read(authProvider.notifier).state = const AuthState();
+              ref.read(authProvider.notifier).reset();
               Navigator.pop(context);
               context.go('/login');
             },
@@ -757,9 +758,10 @@ class SettingsView extends ConsumerWidget {
       subtitle: const Text('返回登录页，连接真实服务器'),
       onTap: () {
         ApiClient.demoMode = false;
+        // ignore: invalid_use_of_protected_member
         ref.read(demoModeProvider.notifier).state = false;
         // 重置 auth state，避免 demo 登录状态残留
-        ref.read(authProvider.notifier).state = const AuthState();
+        ref.read(authProvider.notifier).reset();
         // 清除演示模式缓存的 mock 数据，避免残留
         try {
           ref.read(cacheControllerProvider).invalidateAll();

@@ -490,14 +490,10 @@ class _LoginViewState extends ConsumerState<LoginView> {
   /// 进入演示模式：设置 mock 拦截，绕过登录直接浏览
   void _enterDemoMode(BuildContext context, WidgetRef ref) {
     ApiClient.demoMode = true;
+    // ignore: invalid_use_of_protected_member
     ref.read(demoModeProvider.notifier).state = true;
     // 注入 mock 登录状态，让顶栏/设置页/图片 URL 拼接等正常工作
-    ref.read(authProvider.notifier).state = AuthState(
-      isAuthenticated: true,
-      user: const User(id: 'demo_user', name: '演示用户', accessToken: 'demo_token'),
-      embyServerUrl: 'https://demo.emby.local',
-      token: 'demo_token',
-    );
+    ref.read(authProvider.notifier).enterDemoMode();
     // 异步从 TMDB 加载真实影片数据（海报/简介/评分），加载后下拉刷新即可看到
     DemoTmdbCache.load().then((_) {
       AppLogger.info('TMDB 演示数据加载完成: ${DemoTmdbCache.movies.length} 部电影, ${DemoTmdbCache.tvShows.length} 部剧集');
@@ -508,14 +504,10 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
   /// 进入本地媒体库模式（P0）：无需服务器，直接管理手机本地视频
   void _enterLocalMode(BuildContext context, WidgetRef ref) {
+    // ignore: invalid_use_of_protected_member
     ref.read(localModeProvider.notifier).state = true;
     // 注入 mock 登录状态，让路由守卫/顶栏正常工作
-    ref.read(authProvider.notifier).state = AuthState(
-      isAuthenticated: true,
-      user: const User(id: 'local_user', name: '本地用户', accessToken: 'local_token'),
-      embyServerUrl: 'local://',
-      token: 'local_token',
-    );
+    ref.read(authProvider.notifier).enterLocalMode();
     AppLogger.info('进入本地媒体库模式');
     context.go('/');
   }

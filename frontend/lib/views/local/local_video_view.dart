@@ -3017,8 +3017,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                       for (final it in sorted) {
                         cached[it.pathHash] = result;
                       }
-                      ref.read(localVideoProvider.notifier).state =
-                          ref.read(localVideoProvider).copyWith(scrapedMap: cached);
+                      ref.read(localVideoProvider.notifier).updateScrapedMap(cached);
                       if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('刮削完成')));
                     }
