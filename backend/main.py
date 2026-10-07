@@ -1,4 +1,7 @@
 import contextlib
+import logging
+import time
+import uuid
 from typing import AsyncIterator
 
 import uvicorn
@@ -12,6 +15,12 @@ from core.config import CORS_ALLOWED_ORIGINS
 from core.errors import APIError, INTERNAL_ERROR
 from core.version import __version__
 from routers import auth, favorites, items, libraries, search, subtitles
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+logger = logging.getLogger("embbytok")
 
 
 @contextlib.asynccontextmanager
@@ -84,14 +93,17 @@ async def validation_exception_handler(_: Request, exc: RequestValidationError) 
 
 
 @app.exception_handler(Exception)
-async def general_exception_handler(_: Request, exc: Exception) -> JSONResponse:
-    """兜底异常处理，避免未捕获异常泄露堆栈"""
+async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """兜底异常处理：记录日志但不泄露堆栈给客户端"""
+    request_id = request.headers.get("X-Request-ID", uuid.uuid4().hex[:8])
+    logger.exception("Unhandled error %s %s: %s", request.method, request.url.path, exc)
     return JSONResponse(
         status_code=INTERNAL_ERROR,
         content={
             "error": True,
             "status_code": INTERNAL_ERROR,
             "message": "服务器内部错误",
+            "request_id": request_id,
         },
     )
 

@@ -28,10 +28,16 @@ class NasMetadataSyncService {
               connectTimeout: const Duration(seconds: 15),
               receiveTimeout: const Duration(seconds: 30),
             )) {
-    // 群晖 NAS 默认使用自签名证书，放行证书校验
+    // 群晖 NAS 默认使用自签名证书，仅对私网/局域网地址放行证书校验
     if (dio == null) {
       _dio.httpClientAdapter = IOHttpClientAdapter(
-        validateCertificate: (cert, host, port) => true,
+        validateCertificate: (cert, host, port) {
+          final h = host.toLowerCase();
+          if (h == 'localhost' || h.startsWith('192.168.') || h.startsWith('10.') || h.startsWith('172.')) {
+            return true;
+          }
+          return false;
+        },
       );
     }
   }

@@ -121,3 +121,7 @@ node_modules/
 .semantic-release/
 package-lock.json
 package.json
+scripts/keystore_base64.txt
+scripts/SECRETS_SUMMARY.md
+*.p12
+*.bks

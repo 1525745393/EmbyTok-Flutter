@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from urllib.parse import urlparse
+
 from fastapi import APIRouter, Depends
 
 from clients.emby_client import EmbyClient
@@ -15,6 +17,10 @@ async def login(body: AuthRequest) -> AuthResponse:
     """使用用户名和密码登录 Emby 服务器，返回访问令牌与用户信息"""
     if not body.emby_url:
         raise APIError(BAD_REQUEST, "emby_url 不能为空")
+    # 仅允许 http/https scheme，防止 file:// / gopher:// 等 SSRF
+    parsed = urlparse(body.emby_url)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        raise APIError(BAD_REQUEST, "emby_url 必须是有效的 http/https 地址")
     try:
         async with EmbyClient(base_url=body.emby_url) as client:
             data = await client.authenticate(body.username, body.password)
