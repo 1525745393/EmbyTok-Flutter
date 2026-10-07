@@ -15,7 +15,7 @@ router = APIRouter(prefix="/api/items", tags=["媒体项"])
 
 
 class _ProgressBody(BaseModel):
-    position_seconds: float = Field(..., description="当前播放时间（秒）")
+    position_seconds: float = Field(..., ge=0, le=315360000, allow_inf_nan=False, description="当前播放时间（秒）")
     is_paused: bool = Field(default=False, description="是否处于暂停状态（用于 Emby 续播位置准确性）")
 
 

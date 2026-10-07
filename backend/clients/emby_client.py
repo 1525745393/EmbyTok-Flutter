@@ -88,11 +88,14 @@ class EmbyClient:
         return f"{self.base_url}{path}"
 
     def _default_params(self) -> Dict[str, Any]:
-        """通用查询参数（包含鉴权 token）"""
-        params: Dict[str, Any] = {}
+        """通用查询参数（鉴权 token 走 header，不落 query 日志）"""
+        return {}
+
+    def _auth_headers(self) -> Dict[str, str]:
+        h: Dict[str, str] = {}
         if self.token:
-            params["ApiKey"] = self.token
-        return params
+            h["X-Emby-Token"] = self.token
+        return h
 
     async def _request(
         self,
@@ -111,6 +114,7 @@ class EmbyClient:
                 method=method,
                 url=url,
                 params=merged_params if merged_params else None,
+                headers=self._auth_headers(),
                 json=json,
                 data=data,
             )

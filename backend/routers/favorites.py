@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/favorites", tags=["收藏"])
 
 @router.get("", response_model=List[MediaItem], summary="获取收藏列表")
 async def list_favorites(
-    limit: int = Query(default=50, ge=1, le=500, description="每页条目数"),
+    limit: int = Query(default=50, ge=1, le=100, description="每页条目数"),
     offset: int = Query(default=0, ge=0, description="分页起始偏移"),
     emby_server_url: str = Depends(get_emby_server_url),
     emby_token: str = Depends(get_emby_token),
