@@ -128,18 +128,16 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                 case 'undoRename':
                   try {
                     final path = await LocalVideoService().undoLastRename();
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('已撤销重命名: ${path.split('/').last}')),
-                      );
-                      notifier.refresh();
-                    }
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('已撤销重命名: ${path.split('/').last}')),
+                    );
+                    notifier.refresh();
                   } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('撤销失败: $e')),
-                      );
-                    }
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('撤销失败: $e')),
+                    );
                   }
               }
             },
@@ -3021,7 +3019,8 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                       }
                       ref.read(localVideoProvider.notifier).state =
                           ref.read(localVideoProvider).copyWith(scrapedMap: cached);
-                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('刮削完成')));
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('刮削完成')));
                     }
                   },
                 ),
@@ -3093,7 +3092,8 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                             );
                             if (ok == true) {
                               await ref.read(localVideoProvider.notifier).deleteByIds(sorted.map((e) => e.id).toSet());
-                              if (mounted) Navigator.pop(context);
+                              if (!context.mounted) return;
+                              Navigator.pop(context);
                             }
                           },
                           icon: const Icon(Icons.delete_outline, color: Colors.white),

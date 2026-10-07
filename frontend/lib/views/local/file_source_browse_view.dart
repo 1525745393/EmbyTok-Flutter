@@ -160,6 +160,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     }
     if (mounted) {
       final cache = await ScrapeService.loadCache();
+      if (!mounted) return;
       setState(() {
         _scraped = cache;
         _scraping = false;
@@ -561,6 +562,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         }
       }
     } else if (action == 'rename') {
+      if (!mounted) return;
       final ctrl = TextEditingController(text: item.name);
       final newName = await showDialog<String>(
         context: context,
