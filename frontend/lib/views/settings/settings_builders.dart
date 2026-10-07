@@ -167,28 +167,25 @@ extension _SettingsBuilders on SettingsView {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('字幕颜色'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            RadioListTile<String>(
-              title: const Text('白色'),
-              value: 'white',
-              groupValue: current,
-              onChanged: (v) {
-                Navigator.pop(context);
-                ref.read(subtitleSettingsProvider.notifier).setColor(v!);
-              },
-            ),
-            RadioListTile<String>(
-              title: const Text('黄色'),
-              value: 'yellow',
-              groupValue: current,
-              onChanged: (v) {
-                Navigator.pop(context);
-                ref.read(subtitleSettingsProvider.notifier).setColor(v!);
-              },
-            ),
-          ],
+        content: RadioGroup<String>(
+          groupValue: current,
+          onChanged: (v) {
+            Navigator.pop(context);
+            ref.read(subtitleSettingsProvider.notifier).setColor(v!);
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RadioListTile<String>(
+                title: const Text('白色'),
+                value: 'white',
+              ),
+              RadioListTile<String>(
+                title: const Text('黄色'),
+                value: 'yellow',
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -200,37 +197,29 @@ extension _SettingsBuilders on SettingsView {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('字幕位置'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            RadioListTile<String>(
-              title: const Text('底部'),
-              value: 'bottom',
-              groupValue: current,
-              onChanged: (v) {
-                Navigator.pop(context);
-                ref.read(subtitleSettingsProvider.notifier).setPosition(v!);
-              },
-            ),
-            RadioListTile<String>(
-              title: const Text('偏下'),
-              value: 'lower',
-              groupValue: current,
-              onChanged: (v) {
-                Navigator.pop(context);
-                ref.read(subtitleSettingsProvider.notifier).setPosition(v!);
-              },
-            ),
-            RadioListTile<String>(
-              title: const Text('屏幕中间'),
-              value: 'center',
-              groupValue: current,
-              onChanged: (v) {
-                Navigator.pop(context);
-                ref.read(subtitleSettingsProvider.notifier).setPosition(v!);
-              },
-            ),
-          ],
+        content: RadioGroup<String>(
+          groupValue: current,
+          onChanged: (v) {
+            Navigator.pop(context);
+            ref.read(subtitleSettingsProvider.notifier).setPosition(v!);
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RadioListTile<String>(
+                title: const Text('底部'),
+                value: 'bottom',
+              ),
+              RadioListTile<String>(
+                title: const Text('偏下'),
+                value: 'lower',
+              ),
+              RadioListTile<String>(
+                title: const Text('屏幕中间'),
+                value: 'center',
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -304,43 +293,34 @@ extension _SettingsBuilders on SettingsView {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('选择语言'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            RadioListTile<String>(
-              title: const Text('跟随系统'),
-              value: 'system',
-              groupValue: 'system',
-              onChanged: (v) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('将跟随系统语言（重启后生效）')),
-                );
-              },
-            ),
-            RadioListTile<String>(
-              title: const Text('简体中文'),
-              value: 'zh',
-              groupValue: 'system',
-              onChanged: (v) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('已选择简体中文（重启后生效）')),
-                );
-              },
-            ),
-            RadioListTile<String>(
-              title: const Text('English'),
-              value: 'en',
-              groupValue: 'system',
-              onChanged: (v) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('English selected (restart to apply)')),
-                );
-              },
-            ),
-          ],
+        content: RadioGroup<String>(
+          groupValue: 'system',
+          onChanged: (v) {
+            Navigator.pop(context);
+            String msg = v == 'zh'
+                ? '已选择简体中文（重启后生效）'
+                : v == 'en'
+                    ? 'English selected (restart to apply)'
+                    : '将跟随系统语言（重启后生效）';
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RadioListTile<String>(
+                title: const Text('跟随系统'),
+                value: 'system',
+              ),
+              RadioListTile<String>(
+                title: const Text('简体中文'),
+                value: 'zh',
+              ),
+              RadioListTile<String>(
+                title: const Text('English'),
+                value: 'en',
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -619,14 +599,21 @@ extension _SettingsBuilders on SettingsView {
           context: context,
           builder: (ctx) => SimpleDialog(
             title: const Text('MPV 解码方式'),
-            children: MpvHwDec.values.map((m) {
-              return RadioListTile<MpvHwDec>(
-                value: m,
+            children: [
+              RadioGroup<MpvHwDec>(
                 groupValue: hwDec,
-                title: Text(names[m] ?? ''),
                 onChanged: (v) => Navigator.pop(ctx, v),
-              );
-            }).toList(),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: MpvHwDec.values.map((m) {
+                    return RadioListTile<MpvHwDec>(
+                      value: m,
+                      title: Text(names[m] ?? ''),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
           ),
         );
         if (selected != null) {
@@ -654,14 +641,21 @@ extension _SettingsBuilders on SettingsView {
           context: context,
           builder: (ctx) => SimpleDialog(
             title: const Text('MPV 网络缓存 (MB)'),
-            children: [8, 16, 32, 64].map((mb) {
-              return RadioListTile<int>(
-                value: mb,
+            children: [
+              RadioGroup<int>(
                 groupValue: cacheMb,
-                title: Text('$mb MB'),
                 onChanged: (v) => Navigator.pop(ctx, v),
-              );
-            }).toList(),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [8, 16, 32, 64].map((mb) {
+                    return RadioListTile<int>(
+                      value: mb,
+                      title: Text('$mb MB'),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
           ),
         );
         if (selected != null) {
@@ -812,21 +806,23 @@ extension _SettingsBuilders on SettingsView {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('画面缩放模式'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: VideoFitMode.values.map((m) {
-            return RadioListTile<VideoFitMode>(
-              value: m,
-              groupValue: current,
-              title: Text(names[m] ?? ''),
-              onChanged: (v) {
-                if (v != null) {
-                  ref.read(videoFitModeProvider.notifier).setMode(v);
-                }
-                Navigator.pop(ctx);
-              },
-            );
-          }).toList(),
+        content: RadioGroup<VideoFitMode>(
+          groupValue: current,
+          onChanged: (v) {
+            if (v != null) {
+              ref.read(videoFitModeProvider.notifier).setMode(v);
+            }
+            Navigator.pop(ctx);
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: VideoFitMode.values.map((m) {
+              return RadioListTile<VideoFitMode>(
+                value: m,
+                title: Text(names[m] ?? ''),
+              );
+            }).toList(),
+          ),
         ),
       ),
     );
@@ -838,31 +834,33 @@ extension _SettingsBuilders on SettingsView {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('选择默认播放器'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: PlayerEngine.values
-              .where((e) => e != PlayerEngine.external)
-              .map((e) {
-            final names = {
-              PlayerEngine.auto: '自动选择',
-              PlayerEngine.exo: 'EXO（默认）',
-              PlayerEngine.mpv: 'MPV（深度定制）',
-              PlayerEngine.vlc: 'VLC（兼容兜底）',
-            };
-            return RadioListTile<PlayerEngine>(
-              value: e,
-              groupValue: current,
-              title: Text(names[e] ?? ''),
-              onChanged: (v) {
-                if (v != null) {
-                  ref
-                      .read(playerEngineSettingsProvider.notifier)
-                      .setDefaultEngine(v);
-                }
-                Navigator.pop(ctx);
-              },
-            );
-          }).toList(),
+        content: RadioGroup<PlayerEngine>(
+          groupValue: current,
+          onChanged: (v) {
+            if (v != null) {
+              ref
+                  .read(playerEngineSettingsProvider.notifier)
+                  .setDefaultEngine(v);
+            }
+            Navigator.pop(ctx);
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: PlayerEngine.values
+                .where((e) => e != PlayerEngine.external)
+                .map((e) {
+              final names = {
+                PlayerEngine.auto: '自动选择',
+                PlayerEngine.exo: 'EXO（默认）',
+                PlayerEngine.mpv: 'MPV（深度定制）',
+                PlayerEngine.vlc: 'VLC（兼容兜底）',
+              };
+              return RadioListTile<PlayerEngine>(
+                value: e,
+                title: Text(names[e] ?? ''),
+              );
+            }).toList(),
+          ),
         ),
       ),
     );

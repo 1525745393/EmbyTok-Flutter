@@ -72,7 +72,7 @@ class PlaylistDetailView extends ConsumerWidget {
                   style: TextStyle(color: Colors.grey)))
           : ReorderableListView(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              onReorder: (int oldIndex, int newIndex) => ref
+              onReorderItem: (int oldIndex, int newIndex) => ref
                   .read(playlistsProvider.notifier)
                   .reorderSongs(pl.id, oldIndex, newIndex),
               children: [

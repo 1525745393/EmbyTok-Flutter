@@ -67,14 +67,21 @@ class _EnvironmentSwitchPageState extends ConsumerState<EnvironmentSwitchPage> {
               style: TextStyle(color: Colors.grey, fontSize: 12),
             ),
           ),
-          for (final p in _presets)
-            RadioListTile<String>(
-              title: Text(p[0]),
-              subtitle: Text(p[1].isEmpty ? '（恢复默认）' : p[1]),
-              value: p[1],
-              groupValue: _current,
-              onChanged: (v) => _apply(v ?? ''),
+          RadioGroup<String>(
+            groupValue: _current,
+            onChanged: (v) => _apply(v ?? ''),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final p in _presets)
+                  RadioListTile<String>(
+                    title: Text(p[0]),
+                    subtitle: Text(p[1].isEmpty ? '（恢复默认）' : p[1]),
+                    value: p[1],
+                  ),
+              ],
             ),
+          ),
           const Divider(),
           Padding(
             padding: const EdgeInsets.all(16),

@@ -269,23 +269,27 @@ class _FullPlayerSheetState extends ConsumerState<_FullPlayerSheet> {
                   const SizedBox(height: 16),
                   const Text('到点行为',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                  RadioListTile<SleepTimerBehavior>(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    title: const Text('立即停止播放'),
-                    value: SleepTimerBehavior.immediateStop,
+                  RadioGroup<SleepTimerBehavior>(
                     groupValue: behavior,
                     onChanged: (v) =>
                         setLocal(() => behavior = v ?? SleepTimerBehavior.immediateStop),
-                  ),
-                  RadioListTile<SleepTimerBehavior>(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    title: const Text('当前歌曲结束后停止'),
-                    value: SleepTimerBehavior.currentSongEnd,
-                    groupValue: behavior,
-                    onChanged: (v) =>
-                        setLocal(() => behavior = v ?? SleepTimerBehavior.currentSongEnd),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        RadioListTile<SleepTimerBehavior>(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          title: const Text('立即停止播放'),
+                          value: SleepTimerBehavior.immediateStop,
+                        ),
+                        RadioListTile<SleepTimerBehavior>(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          title: const Text('当前歌曲结束后停止'),
+                          value: SleepTimerBehavior.currentSongEnd,
+                        ),
+                      ],
+                    ),
                   ),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,

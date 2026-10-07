@@ -823,15 +823,20 @@ class SettingsView extends ConsumerWidget {
             const ListTile(
               title: Text('选择最高允许评分'),
             ),
-            ...ratings.map((r) => RadioListTile<String>(
-                  title: Text(r),
-                  value: r,
-                  groupValue: ref.read(parentalControlProvider).maxRating,
-                  onChanged: (v) {
-                    Navigator.pop(context);
-                    ref.read(parentalControlProvider.notifier).setMaxRating(v);
-                  },
-                )),
+            RadioGroup<String>(
+              groupValue: ref.read(parentalControlProvider).maxRating,
+              onChanged: (v) {
+                Navigator.pop(context);
+                ref.read(parentalControlProvider.notifier).setMaxRating(v);
+              },
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: ratings.map((r) => RadioListTile<String>(
+                      title: Text(r),
+                      value: r,
+                    )).toList(),
+              ),
+            ),
             ListTile(
               leading: const Icon(Icons.close),
               title: const Text('不限制'),

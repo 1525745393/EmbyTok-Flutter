@@ -92,8 +92,10 @@ class _SearchViewState extends ConsumerState<SearchView>
     if (!available) return;
     setState(() => _isListening = true);
     await _speech.listen(
-      localeId: 'zh_CN',
-      listenFor: const Duration(seconds: 15),
+      listenOptions: SpeechListenOptions(
+        localeId: 'zh_CN',
+        listenFor: const Duration(seconds: 15),
+      ),
       onResult: (result) {
         if (!mounted) return;
         if (result.finalResult) {

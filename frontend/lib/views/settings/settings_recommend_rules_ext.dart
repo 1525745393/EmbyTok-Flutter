@@ -226,24 +226,27 @@ extension _SettingsRecommendRules2 on SettingsView {
                       style: TextStyle(fontSize: _kFontSizeBody),
                     ),
                   ),
-                  ...options.map((days) {
-                    final selected = current == days;
-                    return RadioListTile<double>(
-                      value: days,
-                      groupValue: current,
-                      onChanged: (v) async {
-                        if (v == null) return;
-                        await ref
-                            .read(recommendHalfLifeDaysProvider.notifier)
-                            .setDays(v);
-                        if (!dialogContext.mounted) return;
-                        setLocalState(() => current = v);
-                      },
-                      title: Text(days == 0 ? '不衰减 (0 天)' : '$days 天'),
-                      dense: true,
-                      selected: selected,
-                    );
-                  }),
+                  RadioGroup<double>(
+                    groupValue: current,
+                    onChanged: (v) async {
+                      if (v == null) return;
+                      await ref
+                          .read(recommendHalfLifeDaysProvider.notifier)
+                          .setDays(v);
+                      if (!dialogContext.mounted) return;
+                      setLocalState(() => current = v);
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: options.map((days) {
+                        return RadioListTile<double>(
+                          value: days,
+                          title: Text(days == 0 ? '不衰减 (0 天)' : '$days 天'),
+                          dense: true,
+                        );
+                      }).toList(),
+                    ),
+                  ),
                 ],
               ),
               actions: [
@@ -318,24 +321,27 @@ extension _SettingsRecommendRules2 on SettingsView {
                       style: TextStyle(fontSize: _kFontSizeBody),
                     ),
                   ),
-                  ...options.map((d) {
-                    final selected = current == d;
-                    return RadioListTile<int>(
-                      value: d,
-                      groupValue: current,
-                      onChanged: (v) async {
-                        if (v == null) return;
-                        await ref
-                            .read(recommendAntiFatigueDaysProvider.notifier)
-                            .setDays(v);
-                        if (!dialogContext.mounted) return;
-                        setLocalState(() => current = v);
-                      },
-                      title: Text('$d 天'),
-                      dense: true,
-                      selected: selected,
-                    );
-                  }),
+                  RadioGroup<int>(
+                    groupValue: current,
+                    onChanged: (v) async {
+                      if (v == null) return;
+                      await ref
+                          .read(recommendAntiFatigueDaysProvider.notifier)
+                          .setDays(v);
+                      if (!dialogContext.mounted) return;
+                      setLocalState(() => current = v);
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: options.map((d) {
+                        return RadioListTile<int>(
+                          value: d,
+                          title: Text('$d 天'),
+                          dense: true,
+                        );
+                      }).toList(),
+                    ),
+                  ),
                 ],
               ),
               actions: [
@@ -561,24 +567,27 @@ extension _SettingsRecommendRules2 on SettingsView {
                       style: TextStyle(fontSize: _kFontSizeBody),
                     ),
                   ),
-                  ...options.map((d) {
-                    final selected = (current - d).abs() < 0.01;
-                    return RadioListTile<double>(
-                      value: d,
-                      groupValue: current,
-                      onChanged: (v) async {
-                        if (v == null) return;
-                        await ref
-                            .read(recommendUserRatingMinProvider.notifier)
-                            .setMin(v);
-                        if (!dialogContext.mounted) return;
-                        setLocalState(() => current = v);
-                      },
-                      title: Text(d == 0 ? '0（关闭）' : '≥ $d'),
-                      dense: true,
-                      selected: selected,
-                    );
-                  }),
+                  RadioGroup<double>(
+                    groupValue: current,
+                    onChanged: (v) async {
+                      if (v == null) return;
+                      await ref
+                          .read(recommendUserRatingMinProvider.notifier)
+                          .setMin(v);
+                      if (!dialogContext.mounted) return;
+                      setLocalState(() => current = v);
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: options.map((d) {
+                        return RadioListTile<double>(
+                          value: d,
+                          title: Text(d == 0 ? '0（关闭）' : '≥ $d'),
+                          dense: true,
+                        );
+                      }).toList(),
+                    ),
+                  ),
                 ],
               ),
               actions: [
