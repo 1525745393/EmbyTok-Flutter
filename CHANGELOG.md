@@ -1,3 +1,10 @@
+## [2.371.14](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.13...v2.371.14) (2026-10-07)
+
+
+### Bug Fixes
+
+* localDir视频刮削元数据写视频同目录(.nfo/-poster/-backdrop),不再只存App沙箱中央目录 ([e338d10](https://github.com/1525745393/EmbyTok-Flutter/commit/e338d10868264b96ca1b18145dcac231c81dcc1a))
+
 ## [2.371.13](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.12...v2.371.13) (2026-10-07)
 
 
