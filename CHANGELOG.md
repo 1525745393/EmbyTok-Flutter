@@ -1,3 +1,10 @@
+## [2.371.12](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.11...v2.371.12) (2026-10-07)
+
+
+### Bug Fixes
+
+* local_video_service直接读SharedPreferences时config字段防御toString,browse view错误信息附stack trace定位崩溃位置 ([85559ae](https://github.com/1525745393/EmbyTok-Flutter/commit/85559ae24d767ab08929a90659a3ce935064a46f))
+
 ## [2.371.11](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.10...v2.371.11) (2026-10-07)
 
 
