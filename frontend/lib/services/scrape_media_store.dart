@@ -55,10 +55,13 @@ class ScrapeMediaStore {
     return d;
   }
 
-  /// App 目录视频：视频旁 base path（去扩展名）
+  /// 视频旁 base path（去扩展名）：localDir 共享存储和 App 目录都写视频旁
   static String? _siblingBase(LocalVideoItem item) {
-    if (!item.isAppDirFile || item.path == null) return null;
-    return item.path!.substring(0, item.path!.length - _extOf(item.path!).length);
+    final p = item.path;
+    if (p == null || p.isEmpty) return null;
+    // asset 路径走中央目录，真实文件路径都写视频旁
+    if (item.assetId != null && p.isEmpty) return null;
+    return p.substring(0, p.length - _extOf(p).length);
   }
 
   // ---- 保存 ----
