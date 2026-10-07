@@ -1,3 +1,10 @@
+## [2.371.15](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.14...v2.371.15) (2026-10-07)
+
+
+### Bug Fixes
+
+* 文件源浏览页刮削后写视频同目录.nfo/-poster/-backdrop,电影和剧集都落盘 ([f9101c2](https://github.com/1525745393/EmbyTok-Flutter/commit/f9101c252f70922c950ad2275b0c0d7dd275f48a))
+
 ## [2.371.14](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.13...v2.371.14) (2026-10-07)
 
 
