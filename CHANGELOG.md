@@ -1,3 +1,10 @@
+## [2.371.22](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.21...v2.371.22) (2026-10-07)
+
+
+### Bug Fixes
+
+* 修复审查报告剩余P2-1和P3-2 ([78ceb4a](https://github.com/1525745393/EmbyTok-Flutter/commit/78ceb4ab907e0588819d155a942c7ca49ecc7977))
+
 ## [2.371.21](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.20...v2.371.21) (2026-10-07)
 
 
