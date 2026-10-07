@@ -58,7 +58,11 @@ class FileSource {
         id: json['id'] as String,
         type: FileSourceType.values.byName(json['type'] as String),
         name: json['name'] as String,
-        config: Map<String, String>.from(json['config'] as Map),
+        // 防御：config 里可能有旧数据写入的 bool/int，统一转字符串
+        config: (json['config'] as Map?)?.map(
+              (k, v) => MapEntry(k.toString(), v?.toString() ?? ''),
+            ) ??
+            const {},
         status: FileSourceStatus.values.byName(json['status'] as String),
         videoCount: json['videoCount'] as int? ?? 0,
         lastScanAt: json['lastScanAt'] == null

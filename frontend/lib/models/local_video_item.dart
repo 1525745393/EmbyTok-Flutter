@@ -136,22 +136,22 @@ class LocalVideoItem {
       };
 
   factory LocalVideoItem.fromJson(Map<String, dynamic> json) => LocalVideoItem(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        path: json['path'] as String,
-        relativePath: json['relativePath'] as String?,
+        id: json['id']?.toString() ?? '',
+        name: json['name']?.toString() ?? '',
+        path: json['path']?.toString() ?? '',
+        relativePath: json['relativePath']?.toString(),
         sizeBytes: json['sizeBytes'] as int? ?? 0,
         duration: Duration(milliseconds: json['durationMs'] as int? ?? 0),
         width: json['width'] as int? ?? 0,
         height: json['height'] as int? ?? 0,
-        mimeType: json['mimeType'] as String? ?? 'video/*',
+        mimeType: json['mimeType']?.toString() ?? 'video/*',
         modifiedAt: DateTime.fromMillisecondsSinceEpoch(
             json['modifiedAt'] as int? ?? 0),
         isAppDirFile: json['isAppDirFile'] as bool? ?? false,
-        assetId: json['assetId'] as String?,
-        subtitlePaths: (json['subtitlePaths'] as List?)?.cast<String>() ?? const [],
-        sourceId: json['sourceId'] as String? ?? 'local_default',
-        networkUrl: json['networkUrl'] as String?,
-        networkHeaders: (json['networkHeaders'] as Map?)?.map((k, v) => MapEntry(k as String, v as String)) ?? const {},
+        assetId: json['assetId']?.toString(),
+        subtitlePaths: (json['subtitlePaths'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+        sourceId: json['sourceId']?.toString() ?? 'local_default',
+        networkUrl: json['networkUrl']?.toString(),
+        networkHeaders: (json['networkHeaders'] as Map?)?.map((k, v) => MapEntry(k.toString(), v?.toString() ?? '')) ?? const {},
       );
 }
