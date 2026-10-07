@@ -42,6 +42,7 @@ class TestDataSetupPage extends StatelessWidget {
     final prefs = await SharedPreferences.getInstance();
     final ids = List.generate(count, (i) => 'actor_${i + 1}'.padLeft(9, '0'));
     await prefs.setStringList('embytok_favorite_people_ids', ids);
+    if (!context.mounted) return;
     await _toast(context, '已填充 $count 个收藏演员 ID');
   }
 
@@ -80,6 +81,7 @@ class TestDataSetupPage extends StatelessWidget {
       },
     ];
     await prefs.setString('recent_playbacks', jsonEncode(history));
+    if (!context.mounted) return;
     await _toast(context, '已填充 4 条播放历史（5%/50%/80%/100%）');
   }
 
@@ -94,6 +96,7 @@ class TestDataSetupPage extends StatelessWidget {
         'discover_selected_collections', jsonEncode(['collection_1', 'collection_2']));
     await prefs.setString(
         'discover_selected_media_types', jsonEncode(['Movie', 'Series']));
+    if (!context.mounted) return;
     await _toast(context, '已填充发现页筛选：4类型+3标签+2合集+2媒体类型');
   }
 
@@ -113,6 +116,7 @@ class TestDataSetupPage extends StatelessWidget {
       {'Id': 'fav_person_1', 'Name': '测试演员 A', 'Type': 'Person'},
       {'Id': 'fav_person_2', 'Name': '测试演员 B', 'Type': 'Person'},
     ]));
+    if (!context.mounted) return;
     await _toast(context, '已填充收藏缓存：3影片+2合集+2人物');
   }
 
@@ -120,6 +124,7 @@ class TestDataSetupPage extends StatelessWidget {
   Future<void> _fillLastFmConfig(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('lastfm_api_key', 'test_api_key_12345');
+    if (!context.mounted) return;
     await _toast(context, '已填充 Last.fm 测试 API Key');
   }
 
@@ -129,6 +134,7 @@ class TestDataSetupPage extends StatelessWidget {
     await prefs.setInt('kStorageKeyLastFeedVideoIndex', 15);
     await prefs.setString('kStorageKeyLastFeedVideoItemId', 'test_video_016');
     await prefs.setString('kStorageKeyFeedType', 'recommend');
+    if (!context.mounted) return;
     await _toast(context, '已设置视频流位置：推荐页第16个视频');
   }
 
@@ -140,6 +146,7 @@ class TestDataSetupPage extends StatelessWidget {
     await prefs.setBool('kStorageKeyIsMuted', false);
     await prefs.setBool('kStorageKeyIsAutoPlay', true);
     await prefs.setBool('kStorageKeyAutoResumeAfterInterruption', true);
+    if (!context.mounted) return;
     await _toast(context, '已填充播放器偏好：1.25x、中文字幕、自动续播');
   }
 
@@ -149,6 +156,7 @@ class TestDataSetupPage extends StatelessWidget {
     await prefs.setInt('kStorageKeyFollowMaxActors', 3);
     await prefs.setStringList('kStorageKeyFavoriteIncludeTypes',
         ['Movie', 'Series']);
+    if (!context.mounted) return;
     await _toast(context, '已设置关注规则：每演员3个视频，含影片和剧集');
   }
 
@@ -159,6 +167,7 @@ class TestDataSetupPage extends StatelessWidget {
     await prefs.setInt('kStorageKeyActorsSelectedTab', 0);
     await prefs.setString('kStorageKeyActorsSearchQuery', '');
     await prefs.setString('kStorageKeyActorsSortMode', 'name');
+    if (!context.mounted) return;
     await _toast(context, '已设置演员页：3列网格、名称排序');
   }
 
@@ -167,6 +176,7 @@ class TestDataSetupPage extends StatelessWidget {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList('kStorageKeyHiddenLibraryIds',
         ['lib_music', 'lib_photos']);
+    if (!context.mounted) return;
     await _toast(context, '已隐藏音乐和照片媒体库');
   }
 
@@ -175,6 +185,7 @@ class TestDataSetupPage extends StatelessWidget {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList('favorite_artists',
         ['artist_1001', 'artist_1002', 'artist_1003']);
+    if (!context.mounted) return;
     await _toast(context, '已填充 3 个音乐收藏歌手');
   }
 
@@ -182,6 +193,7 @@ class TestDataSetupPage extends StatelessWidget {
   Future<void> _fillUpdateShown(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('update_shown_ver', '9.9.9');
+    if (!context.mounted) return;
     await _toast(context, '已标记最新版本为已提示（不再弹更新）');
   }
 
@@ -189,6 +201,7 @@ class TestDataSetupPage extends StatelessWidget {
   Future<void> _fillNavPosition(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('kStorageKeyLastPageIndex', 2); // 收藏页
+    if (!context.mounted) return;
     await _toast(context, '已设置下次启动打开收藏页');
   }
 
@@ -196,6 +209,7 @@ class TestDataSetupPage extends StatelessWidget {
   Future<void> _toggleExcludeWatched(BuildContext context, bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('discover_exclude_watched', value);
+    if (!context.mounted) return;
     await _toast(context, '排除已观看开关：${value ? "开" : "关"}');
   }
 
@@ -205,12 +219,14 @@ class TestDataSetupPage extends StatelessWidget {
     for (final key in _businessKeys) {
       await prefs.remove(key);
     }
+    if (!context.mounted) return;
     await _toast(context, '已清空业务数据（保留登录态）');
   }
 
   Future<void> _clearAll(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
+    if (!context.mounted) return;
     await _toast(context, '已清空所有数据，重启 App 回到首次安装');
   }
 
