@@ -316,7 +316,6 @@ extension _VideoPageItemBuild on _VideoPageItemState {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('书签操作失败: $e')),
                 );
-                }
               }
             },
           ),
