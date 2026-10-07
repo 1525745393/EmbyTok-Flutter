@@ -1,3 +1,10 @@
+## [2.371.17](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.16...v2.371.17) (2026-10-07)
+
+
+### Bug Fixes
+
+* 后端P2项-favorites limit统一100,position_seconds加上界防NaN,Emby token改用X-Emby-Token header不落query日志 ([cfbb05e](https://github.com/1525745393/EmbyTok-Flutter/commit/cfbb05e37a2f98aff5f4223a5c1f4d560433dd57))
+
 ## [2.371.16](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.15...v2.371.16) (2026-10-07)
 
 
