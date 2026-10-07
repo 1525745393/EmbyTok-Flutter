@@ -455,25 +455,23 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
           size: 20,
         ),
         onPressed: () async {
+          final messenger = ScaffoldMessenger.of(context);
+          final theme = Theme.of(context);
           try {
             await ref.read(watchlistNotifierProvider.notifier).toggle(item, watchlisted);
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(watchlisted ? '已取消稍后看' : '已加入稍后看'),
-                  duration: const Duration(seconds: 1),
-                ),
-              );
-            }
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(watchlisted ? '已取消稍后看' : '已加入稍后看'),
+                duration: const Duration(seconds: 1),
+              ),
+            );
           } catch (e) {
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('操作失败：服务器可能不支持稍后观看功能'),
-                  backgroundColor: Theme.of(context).colorScheme.error,
-                ),
-              );
-            }
+            messenger.showSnackBar(
+              SnackBar(
+                content: const Text('操作失败：服务器可能不支持稍后观看功能'),
+                backgroundColor: theme.colorScheme.error,
+              ),
+            );
           }
         },
         tooltip: watchlisted ? '取消稍后看' : '加入稍后看',

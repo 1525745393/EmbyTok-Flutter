@@ -304,19 +304,18 @@ extension _VideoPageItemBuild on _VideoPageItemState {
                   (widget.item.userData?.isWatchlisted ?? false);
               try {
                 await notifier.toggle(widget.item, current);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(current ? '已取消书签' : '已加入书签'),
-                      duration: const Duration(seconds: 1),
-                    ),
-                  );
-                }
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(current ? '已取消书签' : '已加入书签'),
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('书签操作失败: $e')),
-                  );
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('书签操作失败: $e')),
+                );
                 }
               }
             },

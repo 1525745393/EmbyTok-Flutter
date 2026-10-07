@@ -169,7 +169,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
       videoUrl: url,
       title: widget.item.title,
     );
-    if (!mounted) return;
+    if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(success
