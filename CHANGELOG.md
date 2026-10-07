@@ -1,3 +1,10 @@
+## [2.371.18](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.17...v2.371.18) (2026-10-07)
+
+
+### Bug Fixes
+
+* P2-2 本地媒体库空catch补日志,刮削失败/元数据保存失败可排查 ([87db32b](https://github.com/1525745393/EmbyTok-Flutter/commit/87db32bb730ccf18f6528578999baffab54aad6c))
+
 ## [2.371.17](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.16...v2.371.17) (2026-10-07)
 
 
