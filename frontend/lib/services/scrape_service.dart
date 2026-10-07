@@ -593,8 +593,9 @@ class ScrapeService {
     const tvTtl = 14 * 24 * 3600 * 1000;
     for (final key in sp.getKeys()) {
       if (!key.startsWith(_prefix)) continue;
-      final raw = sp.getString(key);
-      if (raw == null) continue;
+      // 防御：旧数据可能把 bool 写到了这个 key 下，sp.getString 会抛类型转换异常
+      final raw = sp.get(key);
+      if (raw is! String) continue;
       try {
         final j = jsonDecode(raw) as Map<String, dynamic>;
         final media = ScrapedMedia.fromJson(j);
