@@ -109,13 +109,13 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           _loading = false;
         });
       }
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
         ref
             .read(fileSourcesProvider.notifier)
             .updateScanStatus(widget.source.id, FileSourceStatus.failed);
         setState(() {
-          _error = '$e';
+          _error = '$e\n$st';
           _loading = false;
         });
       }

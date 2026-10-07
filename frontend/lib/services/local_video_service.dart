@@ -172,16 +172,16 @@ class LocalVideoService {
             final cfg = s['config'] is Map ? (s['config'] as Map) : const {};
             // 支持多文件夹挂载：config['paths'] 逗号分隔；兼容旧 config['path']
             final paths = <String>[];
-            final rawPaths = cfg['paths'] as String?;
+            final rawPaths = cfg['paths']?.toString();
             if (rawPaths != null && rawPaths.isNotEmpty) {
               paths.addAll(rawPaths.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty));
             }
-            final oldPath = cfg['path'] as String?;
+            final oldPath = cfg['path']?.toString();
             if (oldPath != null && oldPath.isNotEmpty && !paths.contains(oldPath)) {
               paths.add(oldPath);
             }
             // 用户指定的媒体类型（movie/tv/short）
-            final mediaType = cfg['mediaType'] as String?;
+            final mediaType = cfg['mediaType']?.toString();
             if (paths.isNotEmpty) {
               for (final it in await LocalDirScanner().scan(paths)) {
                 all.add(it.copyWith(sourceId: sid, mediaType: mediaType));
