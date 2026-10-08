@@ -185,13 +185,13 @@ class ScrapeService {
       return ParsedName(type: 'tv', title: title, season: 1, episode: episode);
     }
 
-    // 电影：提取年份
+    // 电影：提取年份（支持 "片名 2008" 和 "片名 (2008)" 两种格式）
     final yearMatch =
-        RegExp(r'(?:^|\s)(19|20)\d{2}(?:\s|$)').firstMatch(name);
+        RegExp(r'(?<=^|\s|\()(19|20)\d{2}(?=\s|\)|$)').firstMatch(name);
     int? year;
     String title;
     if (yearMatch != null) {
-      year = int.tryParse(yearMatch.group(0)!.trim());
+      year = int.tryParse(yearMatch.group(0)!);
       title = name.substring(0, yearMatch.start).trim();
     } else {
       title = name;
