@@ -70,8 +70,7 @@ class FileSourcesView extends ConsumerWidget {
                   ? null
                   : () => Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => FileSourceBrowseView(source: s),
+                        MaterialPageRoute<Widget>(builder: (_) => FileSourceBrowseView(source: s),
                         ),
                       ),
               leading: Icon(
@@ -115,8 +114,7 @@ class FileSourcesView extends ConsumerWidget {
                             // 重新选目录
                             final path = await Navigator.push<String>(
                               context,
-                              MaterialPageRoute(
-                                builder: (_) => LocalDirectoryBrowserView(
+                              MaterialPageRoute<String>(builder: (_) => LocalDirectoryBrowserView(
                                   pickMode: true,
                                   initialPath: s.config['path'] ?? '',
                                 ),
@@ -144,8 +142,7 @@ class FileSourcesView extends ConsumerWidget {
                           } else if (s.type != FileSourceType.local) {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (_) => FileSourceEditView(existing: s),
+                              MaterialPageRoute<Widget>(builder: (_) => FileSourceEditView(existing: s),
                               ),
                             );
                           }
@@ -155,8 +152,7 @@ class FileSourcesView extends ConsumerWidget {
                           } else {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (_) => FileSourceBrowseView(source: s),
+                              MaterialPageRoute<Widget>(builder: (_) => FileSourceBrowseView(source: s),
                               ),
                             );
                           }
@@ -192,8 +188,7 @@ class FileSourcesView extends ConsumerWidget {
                           // 添加另一个文件夹到此媒体库（多文件夹挂载）
                           final path = await Navigator.push<String>(
                             context,
-                            MaterialPageRoute(
-                              builder: (_) => const LocalDirectoryBrowserView(pickMode: true),
+                            MaterialPageRoute<String>(builder: (_) => const LocalDirectoryBrowserView(pickMode: true),
                             ),
                           );
                           if (path != null) {
@@ -220,8 +215,7 @@ class FileSourcesView extends ConsumerWidget {
                           if (context.mounted) {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (_) => FileSourceBrowseView(source: s),
+                              MaterialPageRoute<Widget>(builder: (_) => FileSourceBrowseView(source: s),
                               ),
                             );
                           }
@@ -309,8 +303,7 @@ class FileSourcesView extends ConsumerWidget {
   }
 
   void _confirmDelete(BuildContext context, WidgetRef ref, FileSource s) {
-    showDialog(
-      context: context,
+    showDialog<Widget>(context: context,
       builder: (_) => AlertDialog(
         title: const Text('删除文件源'),
         content: Text('确定删除「${s.name}」？\n该源下的影片将从媒体库移除。'),
@@ -422,8 +415,7 @@ class FileSourcesView extends ConsumerWidget {
                 Navigator.pop(context);
                 final path = await Navigator.push<String>(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const LocalDirectoryBrowserView(pickMode: true),
+                  MaterialPageRoute<String>(builder: (_) => const LocalDirectoryBrowserView(pickMode: true),
                   ),
                 );
                 if (path == null || !context.mounted) return;
@@ -454,8 +446,7 @@ class FileSourcesView extends ConsumerWidget {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const FileSourceEditView(type: FileSourceType.smb),
+                  MaterialPageRoute<Widget>(builder: (_) => const FileSourceEditView(type: FileSourceType.smb),
                   ),
                 );
               },
@@ -467,8 +458,7 @@ class FileSourcesView extends ConsumerWidget {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const FileSourceEditView(type: FileSourceType.webdav),
+                  MaterialPageRoute<Widget>(builder: (_) => const FileSourceEditView(type: FileSourceType.webdav),
                   ),
                 );
               },

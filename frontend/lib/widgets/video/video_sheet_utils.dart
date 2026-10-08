@@ -226,13 +226,11 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
         : null;
     if (localItem != null) {
       Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => LocalDetailPage(
+        MaterialPageRoute<Widget>(builder: (_) => LocalDetailPage(
             item: localItem,
             onPlay: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => LocalPlayPage(
+                MaterialPageRoute<Widget>(builder: (_) => LocalPlayPage(
                     item: localItem,
                   ),
                 ),

@@ -16,8 +16,7 @@ class BasicTestPage extends StatelessWidget {
             title: const Text('页面跳转测试'),
             subtitle: const Text('进入二级页并逐级返回'),
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => Scaffold(
+              MaterialPageRoute<Widget>(builder: (_) => Scaffold(
                   appBar: AppBar(title: const Text('二级页')),
                   body: const Center(child: Text('返回上一级验证返回栈')),
                 ),
@@ -34,8 +33,7 @@ class BasicTestPage extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.warning_amber_outlined),
             title: const Text('确认对话框'),
-            onTap: () => showDialog(
-              context: context,
+            onTap: () => showDialog<Widget>(context: context,
               builder: (_) => AlertDialog(
                 title: const Text('确认？'),
                 actions: [
@@ -54,8 +52,7 @@ class BasicTestPage extends StatelessWidget {
             title: const Text('空状态展示'),
             subtitle: const Text('验证空列表 UI'),
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => Scaffold(
+              MaterialPageRoute<Widget>(builder: (_) => Scaffold(
                   appBar: AppBar(title: const Text('空状态')),
                   body: const Center(
                     child: Column(

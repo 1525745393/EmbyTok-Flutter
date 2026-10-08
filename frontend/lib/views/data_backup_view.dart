@@ -114,8 +114,7 @@ class DataBackupView extends ConsumerWidget {
       return;
     }
     if (context.mounted) {
-      showDialog(
-        context: context,
+      showDialog<Widget>(context: context,
         builder: (_) => AlertDialog(
           title: const Text('导入结果'),
           content: Text('解析到 ${items.length} 首收藏记录。\n\n'
@@ -151,8 +150,7 @@ class DataBackupView extends ConsumerWidget {
       if (matched[i] == null) unmatched.add(entries[i].title);
     }
     if (context.mounted) {
-      showDialog(
-        context: context,
+      showDialog<Widget>(context: context,
         builder: (_) => AlertDialog(
           title: const Text('导入匹配结果'),
           content: SingleChildScrollView(

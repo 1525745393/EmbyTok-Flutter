@@ -46,8 +46,7 @@ extension _SettingsRecommendRules on SettingsView {
           trailing: const Icon(Icons.chevron_right),
           onTap: () {
             Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => SettingsSectionPage(
+              MaterialPageRoute<Widget>(builder: (_) => SettingsSectionPage(
                   title: title,
                   icon: sectionIcon,
                   color: sectionColor,

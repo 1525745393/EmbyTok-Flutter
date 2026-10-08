@@ -148,8 +148,7 @@ class _LocalDirectoryBrowserViewState extends State<LocalDirectoryBrowserView> {
     );
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => LocalPlayPage(items: [item]),
+      MaterialPageRoute<Widget>(builder: (_) => LocalPlayPage(items: [item]),
       ),
     );
   }

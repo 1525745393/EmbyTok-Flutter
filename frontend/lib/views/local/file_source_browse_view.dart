@@ -513,8 +513,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       trailing: const Icon(Icons.play_arrow, size: 20),
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) => LocalPlayPage(items: _items, initialIndex: index),
+        MaterialPageRoute<Widget>(builder: (_) => LocalPlayPage(items: _items, initialIndex: index),
         ),
       ),
       onLongPress: () => _showLongPressMenu(item),
@@ -628,8 +627,7 @@ class _SeriesEpisodePage extends StatelessWidget {
             trailing: const Icon(Icons.play_arrow),
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (_) => LocalPlayPage(items: sorted, initialIndex: i),
+              MaterialPageRoute<Widget>(builder: (_) => LocalPlayPage(items: sorted, initialIndex: i),
               ),
             ),
           );

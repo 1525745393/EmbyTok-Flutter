@@ -210,7 +210,7 @@ class TestModeHomePage extends StatelessWidget {
                 onTap: () {
                   HapticFeedback.lightImpact();
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: m.builder),
+                    MaterialPageRoute<Widget>(builder: m.builder),
                   );
                 },
               ),

@@ -163,8 +163,7 @@ extension _SettingsBuilders on SettingsView {
 
   void _showSubtitleColorDialog(
       BuildContext context, WidgetRef ref, String current) {
-    showDialog(
-      context: context,
+    showDialog<Widget>(context: context,
       builder: (context) => AlertDialog(
         title: const Text('字幕颜色'),
         content: RadioGroup<String>(
@@ -193,8 +192,7 @@ extension _SettingsBuilders on SettingsView {
 
   void _showSubtitlePositionDialog(
       BuildContext context, WidgetRef ref, String current) {
-    showDialog(
-      context: context,
+    showDialog<Widget>(context: context,
       builder: (context) => AlertDialog(
         title: const Text('字幕位置'),
         content: RadioGroup<String>(
@@ -228,8 +226,7 @@ extension _SettingsBuilders on SettingsView {
   void _showSubtitleTimeOffsetDialog(
       BuildContext context, WidgetRef ref, int current) {
     int temp = current;
-    showDialog(
-      context: context,
+    showDialog<Widget>(context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: const Text('字幕时间偏移'),
@@ -289,8 +286,7 @@ extension _SettingsBuilders on SettingsView {
   }
 
   void _showLanguageDialog(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
+    showDialog<Widget>(context: context,
       builder: (context) => AlertDialog(
         title: const Text('选择语言'),
         content: RadioGroup<String>(
@@ -706,8 +702,7 @@ extension _SettingsBuilders on SettingsView {
   void _showAudioOffsetDialog(
       BuildContext context, WidgetRef ref, int current) {
     int temp = current;
-    showDialog(
-      context: context,
+    showDialog<Widget>(context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
           title: const Text('音频延迟微调'),
@@ -802,8 +797,7 @@ extension _SettingsBuilders on SettingsView {
       VideoFitMode.sixteenNine: '16:9 固定比例',
       VideoFitMode.fourThree: '4:3 固定比例',
     };
-    showDialog(
-      context: context,
+    showDialog<Widget>(context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('画面缩放模式'),
         content: RadioGroup<VideoFitMode>(
@@ -830,8 +824,7 @@ extension _SettingsBuilders on SettingsView {
 
   void _showPlayerEnginePicker(
       BuildContext context, WidgetRef ref, PlayerEngine current) {
-    showDialog(
-      context: context,
+    showDialog<Widget>(context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('选择默认播放器'),
         content: RadioGroup<PlayerEngine>(

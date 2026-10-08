@@ -141,8 +141,7 @@ class _FileSourceEditViewState extends ConsumerState<FileSourceEditView> {
       );
       return;
     }
-    showDialog(
-      context: context,
+    showDialog<Widget>(context: context,
       barrierDismissible: false,
       builder: (_) => const Center(child: CircularProgressIndicator()),
     );

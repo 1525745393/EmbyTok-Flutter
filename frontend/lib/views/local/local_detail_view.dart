@@ -300,8 +300,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                               if (personId != null && personId > 0) {
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (_) => PersonDetailPage(
+                                  MaterialPageRoute<Widget>(builder: (_) => PersonDetailPage(
                                       personId: personId,
                                       name: c['name'] ?? '',
                                       profilePath: profile,
@@ -547,8 +546,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
   void _openImageViewer(BuildContext context, String url) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => Scaffold(
+      MaterialPageRoute<Widget>(builder: (_) => Scaffold(
           backgroundColor: Colors.black,
           appBar: AppBar(backgroundColor: Colors.transparent, iconTheme: const IconThemeData(color: Colors.white)),
           body: Center(

@@ -828,8 +828,7 @@ Future<void> _loadFavoriteStatus() async {
     if (selected != null && context.mounted) {
       // 跳转到选中的歌手详情页
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => ArtistDetailPage(artistName: selected.name),
+        MaterialPageRoute<Widget>(builder: (context) => ArtistDetailPage(artistName: selected.name),
         ),
       );
     }

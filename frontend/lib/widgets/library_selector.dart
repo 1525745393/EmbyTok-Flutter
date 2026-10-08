@@ -57,8 +57,7 @@ class LibrarySelector extends ConsumerStatefulWidget {
     BuildContext context, {
     LibraryScope scope = LibraryScope.feed,
   }) {
-    return showDialog(
-      context: context,
+    return showDialog<Widget>(context: context,
       barrierColor: Colors.black.withValues(alpha: 0.6),
       builder: (_) => LibrarySelector(scope: scope),
     );
@@ -732,8 +731,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
 
   // 显示收藏类型筛选弹窗
   void _showFavoriteTypeFilter(BuildContext context, ColorScheme scheme) {
-    showDialog(
-      context: context,
+    showDialog<Widget>(context: context,
       builder: (context) => Consumer(
         builder: (context, ref, _) {
           return _FavoriteTypeFilterDialog(scheme: scheme);

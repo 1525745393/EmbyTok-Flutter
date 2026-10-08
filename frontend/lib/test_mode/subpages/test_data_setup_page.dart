@@ -356,8 +356,7 @@ class TestDataSetupPage extends StatelessWidget {
             leading: const Icon(Icons.delete_forever, color: Colors.red),
             title: const Text('清空所有数据'),
             subtitle: const Text('含登录态，重启后回到首次安装'),
-            onTap: () => showDialog(
-              context: context,
+            onTap: () => showDialog<Widget>(context: context,
               builder: (_) => AlertDialog(
                 title: const Text('确认清空所有数据？'),
                 content: const Text('包括登录态、服务器地址、所有缓存。'),

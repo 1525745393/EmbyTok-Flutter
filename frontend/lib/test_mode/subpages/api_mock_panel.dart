@@ -81,8 +81,7 @@ class _ApiMockPanelState extends State<ApiMockPanel> {
     final bodyCtrl = TextEditingController(
         text: '[{"Name":"Mock 影片","Id":"mock-1"}]');
 
-    await showDialog(
-      context: context,
+    await showDialog<Widget>(context: context,
       builder: (_) => AlertDialog(
         title: const Text('添加 Mock 规则'),
         content: SingleChildScrollView(

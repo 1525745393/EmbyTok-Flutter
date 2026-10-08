@@ -102,7 +102,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
             tooltip: '收藏',
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const LocalFavoritesPage()),
+              MaterialPageRoute<Widget>(builder: (_) => const LocalFavoritesPage()),
             ),
           ),
           IconButton(
@@ -291,8 +291,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                 return GestureDetector(
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => _FolderEpisodePage(
+                    MaterialPageRoute<Widget>(builder: (_) => _FolderEpisodePage(
                         folderName: entry.key,
                         items: entry.value,
                       ),
@@ -535,8 +534,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => LocalDetailPage(
+          MaterialPageRoute<Widget>(builder: (_) => LocalDetailPage(
               item: item,
               onPlay: () => _playVideo(item),
             ),
@@ -597,8 +595,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
       String sourceId, String sourceName, LocalVideoState state) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => _SourceFullListPage(
+      MaterialPageRoute<Widget>(builder: (_) => _SourceFullListPage(
           sourceId: sourceId,
           sourceName: sourceName,
         ),
@@ -1152,8 +1149,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                 // 对齐在线媒体库：点卡片进详情页，详情页里再点播放
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => LocalDetailPage(
+                  MaterialPageRoute<Widget>(builder: (_) => LocalDetailPage(
                       item: it,
                       onPlay: () => _playVideo(it),
                     ),
@@ -1293,8 +1289,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
       if (!mounted) return;
       await Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) => LocalDetailPage(
+        MaterialPageRoute<Widget>(builder: (_) => LocalDetailPage(
             item: item,
             onPlay: () => _playVideo(item),
           ),
@@ -1348,8 +1343,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
       if (!mounted) return;
       final done = await Navigator.push<bool>(
         context,
-        MaterialPageRoute(
-          builder: (_) => TmdbSearchPage(
+        MaterialPageRoute<bool>(builder: (_) => TmdbSearchPage(
             initialQuery: item.name,
             pathHash: item.pathHash,
             filename: item.name,
@@ -1369,8 +1363,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
     final list = ref.read(localVideoProvider).filtered;
     final idx = list.indexWhere((e) => e.id == item.id);
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => LocalPlayPage(
+      MaterialPageRoute<Widget>(builder: (_) => LocalPlayPage(
           items: list,
           initialIndex: idx < 0 ? 0 : idx,
         ),
@@ -2078,8 +2071,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
                   return GestureDetector(
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => _FolderEpisodePage(folderName: entry.key, items: eps),
+                      MaterialPageRoute<Widget>(builder: (_) => _FolderEpisodePage(folderName: entry.key, items: eps),
                       ),
                     ),
                     child: Column(
@@ -2336,8 +2328,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => _GroupListPage(title: s?.title ?? first.name, items: e.value, state: state),
+                MaterialPageRoute<Widget>(builder: (_) => _GroupListPage(title: s?.title ?? first.name, items: e.value, state: state),
                 ),
               ),
             );
@@ -2361,8 +2352,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => _GroupListPage(title: e.key, items: e.value, state: state),
+                MaterialPageRoute<Widget>(builder: (_) => _GroupListPage(title: e.key, items: e.value, state: state),
                 ),
               ),
             );
@@ -2454,8 +2444,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
   void _openPlayer(List<LocalVideoItem> items, int index) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => LocalPlayPage(
+      MaterialPageRoute<Widget>(builder: (_) => LocalPlayPage(
           items: items,
           initialIndex: index,
         ),
@@ -2477,8 +2466,7 @@ class _GridPosterCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) => LocalDetailPage(item: item, onPlay: onPlay),
+        MaterialPageRoute<Widget>(builder: (_) => LocalDetailPage(item: item, onPlay: onPlay),
         ),
       ),
       child: Column(
@@ -2524,8 +2512,7 @@ class _BackdropCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) => LocalDetailPage(item: item, onPlay: onPlay),
+        MaterialPageRoute<Widget>(builder: (_) => LocalDetailPage(item: item, onPlay: onPlay),
         ),
       ),
       child: Column(
@@ -2590,8 +2577,7 @@ class _GroupListPage extends StatelessWidget {
           state: state,
           onPlay: () => Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (_) => LocalPlayPage(items: items, initialIndex: i),
+            MaterialPageRoute<Widget>(builder: (_) => LocalPlayPage(items: items, initialIndex: i),
             ),
           ),
         ),
@@ -2714,13 +2700,11 @@ class _FavSection extends StatelessWidget {
               return GestureDetector(
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => LocalDetailPage(item: it, onPlay: () {
+                  MaterialPageRoute<Widget>(builder: (_) => LocalDetailPage(item: it, onPlay: () {
                       // LocalDetailPage 内部已先 pop 自己，这里直接 push 播放器
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => LocalPlayPage(items: [it], initialIndex: 0),
+                        MaterialPageRoute<Widget>(builder: (_) => LocalPlayPage(items: [it], initialIndex: 0),
                         ),
                       );
                     }),
@@ -2827,8 +2811,7 @@ class _FavActorsSection extends StatelessWidget {
                     ? null
                     : () => Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => PersonDetailPage(
+                        MaterialPageRoute<Widget>(builder: (_) => PersonDetailPage(
                             personId: id,
                             name: a['name'] ?? '',
                             profilePath: a['profilePath'],
@@ -2935,8 +2918,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
   void _openImageViewer(String url) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => Scaffold(
+      MaterialPageRoute<Widget>(builder: (_) => Scaffold(
           backgroundColor: Colors.black,
           appBar: AppBar(backgroundColor: Colors.transparent, iconTheme: const IconThemeData(color: Colors.white)),
           body: Center(child: InteractiveViewer(child: CachedNetworkImage(imageUrl: url, fit: BoxFit.contain))),
@@ -3054,7 +3036,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                           ),
                           icon: const Icon(Icons.play_arrow, size: 18),
                           label: const Text('播放', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LocalPlayPage(items: sorted, initialIndex: 0))),
+                          onPressed: () => Navigator.push(context, MaterialPageRoute<Widget>(builder: (_) => LocalPlayPage(items: sorted, initialIndex: 0))),
                         ),
                         const SizedBox(width: 8),
                         IconButton(
@@ -3194,8 +3176,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                 TextButton(
                   onPressed: () => Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => _AllEpisodesPage(
+                    MaterialPageRoute<Widget>(builder: (_) => _AllEpisodesPage(
                         items: sorted,
                         meta: meta,
                         epInfo: _epInfo,
@@ -3232,7 +3213,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
               final overview = info?['overview'] as String?;
               final epNum = ep?.episode ?? i + 1;
               return InkWell(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LocalPlayPage(items: sorted, initialIndex: i))),
+                onTap: () => Navigator.push(context, MaterialPageRoute<Widget>(builder: (_) => LocalPlayPage(items: sorted, initialIndex: i))),
                 borderRadius: BorderRadius.circular(10),
                 child: Container(
                   decoration: BoxDecoration(color: Colors.grey[850], borderRadius: BorderRadius.circular(10)),
@@ -3313,7 +3294,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                   return GestureDetector(
                     onTap: () {
                       if (personId != null && personId > 0) {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => PersonDetailPage(personId: personId, name: c['name'] ?? '', profilePath: profile)));
+                        Navigator.push(context, MaterialPageRoute<Widget>(builder: (_) => PersonDetailPage(personId: personId, name: c['name'] ?? '', profilePath: profile)));
                       } else if (profile != null && profile.isNotEmpty) {
                         _openImageViewer(TmdbService.personUrl(profile));
                       }
@@ -3373,7 +3354,7 @@ class _AllEpisodesPage extends StatelessWidget {
           final runtime = info?['runtime'] as int?;
           final overview = info?['overview'] as String?;
           return ListTile(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LocalPlayPage(items: sorted, initialIndex: i))),
+            onTap: () => Navigator.push(context, MaterialPageRoute<Widget>(builder: (_) => LocalPlayPage(items: sorted, initialIndex: i))),
             leading: ClipRRect(
               borderRadius: BorderRadius.circular(6),
               child: SizedBox(

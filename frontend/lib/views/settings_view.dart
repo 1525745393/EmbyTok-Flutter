@@ -432,8 +432,7 @@ class SettingsView extends ConsumerWidget {
 
   /// 退出本地媒体库模式（P2）：重置状态并返回登录页
   void _exitLocalMode(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
+    showDialog<Widget>(context: context,
       builder: (_) => AlertDialog(
         title: const Text('退出本地模式'),
         content: const Text('确定退出本地媒体库模式并返回登录页？'),
@@ -462,8 +461,7 @@ class SettingsView extends ConsumerWidget {
   void _openRulesPage(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => DefaultTabController(
+      MaterialPageRoute<Widget>(builder: (_) => DefaultTabController(
           length: 3,
           child: Scaffold(
             appBar: AppBar(
@@ -712,7 +710,7 @@ class SettingsView extends ConsumerWidget {
       trailing: const Icon(Icons.chevron_right),
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const CacheManagementPage()),
+        MaterialPageRoute<Widget>(builder: (_) => const CacheManagementPage()),
       ),
     );
   }
@@ -726,7 +724,7 @@ class SettingsView extends ConsumerWidget {
       trailing: const Icon(Icons.chevron_right),
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const FeedbackPage()),
+        MaterialPageRoute<Widget>(builder: (_) => const FeedbackPage()),
       ),
     );
   }
@@ -742,8 +740,7 @@ class SettingsView extends ConsumerWidget {
       trailing: const Icon(Icons.chevron_right),
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) => NetworkDiagnosticPage(serverUrl: serverUrl),
+        MaterialPageRoute<Widget>(builder: (_) => NetworkDiagnosticPage(serverUrl: serverUrl),
         ),
       ),
     );
@@ -780,7 +777,7 @@ class SettingsView extends ConsumerWidget {
       trailing: const Icon(Icons.chevron_right),
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const YearReportPage()),
+        MaterialPageRoute<Widget>(builder: (_) => const YearReportPage()),
       ),
     );
   }
@@ -853,8 +850,7 @@ class SettingsView extends ConsumerWidget {
   Future<void> _showPinLockDialog(BuildContext context, WidgetRef ref) async {
     final currentPin = ref.read(pinLockProvider);
     final controller = TextEditingController();
-    await showDialog(
-      context: context,
+    await showDialog<Widget>(context: context,
       builder: (context) => AlertDialog(
         title: Text(currentPin.isEmpty ? '设置 PIN 锁' : '修改/关闭 PIN 锁'),
         content: Column(
@@ -929,8 +925,7 @@ class SettingsView extends ConsumerWidget {
 
   Future<void> _showSetNewPinDialog(BuildContext context, WidgetRef ref) async {
     final controller = TextEditingController();
-    await showDialog(
-      context: context,
+    await showDialog<Widget>(context: context,
       builder: (context) => AlertDialog(
         title: const Text('输入新 PIN'),
         content: TextField(

@@ -279,8 +279,7 @@ class ProfileView extends ConsumerWidget {
   }
 
   void _showLogoutConfirm(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
+    showDialog<Widget>(context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('退出登录'),
         content: const Text('确定要退出群晖 Audio Station 登录吗？'),
