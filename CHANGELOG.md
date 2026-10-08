@@ -1,3 +1,11 @@
+## [2.371.24](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.23...v2.371.24) (2026-10-08)
+
+
+### Bug Fixes
+
+* **ci:** NDK安装失败 — 先用yes接受licenses再安装 ([98717b3](https://github.com/1525745393/EmbyTok-Flutter/commit/98717b3be2e40f6c3edb57cb67a40c059d51530c))
+* 修复括号包裹年份的电影文件名刮削失败 ([8c05b10](https://github.com/1525745393/EmbyTok-Flutter/commit/8c05b103768a9a90c95404f3dc7766aaaa80837b))
+
 ## [2.371.23](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.22...v2.371.23) (2026-10-08)
 
 
