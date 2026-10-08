@@ -57,7 +57,8 @@ jobs:
           if [ -d "$ANDROID_HOME/ndk/28.2.13676358" ]; then
             echo "NDK 已缓存"
           else
-            echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;28.2.13676358"
+            yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
+            yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;28.2.13676358"
           fi
 
       - name: 设置 Flutter 3.44.8

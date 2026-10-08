@@ -81,7 +81,8 @@ jobs:
           if [ -d "$ANDROID_HOME/ndk/28.2.13676358" ]; then
             echo "✅ NDK 已缓存，跳过安装"
           else
-            echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;28.2.13676358"
+            yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
+            yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;28.2.13676358"
             echo "✅ NDK 安装完成"
           fi
 
