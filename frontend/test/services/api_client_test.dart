@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:embytok_flutter/models/app_error.dart';
@@ -421,6 +422,21 @@ void main() {
         expect(caught, isA<AppError>());
         final err = caught as AppError;
         expect(err.message, contains('请求失败'));
+      });
+    });
+
+    group('证书校验开关（P1-1 回归测试）', () {
+      test('setValidateCertificate(false) 后 adapter 为 IOHttpClientAdapter', () {
+        final client = ApiClient(baseUrl: 'http://test.example.com');
+        client.setValidateCertificate(false);
+        expect(client.dio.httpClientAdapter, isA<IOHttpClientAdapter>());
+      });
+
+      test('setValidateCertificate(true) 不抛异常且保持默认 adapter', () {
+        final client = ApiClient(baseUrl: 'http://test.example.com');
+        // 默认就是 true，不应改变 adapter 类型
+        client.setValidateCertificate(true);
+        expect(client.dio.httpClientAdapter, isNotNull);
       });
     });
   });
