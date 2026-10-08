@@ -1,3 +1,10 @@
+## [2.371.23](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.22...v2.371.23) (2026-10-08)
+
+
+### Bug Fixes
+
+* 审查发现2个回归问题 ([52c6f87](https://github.com/1525745393/EmbyTok-Flutter/commit/52c6f874e495f2282d225df6c894a562d2992386))
+
 ## [2.371.22](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.21...v2.371.22) (2026-10-07)
 
 
