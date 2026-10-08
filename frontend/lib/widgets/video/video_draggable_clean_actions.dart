@@ -245,7 +245,7 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
                   transform: Matrix4.identity()
-                    ..scaleByDouble(_isDragging ? _kScaleFactor : 1.0, 1.0, 1.0, 1.0),
+                    ..scaleByDouble(_isDragging ? _kScaleFactor : 1.0, _isDragging ? _kScaleFactor : 1.0, _isDragging ? _kScaleFactor : 1.0, 1.0),
                   child: Container(
                     key: _buttonsKey,
                     width: widget.buttonWidth,
