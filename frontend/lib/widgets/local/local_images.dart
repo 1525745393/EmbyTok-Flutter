@@ -9,10 +9,6 @@ import '../../services/tmdb_service.dart';
 
 /// 本地优先海报
 class LocalPosterImage extends StatelessWidget {
-  final LocalVideoItem item;
-  final String? posterPath;
-  final BoxFit fit;
-  final Widget placeholder;
 
   const LocalPosterImage({
     super.key,
@@ -21,6 +17,10 @@ class LocalPosterImage extends StatelessWidget {
     this.fit = BoxFit.cover,
     this.placeholder = const ColoredBox(color: const Color(0xFF2A2A2A)),
   });
+  final LocalVideoItem item;
+  final String? posterPath;
+  final BoxFit fit;
+  final Widget placeholder;
 
   @override
   Widget build(BuildContext context) {
@@ -45,9 +45,6 @@ class LocalPosterImage extends StatelessWidget {
 
 /// 本地优先背景
 class LocalBackdropImage extends StatelessWidget {
-  final LocalVideoItem item;
-  final String? backdropPath;
-  final BoxFit fit;
 
   const LocalBackdropImage({
     super.key,
@@ -55,6 +52,9 @@ class LocalBackdropImage extends StatelessWidget {
     required this.backdropPath,
     this.fit = BoxFit.cover,
   });
+  final LocalVideoItem item;
+  final String? backdropPath;
+  final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
@@ -81,9 +81,6 @@ class LocalBackdropImage extends StatelessWidget {
 
 /// 本地优先演员头像（按 personId）
 class LocalCastAvatar extends StatelessWidget {
-  final int personId;
-  final String? profilePath;
-  final double size;
 
   const LocalCastAvatar({
     super.key,
@@ -91,6 +88,9 @@ class LocalCastAvatar extends StatelessWidget {
     required this.profilePath,
     this.size = 48,
   });
+  final int personId;
+  final String? profilePath;
+  final double size;
 
   @override
   Widget build(BuildContext context) {

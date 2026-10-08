@@ -9,7 +9,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/play_events_provider.dart';
 import '../providers/synology_music_provider.dart';
 import '../providers/synology_playback_provider.dart';
-import '../providers/recent_playbacks_provider.dart';
 import '../models/audio_models.dart';
 
 enum _Range { week, month, all }
@@ -120,7 +119,7 @@ class _PlayStatsViewState extends ConsumerState<PlayStatsView> {
               children: [
                 _OverviewCard(
                     label: '总听歌时长',
-                    value: '${(totalSecs / 3600).toStringAsFixed(1)}',
+                    value: (totalSecs / 3600).toStringAsFixed(1),
                     unit: '小时'),
                 const SizedBox(width: 12),
                 _OverviewCard(label: '总播放次数', value: '$totalPlays', unit: '次'),
@@ -236,7 +235,7 @@ class _WeekBarChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final maxSecs =
         days.map((d) => d.seconds).fold<int>(0, (a, b) => a > b ? a : b);
-    final weekLabels = const ['一', '二', '三', '四', '五', '六', '日'];
+    const weekLabels = ['一', '二', '三', '四', '五', '六', '日'];
     final today = DateTime.now();
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,

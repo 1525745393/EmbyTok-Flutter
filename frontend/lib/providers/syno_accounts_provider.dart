@@ -90,7 +90,7 @@ Future<String> accountScopedKey(String base) async {
 }
 
 class SynoAccountsNotifier extends StateNotifier<SynoAccountsState> {
-  SynoAccountsNotifier(this._ref) : super(SynoAccountsState()) {
+  SynoAccountsNotifier(this._ref) : super(const SynoAccountsState()) {
     _secure = _ref.read(secureStorageProvider);
     _load();
   }
@@ -111,7 +111,7 @@ class SynoAccountsNotifier extends StateNotifier<SynoAccountsState> {
         currentAccountId: prefs.getString(_kCurrentKey),
       );
     } catch (_) {
-      state = SynoAccountsState();
+      state = const SynoAccountsState();
     }
   }
 

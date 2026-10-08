@@ -1,7 +1,6 @@
 // 网络与弱网测试：超时模拟、错误码、重试
 
 import 'dart:async';
-import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';

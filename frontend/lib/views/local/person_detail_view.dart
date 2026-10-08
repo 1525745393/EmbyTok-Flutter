@@ -8,9 +8,6 @@ import 'dart:io';
 
 /// 演员详情页（本地模式，基于 TMDB）
 class PersonDetailPage extends ConsumerStatefulWidget {
-  final int personId;
-  final String name;
-  final String? profilePath;
 
   const PersonDetailPage({
     super.key,
@@ -18,6 +15,9 @@ class PersonDetailPage extends ConsumerStatefulWidget {
     required this.name,
     this.profilePath,
   });
+  final int personId;
+  final String name;
+  final String? profilePath;
 
   @override
   ConsumerState<PersonDetailPage> createState() => _PersonDetailPageState();

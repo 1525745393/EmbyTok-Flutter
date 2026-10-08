@@ -1,7 +1,5 @@
-import 'dart:convert';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Color;
 
 import '../utils/logger.dart';
@@ -71,11 +69,7 @@ class DandanplayApi {
 }
 
 /// 弹幕条目（从 API 解析后）
-class DanmakuEntry {
-  final int timeMs;
-  final String text;
-  final Color color;
-  final int type; // 0滚动 1顶端 2底端
+class DanmakuEntry { // 0滚动 1顶端 2底端
 
   const DanmakuEntry({
     required this.timeMs,
@@ -83,4 +77,8 @@ class DanmakuEntry {
     required this.color,
     required this.type,
   });
+  final int timeMs;
+  final String text;
+  final Color color;
+  final int type;
 }

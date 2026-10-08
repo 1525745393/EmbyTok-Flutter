@@ -14,22 +14,22 @@ class TestModeAboutPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('关于测试模式')),
       body: ListView(
-        children: [
-          const ListTile(
+        children: const [
+          ListTile(
             leading: Icon(Icons.build_circle, size: 40, color: Colors.blue),
             title: Text('测试模式控制台'),
             subtitle: Text('版本 1.0.0'),
           ),
-          const Divider(),
+          Divider(),
           ListTile(
-            title: const Text('构建信息'),
-            subtitle: Text(
+            title: Text('构建信息'),
+            subtitle: const Text(
               '模式: ${kDebugMode ? 'debug' : 'release/profile'}\n'
               'Dart define TEST_MODE: $_dartDefine\n'
               '平台: Android/iOS',
             ),
           ),
-          const ListTile(
+          ListTile(
             title: Text('使用说明'),
             subtitle: Text(
               '1. 本控制台仅在 debug 构建或 --dart-define=TEST_MODE=true 时可用\n'
@@ -38,7 +38,7 @@ class TestModeAboutPage extends StatelessWidget {
               '4. 退出测试模式：返回设置页即可，环境切换在重启后自动恢复',
             ),
           ),
-          const ListTile(
+          ListTile(
             title: Text('注意事项'),
             subtitle: Text(
               '· 环境切换仅临时覆盖 baseUrl，不写入服务器列表\n'

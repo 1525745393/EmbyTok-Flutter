@@ -514,7 +514,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
       VideoFitMode.fourThree => BoxFit.contain,
     };
     // 固定比例辅助：非空时用 Center + AspectRatio 包裹播放器
-    double? fixedAspectRatio = switch (fitMode) {
+    final double? fixedAspectRatio = switch (fitMode) {
       VideoFitMode.sixteenNine => 16 / 9,
       VideoFitMode.fourThree => 4 / 3,
       _ => null,
@@ -522,7 +522,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
     Widget wrapFixedRatio(Widget child) {
       if (fixedAspectRatio == null) return child;
       return Center(
-        child: AspectRatio(aspectRatio: fixedAspectRatio!, child: child),
+        child: AspectRatio(aspectRatio: fixedAspectRatio, child: child),
       );
     }
     // 有效引擎：优先使用降级后的引擎，否则用用户设置

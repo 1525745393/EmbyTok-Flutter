@@ -53,7 +53,7 @@ class PosterAvatar extends ConsumerWidget {
         responsiveSize(context, base, max);
 
     final people = item.people;
-    Person? firstActor = people != null && people.isNotEmpty
+    final Person? firstActor = people != null && people.isNotEmpty
         ? people.firstWhere((p) => p.type.toLowerCase() == 'actor',
             orElse: () => people.first)
         : null;

@@ -26,15 +26,7 @@ enum MpvHwDec {
 }
 
 /// 播放器引擎设置 State
-class PlayerEngineSettings {
-  final PlayerEngine defaultEngine;
-  final bool thirdPartyFallback; // 第三方兜底开关
-  final String? preferredExternalPlayerPackage; // 首选外部播放器包名
-
-  // MPV 专属设置（PRD R2）
-  final MpvHwDec mpvHwDec; // 解码方式
-  final int mpvCacheSizeMb; // 网络缓存大小（MB）
-  final bool mpvForceAssStyle; // 强制覆盖 ASS 字体样式
+class PlayerEngineSettings { // 强制覆盖 ASS 字体样式
 
   const PlayerEngineSettings({
     this.defaultEngine = PlayerEngine.exo,
@@ -44,6 +36,14 @@ class PlayerEngineSettings {
     this.mpvCacheSizeMb = 16,
     this.mpvForceAssStyle = false,
   });
+  final PlayerEngine defaultEngine;
+  final bool thirdPartyFallback; // 第三方兜底开关
+  final String? preferredExternalPlayerPackage; // 首选外部播放器包名
+
+  // MPV 专属设置（PRD R2）
+  final MpvHwDec mpvHwDec; // 解码方式
+  final int mpvCacheSizeMb; // 网络缓存大小（MB）
+  final bool mpvForceAssStyle;
 
   PlayerEngineSettings copyWith({
     PlayerEngine? defaultEngine,
@@ -68,15 +68,15 @@ class PlayerEngineSettings {
 /// 播放器引擎设置 Notifier
 class PlayerEngineSettingsNotifier
     extends StateNotifier<PlayerEngineSettings> {
+
+  PlayerEngineSettingsNotifier() : super(const PlayerEngineSettings()) {
+    _load();
+  }
   static const _keyDefaultEngine = 'player_default_engine';
   static const _keyThirdPartyFallback = 'player_third_party_fallback';
   static const _keyMpvHwDec = 'player_mpv_hwdec';
   static const _keyMpvCacheSize = 'player_mpv_cache_size';
   static const _keyMpvForceAss = 'player_mpv_force_ass_style';
-
-  PlayerEngineSettingsNotifier() : super(const PlayerEngineSettings()) {
-    _load();
-  }
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();

@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -22,8 +21,8 @@ import 'local_play_page.dart';
 ///
 /// 根据源类型选择扫描器：WebDAV 走 PROPFIND，SMB 走连通性测试+文件列表。
 class FileSourceBrowseView extends ConsumerStatefulWidget {
-  final FileSource source;
   const FileSourceBrowseView({super.key, required this.source});
+  final FileSource source;
 
   @override
   ConsumerState<FileSourceBrowseView> createState() => _FileSourceBrowseViewState();
@@ -241,7 +240,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     );
   }
 
-  Set<String> _expandedFolders = {};
+  final Set<String> _expandedFolders = {};
 
   Widget _buildBody() {
     // mediaType=tv 或文件名含 SxxExx 模式时按文件夹分组
@@ -468,7 +467,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       return;
     }
     try {
-      final newPath = dirPath.substring(0, dirPath.lastIndexOf('/')) + '/$newName';
+      final newPath = '${dirPath.substring(0, dirPath.lastIndexOf('/'))}/$newName';
       await Directory(dirPath).rename(newPath);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('文件夹重命名成功')));
@@ -594,10 +593,10 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
 
 /// 单部剧的剧集列表页
 class _SeriesEpisodePage extends StatelessWidget {
+  const _SeriesEpisodePage({required this.seriesName, required this.episodes, required this.onMenu});
   final String seriesName;
   final List<LocalVideoItem> episodes;
   final void Function(String action) onMenu;
-  const _SeriesEpisodePage({required this.seriesName, required this.episodes, required this.onMenu});
 
   @override
   Widget build(BuildContext context) {

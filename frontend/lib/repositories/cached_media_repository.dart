@@ -377,12 +377,8 @@ class CachedMediaRepository extends CachedMediaRepositoryBase
     with _CacheQueryApi, _CacheInvalidateApi
     implements MediaRepository {
   CachedMediaRepository(
-    MediaRepository inner, {
-    Duration ttl = const Duration(minutes: 5),
-    int maxCacheEntries = 50,
-  }) : super(
-          inner,
-          ttl: ttl,
-          maxCacheEntries: maxCacheEntries,
-        );
+    super.inner, {
+    super.ttl,
+    super.maxCacheEntries,
+  });
 }

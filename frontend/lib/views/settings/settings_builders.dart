@@ -173,15 +173,15 @@ extension _SettingsBuilders on SettingsView {
             Navigator.pop(context);
             ref.read(subtitleSettingsProvider.notifier).setColor(v!);
           },
-          child: Column(
+          child: const Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               RadioListTile<String>(
-                title: const Text('白色'),
+                title: Text('白色'),
                 value: 'white',
               ),
               RadioListTile<String>(
-                title: const Text('黄色'),
+                title: Text('黄色'),
                 value: 'yellow',
               ),
             ],
@@ -203,19 +203,19 @@ extension _SettingsBuilders on SettingsView {
             Navigator.pop(context);
             ref.read(subtitleSettingsProvider.notifier).setPosition(v!);
           },
-          child: Column(
+          child: const Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               RadioListTile<String>(
-                title: const Text('底部'),
+                title: Text('底部'),
                 value: 'bottom',
               ),
               RadioListTile<String>(
-                title: const Text('偏下'),
+                title: Text('偏下'),
                 value: 'lower',
               ),
               RadioListTile<String>(
-                title: const Text('屏幕中间'),
+                title: Text('屏幕中间'),
                 value: 'center',
               ),
             ],
@@ -297,26 +297,26 @@ extension _SettingsBuilders on SettingsView {
           groupValue: 'system',
           onChanged: (v) {
             Navigator.pop(context);
-            String msg = v == 'zh'
+            final String msg = v == 'zh'
                 ? '已选择简体中文（重启后生效）'
                 : v == 'en'
                     ? 'English selected (restart to apply)'
                     : '将跟随系统语言（重启后生效）';
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
           },
-          child: Column(
+          child: const Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               RadioListTile<String>(
-                title: const Text('跟随系统'),
+                title: Text('跟随系统'),
                 value: 'system',
               ),
               RadioListTile<String>(
-                title: const Text('简体中文'),
+                title: Text('简体中文'),
                 value: 'zh',
               ),
               RadioListTile<String>(
-                title: const Text('English'),
+                title: Text('English'),
                 value: 'en',
               ),
             ],

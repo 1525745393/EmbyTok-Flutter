@@ -265,7 +265,7 @@ class LocalVideoService {
   /// 获取最近播放的视频 pathHash 列表（按播放时间倒序，最多 10 条）
   Future<List<String>> getRecentPlayHashes() async {
     final sp = await SharedPreferences.getInstance();
-    final prefix = '${_resumePrefix}time_';
+    const prefix = '${_resumePrefix}time_';
     final entries = <MapEntry<String, int>>[];
     for (final key in sp.getKeys()) {
       if (!key.startsWith(prefix)) continue;

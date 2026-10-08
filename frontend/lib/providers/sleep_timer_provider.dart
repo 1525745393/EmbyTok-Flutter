@@ -4,15 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 睡眠定时器状态
 class SleepTimerState {
-  final Duration? remaining;
-  final bool isActive;
-  final bool stopAfterCurrent;
 
   const SleepTimerState({
     this.remaining,
     this.isActive = false,
     this.stopAfterCurrent = false,
   });
+  final Duration? remaining;
+  final bool isActive;
+  final bool stopAfterCurrent;
 
   SleepTimerState copyWith({
     Duration? remaining,
@@ -30,10 +30,10 @@ class SleepTimerState {
 /// 睡眠定时器 Provider
 /// 倒计时结束时调用 onTimeout 回调暂停播放
 class SleepTimerNotifier extends StateNotifier<SleepTimerState> {
-  Timer? _timer;
-  VoidCallback? _onTimeout;
 
   SleepTimerNotifier() : super(const SleepTimerState());
+  Timer? _timer;
+  VoidCallback? _onTimeout;
 
   /// 设置超时回调（由播放器注册）
   void setOnTimeout(VoidCallback callback) {

@@ -178,7 +178,7 @@ class _EpisodeListPanelState extends ConsumerState<EpisodeListPanel> {
                           if (widget.currentItem.parentIndexNumber != null)
                             Text(
                               _seasons.isNotEmpty && _selectedSeasonId != null
-                                  ? '${_seasons.where((s) => s.id == _selectedSeasonId).firstOrNull?.title ?? "第${widget.currentItem.parentIndexNumber}季"}'
+                                  ? _seasons.where((s) => s.id == _selectedSeasonId).firstOrNull?.title ?? '第${widget.currentItem.parentIndexNumber}季'
                                   : '第 ${widget.currentItem.parentIndexNumber} 季 · '
                                       '第 ${widget.currentItem.indexNumber ?? '?'} 集',
                               style: const TextStyle(

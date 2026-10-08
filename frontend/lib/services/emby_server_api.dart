@@ -20,15 +20,15 @@ part 'emby_api_discovery_extra2.dart';
 
 /// 基类：持有 API client、默认配置与内部工具方法（供 mixin 使用）
 abstract class EmbyServerApiBase {
+
+  EmbyServerApiBase() : _apiClient = ApiClient();
+
+  EmbyServerApiBase.withClient(this._apiClient);
   // 发现数据源列表分页拉取的防御上限
   static const int _kDiscoverListMax = 5000;
 
   // 本地字幕文件最大大小（字节），默认 5MB
   static const int maxSubtitleFileSize = 5 * 1024 * 1024;
-
-  EmbyServerApiBase() : _apiClient = ApiClient();
-
-  EmbyServerApiBase.withClient(this._apiClient);
 
   final ApiClient _apiClient;
   String? _defaultServerUrl;
@@ -121,5 +121,5 @@ class EmbyServerApi extends EmbyServerApiBase
     implements MediaServerApi {
   EmbyServerApi() : super();
 
-  EmbyServerApi.withClient(ApiClient client) : super.withClient(client);
+  EmbyServerApi.withClient(super.client) : super.withClient();
 }

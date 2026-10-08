@@ -1,6 +1,46 @@
 // 本地视频项：表示手机本地视频（系统媒体库资产或 App 专属目录文件）
 // 对应 PRD《本地模式》§5.3 数据模型
 class LocalVideoItem {
+
+  const LocalVideoItem({
+    required this.id,
+    required this.name,
+    required this.path,
+    required this.sizeBytes,
+    required this.duration,
+    required this.width,
+    required this.height,
+    required this.mimeType,
+    required this.modifiedAt,
+    required this.isAppDirFile,
+    this.relativePath,
+    this.assetId,
+    this.subtitlePaths = const [],
+    this.sourceId = 'local_default',
+    this.networkUrl,
+    this.networkHeaders = const {},
+    this.mediaType,
+  });
+
+  factory LocalVideoItem.fromJson(Map<String, dynamic> json) => LocalVideoItem(
+        id: json['id']?.toString() ?? '',
+        name: json['name']?.toString() ?? '',
+        path: json['path']?.toString() ?? '',
+        relativePath: json['relativePath']?.toString(),
+        sizeBytes: json['sizeBytes'] as int? ?? 0,
+        duration: Duration(milliseconds: json['durationMs'] as int? ?? 0),
+        width: json['width'] as int? ?? 0,
+        height: json['height'] as int? ?? 0,
+        mimeType: json['mimeType']?.toString() ?? 'video/*',
+        modifiedAt: DateTime.fromMillisecondsSinceEpoch(
+            json['modifiedAt'] as int? ?? 0),
+        isAppDirFile: json['isAppDirFile'] as bool? ?? false,
+        assetId: json['assetId']?.toString(),
+        subtitlePaths: (json['subtitlePaths'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+        sourceId: json['sourceId']?.toString() ?? 'local_default',
+        networkUrl: json['networkUrl']?.toString(),
+        networkHeaders: (json['networkHeaders'] as Map?)?.map((k, v) => MapEntry(k.toString(), v?.toString() ?? '')) ?? const {},
+      );
   /// photo_manager assetId 或路径哈希（唯一标识）
   final String id;
 
@@ -52,26 +92,6 @@ class LocalVideoItem {
   /// 媒体类型（来自文件源配置）：movie/tv/short，null=自动
   final String? mediaType;
 
-  const LocalVideoItem({
-    required this.id,
-    required this.name,
-    required this.path,
-    required this.sizeBytes,
-    required this.duration,
-    required this.width,
-    required this.height,
-    required this.mimeType,
-    required this.modifiedAt,
-    required this.isAppDirFile,
-    this.relativePath,
-    this.assetId,
-    this.subtitlePaths = const [],
-    this.sourceId = 'local_default',
-    this.networkUrl,
-    this.networkHeaders = const {},
-    this.mediaType,
-  });
-
   /// 复制并覆盖字段（用于扫描时回填 sourceId / mediaType）
   LocalVideoItem copyWith({String? sourceId, String? mediaType}) => LocalVideoItem(
         id: id,
@@ -97,7 +117,7 @@ class LocalVideoItem {
   String get pathHash => id;
 
   /// 分辨率角标文本，如 "1920×1080"
-  String get resolutionLabel => '${width}×$height';
+  String get resolutionLabel => '$width×$height';
 
   /// 时长角标文本，如 "12:34"
   String get durationLabel {
@@ -134,24 +154,4 @@ class LocalVideoItem {
         'networkUrl': networkUrl,
         'networkHeaders': networkHeaders,
       };
-
-  factory LocalVideoItem.fromJson(Map<String, dynamic> json) => LocalVideoItem(
-        id: json['id']?.toString() ?? '',
-        name: json['name']?.toString() ?? '',
-        path: json['path']?.toString() ?? '',
-        relativePath: json['relativePath']?.toString(),
-        sizeBytes: json['sizeBytes'] as int? ?? 0,
-        duration: Duration(milliseconds: json['durationMs'] as int? ?? 0),
-        width: json['width'] as int? ?? 0,
-        height: json['height'] as int? ?? 0,
-        mimeType: json['mimeType']?.toString() ?? 'video/*',
-        modifiedAt: DateTime.fromMillisecondsSinceEpoch(
-            json['modifiedAt'] as int? ?? 0),
-        isAppDirFile: json['isAppDirFile'] as bool? ?? false,
-        assetId: json['assetId']?.toString(),
-        subtitlePaths: (json['subtitlePaths'] as List?)?.map((e) => e.toString()).toList() ?? const [],
-        sourceId: json['sourceId']?.toString() ?? 'local_default',
-        networkUrl: json['networkUrl']?.toString(),
-        networkHeaders: (json['networkHeaders'] as Map?)?.map((k, v) => MapEntry(k.toString(), v?.toString() ?? '')) ?? const {},
-      );
 }

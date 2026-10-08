@@ -17,10 +17,6 @@ class NetworkDiagnosticPage extends StatefulWidget {
 }
 
 class _DiagResult {
-  final String label;
-  final String detail;
-  final bool success;
-  final Duration? elapsed;
 
   const _DiagResult({
     required this.label,
@@ -28,6 +24,10 @@ class _DiagResult {
     required this.success,
     this.elapsed,
   });
+  final String label;
+  final String detail;
+  final bool success;
+  final Duration? elapsed;
 }
 
 class _NetworkDiagnosticPageState extends State<NetworkDiagnosticPage> {

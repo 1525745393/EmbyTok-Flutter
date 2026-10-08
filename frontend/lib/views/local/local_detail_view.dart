@@ -12,10 +12,10 @@ import 'person_detail_view.dart';
 import '../../widgets/local/local_images.dart';
 
 /// 本地视频详情页（P1 #7）
-class LocalDetailPage extends ConsumerStatefulWidget {
-  final LocalVideoItem item;
-  final VoidCallback? onPlay; // 播放回调（列表页注入）
+class LocalDetailPage extends ConsumerStatefulWidget { // 播放回调（列表页注入）
   const LocalDetailPage({super.key, required this.item, this.onPlay});
+  final LocalVideoItem item;
+  final VoidCallback? onPlay;
 
   @override
   ConsumerState<LocalDetailPage> createState() => _LocalDetailPageState();
@@ -190,7 +190,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                       children: [
                         // 海报（点击放大）
                         GestureDetector(
-                          onTap: () => _openImageViewer(context, TmdbService.posterUrl(scraped!.posterPath!)),
+                          onTap: () => _openImageViewer(context, TmdbService.posterUrl(scraped.posterPath!)),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: CachedNetworkImage(
@@ -211,14 +211,14 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                         // 缩略图（点击放大）
                         Expanded(
                           child: GestureDetector(
-                            onTap: scraped?.backdropPath != null
-                                ? () => _openImageViewer(context, TmdbService.backdropUrl(scraped!.backdropPath!))
+                            onTap: scraped.backdropPath != null
+                                ? () => _openImageViewer(context, TmdbService.backdropUrl(scraped.backdropPath!))
                                 : null,
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              child: scraped?.backdropPath != null
+                              child: scraped.backdropPath != null
                                   ? CachedNetworkImage(
-                                      imageUrl: TmdbService.backdropUrl(scraped!.backdropPath!),
+                                      imageUrl: TmdbService.backdropUrl(scraped.backdropPath!),
                                       height: 135,
                                       fit: BoxFit.cover,
                                       errorWidget: (_, __, ___) => Container(
@@ -564,8 +564,8 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
 
 /// 可展开/收起的简介（对齐在线详情）
 class _ExpandableOverview extends StatefulWidget {
-  final String text;
   const _ExpandableOverview({required this.text});
+  final String text;
 
   @override
   State<_ExpandableOverview> createState() => _ExpandableOverviewState();

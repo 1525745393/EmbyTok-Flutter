@@ -34,14 +34,14 @@ String _extOf(String path) {
 /// 从根目录 `/storage/emulated/0/` 开始，像文件管理器一样层层进入文件夹，
 /// 看到视频文件即可点击播放。对应 VidHub 的"文件"标签页。
 class LocalDirectoryBrowserView extends StatefulWidget {
-  final String? initialPath;
-  // pickMode=true 时不播放视频，点文件夹会返回路径（用于文件源选择目录）
-  final bool pickMode;
   const LocalDirectoryBrowserView({
     super.key,
     this.initialPath,
     this.pickMode = false,
   });
+  final String? initialPath;
+  // pickMode=true 时不播放视频，点文件夹会返回路径（用于文件源选择目录）
+  final bool pickMode;
 
   @override
   State<LocalDirectoryBrowserView> createState() =>
@@ -266,11 +266,6 @@ class _LocalDirectoryBrowserViewState extends State<LocalDirectoryBrowserView> {
 }
 
 class _DirEntry {
-  final String name;
-  final String path;
-  final bool isDir;
-  final int? sizeBytes;
-  final DateTime modifiedAt;
   const _DirEntry({
     required this.name,
     required this.path,
@@ -278,17 +273,22 @@ class _DirEntry {
     this.sizeBytes,
     required this.modifiedAt,
   });
+  final String name;
+  final String path;
+  final bool isDir;
+  final int? sizeBytes;
+  final DateTime modifiedAt;
 }
 
 class _Crumb extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  final bool isCurrent;
   const _Crumb({
     required this.label,
     required this.onTap,
     required this.isCurrent,
   });
+  final String label;
+  final VoidCallback onTap;
+  final bool isCurrent;
 
   @override
   Widget build(BuildContext context) {

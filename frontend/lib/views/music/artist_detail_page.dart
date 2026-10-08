@@ -971,7 +971,7 @@ Future<void> _loadFavoriteStatus() async {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '${_artistName}的专辑',
+                    '$_artistName的专辑',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,

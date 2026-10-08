@@ -1,6 +1,5 @@
 // 本地视频列表页：网格/列表切换 + 搜索 + 排序 + 多选删除 + 权限引导
 // 对应 PRD《本地模式》§4.3 / §6
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,7 +20,6 @@ import '../../services/local_video_service.dart';
 import '../../services/scrape_service.dart';
 import '../../services/tmdb_service.dart';
 import 'local_play_page.dart';
-import 'local_directory_browser_view.dart';
 import 'tmdb_search_page.dart';
 
 class LocalVideoView extends ConsumerStatefulWidget {
@@ -1383,9 +1381,9 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
 
 /// 权限引导页
 class _PermissionGuide extends StatelessWidget {
+  const _PermissionGuide({required this.permission, required this.onRequest});
   final PermissionState permission;
   final VoidCallback onRequest;
-  const _PermissionGuide({required this.permission, required this.onRequest});
 
   @override
   Widget build(BuildContext context) {
@@ -1427,9 +1425,9 @@ class _PermissionGuide extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.onRefresh, required this.hasPermission});
   final VoidCallback onRefresh;
   final bool hasPermission;
-  const _EmptyState({required this.onRefresh, required this.hasPermission});
 
   @override
   Widget build(BuildContext context) {
@@ -1469,16 +1467,6 @@ class _EmptyState extends StatelessWidget {
 
 /// 网格卡片：缩略图 + 时长角标 + 分辨率角标
 class _GridCard extends StatefulWidget {
-  final LocalVideoItem item;
-  final bool selected;
-  final bool selecting;
-  final bool isFavorite;
-  final ScrapedMedia? scraped; // 刮削结果（P0）
-  final int? episodeCount; // 剧集总集数（聚合显示）
-  final String? missingLabel; // P2#8 缺集提示
-  final VoidCallback onTap;
-  final VoidCallback onLongPress;
-  final VoidCallback onFavoriteToggle;
   const _GridCard({
     required this.item,
     required this.selected,
@@ -1491,6 +1479,16 @@ class _GridCard extends StatefulWidget {
     required this.onLongPress,
     required this.onFavoriteToggle,
   });
+  final LocalVideoItem item;
+  final bool selected;
+  final bool selecting;
+  final bool isFavorite;
+  final ScrapedMedia? scraped; // 刮削结果（P0）
+  final int? episodeCount; // 剧集总集数（聚合显示）
+  final String? missingLabel; // P2#8 缺集提示
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+  final VoidCallback onFavoriteToggle;
 
   @override
   State<_GridCard> createState() => _GridCardState();
@@ -1715,9 +1713,9 @@ class _GridCardState extends State<_GridCard> {
 
 /// 续播进度条组件（P2）：异步读取播放位置，显示进度百分比
 class _ResumeProgress extends StatefulWidget {
+  const _ResumeProgress({required this.pathHash, required this.totalMs});
   final String pathHash;
   final int totalMs;
-  const _ResumeProgress({required this.pathHash, required this.totalMs});
 
   @override
   State<_ResumeProgress> createState() => _ResumeProgressState();
@@ -1765,11 +1763,7 @@ class _ResumeProgressState extends State<_ResumeProgress> {
 }
 
 /// 公共视频缩略图组件（带内存缓存）
-class _VideoThumbnail extends StatefulWidget {
-  final String? assetId;
-  final double width;
-  final double height;
-  final ScrapedMedia? scraped; // 刮削海报优先
+class _VideoThumbnail extends StatefulWidget { // 刮削海报优先
 
   const _VideoThumbnail({
     required this.assetId,
@@ -1777,6 +1771,10 @@ class _VideoThumbnail extends StatefulWidget {
     required this.height,
     this.scraped,
   });
+  final String? assetId;
+  final double width;
+  final double height;
+  final ScrapedMedia? scraped;
 
   /// 静态内存缓存：assetId → thumb bytes
   static final Map<String, Uint8List> _cache = {};
@@ -1850,11 +1848,6 @@ class _VideoThumbnailState extends State<_VideoThumbnail> {
 }
 
 class _ListTileItem extends StatelessWidget {
-  final LocalVideoItem item;
-  final bool selected;
-  final bool selecting;
-  final VoidCallback onTap;
-  final VoidCallback onLongPress;
   const _ListTileItem({
     required this.item,
     required this.selected,
@@ -1863,6 +1856,11 @@ class _ListTileItem extends StatelessWidget {
     required this.onLongPress,
     this.scraped,
   });
+  final LocalVideoItem item;
+  final bool selected;
+  final bool selecting;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   final ScrapedMedia? scraped;
 
@@ -1897,10 +1895,10 @@ class _ListTileItem extends StatelessWidget {
 
 /// 分区标题行
 class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.title, {this.actionLabel, this.onAction});
   final String title;
   final String? actionLabel;
   final VoidCallback? onAction;
-  const _SectionTitle(this.title, {this.actionLabel, this.onAction});
 
   @override
   Widget build(BuildContext context) {
@@ -1926,9 +1924,9 @@ class _SectionTitle extends StatelessWidget {
 
 /// 单个文件源完整列表页（点"查看所有"进入）：对齐 Emby 资源库页
 class _SourceFullListPage extends ConsumerStatefulWidget {
+  const _SourceFullListPage({required this.sourceId, required this.sourceName});
   final String sourceId;
   final String sourceName;
-  const _SourceFullListPage({required this.sourceId, required this.sourceName});
 
   @override
   ConsumerState<_SourceFullListPage> createState() => _SourceFullListPageState();
@@ -2468,10 +2466,10 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
 
 /// 竖版海报卡片
 class _GridPosterCard extends StatelessWidget {
+  const _GridPosterCard({required this.item, required this.state, this.onPlay});
   final LocalVideoItem item;
   final LocalVideoState state;
   final VoidCallback? onPlay;
-  const _GridPosterCard({required this.item, required this.state, this.onPlay});
 
   @override
   Widget build(BuildContext context) {
@@ -2515,10 +2513,10 @@ class _GridPosterCard extends StatelessWidget {
 
 /// 横版 backdrop 卡片
 class _BackdropCard extends StatelessWidget {
+  const _BackdropCard({required this.item, required this.state, this.onPlay});
   final LocalVideoItem item;
   final LocalVideoState state;
   final VoidCallback? onPlay;
-  const _BackdropCard({required this.item, required this.state, this.onPlay});
 
   @override
   Widget build(BuildContext context) {
@@ -2560,10 +2558,10 @@ class _BackdropCard extends StatelessWidget {
 
 /// 合集/文件夹分组下的视频列表页
 class _GroupListPage extends StatelessWidget {
+  const _GroupListPage({required this.title, required this.items, required this.state});
   final String title;
   final List<LocalVideoItem> items;
   final LocalVideoState state;
-  const _GroupListPage({required this.title, required this.items, required this.state});
 
   @override
   Widget build(BuildContext context) {
@@ -2674,12 +2672,6 @@ class LocalFavoritesPage extends ConsumerWidget {
 }
 
 class _FavSection extends StatelessWidget {
-  final String title;
-  final List<LocalVideoItem> items;
-  final LocalVideoState state;
-  final bool isTv;
-  final bool useBackdrop;
-  final Map<String, List<LocalVideoItem>>? tvGroups;
   const _FavSection({
     required this.title,
     required this.items,
@@ -2688,6 +2680,12 @@ class _FavSection extends StatelessWidget {
     this.useBackdrop = false,
     this.tvGroups,
   });
+  final String title;
+  final List<LocalVideoItem> items;
+  final LocalVideoState state;
+  final bool isTv;
+  final bool useBackdrop;
+  final Map<String, List<LocalVideoItem>>? tvGroups;
 
   @override
   Widget build(BuildContext context) {
@@ -2798,8 +2796,8 @@ class _FavSection extends StatelessWidget {
 
 /// 收藏演员分区：圆形头像横滑
 class _FavActorsSection extends StatelessWidget {
-  final List<Map<String, String>> actors;
   const _FavActorsSection({required this.actors});
+  final List<Map<String, String>> actors;
 
   @override
   Widget build(BuildContext context) {
@@ -2873,9 +2871,9 @@ class _FavActorsSection extends StatelessWidget {
 
 /// 剧集文件夹内页：显示某部剧的所有集
 class _FolderEpisodePage extends ConsumerStatefulWidget {
+  const _FolderEpisodePage({required this.folderName, required this.items});
   final String folderName;
   final List<LocalVideoItem> items;
-  const _FolderEpisodePage({required this.folderName, required this.items});
 
   @override
   ConsumerState<_FolderEpisodePage> createState() => _FolderEpisodePageState();
@@ -3112,7 +3110,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   GestureDetector(
-                    onTap: () => _openImageViewer(TmdbService.posterUrl(meta!.posterPath!)),
+                    onTap: () => _openImageViewer(TmdbService.posterUrl(meta.posterPath!)),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: CachedNetworkImage(
@@ -3124,11 +3122,11 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: GestureDetector(
-                      onTap: meta!.backdropPath != null ? () => _openImageViewer(TmdbService.backdropUrl(meta!.backdropPath!)) : null,
+                      onTap: meta.backdropPath != null ? () => _openImageViewer(TmdbService.backdropUrl(meta.backdropPath!)) : null,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: meta!.backdropPath != null
-                            ? CachedNetworkImage(imageUrl: TmdbService.backdropUrl(meta!.backdropPath!), height: 135, fit: BoxFit.cover)
+                        child: meta.backdropPath != null
+                            ? CachedNetworkImage(imageUrl: TmdbService.backdropUrl(meta.backdropPath!), height: 135, fit: BoxFit.cover)
                             : Container(height: 135, color: Colors.grey[800]),
                       ),
                     ),
@@ -3138,13 +3136,13 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
             ),
           const SizedBox(height: 12),
           // 类型标签 + 评分
-          if (meta?.genres != null && meta!.genres!.isNotEmpty)
+          if (meta?.genres != null && meta!.genres.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Wrap(
                 spacing: 6, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  ...meta.genres!.map((g) => Container(
+                  ...meta.genres.map((g) => Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(color: Colors.grey[800], borderRadius: BorderRadius.circular(4)),
                         child: Text(g, style: const TextStyle(fontSize: 11)),
@@ -3351,11 +3349,11 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
 
 /// 全部剧集页：完整列表展示所有集
 class _AllEpisodesPage extends StatelessWidget {
+  const _AllEpisodesPage({required this.items, required this.meta, required this.epInfo, required this.episodeTitle});
   final List<LocalVideoItem> items;
   final ScrapedMedia? meta;
   final Map<int, Map<String, dynamic>> epInfo;
   final String Function(String) episodeTitle;
-  const _AllEpisodesPage({required this.items, required this.meta, required this.epInfo, required this.episodeTitle});
 
   @override
   Widget build(BuildContext context) {

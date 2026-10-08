@@ -19,8 +19,6 @@ import '../utils/logger.dart';
 import '../utils/formatters.dart';
 
 class ApiClient {
-  /// 演示模式开关：激活时拦截器返回 mock 数据，不发送真实请求
-  static bool demoMode = false;
 
   ApiClient({String? baseUrl, bool? validateCertificate})
       : _dio = Dio(BaseOptions(
@@ -48,6 +46,8 @@ class ApiClient {
     }
     _setupInterceptors();
   }
+  /// 演示模式开关：激活时拦截器返回 mock 数据，不发送真实请求
+  static bool demoMode = false;
   final Dio _dio;
   String? _token;
 

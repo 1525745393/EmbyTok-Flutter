@@ -8,7 +8,6 @@ import 'package:video_player/video_player.dart';
 
 import '../../models/models.dart';
 import '../../providers/providers.dart';
-import '../../providers/sleep_timer_provider.dart';
 import '../../utils/logger.dart';
 import 'subtitle_selector.dart';
 

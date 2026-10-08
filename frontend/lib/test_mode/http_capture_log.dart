@@ -1,17 +1,10 @@
 // 网络请求抓包：环形缓冲记录所有 HTTP 请求/响应，供测试模式查看
 
-import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 /// 单条请求记录
 class HttpRequestRecord {
-  final String method;
-  final String path;
-  final int? statusCode;
-  final int durationMs;
-  final String? error;
-  final DateTime time;
 
   HttpRequestRecord({
     required this.method,
@@ -20,12 +13,18 @@ class HttpRequestRecord {
     required this.durationMs,
     this.error,
   }) : time = DateTime.now();
+  final String method;
+  final String path;
+  final int? statusCode;
+  final int durationMs;
+  final String? error;
+  final DateTime time;
 }
 
 /// 全局抓包环形缓冲（最多 200 条）
 class HttpRequestLog extends ChangeNotifier {
-  static final HttpRequestLog instance = HttpRequestLog._();
   HttpRequestLog._();
+  static final HttpRequestLog instance = HttpRequestLog._();
 
   final List<HttpRequestRecord> _records = [];
   bool _enabled = false;

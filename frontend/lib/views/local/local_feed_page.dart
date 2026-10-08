@@ -10,9 +10,9 @@ import '../../widgets/video/video_page_item.dart';
 /// 可选 sourceId 只播放某个文件源
 /// embedded=true 时由主 feed 嵌入，显示悬浮返回按钮（点击切回 Emby 推荐流）
 class LocalFeedPage extends ConsumerStatefulWidget {
+  const LocalFeedPage({super.key, this.sourceId, this.embedded = false});
   final String? sourceId;
   final bool embedded;
-  const LocalFeedPage({super.key, this.sourceId, this.embedded = false});
 
   @override
   ConsumerState<LocalFeedPage> createState() => _LocalFeedPageState();

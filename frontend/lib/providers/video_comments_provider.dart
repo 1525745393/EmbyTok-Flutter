@@ -16,6 +16,13 @@ class VideoComment {
     required this.createdAt,
   });
 
+  factory VideoComment.fromJson(Map<String, dynamic> json) => VideoComment(
+        id: json['id'] as String,
+        itemId: json['itemId'] as String,
+        text: json['text'] as String,
+        createdAt: DateTime.parse(json['createdAt'] as String),
+      );
+
   final String id;
   final String itemId;
   final String text;
@@ -27,13 +34,6 @@ class VideoComment {
         'text': text,
         'createdAt': createdAt.toIso8601String(),
       };
-
-  factory VideoComment.fromJson(Map<String, dynamic> json) => VideoComment(
-        id: json['id'] as String,
-        itemId: json['itemId'] as String,
-        text: json['text'] as String,
-        createdAt: DateTime.parse(json['createdAt'] as String),
-      );
 }
 
 /// 视频本地评论状态：itemId -> 评论列表（新评论在前）

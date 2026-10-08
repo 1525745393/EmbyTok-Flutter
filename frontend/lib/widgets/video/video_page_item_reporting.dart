@@ -46,8 +46,9 @@ extension _VideoPlaybackReporting on _VideoPageItemState {
     final now = DateTime.now();
     if (!isPauseEvent) {
       final delta = now.difference(_lastProgressReport);
-      if (delta.inSeconds < _VideoPageItemState._progressReportMinSeconds)
+      if (delta.inSeconds < _VideoPageItemState._progressReportMinSeconds) {
         return;
+      }
     }
     _lastProgressReport = now;
     // 统一获取位置：优先 ExoPlayer controller，MPV 模式下从 VideoPlayerWidget 统一接口获取

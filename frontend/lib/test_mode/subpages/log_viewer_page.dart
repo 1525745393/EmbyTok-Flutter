@@ -1,7 +1,6 @@
 // 日志查看器：复用 AppLogger 读取本地日志，按级别筛选、复制导出
 
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

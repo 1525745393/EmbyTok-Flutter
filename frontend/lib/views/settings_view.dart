@@ -13,7 +13,6 @@ import 'package:go_router/go_router.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import '../providers/local_mode_provider.dart';
-import '../providers/app_preferences_providers.dart';
 import '../providers/file_sources_provider.dart';
 import '../services/local_video_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';

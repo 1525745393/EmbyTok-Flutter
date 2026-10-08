@@ -394,8 +394,9 @@ extension _RecommendQueues on RecommendNotifier {
                   includeItemTypes: ctx.includeTypes,
                 );
                 // P1-3：items 未达 limit 视为该库已耗尽
-                if (resp.items.length >= RecommendNotifier._pageSize)
+                if (resp.items.length >= RecommendNotifier._pageSize) {
                   hasMore = true;
+                }
                 for (final item in resp.items) {
                   if (ctx.isTooShort(item)) continue;
                   if (_shouldSkipItem(

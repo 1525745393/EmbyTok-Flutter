@@ -5,11 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 /// 弹幕条目
-class DanmakuItem {
-  final String text;
-  final Color color;
-  final double startMs; // 起始时间（毫秒）
-  final double y; // 垂直位置比例 0~1
+class DanmakuItem { // 垂直位置比例 0~1
 
   const DanmakuItem({
     required this.text,
@@ -17,6 +13,10 @@ class DanmakuItem {
     required this.y,
     this.color = Colors.white,
   });
+  final String text;
+  final Color color;
+  final double startMs; // 起始时间（毫秒）
+  final double y;
 }
 
 /// 弹幕叠加层：在视频上层滚动显示弹幕
@@ -24,6 +24,13 @@ class DanmakuItem {
 /// 简单实现：根据当前播放时间显示匹配的弹幕，从右向左滚动。
 /// 后续接入 dandanplay 等弹幕源时，只需替换弹幕数据源。
 class DanmakuOverlay extends StatefulWidget {
+
+  const DanmakuOverlay({
+    super.key,
+    required this.positionMs,
+    required this.danmakus,
+    this.enabled = true,
+  });
   /// 当前播放位置（毫秒）
   final ValueNotifier<int> positionMs;
 
@@ -32,13 +39,6 @@ class DanmakuOverlay extends StatefulWidget {
 
   /// 是否启用
   final bool enabled;
-
-  const DanmakuOverlay({
-    super.key,
-    required this.positionMs,
-    required this.danmakus,
-    this.enabled = true,
-  });
 
   @override
   State<DanmakuOverlay> createState() => _DanmakuOverlayState();
@@ -127,11 +127,7 @@ class _DanmakuOverlayState extends State<DanmakuOverlay>
   }
 }
 
-class _ActiveDanmaku {
-  final String text;
-  final Color color;
-  final double y;
-  double x; // 水平位置比例 0~1
+class _ActiveDanmaku { // 水平位置比例 0~1
 
   _ActiveDanmaku({
     required this.text,
@@ -139,4 +135,8 @@ class _ActiveDanmaku {
     required this.y,
     required this.x,
   });
+  final String text;
+  final Color color;
+  final double y;
+  double x;
 }

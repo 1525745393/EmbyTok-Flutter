@@ -31,7 +31,7 @@ class ScrapeMediaStore {
 
   static String _baseName(String p) {
     final s = p.lastIndexOf('/');
-    var b = s >= 0 ? p.substring(s + 1) : p;
+    final b = s >= 0 ? p.substring(s + 1) : p;
     final i = b.lastIndexOf('.');
     return i > 0 ? b.substring(0, i) : b;
   }
@@ -58,7 +58,7 @@ class ScrapeMediaStore {
   /// 视频旁 base path（去扩展名）：localDir 共享存储和 App 目录都写视频旁
   static String? _siblingBase(LocalVideoItem item) {
     final p = item.path;
-    if (p == null || p.isEmpty) return null;
+    if (p.isEmpty) return null;
     // asset 路径走中央目录，真实文件路径都写视频旁
     if (item.assetId != null && p.isEmpty) return null;
     return p.substring(0, p.length - _extOf(p).length);
@@ -237,7 +237,7 @@ class ScrapeMediaStore {
 
   static Future<ScrapedMedia?> loadSibling(String videoPath) async {
     try {
-      final nfo = File(videoPath.substring(0, videoPath.length - _extOf(videoPath).length) + '.nfo');
+      final nfo = File('${videoPath.substring(0, videoPath.length - _extOf(videoPath).length)}.nfo');
       if (!await nfo.exists()) return null;
       final raw = await nfo.readAsString();
       return ScrapedMedia.fromJson(jsonDecode(raw) as Map<String, dynamic>);

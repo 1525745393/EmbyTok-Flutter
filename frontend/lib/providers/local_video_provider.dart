@@ -30,28 +30,7 @@ enum LocalVideoSort {
 enum LocalVideoViewMode { grid, list }
 
 /// 本地视频列表状态
-class LocalVideoState {
-  final List<LocalVideoItem> items;
-  final bool loading;
-  final PermissionState permission;
-  final LocalVideoSort sort;
-  final LocalVideoViewMode viewMode;
-  final String keyword;
-  final bool selecting;        // 多选模式
-  final Set<String> selected;   // 已选 id
-  final String? error;
-  final List<String> recentHashes; // 最近播放 pathHash（按时间倒序）
-  final bool groupByFolder;        // 是否按文件夹分组
-  final Set<String> favoriteHashes; // 已收藏 pathHash（P3）
-  final Set<String> favoriteActorIds; // 已收藏演员 TMDB id
-  final Map<String, ScrapedMedia> scrapedMap; // 刮削结果 pathHash→media（刮削 P0）
-  final bool scraping; // 是否正在批量刮削
-  final int scrapeDone; // 刮削进度（P1 #4）
-  final int scrapeTotal;
-  final int scrapeOk; // P2 #11：成功数
-  final int scrapeFail; // P2 #11：失败数
-  final Map<String, String> failedMap; // P2 #6：pathHash→失败原因
-  final String? typeFilter; // 类型筛选（P1 #6）：null=全部/movie/tv/none
+class LocalVideoState { // 类型筛选（P1 #6）：null=全部/movie/tv/none
 
   const LocalVideoState({
     this.items = const [],
@@ -76,6 +55,27 @@ class LocalVideoState {
     this.failedMap = const {},
     this.typeFilter,
   });
+  final List<LocalVideoItem> items;
+  final bool loading;
+  final PermissionState permission;
+  final LocalVideoSort sort;
+  final LocalVideoViewMode viewMode;
+  final String keyword;
+  final bool selecting;        // 多选模式
+  final Set<String> selected;   // 已选 id
+  final String? error;
+  final List<String> recentHashes; // 最近播放 pathHash（按时间倒序）
+  final bool groupByFolder;        // 是否按文件夹分组
+  final Set<String> favoriteHashes; // 已收藏 pathHash（P3）
+  final Set<String> favoriteActorIds; // 已收藏演员 TMDB id
+  final Map<String, ScrapedMedia> scrapedMap; // 刮削结果 pathHash→media（刮削 P0）
+  final bool scraping; // 是否正在批量刮削
+  final int scrapeDone; // 刮削进度（P1 #4）
+  final int scrapeTotal;
+  final int scrapeOk; // P2 #11：成功数
+  final int scrapeFail; // P2 #11：失败数
+  final Map<String, String> failedMap; // P2 #6：pathHash→失败原因
+  final String? typeFilter;
 
   LocalVideoState copyWith({
     List<LocalVideoItem>? items,
@@ -200,11 +200,11 @@ class LocalVideoState {
 }
 
 class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
-  final Ref _ref;
-  bool _disposed = false;
   LocalVideoNotifier(this._ref) : super(const LocalVideoState()) {
     _init();
   }
+  final Ref _ref;
+  bool _disposed = false;
 
   @override
   void dispose() {
@@ -249,8 +249,8 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
       cached.addAll(central); // 文件存储优先（覆盖 prefs）
       // App 目录视频：读视频旁 .nfo（清除 prefs 缓存后仍可恢复）
       for (final it in items) {
-        if (it.isAppDirFile && it.path != null && !cached.containsKey(it.pathHash)) {
-          final nfo = await ScrapeMediaStore.loadSibling(it.path!);
+        if (it.isAppDirFile && !cached.containsKey(it.pathHash)) {
+          final nfo = await ScrapeMediaStore.loadSibling(it.path);
           if (nfo != null) cached[it.pathHash] = nfo;
         }
       }
@@ -515,10 +515,10 @@ final localFeedPlayingIndexProvider = StateProvider<int>((_) => -1);
 /// - 非空：只播该文件源
 /// 持久化到 SharedPreferences，重启 App 后恢复
 class LocalFeedSourceIdNotifier extends StateNotifier<String?> {
-  static const _key = 'local_feed_source_id';
   LocalFeedSourceIdNotifier() : super(null) {
     _load();
   }
+  static const _key = 'local_feed_source_id';
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();

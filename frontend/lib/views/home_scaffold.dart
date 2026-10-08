@@ -32,7 +32,6 @@ import '../utils/safe_unawaited.dart';
 import 'history_view.dart';
 import 'settings_view.dart';
 import 'actors_view.dart';
-import 'libraries_browse_view.dart';
 import 'libraries_tab_view.dart';
 
 // 主骨架：包含底部导航的入口页

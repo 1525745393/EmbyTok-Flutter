@@ -1,6 +1,5 @@
 // 多语言国际化基础
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 支持的语言
@@ -38,9 +37,6 @@ class AppLocale {
 
 /// 简单翻译字典（key -> {languageCode -> text}）
 class AppTranslations {
-  final Locale locale;
-  static AppTranslations? _instance;
-  static late Map<String, Map<String, String>> _localizedValues;
 
   AppTranslations(this.locale) {
     _instance = this;
@@ -71,6 +67,9 @@ class AppTranslations {
       'language': {'zh_CN': '语言', 'en_US': 'Language'},
     };
   }
+  final Locale locale;
+  static AppTranslations? _instance;
+  static late Map<String, Map<String, String>> _localizedValues;
 
   static AppTranslations of(BuildContext context) {
     return Localizations.of<AppTranslations>(context, AppTranslations) ??

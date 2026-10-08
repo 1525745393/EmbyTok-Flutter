@@ -4,7 +4,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 
 class PerformanceDebugPage extends StatefulWidget {
   const PerformanceDebugPage({super.key});
@@ -83,6 +82,6 @@ class _PerformanceDebugPageState extends State<PerformanceDebugPage> {
 }
 
 class FlutterMemory {
-  final double rssMB;
   FlutterMemory({required this.rssMB});
+  final double rssMB;
 }

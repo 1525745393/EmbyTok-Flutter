@@ -26,17 +26,6 @@ enum DownloadStatus { waiting, downloading, paused, failed, completed }
 
 /// 单个下载任务
 class DownloadTask {
-  final String songId;
-  final String title;
-  final String artist;
-  final String? coverUrl;
-  DownloadStatus status;
-  double progress; // 0-1
-  int downloadedBytes;
-  int totalBytes;
-  String? savedPath;
-  final DateTime addedAt;
-  String? errorMessage;
 
   DownloadTask({
     required this.songId,
@@ -51,20 +40,6 @@ class DownloadTask {
     required this.addedAt,
     this.errorMessage,
   });
-
-  Map<String, dynamic> toJson() => {
-        'songId': songId,
-        'title': title,
-        'artist': artist,
-        'coverUrl': coverUrl,
-        'status': status.name,
-        'progress': progress,
-        'downloadedBytes': downloadedBytes,
-        'totalBytes': totalBytes,
-        'savedPath': savedPath,
-        'addedAtMs': addedAt.millisecondsSinceEpoch,
-        'errorMessage': errorMessage,
-      };
 
   factory DownloadTask.fromJson(Map<String, dynamic> j) => DownloadTask(
         songId: j['songId'] as String,
@@ -83,6 +58,31 @@ class DownloadTask {
             DateTime.fromMillisecondsSinceEpoch(j['addedAtMs'] as int? ?? 0),
         errorMessage: j['errorMessage'] as String?,
       );
+  final String songId;
+  final String title;
+  final String artist;
+  final String? coverUrl;
+  DownloadStatus status;
+  double progress; // 0-1
+  int downloadedBytes;
+  int totalBytes;
+  String? savedPath;
+  final DateTime addedAt;
+  String? errorMessage;
+
+  Map<String, dynamic> toJson() => {
+        'songId': songId,
+        'title': title,
+        'artist': artist,
+        'coverUrl': coverUrl,
+        'status': status.name,
+        'progress': progress,
+        'downloadedBytes': downloadedBytes,
+        'totalBytes': totalBytes,
+        'savedPath': savedPath,
+        'addedAtMs': addedAt.millisecondsSinceEpoch,
+        'errorMessage': errorMessage,
+      };
 
   DownloadTask copyWith({
     DownloadStatus? status,
@@ -109,12 +109,6 @@ class DownloadTask {
 
 /// 已下载歌曲条目
 class DownloadedSong {
-  final String songId;
-  final String path;
-  final String title;
-  final String artist;
-  final int fileSize;
-  final DateTime downloadedAt;
 
   DownloadedSong({
     required this.songId,
@@ -125,14 +119,6 @@ class DownloadedSong {
     required this.downloadedAt,
   });
 
-  Map<String, dynamic> toJson() => {
-        'path': path,
-        'title': title,
-        'artist': artist,
-        'fileSize': fileSize,
-        'ts': downloadedAt.millisecondsSinceEpoch,
-      };
-
   factory DownloadedSong.fromJson(String songId, Map<String, dynamic> j) =>
       DownloadedSong(
         songId: songId,
@@ -142,6 +128,20 @@ class DownloadedSong {
         fileSize: j['fileSize'] as int? ?? 0,
         downloadedAt: DateTime.fromMillisecondsSinceEpoch(j['ts'] as int? ?? 0),
       );
+  final String songId;
+  final String path;
+  final String title;
+  final String artist;
+  final int fileSize;
+  final DateTime downloadedAt;
+
+  Map<String, dynamic> toJson() => {
+        'path': path,
+        'title': title,
+        'artist': artist,
+        'fileSize': fileSize,
+        'ts': downloadedAt.millisecondsSinceEpoch,
+      };
 }
 
 class SynologyDownloadService {
@@ -250,7 +250,7 @@ class SynologyDownloadService {
       return;
     }
     final dir = await _downloadsDir();
-    final savedPath = "${dir.path}/${song.id}.audio";
+    final savedPath = '${dir.path}/${song.id}.audio';
     tasks.add(DownloadTask(
       songId: song.id,
       title: song.title,

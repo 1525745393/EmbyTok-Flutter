@@ -4,6 +4,7 @@
 /// - 支持新增、删除；Emby 服务器不提供评论 API，仅本机可见，UI 明示
 /// - 若 itemId 为本地刮削视频（local_ 前缀），同时拉取 TMDB 评论展示
 /// - 适配刘海屏 / 底部安全区 / 键盘弹出
+library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -163,7 +164,7 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
           children: [
             // 标题行
             Container(
-              padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Row(
                 children: [
                   Text(

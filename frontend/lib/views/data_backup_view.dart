@@ -69,7 +69,7 @@ class DataBackupView extends ConsumerWidget {
   Future<void> _exportPlaylist(
       BuildContext context, WidgetRef ref, DataBackupService svc) async {
     final music = ref.read(synologyMusicProvider);
-    AudioPlaylist? picked = await showModalBottomSheet<AudioPlaylist>(
+    final AudioPlaylist? picked = await showModalBottomSheet<AudioPlaylist>(
       context: context,
       builder: (_) => ListView(
         children: music.playlists

@@ -24,11 +24,6 @@ import 'subpages/test_mode_about_page.dart';
 
 /// 测试模块入口定义
 class _TestModuleEntry {
-  final IconData icon;
-  final Color color;
-  final String title;
-  final String subtitle;
-  final WidgetBuilder builder;
 
   const _TestModuleEntry({
     required this.icon,
@@ -37,6 +32,11 @@ class _TestModuleEntry {
     required this.subtitle,
     required this.builder,
   });
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+  final WidgetBuilder builder;
 }
 
 /// 测试模式主导航页

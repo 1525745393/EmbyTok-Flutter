@@ -26,7 +26,6 @@ import '../coordinators/playback_coordinator.dart';
 import '../providers/providers.dart';
 import '../providers/local_video_provider.dart';
 import '../utils/local_video_adapter.dart';
-import 'local/local_feed_page.dart';
 import '../utils/app_preferences.dart' show ViewMode, FeedType;
 import '../utils/constants.dart';
 import '../utils/fullscreen_navigator.dart';

@@ -20,7 +20,6 @@ import '../../providers/providers.dart';
 import '../../utils/constants.dart';
 import '../person_avatar_image.dart';
 import 'subtitle_selector.dart';
-import 'audio_track_selector.dart';
 
 // 重新导出音轨选择器，方便通过 sheet_utils.showAudioTrackSelector 调用
 export 'audio_track_selector.dart' show showAudioTrackSelector;

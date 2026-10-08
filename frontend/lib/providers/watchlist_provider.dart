@@ -27,8 +27,8 @@ final watchlistProvider =
 /// - 用户点击后，本地记录新状态，避免服务端返回旧值导致按钮闪烁
 /// - 成功后失效 watchlistProvider 让列表页刷新
 class WatchlistNotifier extends StateNotifier<Map<String, bool>> {
-  final Ref _ref;
   WatchlistNotifier(this._ref) : super(<String, bool>{});
+  final Ref _ref;
 
   /// 本地是否覆盖了该 item 的 watchlist 状态
   bool? localOverride(String itemId) => state[itemId];

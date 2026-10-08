@@ -273,19 +273,19 @@ class _FullPlayerSheetState extends ConsumerState<_FullPlayerSheet> {
                     groupValue: behavior,
                     onChanged: (v) =>
                         setLocal(() => behavior = v ?? SleepTimerBehavior.immediateStop),
-                    child: Column(
+                    child: const Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         RadioListTile<SleepTimerBehavior>(
                           contentPadding: EdgeInsets.zero,
                           dense: true,
-                          title: const Text('立即停止播放'),
+                          title: Text('立即停止播放'),
                           value: SleepTimerBehavior.immediateStop,
                         ),
                         RadioListTile<SleepTimerBehavior>(
                           contentPadding: EdgeInsets.zero,
                           dense: true,
-                          title: const Text('当前歌曲结束后停止'),
+                          title: Text('当前歌曲结束后停止'),
                           value: SleepTimerBehavior.currentSongEnd,
                         ),
                       ],

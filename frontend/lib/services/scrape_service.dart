@@ -7,11 +7,6 @@ import 'tmdb_service.dart';
 
 /// 文件名解析结果
 class ParsedName {
-  final String type; // movie | tv
-  final String title;
-  final int? year;
-  final int? season;
-  final int? episode;
 
   const ParsedName({
     required this.type,
@@ -20,31 +15,15 @@ class ParsedName {
     this.season,
     this.episode,
   });
-}
-
-/// 刮削结果
-class ScrapedMedia {
-  final int tmdbId;
   final String type; // movie | tv
   final String title;
   final int? year;
-  final String? posterPath;
-  final String? backdropPath;
-  final String? overview;
-  final double? rating;
-  final List<String> genres;
-  final List<Map<String, String>> cast; // {name, role, character, profilePath, id}
-  final List<String> directors; // 导演
-  final List<String> studios; // 出品公司
-  final String? imdbId; // IMDb ID
-  final String? stillPath; // 单集剧照
-  final String? episodeTitle; // 单集标题
   final int? season;
   final int? episode;
-  final int? tvId; // 剧集聚合用
-  final String? certification; // 家长分级（如 PG-13 / 15+）
-  final int scrapedAt;
-  final bool lowConfidence; // P2#2：年份未精确匹配时标记
+}
+
+/// 刮削结果
+class ScrapedMedia { // P2#2：年份未精确匹配时标记
 
   const ScrapedMedia({
     required this.tmdbId,
@@ -69,30 +48,6 @@ class ScrapedMedia {
     required this.scrapedAt,
     this.lowConfidence = false,
   });
-
-  Map<String, dynamic> toJson() => {
-        'tmdbId': tmdbId,
-        'type': type,
-        'title': title,
-        'year': year,
-        'posterPath': posterPath,
-        'backdropPath': backdropPath,
-        'overview': overview,
-        'rating': rating,
-        'genres': genres,
-        'cast': cast,
-        'directors': directors,
-        'studios': studios,
-        'imdbId': imdbId,
-        'stillPath': stillPath,
-        'episodeTitle': episodeTitle,
-        'season': season,
-        'episode': episode,
-        'tvId': tvId,
-        'certification': certification,
-        'scrapedAt': scrapedAt,
-        'lowConfidence': lowConfidence,
-      };
 
   factory ScrapedMedia.fromJson(Map<String, dynamic> j) => ScrapedMedia(
         tmdbId: j['tmdbId'] as int,
@@ -120,6 +75,51 @@ class ScrapedMedia {
         scrapedAt: j['scrapedAt'] as int? ?? 0,
         lowConfidence: j['lowConfidence'] as bool? ?? false,
       );
+  final int tmdbId;
+  final String type; // movie | tv
+  final String title;
+  final int? year;
+  final String? posterPath;
+  final String? backdropPath;
+  final String? overview;
+  final double? rating;
+  final List<String> genres;
+  final List<Map<String, String>> cast; // {name, role, character, profilePath, id}
+  final List<String> directors; // 导演
+  final List<String> studios; // 出品公司
+  final String? imdbId; // IMDb ID
+  final String? stillPath; // 单集剧照
+  final String? episodeTitle; // 单集标题
+  final int? season;
+  final int? episode;
+  final int? tvId; // 剧集聚合用
+  final String? certification; // 家长分级（如 PG-13 / 15+）
+  final int scrapedAt;
+  final bool lowConfidence;
+
+  Map<String, dynamic> toJson() => {
+        'tmdbId': tmdbId,
+        'type': type,
+        'title': title,
+        'year': year,
+        'posterPath': posterPath,
+        'backdropPath': backdropPath,
+        'overview': overview,
+        'rating': rating,
+        'genres': genres,
+        'cast': cast,
+        'directors': directors,
+        'studios': studios,
+        'imdbId': imdbId,
+        'stillPath': stillPath,
+        'episodeTitle': episodeTitle,
+        'season': season,
+        'episode': episode,
+        'tvId': tvId,
+        'certification': certification,
+        'scrapedAt': scrapedAt,
+        'lowConfidence': lowConfidence,
+      };
 }
 
 class ScrapeService {

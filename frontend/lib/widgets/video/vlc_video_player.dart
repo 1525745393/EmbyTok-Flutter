@@ -94,7 +94,7 @@ class VlcVideoPlayerState extends State<VlcVideoPlayer> {
         }
       }
       if (mounted) setState(() {});
-    } catch (e, st) {
+    } catch (e) {
       AppLogger.error('VLC 初始化失败', data: {'error': e.toString()});
       widget.onError?.call(e);
     }

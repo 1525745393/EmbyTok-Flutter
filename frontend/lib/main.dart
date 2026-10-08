@@ -79,24 +79,24 @@ Future<void> main() async {
   ErrorWidget.builder = (details) {
     AppLogger.error('Widget 构建失败',
         error: details.exception, stackTrace: details.stack);
-    return Material(
-      color: const Color(0xFF1A1A1A),
+    return const Material(
+      color: Color(0xFF1A1A1A),
       child: Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, color: Colors.white54, size: 48),
-              const SizedBox(height: 16),
+              Icon(Icons.error_outline, color: Colors.white54, size: 48),
+              SizedBox(height: 16),
               Text(
                 '页面渲染出现问题',
-                style: const TextStyle(color: Colors.white70, fontSize: 16),
+                style: TextStyle(color: Colors.white70, fontSize: 16),
               ),
-              const SizedBox(height: 8),
-              Text(
+              SizedBox(height: 8),
+              const Text(
                 '请返回上一页重试',
-                style: TextStyle(color: Colors.white38, fontSize: 13),
+                style: const TextStyle(color: Colors.white38, fontSize: 13),
               ),
             ],
           ),

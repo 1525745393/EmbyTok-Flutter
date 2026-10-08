@@ -8,9 +8,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/tmdb_service.dart';
 
 class TmdbSearchPage extends StatefulWidget {
-  final String initialQuery;
-  final String pathHash;
-  final String filename;
 
   const TmdbSearchPage({
     super.key,
@@ -18,6 +15,9 @@ class TmdbSearchPage extends StatefulWidget {
     required this.pathHash,
     required this.filename,
   });
+  final String initialQuery;
+  final String pathHash;
+  final String filename;
 
   @override
   State<TmdbSearchPage> createState() => _TmdbSearchPageState();

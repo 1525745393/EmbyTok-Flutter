@@ -9,10 +9,10 @@ import '../../services/smb_scanner.dart';
 ///
 /// WebDAV：URL / 用户名 / 密码。SMB：主机/端口/共享/用户名/密码。
 class FileSourceEditView extends ConsumerStatefulWidget {
-  final FileSourceType? type;
-  final FileSource? existing;
 
   const FileSourceEditView({super.key, this.type, this.existing});
+  final FileSourceType? type;
+  final FileSource? existing;
 
   @override
   ConsumerState<FileSourceEditView> createState() => _FileSourceEditViewState();

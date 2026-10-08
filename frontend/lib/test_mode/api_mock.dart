@@ -10,27 +10,25 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../services/api_client.dart';
 
 /// Mock 规则：path 前缀匹配 → 返回的状态码和 JSON body
 class MockRule {
-  final String pathPrefix;
-  final int statusCode;
-  final String body;
 
   MockRule({
     required this.pathPrefix,
     required this.statusCode,
     required this.body,
   });
+  final String pathPrefix;
+  final int statusCode;
+  final String body;
 }
 
 /// 全局 Mock 规则列表
 class MockRules extends ChangeNotifier {
-  static final MockRules instance = MockRules._();
   MockRules._();
+  static final MockRules instance = MockRules._();
 
   final List<MockRule> _rules = [];
   bool _enabled = false;

@@ -4,6 +4,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// 家长控制设置
 class ParentalControlState {
+
+  const ParentalControlState({
+    this.kidsModeEnabled = false,
+    this.maxRating,
+    this.hideRestrictedContent = false,
+  });
   /// 是否启用儿童模式
   final bool kidsModeEnabled;
 
@@ -12,12 +18,6 @@ class ParentalControlState {
 
   /// 隐藏未到评分的影片
   final bool hideRestrictedContent;
-
-  const ParentalControlState({
-    this.kidsModeEnabled = false,
-    this.maxRating,
-    this.hideRestrictedContent = false,
-  });
 
   ParentalControlState copyWith({
     bool? kidsModeEnabled,

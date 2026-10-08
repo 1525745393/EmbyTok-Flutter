@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -119,7 +118,7 @@ class FileSourcesView extends ConsumerWidget {
                               MaterialPageRoute(
                                 builder: (_) => LocalDirectoryBrowserView(
                                   pickMode: true,
-                                  initialPath: s.config['path'] as String? ?? '',
+                                  initialPath: s.config['path'] ?? '',
                                 ),
                               ),
                             );

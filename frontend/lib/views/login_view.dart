@@ -14,7 +14,6 @@ import '../providers/demo_mode_provider.dart';
 import '../providers/local_mode_provider.dart';
 import '../providers/providers.dart';
 import '../providers/server_registry_provider.dart';
-import '../models/models.dart';
 import '../providers/service_mode_provider.dart';
 import '../services/services.dart';
 import '../utils/constants.dart';

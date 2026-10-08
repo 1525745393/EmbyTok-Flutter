@@ -489,7 +489,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                   Positioned(
                     top: 8,
                     left: 8,
-                    child: PlaybackInfoOsd(item: playingItem!),
+                    child: PlaybackInfoOsd(item: playingItem),
                   ),
 
                 // 弹幕层（PRD P1：danmaku_overlay 接入横屏）
@@ -1979,7 +1979,7 @@ Widget _buildErrorState(VideoPlayerController? controller) {
       child: Image.network(
         url,
         fit: BoxFit.cover,
-        headers: {'Accept': 'image/*'},
+        headers: const {'Accept': 'image/*'},
         errorBuilder: (_, __, ___) => const Center(
           child: Icon(Icons.image_not_supported_outlined,
               color: Colors.white24, size: 24),

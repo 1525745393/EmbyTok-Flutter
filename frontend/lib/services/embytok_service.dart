@@ -333,7 +333,7 @@ abstract class EmbytokServiceBase {
 /// 业务门面：查询/收藏/播放方法分别在 embytok_query/favorites/playback_api.dart
 class EmbytokService extends EmbytokServiceBase
     with EmbytokQueryApi, EmbytokFavoritesApi, EmbytokPlaybackApi {
-  EmbytokService({MediaServerApi? api}) : super(api: api);
+  EmbytokService({super.api});
 
-  EmbytokService.withClient(ApiClient client) : super.withClient(client);
+  EmbytokService.withClient(super.client) : super.withClient();
 }

@@ -2,16 +2,6 @@
 ///
 /// 参考 VidHub 文件源：本地 / SMB / WebDAV 多源管理。
 class FileSource {
-  final String id; // UUID
-  final FileSourceType type;
-  final String name; // 用户自定义名称
-  final Map<String, String> config; // 类型相关配置
-  final FileSourceStatus status;
-  final int videoCount;
-  final DateTime? lastScanAt;
-
-  /// 是否启用（P0 增强）：禁用后媒体库隐藏该源影片，不删除数据
-  final bool enabled;
 
   const FileSource({
     required this.id,
@@ -23,6 +13,33 @@ class FileSource {
     this.lastScanAt,
     this.enabled = true,
   });
+
+  factory FileSource.fromJson(Map<String, dynamic> json) => FileSource(
+        id: json['id'] as String,
+        type: FileSourceType.values.byName(json['type'] as String),
+        name: json['name'] as String,
+        // 防御：config 里可能有旧数据写入的 bool/int，统一转字符串
+        config: (json['config'] as Map?)?.map(
+              (k, v) => MapEntry(k.toString(), v?.toString() ?? ''),
+            ) ??
+            const {},
+        status: FileSourceStatus.values.byName(json['status'] as String),
+        videoCount: json['videoCount'] as int? ?? 0,
+        lastScanAt: json['lastScanAt'] == null
+            ? null
+            : DateTime.parse(json['lastScanAt'] as String),
+        enabled: json['enabled'] as bool? ?? true,
+      );
+  final String id; // UUID
+  final FileSourceType type;
+  final String name; // 用户自定义名称
+  final Map<String, String> config; // 类型相关配置
+  final FileSourceStatus status;
+  final int videoCount;
+  final DateTime? lastScanAt;
+
+  /// 是否启用（P0 增强）：禁用后媒体库隐藏该源影片，不删除数据
+  final bool enabled;
 
   FileSource copyWith({
     String? name,
@@ -53,23 +70,6 @@ class FileSource {
         'lastScanAt': lastScanAt?.toIso8601String(),
         'enabled': enabled,
       };
-
-  factory FileSource.fromJson(Map<String, dynamic> json) => FileSource(
-        id: json['id'] as String,
-        type: FileSourceType.values.byName(json['type'] as String),
-        name: json['name'] as String,
-        // 防御：config 里可能有旧数据写入的 bool/int，统一转字符串
-        config: (json['config'] as Map?)?.map(
-              (k, v) => MapEntry(k.toString(), v?.toString() ?? ''),
-            ) ??
-            const {},
-        status: FileSourceStatus.values.byName(json['status'] as String),
-        videoCount: json['videoCount'] as int? ?? 0,
-        lastScanAt: json['lastScanAt'] == null
-            ? null
-            : DateTime.parse(json['lastScanAt'] as String),
-        enabled: json['enabled'] as bool? ?? true,
-      );
 }
 
 enum FileSourceType {
