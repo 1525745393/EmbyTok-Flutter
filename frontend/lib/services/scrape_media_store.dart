@@ -65,93 +65,100 @@ class ScrapeMediaStore {
   }
 
   // ---- 保存 ----
+  // 双写策略：中央目录（App 沙箱，一定成功）作为权威副本；
+  // 视频旁 .nfo/-poster.jpg（共享存储，可能因 Android 11+ 权限失败）尽力而为。
   static Future<void> save(LocalVideoItem item, ScrapedMedia media) async {
+    // 1) 中央目录元数据（一定成功）
     try {
-      final base = _siblingBase(item);
-      if (base != null) {
+      final dir = await _subDir('metadata');
+      await File(_join(dir.path, '${_safeName(item.pathHash)}.json'))
+          .writeAsString(jsonEncode({'id': item.pathHash, 'media': media.toJson()}));
+    } catch (e) {
+      AppLogger.warn('写中央元数据失败', data: {'error': e.toString()});
+    }
+
+    // 2) 视频旁 .nfo（尽力而为，权限失败不影响后续海报下载）
+    final base = _siblingBase(item);
+    if (base != null) {
+      try {
         await File('$base.nfo').writeAsString(jsonEncode(media.toJson()));
-      } else {
-        final dir = await _subDir('metadata');
-        await File(_join(dir.path, '${_safeName(item.pathHash)}.json'))
-            .writeAsString(jsonEncode({'id': item.pathHash, 'media': media.toJson()}));
+      } catch (e) {
+        AppLogger.warn('写视频旁 .nfo 失败（共享存储权限不足）',
+            data: {'path': '$base.nfo', 'error': e.toString()});
       }
-      final jobs = <Future>[];
-      final poster = media.posterPath;
-      if (poster != null && poster.isNotEmpty) {
-        jobs.add(_downloadImage(
-            TmdbService.posterUrl(poster, size: 'w342'),
-            await _posterPath(item)));
-      }
-      final backdrop = media.backdropPath;
-      if (backdrop != null && backdrop.isNotEmpty) {
-        jobs.add(_downloadImage(
-            TmdbService.backdropUrl(backdrop, size: 'w780'),
-            await _backdropPath(item)));
-      }
-      if (media.stillPath != null && media.stillPath!.isNotEmpty) {
-        jobs.add(_downloadImage(
-            TmdbService.posterUrl(media.stillPath!, size: 'w300'),
-            await _stillPath(item)));
-      }
-      for (final c in media.cast) {
-        final pid = c['id'];
-        final profile = c['profilePath'];
-        if (pid != null && profile != null && profile.isNotEmpty) {
-          final castDir = await _subDir('cast');
-          final f = File(_join(castDir.path, '$pid.jpg'));
+    }
+
+    // 3) 海报/背景/缩略图：先下中央目录，再尽力复制到视频旁
+    final jobs = <Future<void>>[];
+    Future<void> dl(String? tmdbPath, String Function() url, String centralSubDir, String siblingSuffix) async {
+      if (tmdbPath == null || tmdbPath.isEmpty) return;
+      final dir = await _subDir(centralSubDir);
+      final centralPath = _join(dir.path, '${_safeName(item.pathHash)}.jpg');
+      await _downloadImage(url(), centralPath);
+      if (base != null) {
+        try {
+          final f = File('$base$siblingSuffix');
           if (!await f.exists()) {
-            jobs.add(_downloadImage(
-                TmdbService.posterUrl(profile, size: 'w185'), f.path));
+            final cf = File(centralPath);
+            if (await cf.exists()) await f.writeAsBytes(await cf.readAsBytes());
           }
+        } catch (_) {}
+      }
+    }
+
+    if (media.posterPath != null && media.posterPath!.isNotEmpty) {
+      jobs.add(dl(media.posterPath,
+          () => TmdbService.posterUrl(media.posterPath!, size: 'w342'), 'posters', '-poster.jpg'));
+    }
+    if (media.backdropPath != null && media.backdropPath!.isNotEmpty) {
+      jobs.add(dl(media.backdropPath,
+          () => TmdbService.backdropUrl(media.backdropPath!, size: 'w780'), 'backdrops', '-backdrop.jpg'));
+    }
+    if (media.stillPath != null && media.stillPath!.isNotEmpty) {
+      jobs.add(dl(media.stillPath,
+          () => TmdbService.posterUrl(media.stillPath!, size: 'w300'), 'stills', '-still.jpg'));
+    }
+
+    // 4) 演员头像
+    for (final c in media.cast) {
+      final pid = c['id'];
+      final profile = c['profilePath'];
+      if (pid != null && profile != null && profile.isNotEmpty) {
+        final castDir = await _subDir('cast');
+        final f = File(_join(castDir.path, '$pid.jpg'));
+        if (!await f.exists()) {
+          jobs.add(_downloadImage(
+              TmdbService.posterUrl(profile, size: 'w185'), f.path));
         }
       }
-      await Future.wait(jobs);
-    } catch (e) {
-      AppLogger.warn('ScrapeMediaStore.save 失败', data: {'error': e.toString()});
     }
+
+    await Future.wait(jobs);
   }
 
-  static Future<String?> _posterPath(LocalVideoItem item) async {
+  // 查找本地图片文件：先视频旁，不存在则回退中央目录
+  static Future<File?> _findImage(LocalVideoItem item, String subDir, String siblingSuffix) async {
+    // 1) 视频旁
     final base = _siblingBase(item);
-    if (base != null) return '$base-poster.jpg';
-    final dir = await _subDir('posters');
-    return _join(dir.path, '${_safeName(item.pathHash)}.jpg');
+    if (base != null) {
+      final sibling = File('$base$siblingSuffix');
+      if (await sibling.exists() && await sibling.length() > 0) return sibling;
+    }
+    // 2) 中央目录
+    final dir = await _subDir(subDir);
+    final central = File(_join(dir.path, '${_safeName(item.pathHash)}.jpg'));
+    if (await central.exists() && await central.length() > 0) return central;
+    return null;
   }
 
-  static Future<String?> _backdropPath(LocalVideoItem item) async {
-    final base = _siblingBase(item);
-    if (base != null) return '$base-backdrop.jpg';
-    final dir = await _subDir('backdrops');
-    return _join(dir.path, '${_safeName(item.pathHash)}.jpg');
-  }
+  static Future<File?> posterFile(LocalVideoItem item) async =>
+      _findImage(item, 'posters', '-poster.jpg');
 
-  static Future<String?> _stillPath(LocalVideoItem item) async {
-    final base = _siblingBase(item);
-    if (base != null) return '$base-still.jpg';
-    final dir = await _subDir('stills');
-    return _join(dir.path, '${_safeName(item.pathHash)}.jpg');
-  }
+  static Future<File?> backdropFile(LocalVideoItem item) async =>
+      _findImage(item, 'backdrops', '-backdrop.jpg');
 
-  static Future<File?> posterFile(LocalVideoItem item) async {
-    final p0 = await _posterPath(item);
-    if (p0 == null) return null;
-    final f = File(p0);
-    return await f.exists() ? f : null;
-  }
-
-  static Future<File?> backdropFile(LocalVideoItem item) async {
-    final p0 = await _backdropPath(item);
-    if (p0 == null) return null;
-    final f = File(p0);
-    return await f.exists() ? f : null;
-  }
-
-  static Future<File?> stillFile(LocalVideoItem item) async {
-    final p0 = await _stillPath(item);
-    if (p0 == null) return null;
-    final f = File(p0);
-    return await f.exists() ? f : null;
-  }
+  static Future<File?> stillFile(LocalVideoItem item) async =>
+      _findImage(item, 'stills', '-still.jpg');
 
   static Future<File?> castFile(int personId) async {
     final dir = await _subDir('cast');
