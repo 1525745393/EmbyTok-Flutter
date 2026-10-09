@@ -1,3 +1,10 @@
+## [2.371.32](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.31...v2.371.32) (2026-10-09)
+
+
+### Bug Fixes
+
+* 刮削元数据双写策略——解决权限不足导致元数据全部丢失 ([3f82d2c](https://github.com/1525745393/EmbyTok-Flutter/commit/3f82d2c21608433b81275cdbe7d6e725ea9bbea4))
+
 ## [2.371.31](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.30...v2.371.31) (2026-10-09)
 
 
