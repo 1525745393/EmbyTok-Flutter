@@ -1,3 +1,10 @@
+## [2.371.28](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.27...v2.371.28) (2026-10-09)
+
+
+### Bug Fixes
+
+* 刮削元数据补全年份与缓存上限 ([e9d07ff](https://github.com/1525745393/EmbyTok-Flutter/commit/e9d07ff21406b7f056fce6f7e445b8fe8d24ec09))
+
 ## [2.371.27](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.26...v2.371.27) (2026-10-09)
 
 
