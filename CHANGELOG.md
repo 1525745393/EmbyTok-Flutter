@@ -1,3 +1,10 @@
+## [2.371.27](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.26...v2.371.27) (2026-10-09)
+
+
+### Bug Fixes
+
+* 刮削系统两个真实缺陷 ([da62981](https://github.com/1525745393/EmbyTok-Flutter/commit/da6298136c07bea219f5313c82a68a286a0626e1))
+
 ## [2.371.26](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.25...v2.371.26) (2026-10-09)
 
 
