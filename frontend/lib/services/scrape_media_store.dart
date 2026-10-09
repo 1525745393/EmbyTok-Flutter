@@ -261,10 +261,17 @@ class ScrapeMediaStore {
       }
       if (old.isNotEmpty) {
         final metaDir = await _subDir('metadata');
-        final futures = <Future>[];
+        final futures = <Future<File>>[];
         old.forEach((k, v) {
-          final hash = k.substring('scrape_'.length);
-          futures.add(File(_join(metaDir.path, '$hash.json')).writeAsString(v));
+          final pathHash = k.substring('scrape_'.length);
+          try {
+            final mediaMap = jsonDecode(v) as Map<String, dynamic>;
+            final wrapped = jsonEncode({'id': pathHash, 'media': mediaMap});
+            final f = File(_join(metaDir.path, '${_safeName(pathHash)}.json'));
+            futures.add(f.writeAsString(wrapped));
+          } catch (_) {
+            // 单条解析失败跳过，不阻塞其他条目
+          }
         });
         await Future.wait(futures);
       }
