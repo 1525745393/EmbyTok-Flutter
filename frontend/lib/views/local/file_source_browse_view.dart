@@ -126,6 +126,31 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   /// 对当前列表中未刮削的视频调用 TMDB 刮削
   Future<void> _scrapeAll() async {
     if (_items.isEmpty || _scraping) return;
+
+    // 检查"所有文件访问"权限——写 .nfo/海报到视频旁需要
+    final hasPerm = await LocalVideoService.hasManageExternalStorage();
+    if (!hasPerm && mounted) {
+      final grant = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('需要文件写入权限'),
+          content: const Text(
+            '刮削后需要在视频同目录写入 .nfo 元数据和海报图片。\n\n'
+            '请在接下来的系统设置中开启「允许管理所有文件」'
+            '（或叫「所有文件访问」），否则元数据只能存到 App 内部，'
+            '无法在视频文件夹中看到 .nfo 和海报。',
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('去开启')),
+          ],
+        ),
+      );
+      if (grant == true) {
+        await LocalVideoService.requestManageExternalStorage();
+      }
+    }
+
     setState(() {
       _scraping = true;
       _scrapedCount = 0;

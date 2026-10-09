@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/local_video_item.dart';
@@ -31,6 +32,21 @@ class LocalVideoService {
       PhotoManager.requestPermissionExtend(
         requestOption: const PermissionRequestOption(),
       );
+
+  /// 检查是否有"所有文件访问"权限（Android 11+ 写 .nfo/海报到视频旁需要）
+  static Future<bool> hasManageExternalStorage() async {
+    if (!Platform.isAndroid) return true;
+    return await Permission.manageExternalStorage.isGranted;
+  }
+
+  /// 请求"所有文件访问"权限（跳转系统设置页）
+  /// 返回 true 表示已授权
+  static Future<bool> requestManageExternalStorage() async {
+    if (!Platform.isAndroid) return true;
+    if (await Permission.manageExternalStorage.isGranted) return true;
+    await Permission.manageExternalStorage.request();
+    return await Permission.manageExternalStorage.isGranted;
+  }
 
   /// 当前权限状态
   static Future<PermissionState> currentPermission() =>
