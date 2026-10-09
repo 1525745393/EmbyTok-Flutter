@@ -128,6 +128,14 @@ class ScrapeService {
   /// TV 系列详情缓存（同一部剧只拉一次 getTvDetails）
   static final Map<int, Map<String, dynamic>> _tvDetailsCache = {};
   static final Map<int, Map<String, dynamic>> _movieDetailsCache = {};
+  static const _maxCacheEntries = 200;
+
+  static void _cachePut(Map<int, Map<String, dynamic>> cache, int key, Map<String, dynamic> value) {
+    if (cache.length >= _maxCacheEntries) {
+      cache.remove(cache.keys.first);
+    }
+    cache[key] = value;
+  }
 
   /// 文件名解析：提取片名、年份、季集号
   static ParsedName parseFilename(String filename, {String? parentDir}) {
@@ -368,7 +376,7 @@ class ScrapeService {
       var details = _tvDetailsCache[tvId];
       if (details == null) {
         details = await TmdbService.getTvDetails(tvId);
-        if (details.isNotEmpty) _tvDetailsCache[tvId] = details;
+        if (details.isNotEmpty) _cachePut(_tvDetailsCache, tvId, details);
       }
       var base = _fromTvDetails(details, first, parsed, tvId);
       if (base != null && best.lowConfidence) {
@@ -414,7 +422,7 @@ class ScrapeService {
       var details = _movieDetailsCache[movieId];
       if (details == null) {
         details = await TmdbService.getMovieDetails(movieId);
-        if (details.isNotEmpty) _movieDetailsCache[movieId] = details;
+        if (details.isNotEmpty) _cachePut(_movieDetailsCache, movieId, details);
       }
       final m = _fromMovieDetails(details, best.result, parsed, movieId);
       return m == null ? null : _copyWithLowConfidence(m, best.lowConfidence);
@@ -476,11 +484,13 @@ class ScrapeService {
       Map<String, dynamic> searchResult, ParsedName p, int id) {
     if (d.isEmpty) {
       // 用搜索结果兜底
+      final rd = searchResult['release_date'] as String?;
+      final tmdbYear = rd != null && rd.length >= 4 ? int.tryParse(rd.substring(0, 4)) : null;
       return ScrapedMedia(
         tmdbId: id,
         type: 'movie',
         title: searchResult['title'] ?? p.title,
-        year: p.year,
+        year: p.year ?? tmdbYear,
         posterPath: searchResult['poster_path'] as String?,
         backdropPath: searchResult['backdrop_path'] as String?,
         overview: searchResult['overview'] as String?,
@@ -488,11 +498,13 @@ class ScrapeService {
         scrapedAt: DateTime.now().millisecondsSinceEpoch,
       );
     }
+    final rd = d['release_date'] as String?;
+    final tmdbYear = rd != null && rd.length >= 4 ? int.tryParse(rd.substring(0, 4)) : null;
     return ScrapedMedia(
       tmdbId: id,
       type: 'movie',
       title: d['title'] ?? p.title,
-      year: p.year,
+      year: p.year ?? tmdbYear,
       posterPath: d['poster_path'] as String?,
       backdropPath: d['backdrop_path'] as String?,
       overview: d['overview'] as String?,
@@ -542,10 +554,13 @@ class ScrapeService {
   static ScrapedMedia? _fromTvDetails(Map<String, dynamic> d,
       Map<String, dynamic> searchResult, ParsedName p, int tvId) {
     if (d.isEmpty) {
+      final ffd = searchResult['first_air_date'] as String?;
+      final tmdbYear = ffd != null && ffd.length >= 4 ? int.tryParse(ffd.substring(0, 4)) : null;
       return ScrapedMedia(
         tmdbId: tvId,
         type: 'tv',
         title: searchResult['name'] ?? p.title,
+        year: p.year ?? tmdbYear,
         season: p.season,
         episode: p.episode,
         tvId: tvId,
@@ -556,10 +571,13 @@ class ScrapeService {
         scrapedAt: DateTime.now().millisecondsSinceEpoch,
       );
     }
+    final ffd = d['first_air_date'] as String?;
+    final tmdbYear = ffd != null && ffd.length >= 4 ? int.tryParse(ffd.substring(0, 4)) : null;
     return ScrapedMedia(
       tmdbId: tvId,
       type: 'tv',
       title: d['name'] ?? p.title,
+      year: p.year ?? tmdbYear,
       season: p.season,
       episode: p.episode,
       tvId: tvId,
