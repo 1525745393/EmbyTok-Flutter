@@ -233,6 +233,10 @@ class LocalVideoService {
       } else if (item.assetId != null) {
         final ok = await PhotoManager.editor.deleteWithIds([item.assetId!]);
         return ok.contains(item.assetId);
+      } else if (item.path.isNotEmpty && File(item.path).existsSync()) {
+        // localDir 共享存储文件：直接删除（需 MANAGE_EXTERNAL_STORAGE）
+        await File(item.path).delete();
+        return true;
       }
     } catch (_) {}
     return false;
