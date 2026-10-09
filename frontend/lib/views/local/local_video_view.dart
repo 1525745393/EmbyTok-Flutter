@@ -1998,6 +1998,12 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
   }
 
   @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final state = ref.watch(localVideoProvider);
     final allItems =

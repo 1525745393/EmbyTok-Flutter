@@ -40,6 +40,12 @@ class _TmdbSearchPageState extends State<TmdbSearchPage> {
     _search();
   }
 
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
   Future<void> _search() async {
     if (_ctrl.text.trim().isEmpty) return;
     setState(() => _loading = true);

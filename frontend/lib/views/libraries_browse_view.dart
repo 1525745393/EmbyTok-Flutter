@@ -882,7 +882,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         searchTerm: _searchQuery.isEmpty ? null : _searchQuery,
       );
 
-      if (myRequestId != _requestId) return; // 已有更新请求，丢弃旧结果
+      if (myRequestId != _requestId || !mounted) return; // 已有更新请求或组件已销毁
       setState(() {
         if (loadMore) {
           _items.addAll(resp.items);
@@ -895,7 +895,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         _isLoading = false;
       });
     } catch (e, st) {
-      if (myRequestId != _requestId) return;
+      if (myRequestId != _requestId || !mounted) return;
       AppLogger.error('媒体库列表加载失败', error: e, stackTrace: st);
       setState(() {
         _error = e.toString();
