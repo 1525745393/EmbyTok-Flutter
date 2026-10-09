@@ -1,3 +1,10 @@
+## [2.371.30](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.29...v2.371.30) (2026-10-09)
+
+
+### Bug Fixes
+
+* migrateFromPrefs 文件名用 MD5 避免路径分隔符错误 ([c224e4b](https://github.com/1525745393/EmbyTok-Flutter/commit/c224e4b3010b6f89ddd348e2ac35cfc688190509))
+
 ## [2.371.29](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.28...v2.371.29) (2026-10-09)
 
 
