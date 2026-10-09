@@ -1,3 +1,10 @@
+# [2.372.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.32...v2.372.0) (2026-10-09)
+
+
+### Features
+
+* 刮削前请求所有文件访问权限，确保 .nfo/海报写到视频旁 ([f851b3e](https://github.com/1525745393/EmbyTok-Flutter/commit/f851b3e60db514aa94d1c25c615e3bcbcfb1ccb4))
+
 ## [2.371.32](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.31...v2.371.32) (2026-10-09)
 
 
