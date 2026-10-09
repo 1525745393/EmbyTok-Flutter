@@ -327,6 +327,27 @@ class ScrapeService {
         }
       }
     }
+    // 文件源指定为电影时，纠正纯数字文件名被误判为 TV 的情况
+    if (mediaTypeHint == 'movie' && parsed.type != 'movie') {
+      var movieName = filename;
+      final dotIdx = movieName.lastIndexOf('.');
+      if (dotIdx > 0) movieName = movieName.substring(0, dotIdx);
+      movieName = movieName.replaceAll(RegExp(r'[.\[\]_]'), ' ').trim();
+      final yearMatch =
+          RegExp(r'(?<=^|\s|\()(19|20)\d{2}(?=\s|\)|$)').firstMatch(movieName);
+      int? year;
+      String title;
+      if (yearMatch != null) {
+        year = int.tryParse(yearMatch.group(0)!);
+        title = movieName.substring(0, yearMatch.start).trim();
+      } else {
+        title = movieName;
+      }
+      title = _cleanNoise(title);
+      if (title.isNotEmpty) {
+        parsed = ParsedName(type: 'movie', title: title, year: year);
+      }
+    }
     // 文件名只有 SxxExx（如 S01E01.mp4）时，用父目录剧名兜底
     if (parsed.type == 'tv' && parsed.title.isEmpty && seriesName != null && seriesName.isNotEmpty) {
       parsed = ParsedName(

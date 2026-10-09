@@ -289,6 +289,8 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
       scraping: true,
       scrapeDone: 0,
       scrapeTotal: todo.length,
+      scrapeOk: 0,
+      scrapeFail: 0,
       failedMap: const {},
     );
     final cached = Map<String, ScrapedMedia>.from(state.scrapedMap);
@@ -348,6 +350,8 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
       scraping: true,
       scrapeDone: 0,
       scrapeTotal: todo.length,
+      scrapeOk: 0,
+      scrapeFail: 0,
     );
     final cached = Map<String, ScrapedMedia>.from(state.scrapedMap);
     final failed = <String, String>{};
