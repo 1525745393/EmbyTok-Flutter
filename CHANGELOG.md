@@ -1,3 +1,10 @@
+## [2.371.31](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.30...v2.371.31) (2026-10-09)
+
+
+### Bug Fixes
+
+* localDir 文件删除与 .nfo 读回两个缺陷 ([3733dd5](https://github.com/1525745393/EmbyTok-Flutter/commit/3733dd5afd449db81f281b983023284ea30babe7))
+
 ## [2.371.30](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.29...v2.371.30) (2026-10-09)
 
 
