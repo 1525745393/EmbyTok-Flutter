@@ -434,9 +434,16 @@ void main() {
 
       test('setValidateCertificate(true) 不抛异常且保持默认 adapter', () {
         final client = ApiClient(baseUrl: 'http://test.example.com');
-        // 默认就是 true，不应改变 adapter 类型
         client.setValidateCertificate(true);
         expect(client.dio.httpClientAdapter, isNotNull);
+      });
+
+      test('双向切换: false → true 恢复默认 adapter', () {
+        final client = ApiClient(baseUrl: 'http://test.example.com');
+        client.setValidateCertificate(false);
+        expect(client.dio.httpClientAdapter, isA<IOHttpClientAdapter>());
+        client.setValidateCertificate(true);
+        expect(client.dio.httpClientAdapter, isA<IOHttpClientAdapter>());
       });
     });
   });

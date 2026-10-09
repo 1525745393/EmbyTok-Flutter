@@ -76,17 +76,21 @@ class ApiClient {
   ///
   /// [validateCertificate] 为 true 时启用证书校验（默认），
   /// 为 false 时允许自签名证书（仅内网调试用，存在安全风险）。
+  /// 双向切换：true → 恢复默认 adapter，false → 注入 badCertificateCallback。
   void _setupCertificateValidation(bool validateCertificate) {
-    if (validateCertificate) return;
     try {
-      // Dio 5.x：用 IOHttpClientAdapter.createHttpClient 注入 badCertificateCallback
-      _dio.httpClientAdapter = IOHttpClientAdapter(
-        createHttpClient: () => HttpClient()
-          ..badCertificateCallback = (X509Certificate cert, String host, int port) => true,
-      );
+      if (validateCertificate) {
+        // 恢复默认 adapter（含正常证书校验）
+        _dio.httpClientAdapter = IOHttpClientAdapter();
+      } else {
+        // Dio 5.x：用 IOHttpClientAdapter.createHttpClient 注入 badCertificateCallback
+        _dio.httpClientAdapter = IOHttpClientAdapter(
+          createHttpClient: () => HttpClient()
+            ..badCertificateCallback = (X509Certificate cert, String host, int port) => true,
+        );
+      }
     } catch (e, st) {
-      // 不再静默吞掉：记录日志方便排查
-      debugPrint('禁用证书校验失败: $e\n$st');
+      debugPrint('切换证书校验失败: $e\n$st');
     }
   }
 
@@ -361,8 +365,19 @@ class ApiClient {
     // 如果已有相同 key 的请求在进行中，等待其完成并复用结果
     final existing = _pendingGets[key];
     if (existing != null) {
-      final response = await existing.future;
-      return response as Response<T>;
+      final cached = await existing.future;
+      // 不直接 cast Response<dynamic> as Response<T>（跨泛型 T 会 TypeError），
+      // 而是按字段重建 Response<T>，让 data 层的 cast 更安全
+      return Response<T>(
+        data: cached.data as T,
+        requestOptions: cached.requestOptions,
+        statusCode: cached.statusCode,
+        statusMessage: cached.statusMessage,
+        headers: cached.headers,
+        isRedirect: cached.isRedirect,
+        redirects: cached.redirects,
+        extra: cached.extra,
+      );
     }
     // 创建新的 Completer 并发起新请求
     final completer = Completer<Response<dynamic>>();
