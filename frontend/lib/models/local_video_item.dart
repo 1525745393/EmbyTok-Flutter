@@ -40,6 +40,7 @@ class LocalVideoItem {
         sourceId: json['sourceId']?.toString() ?? 'local_default',
         networkUrl: json['networkUrl']?.toString(),
         networkHeaders: (json['networkHeaders'] as Map?)?.map((k, v) => MapEntry(k.toString(), v?.toString() ?? '')) ?? const {},
+        mediaType: json['mediaType']?.toString(),
       );
   /// photo_manager assetId 或路径哈希（唯一标识）
   final String id;
@@ -153,5 +154,6 @@ class LocalVideoItem {
         'sourceId': sourceId,
         'networkUrl': networkUrl,
         'networkHeaders': networkHeaders,
+        'mediaType': mediaType,
       };
 }
