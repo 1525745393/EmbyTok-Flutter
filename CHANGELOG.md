@@ -1,3 +1,10 @@
+## [2.371.29](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.28...v2.371.29) (2026-10-09)
+
+
+### Bug Fixes
+
+* LocalVideoItem 序列化遗漏 mediaType 导致缓存往返后类型丢失 ([a772770](https://github.com/1525745393/EmbyTok-Flutter/commit/a772770f5fca71080b74ac8043f74526f68a3c4a))
+
 ## [2.371.28](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.27...v2.371.28) (2026-10-09)
 
 
