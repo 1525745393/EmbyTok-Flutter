@@ -93,9 +93,12 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
       }
       return;
     }
+    if (!context.mounted) return;
     messenger.showSnackBar(const SnackBar(content: Text('开始扫描…')));
     await ref.read(localVideoProvider.notifier).refresh();
-    messenger.showSnackBar(const SnackBar(content: Text('扫描完成')));
+    if (context.mounted) {
+      messenger.showSnackBar(const SnackBar(content: Text('扫描完成')));
+    }
   }
 
   Future<void> _editTmdbKey(BuildContext context) async {
