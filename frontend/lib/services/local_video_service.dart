@@ -319,10 +319,10 @@ class LocalVideoService {
     }
   }
 
-  /// 重命名本地文件（仅 isAppDirFile=true 的真实文件路径可用）
+  /// 重命名本地文件（photo_manager 资产不支持；localDir/App 目录真实文件可重命名）
   /// 返回新的路径；失败抛异常
   Future<String> renameFile(LocalVideoItem item, String newName) async {
-    if (!item.isAppDirFile) {
+    if (item.assetId != null) {
       throw Exception('系统媒体库文件不支持重命名');
     }
     final oldFile = File(item.path);
@@ -386,7 +386,7 @@ class LocalVideoService {
   /// 电影: "标题 (年份).ext"
   /// 剧集: "标题 S01E01.ext"（从文件名/父目录解析集数）
   Future<String> renameByScraped(LocalVideoItem item, ScrapedMedia s) async {
-    if (!item.isAppDirFile) throw Exception('系统媒体库文件不支持重命名');
+    if (item.assetId != null) throw Exception('系统媒体库文件不支持重命名');
     final safeTitle = (s.title).replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
     String newName;
     if (s.type == 'tv') {
