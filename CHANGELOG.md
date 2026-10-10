@@ -1,3 +1,16 @@
+# [2.373.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.372.3...v2.373.0) (2026-10-10)
+
+
+### Bug Fixes
+
+* 修复 separatorBuilder 两个同名 _ 参数编译错误 ([557839c](https://github.com/1525745393/EmbyTok-Flutter/commit/557839c6aa494bb7f8341dd7dcc7e23c711bdc18))
+* 刮削历史写入加锁，避免并发刮削时 read-modify-write 竞争丢记录 ([ee42739](https://github.com/1525745393/EmbyTok-Flutter/commit/ee427392472aa28449ad7c5dc9c17ba44f16424d))
+
+
+### Features
+
+* 刮削记录持久化到本地文件，设置页可查看刮削历史 ([b70a693](https://github.com/1525745393/EmbyTok-Flutter/commit/b70a693ecb68aeb59b4d8ac02e71a9d5e98691fd))
+
 ## [2.372.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.372.2...v2.372.3) (2026-10-10)
 
 
