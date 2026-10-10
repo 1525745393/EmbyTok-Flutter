@@ -368,14 +368,45 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       }
       return;
     }
-    // 第二步：给每集叠加季集号并存缓存
+    // 第二步：给每集叠加季集号 + 拉取单集详情（标题/简介/剧照），并存缓存
     int done = 0;
     for (final item in eps) {
       try {
         final ep = ScrapeService.extractEpisode(item.name);
-        final media = ep != null
-            ? ScrapeService.applyEpisodeInfo(base, ep.season, ep.episode)
-            : base;
+        ScrapedMedia media;
+        if (ep != null) {
+          media = ScrapeService.applyEpisodeInfo(base, ep.season, ep.episode);
+          // 拉取单集详情（标题/简介/剧照），与 scrapeFile 自动刮削保持一致
+          try {
+            final epDetail = await TmdbService.getTvEpisodeDetails(
+                base.tmdbId, ep.season, ep.episode);
+            if (epDetail.isNotEmpty) {
+              media = ScrapedMedia(
+                tmdbId: media.tmdbId,
+                type: 'tv',
+                title: media.title,
+                year: media.year,
+                posterPath: media.posterPath,
+                backdropPath: media.backdropPath,
+                overview: epDetail['overview'] as String? ?? media.overview,
+                rating: media.rating,
+                genres: media.genres,
+                cast: media.cast,
+                directors: media.directors,
+                studios: media.studios,
+                imdbId: media.imdbId,
+                stillPath: epDetail['still_path'] as String?,
+                episodeTitle: epDetail['name'] as String?,
+                season: media.season,
+                episode: media.episode,
+                tvId: media.tvId,
+                scrapedAt: media.scrapedAt,
+              );
+            }
+          } catch (_) {}
+        } else {
+          media = base;
+        }
         await ScrapeService.saveCache(item.pathHash, media);
         // 写每集视频旁 .nfo/-poster.jpg
         await ScrapeMediaStore.save(item, media);

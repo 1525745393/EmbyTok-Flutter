@@ -198,6 +198,15 @@ class ScrapeMediaStore {
         final oldF = File('$oldBase$s');
         if (await oldF.exists()) await oldF.rename('$newBase$s');
       }
+      // 清理中央目录里旧路径的孤儿元数据（pathHash = localdir: + 真实路径）
+      final oldPathHash = 'localdir:$oldPath';
+      final oldSafe = _safeName(oldPathHash);
+      for (final sub in ['metadata', 'posters', 'backdrops', 'stills']) {
+        final dir = await _subDir(sub);
+        final ext = sub == 'metadata' ? '.json' : '.jpg';
+        final f = File(_join(dir.path, '$oldSafe$ext'));
+        if (await f.exists()) await f.delete();
+      }
     } catch (e) {
       AppLogger.warn('ScrapeMediaStore.rename 失败', data: {'error': e.toString()});
     }
@@ -267,6 +276,8 @@ class ScrapeMediaStore {
     final isTv = m.type == 'tv';
     final root = isTv ? 'episodedetails' : 'movie';
     final sb = StringBuffer('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<$root>\n');
+    // TV: <showtitle> 是剧名，<title> 是单集标题（Kodi/Emby 标准）
+    if (isTv) sb.writeln('  <showtitle>${esc(m.title)}</showtitle>');
     sb.writeln('  <title>${esc(m.episodeTitle ?? m.title)}</title>');
     if (!isTv && m.year != null) sb.writeln('  <year>${m.year}</year>');
     if (isTv && m.season != null) sb.writeln('  <season>${m.season}</season>');
@@ -302,6 +313,9 @@ class ScrapeMediaStore {
     final title = tag('title');
     if (title == null || title.isEmpty) return null;
     final isTv = xml.contains('<episodedetails>');
+    // TV: <showtitle> 是剧名，<title> 是单集标题；恢复时用剧名作为主标题
+    final showTitle = tag('showtitle');
+    final mainTitle = isTv ? (showTitle ?? title) : title;
     final tmdbIdStr = tag('tmdbid');
     final tmdbId = int.tryParse(tmdbIdStr ?? '') ?? 0;
     final year = int.tryParse(tag('year') ?? '');
@@ -328,7 +342,7 @@ class ScrapeMediaStore {
     return ScrapedMedia(
       tmdbId: tmdbId,
       type: isTv ? 'tv' : 'movie',
-      title: title,
+      title: mainTitle,
       year: year,
       rating: rating,
       overview: tag('plot'),
@@ -338,6 +352,7 @@ class ScrapeMediaStore {
       cast: cast,
       season: int.tryParse(tag('season') ?? ''),
       episode: int.tryParse(tag('episode') ?? ''),
+      episodeTitle: isTv ? title : null,
       scrapedAt: DateTime.now().millisecondsSinceEpoch,
     );
   }
