@@ -134,6 +134,13 @@ class ScrapeMediaStore {
     }
 
     await Future.wait(jobs);
+
+    await recordHistory(
+      videoPath: item.path,
+      status: 'success',
+      matchedTitle: media.title,
+      matchedYear: media.year,
+    );
   }
 
   // 查找本地图片文件：先视频旁，不存在则回退中央目录
@@ -215,6 +222,60 @@ class ScrapeMediaStore {
   static Future<void> clearCentral() async {
     final root = await _centralRoot();
     if (await root.exists()) await root.delete(recursive: true);
+  }
+
+  // ---- 刮削历史记录 ----
+  static const _historyFile = 'scrape_history.json';
+  static const _maxHistory = 500;
+
+  static Future<File> _historyPath() async {
+    final root = await _centralRoot();
+    return File(_join(root.path, _historyFile));
+  }
+
+  static Future<void> recordHistory({
+    required String videoPath,
+    required String status,
+    String? matchedTitle,
+    int? matchedYear,
+    String? error,
+  }) async {
+    try {
+      final f = await _historyPath();
+      List<dynamic> list = [];
+      if (await f.exists()) {
+        try { list = jsonDecode(await f.readAsString()) as List<dynamic>; } catch (_) {}
+      }
+      list.insert(0, {
+        'time': DateTime.now().toIso8601String(),
+        'file': _baseName(videoPath),
+        'path': videoPath,
+        'status': status,
+        'title': matchedTitle,
+        'year': matchedYear,
+        'error': error,
+      });
+      if (list.length > _maxHistory) list = list.sublist(0, _maxHistory);
+      await f.writeAsString(jsonEncode(list));
+    } catch (e) {
+      AppLogger.warn('写刮削历史失败', data: {'error': e.toString()});
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> loadHistory() async {
+    try {
+      final f = await _historyPath();
+      if (!await f.exists()) return [];
+      final list = jsonDecode(await f.readAsString()) as List<dynamic>;
+      return list.cast<Map<String, dynamic>>();
+    } catch (_) { return []; }
+  }
+
+  static Future<void> clearHistory() async {
+    try {
+      final f = await _historyPath();
+      if (await f.exists()) await f.delete();
+    } catch (_) {}
   }
 
   // ---- 下载 ----

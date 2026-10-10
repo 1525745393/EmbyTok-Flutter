@@ -59,6 +59,16 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
             subtitle: const Text('删除 TMDB 元数据、海报、演员头像（不删除视频旁 .nfo）'),
             onTap: () => _clearScrapeCache(context, ref),
           ),
+          ListTile(
+            leading: const Icon(Icons.history, color: Colors.teal),
+            title: const Text('刮削记录'),
+            subtitle: const Text('查看最近刮削历史与结果'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const _ScrapeHistoryPage()),
+            ),
+          ),
           const Divider(),
           const _SectionTitle('其他'),
           ListTile(
@@ -203,6 +213,101 @@ class _SectionTitle extends StatelessWidget {
         title,
         style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey[600]),
       ),
+    );
+  }
+}
+
+class _ScrapeHistoryPage extends StatefulWidget {
+  const _ScrapeHistoryPage();
+
+  @override
+  State<_ScrapeHistoryPage> createState() => _ScrapeHistoryPageState();
+}
+
+class _ScrapeHistoryPageState extends State<_ScrapeHistoryPage> {
+  List<Map<String, dynamic>> _history = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final h = await ScrapeMediaStore.loadHistory();
+    if (mounted) setState(() { _history = h; _loading = false; });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final success = _history.where((h) => h['status'] == 'success').length;
+    final failed = _history.where((h) => h['status'] == 'failed').length;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('刮削记录'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: '清空记录',
+            onPressed: () async {
+              await ScrapeMediaStore.clearHistory();
+              _load();
+            },
+          ),
+        ],
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _history.isEmpty
+              ? const Center(child: Text('暂无刮削记录'))
+              : Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _statChip('成功 $success', Colors.green),
+                          const SizedBox(width: 16),
+                          _statChip('失败 $failed', Colors.red),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: ListView.separated(
+                        itemCount: _history.length,
+                        separatorBuilder: (_, _) => const Divider(height: 1),
+                        itemBuilder: (_, i) {
+                          final h = _history[i];
+                          final ok = h['status'] == 'success';
+                          final time = DateTime.tryParse(h['time'] ?? '')?.toString().substring(0, 19) ?? '';
+                          return ListTile(
+                            leading: Icon(
+                              ok ? Icons.check_circle : Icons.error,
+                              color: ok ? Colors.green : Colors.red,
+                            ),
+                            title: Text(h['file'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
+                            subtitle: Text(
+                              ok ? '${h['title'] ?? ''} (${h['year'] ?? ''})' : (h['error'] ?? '失败'),
+                              maxLines: 1, overflow: TextOverflow.ellipsis,
+                            ),
+                            trailing: Text(time, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+    );
+  }
+
+  Widget _statChip(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+      child: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
     );
   }
 }

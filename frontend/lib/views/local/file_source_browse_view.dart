@@ -172,11 +172,17 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           );
           if (m != null) {
             await ScrapeService.saveCache(pathHash, m);
-            // 写视频同目录 .nfo/-poster.jpg/-backdrop.jpg
             await ScrapeMediaStore.save(item, m);
             success++;
+          } else {
+            await ScrapeMediaStore.recordHistory(
+              videoPath: item.path, status: 'failed', error: '未找到匹配结果');
           }
-          } catch (e) { debugPrint('刮削失败 ${item.name}: $e'); }
+          } catch (e) {
+            debugPrint('刮削失败 ${item.name}: $e');
+            await ScrapeMediaStore.recordHistory(
+              videoPath: item.path, status: 'failed', error: e.toString());
+          }
       }));
       i += concurrency;
       if (!mounted) return;
