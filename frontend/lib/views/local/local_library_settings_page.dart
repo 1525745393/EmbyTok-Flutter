@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/file_sources_provider.dart';
 import '../../providers/local_mode_provider.dart';
+import '../../providers/local_video_provider.dart';
 import '../../services/local_video_service.dart';
 import '../../services/scrape_service.dart';
 import '../../services/scrape_media_store.dart';
@@ -41,7 +42,7 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
             leading: const Icon(Icons.refresh, color: Colors.blue),
             title: const Text('立即扫描'),
             subtitle: const Text('重新扫描所有启用的文件源'),
-            onTap: () => _scanNow(context),
+            onTap: () => _scanNow(context, ref),
           ),
           const Divider(),
           const _SectionTitle('刮削'),
@@ -56,7 +57,7 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
             leading: const Icon(Icons.cloud_download, color: Colors.purple),
             title: const Text('清除刮削缓存'),
             subtitle: const Text('删除 TMDB 元数据、海报、演员头像（不删除视频旁 .nfo）'),
-            onTap: () => _clearScrapeCache(context),
+            onTap: () => _clearScrapeCache(context, ref),
           ),
           const Divider(),
           const _SectionTitle('其他'),
@@ -71,7 +72,7 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
     );
   }
 
-  Future<void> _scanNow(BuildContext context) async {
+  Future<void> _scanNow(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
     final hasPerm = await LocalVideoService.hasManageExternalStorage();
     if (!hasPerm) {
@@ -93,7 +94,7 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
       return;
     }
     messenger.showSnackBar(const SnackBar(content: Text('开始扫描…')));
-    await LocalVideoService().scan();
+    await ref.read(localVideoProvider.notifier).refresh();
     messenger.showSnackBar(const SnackBar(content: Text('扫描完成')));
   }
 
@@ -126,7 +127,7 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
     }
   }
 
-  Future<void> _clearScrapeCache(BuildContext context) async {
+  Future<void> _clearScrapeCache(BuildContext context, WidgetRef ref) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -142,6 +143,7 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
     try {
       await ScrapeService.clearCache();
       await ScrapeMediaStore.clearCentral();
+      await ref.read(localVideoProvider.notifier).refresh();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('刮削缓存已清除')));
       }
