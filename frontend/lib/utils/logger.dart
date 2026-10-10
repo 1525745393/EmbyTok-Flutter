@@ -183,6 +183,21 @@ class AppLogger {
   static const int _maxPersistedLogs = 500;
   // 内存缓冲区（初始化时从文件加载，后续追加）
   static final List<String> _persistedBuffer = [];
+
+  // ============ 面包屑（用户操作上下文） ============
+  static const int _maxBreadcrumbs = 20;
+  static final List<String> _breadcrumbs = [];
+
+  static void breadcrumb(String message) {
+    final time = DateTime.now().toIso8601String().substring(11, 19);
+    _breadcrumbs.add('$time $message');
+    while (_breadcrumbs.length > _maxBreadcrumbs) {
+      _breadcrumbs.removeAt(0);
+    }
+  }
+
+  static String get _breadcrumbBlock =>
+      _breadcrumbs.isEmpty ? '' : '\n[Breadcrumb]\n${_breadcrumbs.join('\n')}\n';
   // 日志文件路径（首次写入时懒加载）
   static String? _logFilePath;
   // 是否已初始化（避免重复读文件）
@@ -493,7 +508,7 @@ class AppLogger {
       '=========================',
       '',
     ].join('\n');
-    return '$header${_persistedBuffer.join('\n')}';
+    return '$header$_breadcrumbBlock${_persistedBuffer.join('\n')}';
   }
 
   /// 清除所有已持久化的日志（内存 + 文件）

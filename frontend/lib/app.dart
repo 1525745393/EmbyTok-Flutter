@@ -102,6 +102,7 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
     _router = GoRouter(
       initialLocation: '/',
       refreshListenable: _refreshNotifier,
+      observers: [_BreadcrumbObserver()],
       redirect: (BuildContext context, GoRouterState state) {
         // PIN 锁检查：已设置 PIN 但未验证时跳转到 PIN 页
         final pin = ref.read(pinLockProvider);
@@ -658,5 +659,20 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
         );
       },
     );
+  }
+}
+
+/// 面包屑导航观察者：记录页面切换到日志，崩溃时可回溯用户操作路径
+class _BreadcrumbObserver extends NavigatorObserver {
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    AppLogger.breadcrumb('进入 ${route.settings.name ?? route.toString()}');
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    AppLogger.breadcrumb('返回（离开 ${route.settings.name ?? route.toString()}）');
   }
 }

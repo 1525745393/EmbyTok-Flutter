@@ -134,6 +134,7 @@ class ApiClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          options.extra['_startTime'] = DateTime.now().millisecondsSinceEpoch;
           // 演示模式：返回 mock 数据（支持异步 TMDB API 调用）
           if (demoMode) {
             final mock = await DemoMockData.handleRequest(
@@ -186,12 +187,35 @@ class ApiClient {
           return handler.next(options);
         },
         onResponse: (response, handler) {
+          final req = response.requestOptions;
+          final start = req.extra['_startTime'] as int?;
+          final ms = start != null ? DateTime.now().millisecondsSinceEpoch - start : null;
+          final data = {
+            'method': req.method,
+            'path': req.path,
+            'status': response.statusCode,
+            if (ms != null) 'ms': ms,
+          };
+          if (ms != null && ms > 3000) {
+            AppLogger.warn('慢请求', tag: 'network', data: data);
+          } else {
+            AppLogger.info('API 响应', tag: 'network', data: data);
+          }
           return handler.next(response);
         },
         onError: (error, handler) {
-          // 403 时记录完整请求信息，便于排查收藏等写操作失败
+          final req = error.requestOptions;
+          final start = req.extra['_startTime'] as int?;
+          final ms = start != null ? DateTime.now().millisecondsSinceEpoch - start : null;
+          AppLogger.warn('API 请求失败', tag: 'network', data: {
+            'method': req.method,
+            'path': req.path,
+            'status': error.response?.statusCode,
+            'type': error.type.name,
+            'error': error.message,
+            if (ms != null) 'ms': ms,
+          });
           if (error.response?.statusCode == 403) {
-            final req = error.requestOptions;
             AppLogger.warn('HTTP 403 请求详情', data: {
               'method': req.method,
               'path': req.path,
