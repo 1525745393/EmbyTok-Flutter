@@ -228,6 +228,9 @@ class ScrapeMediaStore {
   static const _historyFile = 'scrape_history.json';
   static const _maxHistory = 500;
 
+  /// 串行化历史写入，避免并发刮削时 read-modify-write 竞争丢记录
+  static Future<void> _historyLock = Future.value();
+
   static Future<File> _historyPath() async {
     final root = await _centralRoot();
     return File(_join(root.path, _historyFile));
@@ -240,26 +243,30 @@ class ScrapeMediaStore {
     int? matchedYear,
     String? error,
   }) async {
-    try {
-      final f = await _historyPath();
-      List<dynamic> list = [];
-      if (await f.exists()) {
-        try { list = jsonDecode(await f.readAsString()) as List<dynamic>; } catch (_) {}
+    final entry = {
+      'time': DateTime.now().toIso8601String(),
+      'file': _baseName(videoPath),
+      'path': videoPath,
+      'status': status,
+      'title': matchedTitle,
+      'year': matchedYear,
+      'error': error,
+    };
+    _historyLock = _historyLock.then((_) async {
+      try {
+        final f = await _historyPath();
+        List<dynamic> list = [];
+        if (await f.exists()) {
+          try { list = jsonDecode(await f.readAsString()) as List<dynamic>; } catch (_) {}
+        }
+        list.insert(0, entry);
+        if (list.length > _maxHistory) list = list.sublist(0, _maxHistory);
+        await f.writeAsString(jsonEncode(list));
+      } catch (e) {
+        AppLogger.warn('写刮削历史失败', data: {'error': e.toString()});
       }
-      list.insert(0, {
-        'time': DateTime.now().toIso8601String(),
-        'file': _baseName(videoPath),
-        'path': videoPath,
-        'status': status,
-        'title': matchedTitle,
-        'year': matchedYear,
-        'error': error,
-      });
-      if (list.length > _maxHistory) list = list.sublist(0, _maxHistory);
-      await f.writeAsString(jsonEncode(list));
-    } catch (e) {
-      AppLogger.warn('写刮削历史失败', data: {'error': e.toString()});
-    }
+    });
+    await _historyLock;
   }
 
   static Future<List<Map<String, dynamic>>> loadHistory() async {
