@@ -74,14 +74,19 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
 
   Future<void> _scanNow(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
-    final hasPerm = await LocalVideoService.hasManageExternalStorage();
+    var hasPerm = await LocalVideoService.hasManageExternalStorage();
     if (!hasPerm) {
       if (!context.mounted) return;
       final go = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('需要所有文件访问权限'),
-          content: const Text('扫描手机文件夹需要"允许管理所有文件"权限。是否前往开启？'),
+          title: const Text('需要文件访问权限'),
+          content: const Text(
+            '刮削后写 .nfo/海报到视频文件夹需要存储权限。\n\n'
+            '点击"去开启"后：\n'
+            '• 如有"允许管理所有文件"开关 → 打开它\n'
+            '• 如没有此开关 → 在应用信息页找"权限"→"文件和媒体"→ 允许访问所有文件',
+          ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
             TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('去开启')),
@@ -90,8 +95,16 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
       );
       if (go == true) {
         await LocalVideoService.requestManageExternalStorage();
+        hasPerm = await LocalVideoService.hasManageExternalStorage();
+        if (!hasPerm && context.mounted) {
+          messenger.showSnackBar(const SnackBar(
+            content: Text('未获得存储权限，.nfo 将只写到 App 内部目录'),
+            duration: Duration(seconds: 4),
+          ));
+        }
+      } else {
+        return;
       }
-      return;
     }
     if (!context.mounted) return;
     messenger.showSnackBar(const SnackBar(content: Text('开始扫描…')));

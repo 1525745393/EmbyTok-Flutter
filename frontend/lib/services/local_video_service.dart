@@ -40,12 +40,15 @@ class LocalVideoService {
   }
 
   /// 请求"所有文件访问"权限（跳转系统设置页）
-  /// 返回 true 表示已授权
+  /// 返回 true 表示已授权；false 表示用户未授权，调用方应引导去应用设置
   static Future<bool> requestManageExternalStorage() async {
     if (!Platform.isAndroid) return true;
     if (await Permission.manageExternalStorage.isGranted) return true;
     await Permission.manageExternalStorage.request();
-    return await Permission.manageExternalStorage.isGranted;
+    if (await Permission.manageExternalStorage.isGranted) return true;
+    // 部分国产 ROM 没有"所有文件访问"页面，直接打开应用详情页让用户手动找
+    await openAppSettings();
+    return false;
   }
 
   /// 当前权限状态
