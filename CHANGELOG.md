@@ -1,3 +1,10 @@
+## [2.372.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.372.0...v2.372.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* 移除 MANAGE_EXTERNAL_STORAGE 的 maxSdkVersion=33 限制 ([1794877](https://github.com/1525745393/EmbyTok-Flutter/commit/1794877d6f9ab535c740007225b568ef32c9653d))
+
 # [2.372.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.371.32...v2.372.0) (2026-10-09)
 
 
