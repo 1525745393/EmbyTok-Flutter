@@ -128,6 +128,8 @@ class ScrapeService {
   /// TV 系列详情缓存（同一部剧只拉一次 getTvDetails）
   static final Map<int, Map<String, dynamic>> _tvDetailsCache = {};
   static final Map<int, Map<String, dynamic>> _movieDetailsCache = {};
+  /// TV 单集详情缓存（key: "$tvId-$season-$episode"），避免同剧多集重复调 API
+  static final Map<String, Map<String, dynamic>> _tvEpisodeCache = {};
   static const _maxCacheEntries = 200;
 
   static void _cachePut(Map<int, Map<String, dynamic>> cache, int key, Map<String, dynamic> value) {
@@ -385,7 +387,17 @@ class ScrapeService {
       // 拉取单集剧照和标题（剧名保留，集名单独存）
       if (base != null && parsed.season != null && parsed.episode != null) {
         try {
-          final ep = await TmdbService.getTvEpisodeDetails(tvId, parsed.season!, parsed.episode!);
+          final epKey = '${tvId}_${parsed.season}_${parsed.episode}';
+          var ep = _tvEpisodeCache[epKey];
+          if (ep == null) {
+            ep = await TmdbService.getTvEpisodeDetails(tvId, parsed.season!, parsed.episode!);
+            if (ep.isNotEmpty) {
+              if (_tvEpisodeCache.length >= _maxCacheEntries) {
+                _tvEpisodeCache.remove(_tvEpisodeCache.keys.first);
+              }
+              _tvEpisodeCache[epKey] = ep;
+            }
+          }
           if (ep.isNotEmpty) {
             return ScrapedMedia(
               tmdbId: base.tmdbId,

@@ -10,6 +10,7 @@ import '../models/file_source.dart';
 import '../services/local_video_service.dart';
 import '../services/scrape_service.dart';
 import '../services/scrape_media_store.dart';
+import '../utils/logger.dart';
 import 'file_sources_provider.dart';
 
 /// 服务单例
@@ -285,6 +286,12 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
     final todo = state.items
         .where((e) => !state.scrapedMap.containsKey(e.pathHash))
         .toList();
+    if (todo.isEmpty) return;
+    // 检查共享存储权限：未授权时元数据只存 App 沙箱，不尝试写视频旁
+    final hasPerm = await LocalVideoService.hasManageExternalStorage();
+    if (!hasPerm) {
+      AppLogger.warn('后台刮削：未授予"所有文件访问"权限，元数据仅存 App 内部，不写视频旁 .nfo');
+    }
     state = state.copyWith(
       scraping: true,
       scrapeDone: 0,

@@ -77,11 +77,11 @@ class ScrapeMediaStore {
       AppLogger.warn('写中央元数据失败', data: {'error': e.toString()});
     }
 
-    // 2) 视频旁 .nfo（尽力而为，权限失败不影响后续海报下载）
+    // 2) 视频旁 .nfo（Kodi/Emby/Jellyfin 兼容 XML 格式，尽力而为）
     final base = _siblingBase(item);
     if (base != null) {
       try {
-        await File('$base.nfo').writeAsString(jsonEncode(media.toJson()));
+        await File('$base.nfo').writeAsString(_buildXmlNfo(media));
       } catch (e) {
         AppLogger.warn('写视频旁 .nfo 失败（共享存储权限不足）',
             data: {'path': '$base.nfo', 'error': e.toString()});
@@ -247,10 +247,99 @@ class ScrapeMediaStore {
       final nfo = File('${videoPath.substring(0, videoPath.length - _extOf(videoPath).length)}.nfo');
       if (!await nfo.exists()) return null;
       final raw = await nfo.readAsString();
+      // 优先解析 XML（Kodi/Emby 标准），旧版 JSON 兜底
+      if (raw.trim().startsWith('<')) {
+        return _parseXmlNfo(raw);
+      }
       return ScrapedMedia.fromJson(jsonDecode(raw) as Map<String, dynamic>);
     } catch (_) {
       return null;
     }
+  }
+
+  /// 生成 Kodi/Emby/Jellyfin 兼容的 XML NFO
+  static String _buildXmlNfo(ScrapedMedia m) {
+    String esc(String? s) => (s ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
+    final isTv = m.type == 'tv';
+    final root = isTv ? 'episodedetails' : 'movie';
+    final sb = StringBuffer('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<$root>\n');
+    sb.writeln('  <title>${esc(m.episodeTitle ?? m.title)}</title>');
+    if (!isTv && m.year != null) sb.writeln('  <year>${m.year}</year>');
+    if (isTv && m.season != null) sb.writeln('  <season>${m.season}</season>');
+    if (isTv && m.episode != null) sb.writeln('  <episode>${m.episode}</episode>');
+    if (m.rating != null) sb.writeln('  <rating>${m.rating}</rating>');
+    if (m.overview != null && m.overview!.isNotEmpty) {
+      sb.writeln('  <plot>${esc(m.overview)}</plot>');
+    }
+    if (m.imdbId != null && m.imdbId!.isNotEmpty) sb.writeln('  <imdbid>${esc(m.imdbId)}</imdbid>');
+    sb.writeln('  <tmdbid>${m.tmdbId}</tmdbid>');
+    for (final g in m.genres) {
+      if (g.isNotEmpty) sb.writeln('  <genre>${esc(g)}</genre>');
+    }
+    for (final d in m.directors) {
+      if (d.isNotEmpty) sb.writeln('  <director>${esc(d)}</director>');
+    }
+    for (final c in m.cast.take(10)) {
+      sb.writeln('  <actor>');
+      sb.writeln('    <name>${esc(c['name'])}</name>');
+      sb.writeln('    <role>${esc(c['role'])}</role>');
+      sb.writeln('  </actor>');
+    }
+    sb.writeln('</$root>');
+    return sb.toString();
+  }
+
+  /// 从 XML NFO 提取关键字段（简单正则解析，无需 XML 依赖）
+  static ScrapedMedia? _parseXmlNfo(String xml) {
+    String? tag(String name) {
+      final m = RegExp('<$name[^>]*>([^<]*)</$name>').firstMatch(xml);
+      return m?.group(1);
+    }
+    final title = tag('title');
+    if (title == null || title.isEmpty) return null;
+    final isTv = xml.contains('<episodedetails>');
+    final tmdbIdStr = tag('tmdbid');
+    final tmdbId = int.tryParse(tmdbIdStr ?? '') ?? 0;
+    final year = int.tryParse(tag('year') ?? '');
+    final rating = double.tryParse(tag('rating') ?? '');
+    final genres = RegExp('<genre[^>]*>([^<]*)</genre>')
+        .allMatches(xml)
+        .map((m) => m.group(1) ?? '')
+        .where((s) => s.isNotEmpty)
+        .toList();
+    final directors = RegExp('<director[^>]*>([^<]*)</director>')
+        .allMatches(xml)
+        .map((m) => m.group(1) ?? '')
+        .where((s) => s.isNotEmpty)
+        .toList();
+    final cast = <Map<String, String>>[];
+    for (final m in RegExp('<actor>(.*?)</actor>', dotAll: true).allMatches(xml)) {
+      final block = m.group(1) ?? '';
+      final name = RegExp('<name[^>]*>([^<]*)</name>').firstMatch(block)?.group(1);
+      final role = RegExp('<role[^>]*>([^<]*)</role>').firstMatch(block)?.group(1);
+      if (name != null && name.isNotEmpty) {
+        cast.add({'name': name, 'role': role ?? ''});
+      }
+    }
+    return ScrapedMedia(
+      tmdbId: tmdbId,
+      type: isTv ? 'tv' : 'movie',
+      title: title,
+      year: year,
+      rating: rating,
+      overview: tag('plot'),
+      imdbId: tag('imdbid'),
+      genres: genres,
+      directors: directors,
+      cast: cast,
+      season: int.tryParse(tag('season') ?? ''),
+      episode: int.tryParse(tag('episode') ?? ''),
+      scrapedAt: DateTime.now().millisecondsSinceEpoch,
+    );
   }
 
   // ---- 迁移 ----
