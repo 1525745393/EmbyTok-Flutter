@@ -1,3 +1,10 @@
+## [2.372.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.372.1...v2.372.2) (2026-10-10)
+
+
+### Bug Fixes
+
+* 统一本地媒体库设置页+刮削双写视频旁+剧集单集详情 ([2f32aa5](https://github.com/1525745393/EmbyTok-Flutter/commit/2f32aa55ff31fda485bee77c54f9f1069cf96fd7))
+
 ## [2.372.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.372.0...v2.372.1) (2026-10-10)
 
 
