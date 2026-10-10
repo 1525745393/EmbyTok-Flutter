@@ -38,9 +38,17 @@ class FileSourcesView extends ConsumerWidget {
     );
   }
 
+  /// 媒体类型中文标签
+  String _mediaTypeLabel(String? type) {
+    switch (type) {
+      case 'tv': return '电视剧';
+      case 'short': return '短视频';
+      default: return '电影';
+    }
+  }
+
   /// 本地文件夹源副标题：优先多文件夹 paths，回退单 path
-  String _dirSubtitle(FileSource s) {
-    final paths = <String>[];
+  String _dirSubtitle(FileSource s) {    final paths = <String>[];
     final raw = s.config['paths'];
     if (raw != null && raw.isNotEmpty) {
       paths.addAll(raw.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty));
@@ -88,7 +96,7 @@ class FileSourcesView extends ConsumerWidget {
                 isLocal
                     ? '手机媒体库'
                     : (s.type == FileSourceType.localDir
-                        ? _dirSubtitle(s)
+                        ? '${_dirSubtitle(s)} · ${_mediaTypeLabel(s.config['mediaType'])}'
                         : s.type == FileSourceType.webdav
                             ? s.config['url'] ?? ''
                             : '${s.config['host'] ?? ''}:${s.config['port'] ?? '445'}'),
@@ -219,6 +227,17 @@ class FileSourcesView extends ConsumerWidget {
                               ),
                             );
                           }
+                        } else if (v == 'mediaType') {
+                          // 修改媒体类型（电影/电视剧/短视频）
+                          if (!context.mounted) return;
+                          final picked = await _showMediaTypeDialog(context);
+                          if (picked == null || !context.mounted) return;
+                          ref.read(fileSourcesProvider.notifier).update(
+                                s.copyWith(config: {...s.config, 'mediaType': picked}),
+                              );
+                          if (context.mounted) {
+                            ref.read(localVideoProvider.notifier).refresh();
+                          }
                         } else if (v == 'delete') {
                           _confirmDelete(context, ref, s);
                         }
@@ -229,6 +248,8 @@ class FileSourcesView extends ConsumerWidget {
                           const PopupMenuItem(value: 'addfolder', child: Text('添加文件夹到此媒体库')),
                         const PopupMenuItem(value: 'rename', child: Text('重命名媒体库')),
                         const PopupMenuItem(value: 'scrape', child: Text('刮削此媒体库')),
+                        if (s.type == FileSourceType.localDir)
+                          PopupMenuItem(value: 'mediaType', child: Text('修改媒体类型（${_mediaTypeLabel(s.config['mediaType'])}）')),
                         if (s.type != FileSourceType.local)
                           const PopupMenuItem(value: 'edit', child: Text('编辑/换目录')),
                         if (s.id != 'local_default')

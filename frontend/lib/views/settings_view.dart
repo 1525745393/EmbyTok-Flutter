@@ -132,6 +132,26 @@ class SettingsView extends ConsumerWidget {
                     onTap: () async {
                       final navigator = Navigator.of(context);
                       final messenger = ScaffoldMessenger.of(context);
+                      // 检查共享存储权限，未授权先引导
+                      final hasPerm = await LocalVideoService.hasManageExternalStorage();
+                      if (!hasPerm) {
+                        if (!context.mounted) return;
+                        final go = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('需要所有文件访问权限'),
+                            content: const Text('扫描手机文件夹需要"允许管理所有文件"权限。是否前往开启？'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+                              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('去开启')),
+                            ],
+                          ),
+                        );
+                        if (go == true) {
+                          await LocalVideoService.requestManageExternalStorage();
+                        }
+                        return;
+                      }
                       messenger.showSnackBar(
                         const SnackBar(content: Text('开始扫描…')),
                       );
