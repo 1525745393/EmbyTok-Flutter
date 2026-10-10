@@ -278,7 +278,7 @@ class _ScrapeHistoryPageState extends State<_ScrapeHistoryPage> {
                     Expanded(
                       child: ListView.separated(
                         itemCount: _history.length,
-                        separatorBuilder: (_, _) => const Divider(height: 1),
+                        separatorBuilder: (_, __) => const Divider(height: 1),
                         itemBuilder: (_, i) {
                           final h = _history[i];
                           final ok = h['status'] == 'success';
