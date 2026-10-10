@@ -1,3 +1,10 @@
+# [2.374.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.373.0...v2.374.0) (2026-10-10)
+
+
+### Features
+
+* 日志系统优化 - 网络请求日志+耗时统计+模块tag+面包屑导航 ([d430d0a](https://github.com/1525745393/EmbyTok-Flutter/commit/d430d0af54e2b399582dcdab4de38c69104066f5))
+
 # [2.373.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.372.3...v2.373.0) (2026-10-10)
 
 
