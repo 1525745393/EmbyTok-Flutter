@@ -13,8 +13,7 @@ import 'package:go_router/go_router.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import '../providers/local_mode_provider.dart';
-import '../providers/file_sources_provider.dart';
-import '../services/local_video_service.dart';
+import 'local/local_library_settings_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -104,74 +103,18 @@ class SettingsView extends ConsumerWidget {
         padding: EdgeInsets.fromLTRB(
             0, 8, 0, 8 + MediaQuery.paddingOf(context).bottom),
         children: [
-          // 本地媒体库模式入口（P2）：文件源管理 + 退出本地模式
-          if (ref.watch(localModeProvider)) ...[
-            _buildSectionEntry(
-              context,
-              ref,
-              '本地媒体库',
-              Icons.smartphone_outlined,
-              Colors.purple,
-              '文件源管理、扫描、退出本地模式',
-              (context, ref) {
-                final sources = ref.watch(fileSourcesProvider);
-                final enabledCount = sources.where((s) => s.enabled).length;
-                final totalVideos = sources.fold<int>(0, (sum, s) => sum + s.videoCount);
-                return [
-                  ListTile(
-                    leading: const Icon(Icons.folder_special_outlined, color: Colors.purple),
-                    title: const Text('文件源管理'),
-                    subtitle: Text('$enabledCount 个启用源 · $totalVideos 个视频'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push('/file-sources'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.refresh, color: Colors.blue),
-                    title: const Text('立即扫描媒体库'),
-                    subtitle: const Text('重新扫描所有启用的文件源'),
-                    onTap: () async {
-                      final navigator = Navigator.of(context);
-                      final messenger = ScaffoldMessenger.of(context);
-                      // 检查共享存储权限，未授权先引导
-                      final hasPerm = await LocalVideoService.hasManageExternalStorage();
-                      if (!hasPerm) {
-                        if (!context.mounted) return;
-                        final go = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Text('需要所有文件访问权限'),
-                            content: const Text('扫描手机文件夹需要"允许管理所有文件"权限。是否前往开启？'),
-                            actions: [
-                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
-                              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('去开启')),
-                            ],
-                          ),
-                        );
-                        if (go == true) {
-                          await LocalVideoService.requestManageExternalStorage();
-                        }
-                        return;
-                      }
-                      messenger.showSnackBar(
-                        const SnackBar(content: Text('开始扫描…')),
-                      );
-                      await LocalVideoService().scan();
-                      messenger.showSnackBar(
-                        const SnackBar(content: Text('扫描完成')),
-                      );
-                      navigator.pop();
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.logout, color: Colors.red),
-                    title: const Text('退出本地模式'),
-                    subtitle: const Text('返回登录页，连接 Emby 服务器'),
-                    onTap: () => _exitLocalMode(context, ref),
-                  ),
-                ];
-              },
+          // 本地媒体库模式入口：统一跳转到本地媒体库设置页
+          if (ref.watch(localModeProvider))
+            ListTile(
+              leading: const Icon(Icons.smartphone_outlined, color: Colors.purple),
+              title: const Text('本地媒体库'),
+              subtitle: const Text('文件源管理、扫描、刮削、退出本地模式'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const LocalLibrarySettingsPage()),
+              ),
             ),
-          ],
           // 视频库设置（PR #66：视频流 / 推荐可分别设置；音乐模式隐藏）
           if (!isMusicMode)
             _buildSectionEntry(
@@ -445,33 +388,6 @@ class SettingsView extends ConsumerWidget {
           const SizedBox(height: _kSpacingXXLarge),
           _buildLogoutButton(context, ref),
           const SizedBox(height: _kSpacingXXXXLarge),
-        ],
-      ),
-    );
-  }
-
-  /// 退出本地媒体库模式（P2）：重置状态并返回登录页
-  void _exitLocalMode(BuildContext context, WidgetRef ref) {
-    showDialog<Widget>(context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('退出本地模式'),
-        content: const Text('确定退出本地媒体库模式并返回登录页？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () {
-              // ignore: invalid_use_of_protected_member
-              ref.read(localModeProvider.notifier).state = false;
-              // 重置认证状态
-              ref.read(authProvider.notifier).reset();
-              Navigator.pop(context);
-              context.go('/login');
-            },
-            child: const Text('退出', style: TextStyle(color: Colors.red)),
-          ),
         ],
       ),
     );

@@ -1,13 +1,10 @@
-// 缓存管理：查看和清理图片缓存、视频缩略图缓存、日志
+// 缓存管理：查看和清理图片缓存、日志
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../utils/logger.dart';
-import '../../services/scrape_service.dart';
-import '../../services/scrape_media_store.dart';
-import '../../services/tmdb_service.dart';
 
 class CacheManagementPage extends StatefulWidget {
   const CacheManagementPage({super.key});
@@ -20,7 +17,6 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
   int _imageCacheSize = 0;
   int _tempCacheSize = 0;
   int _logSize = 0;
-  int _scrapeCacheSize = 0;
   bool _scanning = true;
 
   @override
@@ -64,9 +60,6 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
       _logSize = await _dirSize(logDir);
       // 图片缓存通常在 temp 下
       _imageCacheSize = _tempCacheSize;
-      // 刮削元数据目录（posters/backdrops/cast/metadata）
-      final scrapeDir = Directory('${appDocDir.path}/scrape_media');
-      _scrapeCacheSize = await _dirSize(scrapeDir);
     } catch (e) {
       AppLogger.error('扫描缓存失败', error: e);
     }
@@ -114,24 +107,9 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
     await _scanCache();
   }
 
-  /// 清除 TMDB 刮削元数据缓存（P2）
-  Future<void> _clearScrapeCache(BuildContext context) async {
-    try {
-      await ScrapeService.clearCache();
-      await ScrapeMediaStore.clearCentral();
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('刮削元数据缓存已清除（含本地图片）')));
-      }
-      await _scanCache();
-    } catch (e) {
-      AppLogger.error('清除刮削缓存失败', error: e);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final total = _imageCacheSize + _logSize + _scrapeCacheSize;
+    final total = _imageCacheSize + _logSize;
     return Scaffold(
       appBar: AppBar(title: const Text('缓存管理')),
       body: _scanning
@@ -165,24 +143,6 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
                     child: const Text('清理'),
                   ),
                 ),
-                // 刮削元数据缓存（P2）
-                ListTile(
-                  leading: const Icon(Icons.cloud_download, color: Colors.purple),
-                  title: const Text('TMDB 刮削元数据'),
-                  subtitle: Text('本地视频自动匹配的海报/简介/评分（${_formatSize(_scrapeCacheSize)}）'),
-                  trailing: TextButton(
-                    onPressed: () => _clearScrapeCache(context),
-                    child: const Text('清除'),
-                  ),
-                ),
-                // TMDB API Key 配置
-                ListTile(
-                  leading: const Icon(Icons.key, color: Colors.blue),
-                  title: const Text('TMDB API Key'),
-                  subtitle: const Text('配置自己的 TMDB key（留空使用内置演示 key）'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _editTmdbKey(context),
-                ),
                 const Divider(),
                 Padding(
                   padding: const EdgeInsets.all(16),
@@ -195,34 +155,5 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
               ],
             ),
     );
-  }
-
-  Future<void> _editTmdbKey(BuildContext context) async {
-    final current = await TmdbService.getUserKey();
-    final controller = TextEditingController(text: current ?? '');
-    if (!context.mounted) return;
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('TMDB API Key'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            hintText: '输入自己的 TMDB API key',
-            helperText: '留空则恢复使用内置演示 key',
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
-          TextButton(onPressed: () => Navigator.pop(ctx, controller.text), child: const Text('保存')),
-        ],
-      ),
-    );
-    if (result != null) {
-      await TmdbService.setUserKey(result);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已保存')));
-      }
-    }
   }
 }
