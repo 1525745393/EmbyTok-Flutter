@@ -48,7 +48,8 @@ class FileSourcesView extends ConsumerWidget {
   }
 
   /// 本地文件夹源副标题：优先多文件夹 paths，回退单 path
-  String _dirSubtitle(FileSource s) {    final paths = <String>[];
+  String _dirSubtitle(FileSource s) {
+    final paths = <String>[];
     final raw = s.config['paths'];
     if (raw != null && raw.isNotEmpty) {
       paths.addAll(raw.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty));
