@@ -1,3 +1,10 @@
+## [2.372.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.372.2...v2.372.3) (2026-10-10)
+
+
+### Bug Fixes
+
+* 改进存储权限引导，未授权时打开应用详情页并提示手动找权限 ([dbbfb0e](https://github.com/1525745393/EmbyTok-Flutter/commit/dbbfb0e58b084e4a9dba724e0279525b55953166))
+
 ## [2.372.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.372.1...v2.372.2) (2026-10-10)
 
 
