@@ -325,6 +325,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                 leading: const Icon(Icons.folder, color: Colors.amber),
                 title: Text(entry.key, style: const TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: Text('${entry.value.length}集'),
+                onLongPress: () => _showGroupMenu(entry.key, groupDir[entry.key] ?? '', entry.value),
                 trailing: PopupMenuButton<String>(
                   icon: const Icon(Icons.more_horiz, size: 20),
                   onSelected: (v) => _onGroupAction(v, entry.key, groupDir[entry.key] ?? '', entry.value),
@@ -349,6 +350,40 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       separatorBuilder: (_, __) => const Divider(height: 1),
       itemBuilder: (_, i) => _buildItemTile(_items[i], i),
     );
+  }
+
+  void _showGroupMenu(String seriesName, String dirPath, List<LocalVideoItem> eps) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.search, color: Colors.green),
+              title: const Text('刮削本剧'),
+              onTap: () => Navigator.pop(context, 'scrape'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.auto_fix_high, color: Colors.green),
+              title: const Text('一键重命名集数'),
+              onTap: () => Navigator.pop(context, 'renameAll'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.folder_special),
+              title: const Text('整理文件结构'),
+              onTap: () => Navigator.pop(context, 'organize'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.drive_file_rename_outline),
+              title: const Text('重命名文件夹'),
+              onTap: () => Navigator.pop(context, 'renameFolder'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (action != null) _onGroupAction(action, seriesName, dirPath, eps);
   }
 
   Future<void> _onGroupAction(String action, String seriesName, String dirPath, List<LocalVideoItem> eps) async {
