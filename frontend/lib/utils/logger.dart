@@ -18,6 +18,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// 日志级别枚举
 enum LogLevel {
@@ -209,6 +210,13 @@ class AppLogger {
   /// 避免首次 WARN/ERROR 日志触发惰性初始化时的 I/O 延迟。
   static Future<void> init() async {
     if (_initialized) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString('log_min_level');
+      if (saved != null) {
+        _minLevel = LogLevel.values.firstWhere((l) => l.name == saved, orElse: () => _minLevel);
+      }
+    } catch (_) {}
     await _ensureLogFilePath();
   }
 
@@ -231,9 +239,13 @@ class AppLogger {
     });
   }
 
-  /// 设置最小日志级别
-  static void setMinLevel(LogLevel level) {
+  /// 设置最小日志级别（持久化到 SharedPreferences）
+  static Future<void> setMinLevel(LogLevel level) async {
     _minLevel = level;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('log_min_level', level.name);
+    } catch (_) {}
   }
 
   /// 获取当前最小日志级别
