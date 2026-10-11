@@ -1,3 +1,11 @@
+## [2.377.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.377.0...v2.377.1) (2026-10-11)
+
+
+### Bug Fixes
+
+* 修复工作流 heredoc 缩进导致 YAML 解析失败 ([14e3536](https://github.com/1525745393/EmbyTok-Flutter/commit/14e3536081379d6150009780abec25acd7ee27fd))
+* 修复工作流 YAML 多行脚本缩进问题 ([f6d2985](https://github.com/1525745393/EmbyTok-Flutter/commit/f6d2985178cefc952e9ab180ba0bb02087a41979))
+
 # [2.377.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.376.0...v2.377.0) (2026-10-11)
 
 
