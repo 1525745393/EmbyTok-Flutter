@@ -741,7 +741,7 @@ class _MirrorPickerDialogState extends State<_MirrorPickerDialog> {
                   RadioListTile<String?>(
                     value: 'direct',
                     groupValue: widget.current,
-                    leading: const Icon(Icons.public, size: 20),
+                    secondary: const Icon(Icons.public, size: 20),
                     title: const Text('原始链接（GitHub）'),
                     subtitle: Text(_results['direct'] == -1
                         ? '连接失败'

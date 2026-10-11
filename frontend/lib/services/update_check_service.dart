@@ -214,7 +214,7 @@ class UpdateCheckService {
             sendTimeout: const Duration(seconds: 5),
             receiveTimeout: const Duration(seconds: 5),
             followRedirects: false,
-            validateStatus: (s) => s < 500,
+            validateStatus: (s) => s != null && s < 500,
           ),
         );
         sw.stop();
