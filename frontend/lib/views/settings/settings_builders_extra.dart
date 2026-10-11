@@ -278,6 +278,132 @@ extension _SettingsBuilders2 on SettingsView {
     );
   }
 
+  Widget _buildDownloadMirrorTile(BuildContext context, WidgetRef ref) {
+    final svc = ref.read(updateCheckServiceProvider);
+    return FutureBuilder<String?>(
+      future: svc.getPreferredMirror(),
+      builder: (_, snap) {
+        final preferred = snap.data;
+        final subtitle = preferred == null
+            ? '自动选择（推荐）'
+            : '当前：${_mirrorLabel(preferred)}';
+        return settingsTapTile(
+          icon: Icons.download_outlined,
+          iconColor: Colors.teal,
+          title: '下载源',
+          subtitle: subtitle,
+          onTap: () => _showMirrorPicker(context, ref, svc, preferred),
+          helpText:
+              '选择 APK 下载加速镜像。\n\n· 自动模式按顺序尝试，失败自动切换\n· 手动测速后选择最快的镜像\n· 原始链接为 GitHub 官方地址',
+        );
+      },
+    );
+  }
+
+  String _mirrorLabel(String mirror) {
+    if (mirror.contains('ghfast.top')) return 'ghfast.top';
+    if (mirror.contains('gh-proxy.com')) return 'gh-proxy.com';
+    if (mirror.contains('ghproxy.net')) return 'ghproxy.net';
+    if (mirror.contains('mirror.ghproxy.com')) return 'mirror.ghproxy.com';
+    if (mirror.contains('ghps.cc')) return 'ghps.cc';
+    return mirror;
+  }
+
+  Future<void> _showMirrorPicker(
+    BuildContext context,
+    WidgetRef ref,
+    UpdateCheckService svc,
+    String? current,
+  ) async {
+    final scheme = Theme.of(context).colorScheme;
+    // 测速中
+    final results = <String, int>{};
+    final testing = ValueNotifier(true);
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialog) {
+          return AlertDialog(
+            title: const Text('选择下载源'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (testing.value)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Column(
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 16),
+                          Text('正在测速各镜像…'),
+                        ],
+                      ),
+                    )
+                  else
+                    Flexible(
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: [
+                          RadioListTile<String?>(
+                            value: null,
+                            groupValue: current,
+                            title: const Text('自动选择（推荐）'),
+                            subtitle: const Text('按顺序尝试，失败自动切换'),
+                            onChanged: (v) async {
+                              await svc.setPreferredMirror(v);
+                              if (ctx.mounted) Navigator.pop(ctx);
+                            },
+                          ),
+                          const Divider(),
+                          ...svc.allDownloadMirrors.map((m) {
+                            final ms = results[m] ?? -1;
+                            final label = ms < 0
+                                ? '连接失败'
+                                : ms < 300
+                                    ? '${ms}ms（快）'
+                                    : '${ms}ms';
+                            return RadioListTile<String?>(
+                              value: m,
+                              groupValue: current,
+                              title: Text(_mirrorLabel(m)),
+                              subtitle: Text(label),
+                              secondary: ms < 0
+                                  ? Icon(Icons.error_outline, color: scheme.error, size: 18)
+                                  : ms < 300
+                                      ? Icon(Icons.check_circle, color: Colors.green, size: 18)
+                                      : null,
+                              onChanged: (v) async {
+                                await svc.setPreferredMirror(v);
+                                if (ctx.mounted) Navigator.pop(ctx);
+                              },
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('关闭'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    // 后台测速
+    final r = await svc.testAllMirrors();
+    results.addAll(r);
+    testing.value = false;
+  }
+
   Widget _buildDonateTile(BuildContext context, WidgetRef ref) {
     return settingsTapTile(
       icon: Icons.volunteer_activism_outlined,

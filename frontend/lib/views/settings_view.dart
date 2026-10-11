@@ -22,6 +22,7 @@ import '../providers/artist_metadata_provider.dart';
 import '../providers/demo_mode_provider.dart';
 import '../providers/player_engine_provider.dart';
 import '../providers/server_registry_provider.dart';
+import '../services/update_check_service.dart';
 import '../widgets/video/playback_info_osd.dart';
 import 'settings/cache_management_page.dart';
 import 'settings/feedback_page.dart';
@@ -368,6 +369,7 @@ class SettingsView extends ConsumerWidget {
             (context, ref) => [
               _buildAboutTile(context, ref),
               _buildCheckUpdateTile(context, ref),
+              _buildDownloadMirrorTile(context, ref),
               _buildDonateTile(context, ref),
               _buildVersionTile(context, ref),
             ],

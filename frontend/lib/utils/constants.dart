@@ -48,6 +48,9 @@ const String kStorageKeyHiddenLibraryIds = 'embytok_hidden_library_ids';
 const String kStorageKeyDefaultPlaybackRate = 'embytok_default_playback_rate';
 const String kStorageKeyDefaultSubtitleLanguage =
     'embytok_default_subtitle_language';
+// 用户手动选择的下载镜像（为空则自动按顺序尝试）
+const String kStorageKeyPreferredDownloadMirror =
+    'embytok_preferred_download_mirror';
 const String kStorageKeySubtitleSize = 'embytok_subtitle_size';
 // 发现页：用户选择的 Emby 标签（Genres）id 列表（JSON 数组，账号作用域）
 const String kStorageKeyDiscoverGenres = 'embytok_discover_genres';

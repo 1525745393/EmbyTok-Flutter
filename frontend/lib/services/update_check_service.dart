@@ -189,6 +189,54 @@ class UpdateCheckService {
     'https://ghps.cc/',
   ];
 
+  /// 所有可用下载镜像（含"自动"和"原始链接"）
+  List<String> get allDownloadMirrors => _downloadMirrors;
+
+  /// 测速结果
+  ///
+  /// 对每个镜像发一个 HEAD 请求到 GitHub API，测量延迟。
+  /// 返回镜像 URL → 延迟毫秒（负数表示失败）。
+  Future<Map<String, int>> testAllMirrors() async {
+    final results = <String, int>{};
+    for (final mirror in _downloadMirrors) {
+      final sw = Stopwatch();
+      try {
+        sw.start();
+        await _dio.get(
+          '${mirror}https://api.github.com/repos/$_owner/$_repo/releases/latest',
+          options: Options(
+            method: 'HEAD',
+            sendTimeout: const Duration(seconds: 5),
+            receiveTimeout: const Duration(seconds: 5),
+          ),
+        );
+        sw.stop();
+        results[mirror] = sw.elapsedMilliseconds;
+      } catch (_) {
+        sw.stop();
+        results[mirror] = -1; // 失败
+      }
+    }
+    return results;
+  }
+
+  /// 获取用户偏好的下载镜像（为空则自动按顺序）
+  Future<String?> getPreferredMirror() async {
+    final prefs = await SharedPreferences.getInstance();
+    final v = prefs.getString(kStorageKeyPreferredDownloadMirror);
+    return (v == null || v.isEmpty) ? null : v;
+  }
+
+  /// 设置用户偏好的下载镜像
+  Future<void> setPreferredMirror(String? mirror) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mirror == null || mirror.isEmpty) {
+      await prefs.remove(kStorageKeyPreferredDownloadMirror);
+    } else {
+      await prefs.setString(kStorageKeyPreferredDownloadMirror, mirror);
+    }
+  }
+
   final Dio _dio;
 
   /// 获取最新 Release
@@ -434,10 +482,15 @@ class UpdateCheckService {
     }
 
     // GitHub 国内加速镜像列表（按优先级排序）
-    // 原始链接优先，失败后依次尝试镜像
+    // 原始链接优先，用户手动选择的镜像排最前
+    final preferred = await getPreferredMirror();
+    final orderedMirrors = <String>[
+      if (preferred != null && _downloadMirrors.contains(preferred)) preferred,
+      ..._downloadMirrors.where((m) => m != preferred),
+    ];
     final downloadUrls = <String>[
       asset.downloadUrl, // 原始 GitHub 链接
-      for (final m in _downloadMirrors) '$m${asset.downloadUrl}',
+      for (final m in orderedMirrors) '$m${asset.downloadUrl}',
     ];
 
     Object? lastError;
