@@ -297,6 +297,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                       ),
                     ),
                   ),
+                  onLongPress: () => _showLongPressMenu(first),
                   child: SizedBox(
                     width: 110,
                     child: Column(
