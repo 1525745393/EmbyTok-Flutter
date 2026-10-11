@@ -194,17 +194,20 @@ class UpdateCheckService {
 
   /// 测速结果
   ///
-  /// 对每个镜像发一个 HEAD 请求到 GitHub API，测量延迟。
-  /// 返回镜像 URL → 延迟毫秒（负数表示失败）。
+  /// 对原始 GitHub 和每个镜像发一个 HEAD 请求，测量延迟。
+  /// 返回 "direct"（原始链接）或镜像 URL → 延迟毫秒（负数表示失败）。
   Future<Map<String, int>> testAllMirrors() async {
+    final targets = <String, String>{
+      'direct': 'https://github.com',
+      for (final m in _downloadMirrors) m: m,
+    };
     final results = <String, int>{};
-    for (final mirror in _downloadMirrors) {
+    for (final entry in targets.entries) {
       final sw = Stopwatch();
       try {
         sw.start();
-        // 测试镜像服务器延迟（访问根路径，不依赖 GitHub API）
         await _dio.get(
-          mirror,
+          entry.value,
           options: Options(
             method: 'HEAD',
             sendTimeout: const Duration(seconds: 5),
@@ -214,10 +217,10 @@ class UpdateCheckService {
           ),
         );
         sw.stop();
-        results[mirror] = sw.elapsedMilliseconds;
+        results[entry.key] = sw.elapsedMilliseconds;
       } catch (_) {
         sw.stop();
-        results[mirror] = -1; // 失败
+        results[entry.key] = -1; // 失败
       }
     }
     return results;

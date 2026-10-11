@@ -717,7 +717,7 @@ class _MirrorPickerDialogState extends State<_MirrorPickerDialog> {
                   children: [
                     CircularProgressIndicator(),
                     SizedBox(height: 16),
-                    Text('正在测速各镜像…'),
+                    Text('正在测速原始链接和镜像…'),
                   ],
                 ),
               )
@@ -733,6 +733,19 @@ class _MirrorPickerDialogState extends State<_MirrorPickerDialog> {
                       await widget.svc.setPreferredMirror(v);
                       if (mounted) Navigator.pop(context);
                     },
+                  ),
+                  const Divider(),
+                  // 原始 GitHub 链接测速结果（仅展示，不可选）
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.public, size: 20),
+                    title: const Text('原始链接（GitHub）'),
+                    subtitle: Text(_results['direct'] == -1
+                        ? '连接失败'
+                        : '${_results['direct'] ?? -1}ms'),
+                    trailing: _results['direct'] == -1
+                        ? Icon(Icons.error_outline, color: scheme.error, size: 18)
+                        : const Icon(Icons.check_circle, color: Colors.green, size: 18),
                   ),
                   const Divider(),
                   ...widget.svc.allDownloadMirrors.map((m) {
