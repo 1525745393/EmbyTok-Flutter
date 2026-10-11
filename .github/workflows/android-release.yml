@@ -155,7 +155,7 @@ jobs:
 
           lzc = LanZouCloud()
           ret = lzc.login(user, pwd)
-          if ret != 0:
+          if ret != lzc.SUCCESS:
               print(f"❌ 蓝奏云登录失败 code={ret}")
               raise SystemExit(1)
           print("✅ 蓝奏云登录成功")
@@ -163,17 +163,17 @@ jobs:
           # 在根目录找或创建 EmbyTok 文件夹
           FOLDER_NAME = "EmbyTok"
           folder_id = -1
-          root = lzc.get_file_list(-1)
-          if root and root.folders:
-              for f in root.folders:
-                  if f.name == FOLDER_NAME:
-                      folder_id = f.id
-                      print(f"📁 找到已有文件夹: {FOLDER_NAME} (id={folder_id})")
-                      break
-          if folder_id == -1:
-              res = lzc.mkdir(FOLDER_NAME, pid=-1)
-              folder_id = res
-              print(f"📁 创建文件夹: {FOLDER_NAME} (id={folder_id})")
+          dirs = lzc.get_dir_list(-1)
+          existing = dirs.find_by_name(FOLDER_NAME) if dirs else None
+          if existing:
+              folder_id = existing.id
+              print(f"📁 找到已有文件夹: {FOLDER_NAME} (id={folder_id})")
+          else:
+            folder_id = lzc.mkdir(-1, FOLDER_NAME)
+            if folder_id <= 0:
+                print(f"❌ 创建文件夹失败 code={folder_id}")
+                raise SystemExit(1)
+            print(f"📁 创建文件夹: {FOLDER_NAME} (id={folder_id})")
 
           apks = sorted(glob.glob("frontend/build/app/outputs/flutter-apk/*.apk"))
           if not apks:
@@ -187,9 +187,9 @@ jobs:
                   print(f"⏭️  {name} ({size_mb:.1f}MB) 超过 100MB，跳过")
                   continue
               print(f"📤 上传 {name} ({size_mb:.1f}MB) → {FOLDER_NAME}/")
-              ret = lzc.upload(apk, pid=folder_id)
-              if ret.code != 0:
-                  print(f"❌ {name} 上传失败: {ret}")
+              ret = lzc.upload_file(apk, folder_id=folder_id)
+              if ret != lzc.SUCCESS:
+                  print(f"❌ {name} 上传失败 code={ret}")
               else:
                   print(f"✅ {name} 上传成功")
           PY
