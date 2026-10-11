@@ -158,14 +158,7 @@ jobs:
           echo "🔗 Gofile 下载链接: $DOWNLOAD_URL"
 
           # 写入 Dart 常量文件
-          python3 -c "
-import sys
-url = sys.argv[1]
-with open('frontend/lib/utils/lanzou_url.dart', 'w') as f:
-    f.write('// 本文件由 Android Release 工作流自动生成，请勿手动编辑\n')
-    f.write('// 每次发版上传备用下载链接后更新\n\n')
-    f.write(\"const String kLanzouShareUrl = '%s';\n\" % url)
-" "$DOWNLOAD_URL"
+          python3 -c "import sys; url=sys.argv[1]; open('frontend/lib/utils/lanzou_url.dart','w').write('// 本文件由 Android Release 工作流自动生成，请勿手动编辑\n// 每次发版上传备用下载链接后更新\n\nconst String kLanzouShareUrl = \'' + url + '\';\n')" "$DOWNLOAD_URL"
           echo "📝 已写入 lanzou_url.dart"
 
       - name: 提交备用下载链接回仓库
