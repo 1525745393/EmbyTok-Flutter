@@ -126,16 +126,33 @@ class ScrapeMediaStore {
           () => TmdbService.posterUrl(media.stillPath!, size: 'w300'), 'stills', '-still.jpg', 'thumb.jpg'));
     }
 
-    // 4) 演员头像
+    // 4) 演员头像：中央目录缓存 + 视频旁 actors/ 子目录（Kodi 约定）
     for (final c in media.cast) {
       final pid = c['id'];
       final profile = c['profilePath'];
+      final name = c['name'] as String?;
       if (pid != null && profile != null && profile.isNotEmpty) {
         final castDir = await _subDir('cast');
         final f = File(_join(castDir.path, '$pid.jpg'));
         if (!await f.exists()) {
           jobs.add(_downloadImage(
               TmdbService.posterUrl(profile, size: 'w185'), f.path));
+        }
+        // 同时复制到视频旁 actors/ 目录
+        if (base != null && name != null && name.isNotEmpty) {
+          jobs.add(() async {
+            try {
+              if (!await f.exists()) return;
+              final actorsDir = Directory('${File(base).parent.path}/actors');
+              if (!await actorsDir.exists()) await actorsDir.create(recursive: true);
+              // Kodi 约定：演员名.jpg
+              final safeName = name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+              final actorFile = File('${actorsDir.path}/$safeName.jpg');
+              if (!await actorFile.exists()) {
+                await actorFile.writeAsBytes(await f.readAsBytes());
+              }
+            } catch (_) {}
+          }());
         }
       }
     }
