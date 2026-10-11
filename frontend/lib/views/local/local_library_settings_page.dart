@@ -12,6 +12,7 @@ import '../../services/scrape_service.dart';
 import '../../services/scrape_media_store.dart';
 import '../../services/tmdb_service.dart';
 import '../../utils/logger.dart';
+import '../../test_mode/subpages/log_viewer_page.dart';
 import 'file_sources_view.dart';
 
 class LocalLibrarySettingsPage extends ConsumerWidget {
@@ -67,6 +68,25 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const _ScrapeHistoryPage()),
+            ),
+          ),
+          const Divider(),
+          const _SectionTitle('日志'),
+          ListTile(
+            leading: const Icon(Icons.filter_alt, color: Colors.blueGrey),
+            title: const Text('日志级别'),
+            subtitle: Text('当前: ${AppLogger.minLevel.name}'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showLogLevelPicker(context),
+          ),
+          ListTile(
+            leading: const Icon(Icons.article, color: Colors.blueGrey),
+            title: const Text('查看日志'),
+            subtitle: const Text('查看应用运行日志，便于排查问题'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LogViewerPage()),
             ),
           ),
           const Divider(),
@@ -196,6 +216,40 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
             child: const Text('退出', style: TextStyle(color: Colors.red)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showLogLevelPicker(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('日志级别', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+            for (final level in LogLevel.values)
+              ListTile(
+                title: Text(level == LogLevel.debug ? '调试（最详细）'
+                    : level == LogLevel.info ? '信息'
+                    : level == LogLevel.warn ? '警告（默认）'
+                    : '错误'),
+                trailing: AppLogger.minLevel == level ? const Icon(Icons.check, color: Colors.pink) : null,
+                onTap: () {
+                  AppLogger.setMinLevel(level);
+                  Navigator.pop(context);
+                },
+              ),
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('开启调试级别会增加日志量与存储占用，排查完请关闭。',
+                  style: TextStyle(fontSize: 12, color: Colors.grey)),
+            ),
+          ],
+        ),
       ),
     );
   }

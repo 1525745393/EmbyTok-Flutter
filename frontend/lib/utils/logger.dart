@@ -400,6 +400,12 @@ class AppLogger {
       _unflushedLines.clear();
       final path = await _ensureLogFilePath();
       final file = File(path);
+      if (await file.exists()) {
+        final size = await file.length();
+        if (size > 2 * 1024 * 1024) {
+          await file.writeAsString('');
+        }
+      }
       await file.writeAsString('${linesToWrite.join('\n')}\n',
           mode: FileMode.append);
     } catch (e) {
