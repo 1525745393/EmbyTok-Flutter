@@ -180,6 +180,7 @@ jobs:
               print("⚠️ 未找到 APK 文件")
               raise SystemExit(0)
 
+          lanzou_share_url = ""
           for apk in apks:
               size_mb = os.path.getsize(apk) / 1024 / 1024
               name = os.path.basename(apk)
@@ -187,12 +188,47 @@ jobs:
                   print(f"⏭️  {name} ({size_mb:.1f}MB) 超过 100MB，跳过")
                   continue
               print(f"📤 上传 {name} ({size_mb:.1f}MB) → {FOLDER_NAME}/")
-              ret = lzc.upload_file(apk, folder_id=folder_id)
+
+              # uploaded_handler 回调获取文件 ID
+              file_id_holder = {}
+              def on_uploaded(fid, is_file):
+                  if is_file:
+                      file_id_holder["fid"] = fid
+
+              ret = lzc.upload_file(
+                  apk,
+                  folder_id=folder_id,
+                  uploaded_handler=on_uploaded,
+              )
               if ret != lzc.SUCCESS:
                   print(f"❌ {name} 上传失败 code={ret}")
-              else:
-                  print(f"✅ {name} 上传成功")
+                  continue
+              print(f"✅ {name} 上传成功 (id={file_id_holder.get('fid')})")
+
+              # 通用包获取分享链接
+              if name == "app-release.apk" and "fid" in file_id_holder:
+                  info = lzc.get_share_info(file_id_holder["fid"])
+                  lanzou_share_url = info.url if info else ""
+                  print(f"🔗 蓝奏云分享链接: {lanzou_share_url}")
+
+          # 写入 Dart 常量文件
+          dart_file = "frontend/lib/utils/lanzou_url.dart"
+          with open(dart_file, "w") as f:
+              f.write("// 本文件由 Android Release 工作流自动生成，请勿手动编辑\n")
+              f.write("// 每次发版上传蓝奏云后更新分享链接\n\n")
+              f.write('const String kLanzouShareUrl = "%s";\n' % lanzou_share_url)
+          print(f"📝 已写入 {dart_file}: {lanzou_share_url}")
           PY
+
+      - name: 提交蓝奏云链接回仓库
+        if: success()
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add frontend/lib/utils/lanzou_url.dart
+          git diff --cached --quiet && echo "无变更" && exit 0
+          git commit -m "chore(release): 更新蓝奏云下载链接 [skip ci]"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
 
       - name: 失败时上传诊断日志
         if: failure()

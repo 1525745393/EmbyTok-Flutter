@@ -22,6 +22,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../utils/constants.dart';
+import '../utils/lanzou_url.dart';
 import '../utils/logger.dart';
 
 /// GitHub Release 信息
@@ -558,6 +559,9 @@ class UpdateCheckService {
       }
     }
     AppLogger.error('所有下载源都失败了', error: lastError);
+    if (kLanzouShareUrl.isNotEmpty) {
+      throw Exception('下载失败，请检查网络。也可通过蓝奏云手动下载：$kLanzouShareUrl');
+    }
     throw Exception('下载失败，请检查网络连接后重试');
   }
 
