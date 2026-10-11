@@ -1,3 +1,25 @@
+# [2.377.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.376.0...v2.377.0) (2026-10-11)
+
+
+### Bug Fixes
+
+* 修复 RadioListTile leading 参数和 null safety 编译错误 ([fc26497](https://github.com/1525745393/EmbyTok-Flutter/commit/fc2649775376d7aad46baa094cab669a600c4632))
+* 修复 RadioListTile 重复 secondary 参数和引号风格 ([11bb56a](https://github.com/1525745393/EmbyTok-Flutter/commit/11bb56a105b4304a33e99cdb0805f567daf46f4a))
+* 修复下载源测速弹窗不刷新和测速端点错误 ([d91bbb6](https://github.com/1525745393/EmbyTok-Flutter/commit/d91bbb66480e6a4e65c247c856d061218fc339ab))
+* 修正蓝奏云 API 调用方法名和参数顺序 ([1084283](https://github.com/1525745393/EmbyTok-Flutter/commit/1084283d7b95941d69744454d61f3b049e95566d))
+
+
+### Features
+
+* Android Release 自动上传 APK 到蓝奏云 ([29e17fc](https://github.com/1525745393/EmbyTok-Flutter/commit/29e17fced7ac85a62d45d4266598345f4e07e8c9))
+* 下载源支持手动测速并让用户选择镜像 ([6bacba9](https://github.com/1525745393/EmbyTok-Flutter/commit/6bacba98be3402a103b47203935009fa9ee7cc9b))
+* 下载源测速同时测试原始GitHub链接 ([e42323c](https://github.com/1525745393/EmbyTok-Flutter/commit/e42323c6df70150b6c0426a733c0df65da4a3ed6))
+* 原始GitHub链接可选为下载源 ([f1c0e62](https://github.com/1525745393/EmbyTok-Flutter/commit/f1c0e621e06e14d1eef8c355dec2772842d62012))
+* 检查更新失败时提供蓝奏云手动下载链接 ([065bb1a](https://github.com/1525745393/EmbyTok-Flutter/commit/065bb1a6f94745e1b76ae9f6c5e6112b73c8f705))
+* 自动更新弹窗支持直接下载安装和跳过此版本 ([51d465e](https://github.com/1525745393/EmbyTok-Flutter/commit/51d465ed63bb1fc39b2a2b66b8b4671b469001cb))
+* 蓝奏云上传到 EmbyTok 项目文件夹 ([77f05c3](https://github.com/1525745393/EmbyTok-Flutter/commit/77f05c311c2795a2e52f537976c06fad43bdc1f5))
+* 蓝奏云上传所有架构 APK ([24dd56a](https://github.com/1525745393/EmbyTok-Flutter/commit/24dd56ac7bf061087cf3ae74036b6bf484cfd4e4))
+
 # [2.376.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.375.0...v2.376.0) (2026-10-11)
 
 
