@@ -15,6 +15,7 @@ import '../utils/logger.dart';
 import 'auth_provider.dart';
 import 'cache_providers.dart';
 import 'embytok_service_provider.dart';
+import 'local_mode_provider.dart';
 
 // ============================================================
 // 状态
@@ -103,6 +104,12 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
   Future<void> loadActors({bool forceRefresh = false}) async {
     if (state.loading) return;
     if (state.hasLoaded && !forceRefresh) return;
+
+    // 本地模式：不调 Emby API
+    if (_ref.read(localModeProvider)) {
+      state = state.copyWith(loading: false, hasLoaded: true, actors: const [], total: 0);
+      return;
+    }
 
     state = state.copyWith(loading: true, error: null);
 

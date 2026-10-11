@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
 import '../services/embytok_service.dart';
 import '../utils/logger.dart';
+import 'local_mode_provider.dart';
 import 'auth_provider.dart';
 import 'cache_providers.dart';
 import 'embytok_service_provider.dart';
@@ -202,6 +203,22 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
     final serverUrl = auth.embyServerUrl;
     final token = auth.token;
     final userId = auth.user?.id;
+
+    // 本地模式：不调 Emby API，收藏页显示空状态
+    if (_ref.read(localModeProvider)) {
+      _isLoading = false;
+      state = state.copyWith(
+        isLoading: false,
+        movies: const [],
+        boxSets: const [],
+        people: const [],
+        moviesError: '本地模式暂无在线收藏',
+        boxSetsError: null,
+        peopleError: null,
+      );
+      return;
+    }
+
     if (serverUrl == null || token == null) {
       _isLoading = false;
       state = state.copyWith(isLoading: false, error: '尚未登录');
