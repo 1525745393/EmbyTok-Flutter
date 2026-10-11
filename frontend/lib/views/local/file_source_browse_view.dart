@@ -157,6 +157,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     });
     // 并发限流 4，串行避免 TMDB 限速
     const concurrency = 4;
+    final sessionId = DateTime.now().millisecondsSinceEpoch.toString();
     var i = 0;
     var success = 0;
     while (i < _items.length) {
@@ -172,16 +173,16 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           );
           if (m != null) {
             await ScrapeService.saveCache(pathHash, m);
-            await ScrapeMediaStore.save(item, m);
+            await ScrapeMediaStore.save(item, m, sessionId: sessionId);
             success++;
           } else {
             await ScrapeMediaStore.recordHistory(
-              videoPath: item.path, status: 'failed', error: '未找到匹配结果');
+              videoPath: item.path, status: 'failed', error: '未找到匹配结果', sessionId: sessionId);
           }
           } catch (e) {
             debugPrint('刮削失败 ${item.name}: $e');
             await ScrapeMediaStore.recordHistory(
-              videoPath: item.path, status: 'failed', error: e.toString());
+              videoPath: item.path, status: 'failed', error: e.toString(), sessionId: sessionId);
           }
       }));
       i += concurrency;

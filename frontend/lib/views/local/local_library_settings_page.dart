@@ -311,8 +311,13 @@ class _ScrapeHistoryPageState extends State<_ScrapeHistoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    final success = _history.where((h) => h['status'] == 'success').length;
-    final failed = _history.where((h) => h['status'] == 'failed').length;
+    // 按 sessionId 分组
+    final Map<String, List<Map<String, dynamic>>> groups = {};
+    for (final h in _history) {
+      final key = h['sessionId'] as String? ?? 'single';
+      groups.putIfAbsent(key, () => []).add(h);
+    }
+    final groupKeys = groups.keys.toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -354,55 +359,55 @@ class _ScrapeHistoryPageState extends State<_ScrapeHistoryPage> {
                     ),
                   ),
                 )
-              : Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _statChip('成功 $success', Colors.green),
-                          const SizedBox(width: 16),
-                          _statChip('失败 $failed', Colors.red),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: RefreshIndicator(
-                        onRefresh: _load,
-                        child: ListView.separated(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          itemCount: _history.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
-                        itemBuilder: (_, i) {
-                          final h = _history[i];
-                          final ok = h['status'] == 'success';
-                          final time = DateTime.tryParse(h['time'] ?? '')?.toString().substring(0, 19) ?? '';
-                          return ListTile(
-                            leading: Icon(
-                              ok ? Icons.check_circle : Icons.error,
-                              color: ok ? Colors.green : Colors.red,
-                            ),
-                            title: Text(h['file'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
-                            subtitle: Text(
-                              ok ? '${h['title'] ?? ''} (${h['year'] ?? ''})' : (h['error'] ?? '失败'),
-                              maxLines: 1, overflow: TextOverflow.ellipsis,
-                            ),
-                            trailing: Text(time, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemCount: groupKeys.length,
+                    itemBuilder: (_, gi) {
+                      final list = groups[groupKeys[gi]]!;
+                      final okCount = list.where((h) => h['status'] == 'success').length;
+                      final failCount = list.length - okCount;
+                      final firstTime = DateTime.tryParse(list.last['time'] ?? '');
+                      final lastTime = DateTime.tryParse(list.first['time'] ?? '');
+                      final duration = (firstTime != null && lastTime != null)
+                          ? lastTime.difference(firstTime)
+                          : null;
+                      final rate = list.isEmpty ? 0 : (okCount / list.length * 100).round();
+                      return Card(
+                        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        child: ExpansionTile(
+                          leading: Icon(
+                            failCount == 0 ? Icons.check_circle : Icons.warning,
+                            color: failCount == 0 ? Colors.green : Colors.orange,
+                          ),
+                          title: Text('${list.length} 个文件 · 成功 $okCount · 失败 $failCount'),
+                          subtitle: Text(
+                            '${firstTime?.toString().substring(0, 16) ?? ''} · 成功率 $rate%'
+                            '${duration != null ? ' · 耗时 ${duration.inSeconds}s' : ''}',
+                            style: const TextStyle(fontSize: 11, color: Colors.grey),
+                          ),
+                          children: list.map((h) {
+                            final ok = h['status'] == 'success';
+                            final t = DateTime.tryParse(h['time'] ?? '')?.toString().substring(11, 19) ?? '';
+                            return ListTile(
+                              dense: true,
+                              leading: Icon(ok ? Icons.check : Icons.close,
+                                  size: 16, color: ok ? Colors.green : Colors.red),
+                              title: Text(h['file'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
+                              subtitle: Text(
+                                ok ? '${h['title'] ?? ''} (${h['year'] ?? ''})' : (h['error'] ?? '失败'),
+                                maxLines: 1, overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                              trailing: Text(t, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                            );
+                          }).toList(),
+                        ),
+                      );
+                    },
+                  ),
                 ),
-    );
-  }
-
-  Widget _statChip(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-      child: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
     );
   }
 }

@@ -67,7 +67,7 @@ class ScrapeMediaStore {
   // ---- 保存 ----
   // 双写策略：中央目录（App 沙箱，一定成功）作为权威副本；
   // 视频旁 .nfo/-poster.jpg（共享存储，可能因 Android 11+ 权限失败）尽力而为。
-  static Future<void> save(LocalVideoItem item, ScrapedMedia media) async {
+  static Future<void> save(LocalVideoItem item, ScrapedMedia media, {String? sessionId}) async {
     // 1) 中央目录元数据（一定成功）
     try {
       final dir = await _subDir('metadata');
@@ -140,6 +140,7 @@ class ScrapeMediaStore {
       status: 'success',
       matchedTitle: media.title,
       matchedYear: media.year,
+      sessionId: sessionId,
     );
   }
 
@@ -245,6 +246,7 @@ class ScrapeMediaStore {
     String? matchedTitle,
     int? matchedYear,
     String? error,
+    String? sessionId,
   }) async {
     final entry = {
       'time': DateTime.now().toIso8601String(),
@@ -254,6 +256,7 @@ class ScrapeMediaStore {
       'title': matchedTitle,
       'year': matchedYear,
       'error': error,
+      if (sessionId != null) 'sessionId': sessionId,
     };
     _historyLock = _historyLock.then((_) async {
       try {
