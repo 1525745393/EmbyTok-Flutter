@@ -37,6 +37,7 @@ import '../utils/app_preferences.dart'
 import '../utils/constants.dart';
 import '../utils/donate_colors.dart';
 import '../utils/formatters.dart' show formatBytes;
+import '../utils/lanzou_url.dart';
 import '../utils/logger.dart';
 import '../utils/performance_monitor.dart';
 import '../test_mode/test_mode_switch.dart';

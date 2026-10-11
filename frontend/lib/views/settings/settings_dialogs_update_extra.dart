@@ -95,6 +95,10 @@ extension _SettingsDialogs4 on SettingsView {
           },
           secondaryActionText: '稍后再说',
           onSecondaryAction: null,
+          tertiaryActionText: kLanzouShareUrl.isNotEmpty ? '云盘下载' : null,
+          onTertiaryAction: kLanzouShareUrl.isNotEmpty
+              ? () => _launchUrl(kLanzouShareUrl, context)
+              : null,
         );
       } else {
         // 已是最新版本（fromCache 时标题区分，避免误读为实时结论）
@@ -289,6 +293,14 @@ extension _SettingsDialogs4 on SettingsView {
             onPressed: () => Navigator.pop(ctx),
             child: const Text('关闭'),
           ),
+          if (kLanzouShareUrl.isNotEmpty)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _launchUrl(kLanzouShareUrl, context);
+              },
+              child: const Text('云盘下载'),
+            ),
           FilledButton(
             onPressed: () {
               Navigator.pop(ctx);
@@ -401,6 +413,8 @@ extension _SettingsDialogs4 on SettingsView {
     VoidCallback? onAction,
     String? secondaryActionText,
     VoidCallback? onSecondaryAction,
+    String? tertiaryActionText,
+    VoidCallback? onTertiaryAction,
   }) {
     final scheme = Theme.of(context).colorScheme;
     showDialog<void>(
@@ -432,6 +446,14 @@ extension _SettingsDialogs4 on SettingsView {
           ],
         ),
         actions: [
+          if (tertiaryActionText != null)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                onTertiaryAction?.call();
+              },
+              child: Text(tertiaryActionText),
+            ),
           if (secondaryActionText != null)
             TextButton(
               onPressed: () {
