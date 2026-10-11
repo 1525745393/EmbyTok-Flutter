@@ -202,12 +202,15 @@ class UpdateCheckService {
       final sw = Stopwatch();
       try {
         sw.start();
+        // 测试镜像服务器延迟（访问根路径，不依赖 GitHub API）
         await _dio.get(
-          '${mirror}https://api.github.com/repos/$_owner/$_repo/releases/latest',
+          mirror,
           options: Options(
             method: 'HEAD',
             sendTimeout: const Duration(seconds: 5),
             receiveTimeout: const Duration(seconds: 5),
+            followRedirects: false,
+            validateStatus: (s) => s < 500,
           ),
         );
         sw.stop();

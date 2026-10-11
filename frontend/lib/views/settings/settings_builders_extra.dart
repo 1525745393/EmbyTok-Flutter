@@ -315,93 +315,10 @@ extension _SettingsBuilders2 on SettingsView {
     UpdateCheckService svc,
     String? current,
   ) async {
-    final scheme = Theme.of(context).colorScheme;
-    // 测速中
-    final results = <String, int>{};
-    final testing = ValueNotifier(true);
-
-    showDialog<void>(
+    await showDialog<void>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialog) {
-          return AlertDialog(
-            title: const Text('选择下载源'),
-            content: SizedBox(
-              width: double.maxFinite,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (testing.value)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24),
-                      child: Column(
-                        children: [
-                          CircularProgressIndicator(),
-                          SizedBox(height: 16),
-                          Text('正在测速各镜像…'),
-                        ],
-                      ),
-                    )
-                  else
-                    Flexible(
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: [
-                          RadioListTile<String?>(
-                            value: null,
-                            groupValue: current,
-                            title: const Text('自动选择（推荐）'),
-                            subtitle: const Text('按顺序尝试，失败自动切换'),
-                            onChanged: (v) async {
-                              await svc.setPreferredMirror(v);
-                              if (ctx.mounted) Navigator.pop(ctx);
-                            },
-                          ),
-                          const Divider(),
-                          ...svc.allDownloadMirrors.map((m) {
-                            final ms = results[m] ?? -1;
-                            final label = ms < 0
-                                ? '连接失败'
-                                : ms < 300
-                                    ? '${ms}ms（快）'
-                                    : '${ms}ms';
-                            return RadioListTile<String?>(
-                              value: m,
-                              groupValue: current,
-                              title: Text(_mirrorLabel(m)),
-                              subtitle: Text(label),
-                              secondary: ms < 0
-                                  ? Icon(Icons.error_outline, color: scheme.error, size: 18)
-                                  : ms < 300
-                                      ? Icon(Icons.check_circle, color: Colors.green, size: 18)
-                                      : null,
-                              onChanged: (v) async {
-                                await svc.setPreferredMirror(v);
-                                if (ctx.mounted) Navigator.pop(ctx);
-                              },
-                            );
-                          }),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('关闭'),
-              ),
-            ],
-          );
-        },
-      ),
+      builder: (_) => _MirrorPickerDialog(svc: svc, current: current),
     );
-
-    // 后台测速
-    final r = await svc.testAllMirrors();
-    results.addAll(r);
-    testing.value = false;
   }
 
   Widget _buildDonateTile(BuildContext context, WidgetRef ref) {
@@ -743,6 +660,113 @@ extension _SettingsBuilders2 on SettingsView {
           onPressed: () => _showLogoutDialog(context, ref),
         ),
       ),
+    );
+  }
+}
+
+// ==================== 下载源选择对话框 ====================
+
+class _MirrorPickerDialog extends StatefulWidget {
+  const _MirrorPickerDialog({required this.svc, required this.current});
+  final UpdateCheckService svc;
+  final String? current;
+
+  @override
+  State<_MirrorPickerDialog> createState() => _MirrorPickerDialogState();
+}
+
+class _MirrorPickerDialogState extends State<_MirrorPickerDialog> {
+  final Map<String, int> _results = {};
+  bool _testing = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _runTest();
+  }
+
+  Future<void> _runTest() async {
+    final r = await widget.svc.testAllMirrors();
+    if (!mounted) return;
+    setState(() {
+      _results.addAll(r);
+      _testing = false;
+    });
+  }
+
+  String _label(String mirror) {
+    if (mirror.contains('ghfast.top')) return 'ghfast.top';
+    if (mirror.contains('gh-proxy.com')) return 'gh-proxy.com';
+    if (mirror.contains('ghproxy.net')) return 'ghproxy.net';
+    if (mirror.contains('mirror.ghproxy.com')) return 'mirror.ghproxy.com';
+    if (mirror.contains('ghps.cc')) return 'ghps.cc';
+    return mirror;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return AlertDialog(
+      title: const Text('选择下载源'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: _testing
+            ? const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Column(
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('正在测速各镜像…'),
+                  ],
+                ),
+              )
+            : ListView(
+                shrinkWrap: true,
+                children: [
+                  RadioListTile<String?>(
+                    value: null,
+                    groupValue: widget.current,
+                    title: const Text('自动选择（推荐）'),
+                    subtitle: const Text('按顺序尝试，失败自动切换'),
+                    onChanged: (v) async {
+                      await widget.svc.setPreferredMirror(v);
+                      if (mounted) Navigator.pop(context);
+                    },
+                  ),
+                  const Divider(),
+                  ...widget.svc.allDownloadMirrors.map((m) {
+                    final ms = _results[m] ?? -1;
+                    final label = ms < 0
+                        ? '连接失败'
+                        : ms < 300
+                            ? '${ms}ms（快）'
+                            : '${ms}ms';
+                    return RadioListTile<String?>(
+                      value: m,
+                      groupValue: widget.current,
+                      title: Text(_label(m)),
+                      subtitle: Text(label),
+                      secondary: ms < 0
+                          ? Icon(Icons.error_outline, color: scheme.error, size: 18)
+                          : ms < 300
+                              ? Icon(Icons.check_circle, color: Colors.green, size: 18)
+                              : null,
+                      onChanged: (v) async {
+                        await widget.svc.setPreferredMirror(v);
+                        if (mounted) Navigator.pop(context);
+                      },
+                    );
+                  }),
+                ],
+              ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('关闭'),
+        ),
+      ],
     );
   }
 }
