@@ -311,8 +311,21 @@ class _ScrapeHistoryPageState extends State<_ScrapeHistoryPage> {
             icon: const Icon(Icons.delete_outline),
             tooltip: '清空记录',
             onPressed: () async {
-              await ScrapeMediaStore.clearHistory();
-              _load();
+              final ok = await showDialog<bool>(
+                context: context,
+                builder: (_) => AlertDialog(
+                  title: const Text('清空刮削记录？'),
+                  content: const Text('将删除全部刮削历史记录，此操作不可恢复。'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
+                    TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('清空', style: TextStyle(color: Colors.red))),
+                  ],
+                ),
+              );
+              if (ok == true) {
+                await ScrapeMediaStore.clearHistory();
+                _load();
+              }
             },
           ),
         ],
