@@ -1,3 +1,10 @@
+# [2.375.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.374.0...v2.375.0) (2026-10-11)
+
+
+### Features
+
+* 日志级别开关+文件大小上限2MB+设置页查看日志入口 ([c67de5f](https://github.com/1525745393/EmbyTok-Flutter/commit/c67de5fe3b6edec6b86da8267de0d43767c27058))
+
 # [2.374.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.373.0...v2.374.0) (2026-10-10)
 
 
