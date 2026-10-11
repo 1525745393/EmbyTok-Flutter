@@ -135,31 +135,38 @@ jobs:
           npx semantic-release
           echo "🎉 发布完成！请查看 Releases 页面下载 APK"
 
-      - name: 上传 APK 到 Gofile（备用下载）
+      - name: 上传所有 APK 到 Gofile（备用下载）
         if: success()
         continue-on-error: true
         run: |
-          echo "☁️ 上传 APK 到 Gofile..."
-          APK_FILE="frontend/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk"
-          if [ ! -f "$APK_FILE" ]; then
-            echo "⚠️ 未找到 arm64 APK，跳过"
-            exit 0
-          fi
-          SIZE=$(du -m "$APK_FILE" | cut -f1)
-          echo "📦 APK 大小: ${SIZE}MB"
+          echo "☁️ 上传所有 APK 到 Gofile..."
+          APK_DIR="frontend/build/app/outputs/flutter-apk"
+          ARM64_URL=""
 
           # 获取可用服务器
           SERVER=$(curl -s "https://api.gofile.io/servers" | python3 -c "import json,sys; print(json.load(sys.stdin)['data']['servers'][0]['name'])")
           echo "🖥️ 使用服务器: $SERVER"
 
-          # 上传
-          RESULT=$(curl -s -F "file=@${APK_FILE}" "https://${SERVER}.gofile.io/contents/uploadfile")
-          DOWNLOAD_URL=$(echo "$RESULT" | python3 -c "import json,sys; print(json.load(sys.stdin)['data']['downloadPage'])")
-          echo "🔗 Gofile 下载链接: $DOWNLOAD_URL"
+          for APK in "$APK_DIR"/app-*-release.apk; do
+            [ -f "$APK" ] || continue
+            NAME=$(basename "$APK")
+            SIZE=$(du -m "$APK" | cut -f1)
+            echo "📤 上传 $NAME (${SIZE}MB)..."
+            RESULT=$(curl -s -F "file=@${APK}" "https://${SERVER}.gofile.io/contents/uploadfile")
+            URL=$(echo "$RESULT" | python3 -c "import json,sys; print(json.load(sys.stdin)['data']['downloadPage'])" 2>/dev/null)
+            if [ -n "$URL" ]; then
+              echo "  ✅ $URL"
+              if [[ "$NAME" == *"arm64-v8a"* ]]; then
+                ARM64_URL="$URL"
+              fi
+            else
+              echo "  ❌ 上传失败"
+            fi
+          done
 
-          # 写入 Dart 常量文件
-          python3 -c "import sys; url=sys.argv[1]; open('frontend/lib/utils/lanzou_url.dart','w').write('// 本文件由 Android Release 工作流自动生成，请勿手动编辑\n// 每次发版上传备用下载链接后更新\n\nconst String kLanzouShareUrl = \'' + url + '\';\n')" "$DOWNLOAD_URL"
-          echo "📝 已写入 lanzou_url.dart"
+          # 写入 Dart 常量文件（用 arm64 链接作为主备用下载）
+          python3 -c "import sys; url=sys.argv[1]; open('frontend/lib/utils/lanzou_url.dart','w').write('// 本文件由 Android Release 工作流自动生成，请勿手动编辑\n// 每次发版上传备用下载链接后更新\n\nconst String kLanzouShareUrl = \'' + url + '\';\n')" "$ARM64_URL"
+          echo "📝 已写入 lanzou_url.dart: $ARM64_URL"
 
       - name: 提交备用下载链接回仓库
         if: success()
