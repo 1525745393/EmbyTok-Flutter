@@ -1,3 +1,10 @@
+# [2.378.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.377.2...v2.378.0) (2026-10-11)
+
+
+### Features
+
+* 检查更新弹窗添加云盘下载选项 ([e1ff0d9](https://github.com/1525745393/EmbyTok-Flutter/commit/e1ff0d9e1edb4e57371265f984d7964a55043a73))
+
 ## [2.377.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.377.1...v2.377.2) (2026-10-11)
 
 
