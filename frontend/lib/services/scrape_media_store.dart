@@ -299,6 +299,9 @@ class ScrapeMediaStore {
   /// 历史记录变更通知（刮削中实时刷新用），值为写入次数
   static final ValueNotifier<int> historyChanged = ValueNotifier<int>(0);
 
+  /// 全局刮削状态（进行中/完成），刮削记录页据此显示"进行中"横幅
+  static final ValueNotifier<bool> isScraping = ValueNotifier<bool>(false);
+
   /// 串行化历史写入，避免并发刮削时 read-modify-write 竞争丢记录
   static Future<void> _historyLock = Future.value();
 

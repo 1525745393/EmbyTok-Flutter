@@ -164,6 +164,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       _scraping = true;
       _scrapedCount = 0;
     });
+    ScrapeMediaStore.isScraping.value = true;
     // 并发限流 4，串行避免 TMDB 限速
     const concurrency = 4;
     final sessionId = DateTime.now().millisecondsSinceEpoch.toString();
@@ -197,9 +198,13 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           }
       }));
       i += concurrency;
-      if (!mounted) return;
+      if (!mounted) {
+        ScrapeMediaStore.isScraping.value = false;
+        return;
+      }
       setState(() => _scrapedCount = i > _items.length ? _items.length : i);
     }
+    ScrapeMediaStore.isScraping.value = false;
     if (mounted) {
       final cache = await ScrapeService.loadCache();
       if (!mounted) return;

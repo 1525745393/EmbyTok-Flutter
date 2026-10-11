@@ -331,16 +331,19 @@ class _ScrapeHistoryPageState extends State<_ScrapeHistoryPage> {
     super.initState();
     _load();
     ScrapeMediaStore.historyChanged.addListener(_onHistoryChanged);
+    ScrapeMediaStore.isScraping.addListener(_onScrapingChanged);
   }
 
   @override
   void dispose() {
     ScrapeMediaStore.historyChanged.removeListener(_onHistoryChanged);
+    ScrapeMediaStore.isScraping.removeListener(_onScrapingChanged);
     super.dispose();
   }
 
-  void _onHistoryChanged() {
-    _load();
+  void _onHistoryChanged() => _load();
+  void _onScrapingChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _load() async {
@@ -387,66 +390,130 @@ class _ScrapeHistoryPageState extends State<_ScrapeHistoryPage> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _history.isEmpty
-              ? RefreshIndicator(
-                  onRefresh: _load,
-                  child: const SingleChildScrollView(
-                    physics: AlwaysScrollableScrollPhysics(),
-                    child: Padding(
-                      padding: EdgeInsets.only(top: 100),
-                      child: Center(child: Text('暂无刮削记录')),
+          : Column(
+              children: [
+                if (ScrapeMediaStore.isScraping.value)
+                  Container(
+                    width: double.infinity,
+                    color: Colors.blue.withValues(alpha: 0.1),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    child: const Row(
+                      children: [
+                        SizedBox(
+                          width: 16, height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        SizedBox(width: 12),
+                        Text('正在刮削中…', style: TextStyle(fontSize: 13)),
+                      ],
                     ),
                   ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView.builder(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    itemCount: groupKeys.length,
-                    itemBuilder: (_, gi) {
-                      final list = groups[groupKeys[gi]]!;
-                      final okCount = list.where((h) => h['status'] == 'success').length;
-                      final failCount = list.length - okCount;
-                      final firstTime = DateTime.tryParse(list.last['time'] ?? '');
-                      final lastTime = DateTime.tryParse(list.first['time'] ?? '');
-                      final duration = (firstTime != null && lastTime != null)
-                          ? lastTime.difference(firstTime)
-                          : null;
-                      final rate = list.isEmpty ? 0 : (okCount / list.length * 100).round();
-                      return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        child: ExpansionTile(
-                          leading: Icon(
-                            failCount == 0 ? Icons.check_circle : Icons.warning,
-                            color: failCount == 0 ? Colors.green : Colors.orange,
+                Expanded(
+                  child: _history.isEmpty
+                      ? RefreshIndicator(
+                          onRefresh: _load,
+                          child: const SingleChildScrollView(
+                            physics: AlwaysScrollableScrollPhysics(),
+                            child: Padding(
+                              padding: EdgeInsets.only(top: 100),
+                              child: Center(child: Text('暂无刮削记录')),
+                            ),
                           ),
-                          title: Text('${list.length} 个文件 · 成功 $okCount · 失败 $failCount'),
-                          subtitle: Text(
-                            '${firstTime?.toString().substring(0, 16) ?? ''} · 成功率 $rate%'
-                            '${duration != null ? ' · 耗时 ${duration.inSeconds}s' : ''}',
-                            style: const TextStyle(fontSize: 11, color: Colors.grey),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _load,
+                          child: ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            itemCount: groupKeys.length,
+                            itemBuilder: (_, gi) {
+                              final list = groups[groupKeys[gi]]!;
+                              final okCount = list.where((h) => h['status'] == 'success').length;
+                              final failCount = list.length - okCount;
+                              final firstTime = DateTime.tryParse(list.last['time'] ?? '');
+                              final lastTime = DateTime.tryParse(list.first['time'] ?? '');
+                              final duration = (firstTime != null && lastTime != null)
+                                  ? lastTime.difference(firstTime)
+                                  : null;
+                              final rate = list.isEmpty ? 0 : (okCount / list.length * 100).round();
+                              return Card(
+                                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                child: ExpansionTile(
+                                  leading: Icon(
+                                    failCount == 0 ? Icons.check_circle : Icons.warning,
+                                    color: failCount == 0 ? Colors.green : Colors.orange,
+                                  ),
+                                  title: Text('${list.length} 个文件 · 成功 $okCount · 失败 $failCount'),
+                                  subtitle: Text(
+                                    '${firstTime?.toString().substring(0, 16) ?? ''} · 成功率 $rate%'
+                                    '${duration != null ? ' · 耗时 ${duration.inSeconds}s' : ''}',
+                                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                  ),
+                                  children: list.map((h) {
+                                    final ok = h['status'] == 'success';
+                                    final t = DateTime.tryParse(h['time'] ?? '')?.toString().substring(11, 19) ?? '';
+                                    return ListTile(
+                                      dense: true,
+                                      leading: Icon(ok ? Icons.check : Icons.close,
+                                          size: 16, color: ok ? Colors.green : Colors.red),
+                                      title: Text(h['file'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
+                                      subtitle: Text(
+                                        ok ? '${h['title'] ?? ''} (${h['year'] ?? ''})' : (h['error'] ?? '失败'),
+                                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontSize: 11),
+                                      ),
+                                      trailing: Text(t, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                                      onTap: () => _showEntryDetail(h),
+                                    );
+                                  }).toList(),
+                                ),
+                              );
+                            },
                           ),
-                          children: list.map((h) {
-                            final ok = h['status'] == 'success';
-                            final t = DateTime.tryParse(h['time'] ?? '')?.toString().substring(11, 19) ?? '';
-                            return ListTile(
-                              dense: true,
-                              leading: Icon(ok ? Icons.check : Icons.close,
-                                  size: 16, color: ok ? Colors.green : Colors.red),
-                              title: Text(h['file'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
-                              subtitle: Text(
-                                ok ? '${h['title'] ?? ''} (${h['year'] ?? ''})' : (h['error'] ?? '失败'),
-                                maxLines: 1, overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 11),
-                              ),
-                              trailing: Text(t, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                            );
-                          }).toList(),
                         ),
-                      );
-                    },
-                  ),
                 ),
+              ],
+            ),
+    );
+  }
+
+  void _showEntryDetail(Map<String, dynamic> h) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(h['file'] ?? ''),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _row('状态', h['status'] == 'success' ? '成功' : '失败'),
+            if (h['title'] != null) _row('匹配', '${h['title']} (${h['year'] ?? ''})'),
+            if (h['error'] != null) _row('错误', h['error']),
+            _row('路径', h['path'] ?? ''),
+            _row('时间', h['time'] ?? ''),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('关闭')),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 48,
+            child: Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          ),
+          Expanded(
+            child: Text(value, style: const TextStyle(fontSize: 13)),
+          ),
+        ],
+      ),
     );
   }
 }
