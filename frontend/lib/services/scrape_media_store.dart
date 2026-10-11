@@ -149,7 +149,7 @@ class ScrapeMediaStore {
             await downloadFuture;
             try {
               if (!await f.exists()) return;
-              final actorsDir = Directory('${File(base).parent.path}/actors');
+              final actorsDir = Directory('${File(base).parent.path}/.actors');
               if (!await actorsDir.exists()) await actorsDir.create(recursive: true);
               final safeName = name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
               final actorFile = File('${actorsDir.path}/$safeName.jpg');
