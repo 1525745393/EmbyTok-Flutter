@@ -134,18 +134,23 @@ class ScrapeMediaStore {
       if (pid != null && profile != null && profile.isNotEmpty) {
         final castDir = await _subDir('cast');
         final f = File(_join(castDir.path, '$pid.jpg'));
+        // 先下载到中央目录（如不存在）
+        Future<void> downloadFuture;
         if (!await f.exists()) {
-          jobs.add(_downloadImage(
-              TmdbService.posterUrl(profile, size: 'w185'), f.path));
+          downloadFuture = _downloadImage(
+              TmdbService.posterUrl(profile, size: 'w185'), f.path);
+        } else {
+          downloadFuture = Future.value();
         }
-        // 同时复制到视频旁 actors/ 目录
+        jobs.add(downloadFuture);
+        // 下载完成后复制到视频旁 actors/ 目录
         if (base != null && name != null && name.isNotEmpty) {
           jobs.add(() async {
+            await downloadFuture;
             try {
               if (!await f.exists()) return;
               final actorsDir = Directory('${File(base).parent.path}/actors');
               if (!await actorsDir.exists()) await actorsDir.create(recursive: true);
-              // Kodi 约定：演员名.jpg
               final safeName = name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
               final actorFile = File('${actorsDir.path}/$safeName.jpg');
               if (!await actorFile.exists()) {
