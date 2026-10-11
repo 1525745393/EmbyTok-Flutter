@@ -333,7 +333,16 @@ class _ScrapeHistoryPageState extends State<_ScrapeHistoryPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _history.isEmpty
-              ? const Center(child: Text('暂无刮削记录'))
+              ? RefreshIndicator(
+                  onRefresh: _load,
+                  child: const SingleChildScrollView(
+                    physics: AlwaysScrollableScrollPhysics(),
+                    child: Padding(
+                      padding: EdgeInsets.only(top: 100),
+                      child: Center(child: Text('暂无刮削记录')),
+                    ),
+                  ),
+                )
               : Column(
                   children: [
                     Padding(
@@ -348,8 +357,11 @@ class _ScrapeHistoryPageState extends State<_ScrapeHistoryPage> {
                       ),
                     ),
                     Expanded(
-                      child: ListView.separated(
-                        itemCount: _history.length,
+                      child: RefreshIndicator(
+                        onRefresh: _load,
+                        child: ListView.separated(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          itemCount: _history.length,
                         separatorBuilder: (_, __) => const Divider(height: 1),
                         itemBuilder: (_, i) {
                           final h = _history[i];
