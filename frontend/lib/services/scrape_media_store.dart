@@ -89,18 +89,25 @@ class ScrapeMediaStore {
     }
 
     // 3) 海报/背景/缩略图：先下中央目录，再尽力复制到视频旁
+    // 同时写两种命名：{视频名}-poster.jpg 和 poster.jpg（Kodi/Jellyfin 标准）
     final jobs = <Future<void>>[];
-    Future<void> dl(String? tmdbPath, String Function() url, String centralSubDir, String siblingSuffix) async {
+    Future<void> dl(String? tmdbPath, String Function() url, String centralSubDir,
+        String siblingSuffix, String standardName) async {
       if (tmdbPath == null || tmdbPath.isEmpty) return;
       final dir = await _subDir(centralSubDir);
       final centralPath = _join(dir.path, '${_safeName(item.pathHash)}.jpg');
       await _downloadImage(url(), centralPath);
       if (base != null) {
         try {
-          final f = File('$base$siblingSuffix');
-          if (!await f.exists()) {
-            final cf = File(centralPath);
-            if (await cf.exists()) await f.writeAsBytes(await cf.readAsBytes());
+          final cf = File(centralPath);
+          if (await cf.exists()) {
+            final bytes = await cf.readAsBytes();
+            // 带视频名前缀
+            final named = File('$base$siblingSuffix');
+            if (!await named.exists()) await named.writeAsBytes(bytes);
+            // Kodi/Emby 标准固定名
+            final standard = File('${File(base).parent.path}/$standardName');
+            if (!await standard.exists()) await standard.writeAsBytes(bytes);
           }
         } catch (_) {}
       }
@@ -108,15 +115,15 @@ class ScrapeMediaStore {
 
     if (media.posterPath != null && media.posterPath!.isNotEmpty) {
       jobs.add(dl(media.posterPath,
-          () => TmdbService.posterUrl(media.posterPath!, size: 'w342'), 'posters', '-poster.jpg'));
+          () => TmdbService.posterUrl(media.posterPath!, size: 'w342'), 'posters', '-poster.jpg', 'poster.jpg'));
     }
     if (media.backdropPath != null && media.backdropPath!.isNotEmpty) {
       jobs.add(dl(media.backdropPath,
-          () => TmdbService.backdropUrl(media.backdropPath!, size: 'w780'), 'backdrops', '-backdrop.jpg'));
+          () => TmdbService.backdropUrl(media.backdropPath!, size: 'w780'), 'backdrops', '-backdrop.jpg', 'fanart.jpg'));
     }
     if (media.stillPath != null && media.stillPath!.isNotEmpty) {
       jobs.add(dl(media.stillPath,
-          () => TmdbService.posterUrl(media.stillPath!, size: 'w300'), 'stills', '-still.jpg'));
+          () => TmdbService.posterUrl(media.stillPath!, size: 'w300'), 'stills', '-still.jpg', 'thumb.jpg'));
     }
 
     // 4) 演员头像
@@ -145,12 +152,18 @@ class ScrapeMediaStore {
   }
 
   // 查找本地图片文件：先视频旁，不存在则回退中央目录
-  static Future<File?> _findImage(LocalVideoItem item, String subDir, String siblingSuffix) async {
-    // 1) 视频旁
+  static Future<File?> _findImage(LocalVideoItem item, String subDir, String siblingSuffix,
+      {String? standardName}) async {
+    // 1) 视频旁：带前缀名
     final base = _siblingBase(item);
     if (base != null) {
       final sibling = File('$base$siblingSuffix');
       if (await sibling.exists() && await sibling.length() > 0) return sibling;
+      // 1b) Kodi/Emby 标准固定名
+      if (standardName != null) {
+        final standard = File('${File(base).parent.path}/$standardName');
+        if (await standard.exists() && await standard.length() > 0) return standard;
+      }
     }
     // 2) 中央目录
     final dir = await _subDir(subDir);
@@ -160,13 +173,13 @@ class ScrapeMediaStore {
   }
 
   static Future<File?> posterFile(LocalVideoItem item) async =>
-      _findImage(item, 'posters', '-poster.jpg');
+      _findImage(item, 'posters', '-poster.jpg', standardName: 'poster.jpg');
 
   static Future<File?> backdropFile(LocalVideoItem item) async =>
-      _findImage(item, 'backdrops', '-backdrop.jpg');
+      _findImage(item, 'backdrops', '-backdrop.jpg', standardName: 'fanart.jpg');
 
   static Future<File?> stillFile(LocalVideoItem item) async =>
-      _findImage(item, 'stills', '-still.jpg');
+      _findImage(item, 'stills', '-still.jpg', standardName: 'thumb.jpg');
 
   static Future<File?> castFile(int personId) async {
     final dir = await _subDir('cast');
