@@ -2529,7 +2529,11 @@ void _showCardMenu(BuildContext context, LocalVideoItem item, ScrapedMedia? s) {
             subtitle: Text(s?.title ?? item.name, maxLines: 1),
             onTap: () {
               Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => TmdbSearchPage(item: item)));
+              Navigator.push(context, MaterialPageRoute(builder: (_) => TmdbSearchPage(
+                initialQuery: s?.title ?? item.name,
+                pathHash: item.pathHash,
+                filename: item.name,
+              )));
             },
           ),
         ],

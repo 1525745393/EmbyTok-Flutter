@@ -311,7 +311,9 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           for (final entry in groups.entries)
             Card(
               margin: const EdgeInsets.only(bottom: 8),
-              child: ExpansionTile(
+              child: GestureDetector(
+                onLongPress: () => _showGroupMenu(entry.key, groupDir[entry.key] ?? '', entry.value),
+                child: ExpansionTile(
                 initiallyExpanded: _expandedFolders.contains(entry.key),
                 onExpansionChanged: (v) {
                   setState(() {
@@ -325,7 +327,6 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                 leading: const Icon(Icons.folder, color: Colors.amber),
                 title: Text(entry.key, style: const TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: Text('${entry.value.length}集'),
-                onLongPress: () => _showGroupMenu(entry.key, groupDir[entry.key] ?? '', entry.value),
                 trailing: PopupMenuButton<String>(
                   icon: const Icon(Icons.more_horiz, size: 20),
                   onSelected: (v) => _onGroupAction(v, entry.key, groupDir[entry.key] ?? '', entry.value),
@@ -340,6 +341,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                   final realIndex = _items.indexOf(it);
                   return _buildItemTile(it, realIndex < 0 ? 0 : realIndex);
                 }).toList(),
+              ),
               ),
             ),
         ],
