@@ -1,3 +1,10 @@
+## [2.377.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.377.1...v2.377.2) (2026-10-11)
+
+
+### Bug Fixes
+
+* gofile 上传改用 arm64 APK ([69912d3](https://github.com/1525745393/EmbyTok-Flutter/commit/69912d382834eb023d85c1e6193646f359189439))
+
 ## [2.377.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.377.0...v2.377.1) (2026-10-11)
 
 
