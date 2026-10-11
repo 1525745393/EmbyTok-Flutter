@@ -301,6 +301,7 @@ extension _SettingsBuilders2 on SettingsView {
   }
 
   String _mirrorLabel(String mirror) {
+    if (mirror == 'direct') return '原始链接（GitHub）';
     if (mirror.contains('ghfast.top')) return 'ghfast.top';
     if (mirror.contains('gh-proxy.com')) return 'gh-proxy.com';
     if (mirror.contains('ghproxy.net')) return 'ghproxy.net';
@@ -695,6 +696,7 @@ class _MirrorPickerDialogState extends State<_MirrorPickerDialog> {
   }
 
   String _label(String mirror) {
+    if (mirror == 'direct') return '原始链接（GitHub）';
     if (mirror.contains('ghfast.top')) return 'ghfast.top';
     if (mirror.contains('gh-proxy.com')) return 'gh-proxy.com';
     if (mirror.contains('ghproxy.net')) return 'ghproxy.net';
@@ -735,17 +737,22 @@ class _MirrorPickerDialogState extends State<_MirrorPickerDialog> {
                     },
                   ),
                   const Divider(),
-                  // 原始 GitHub 链接测速结果（仅展示，不可选）
-                  ListTile(
-                    dense: true,
+                  // 原始 GitHub 链接（可选）
+                  RadioListTile<String?>(
+                    value: 'direct',
+                    groupValue: widget.current,
                     leading: const Icon(Icons.public, size: 20),
                     title: const Text('原始链接（GitHub）'),
                     subtitle: Text(_results['direct'] == -1
                         ? '连接失败'
                         : '${_results['direct'] ?? -1}ms'),
-                    trailing: _results['direct'] == -1
+                    secondary: _results['direct'] == -1
                         ? Icon(Icons.error_outline, color: scheme.error, size: 18)
                         : const Icon(Icons.check_circle, color: Colors.green, size: 18),
+                    onChanged: (v) async {
+                      await widget.svc.setPreferredMirror(v);
+                      if (mounted) Navigator.pop(context);
+                    },
                   ),
                   const Divider(),
                   ...widget.svc.allDownloadMirrors.map((m) {
