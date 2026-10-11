@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/file_source.dart';
 import '../../models/local_video_item.dart';
@@ -123,6 +124,14 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     }
   }
 
+  /// 检查设置开关，开启时才移动失败文件
+  Future<void> _moveToFailedIfEnabled(String path) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool('move_failed_enabled') ?? false) {
+      await ScrapeMediaStore.moveToFailed(path);
+    }
+  }
+
   /// 对当前列表中未刮削的视频调用 TMDB 刮削
   Future<void> _scrapeAll() async {
     if (_items.isEmpty || _scraping) return;
@@ -178,13 +187,13 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           } else {
             await ScrapeMediaStore.recordHistory(
               videoPath: item.path, status: 'failed', error: '未找到匹配结果', sessionId: sessionId);
-            await ScrapeMediaStore.moveToFailed(item.path);
+            await _moveToFailedIfEnabled(item.path);
           }
           } catch (e) {
             debugPrint('刮削失败 ${item.name}: $e');
             await ScrapeMediaStore.recordHistory(
               videoPath: item.path, status: 'failed', error: e.toString(), sessionId: sessionId);
-            await ScrapeMediaStore.moveToFailed(item.path);
+            await _moveToFailedIfEnabled(item.path);
           }
       }));
       i += concurrency;

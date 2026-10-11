@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/file_sources_provider.dart';
@@ -70,6 +71,7 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
               MaterialPageRoute(builder: (_) => const _ScrapeHistoryPage()),
             ),
           ),
+          const _MoveFailedSwitch(),
           const Divider(),
           const _SectionTitle('日志'),
           StatefulBuilder(
@@ -272,6 +274,43 @@ class _SectionTitle extends StatelessWidget {
         title,
         style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey[600]),
       ),
+    );
+  }
+}
+
+class _MoveFailedSwitch extends StatefulWidget {
+  const _MoveFailedSwitch();
+
+  @override
+  State<_MoveFailedSwitch> createState() => _MoveFailedSwitchState();
+}
+
+class _MoveFailedSwitchState extends State<_MoveFailedSwitch> {
+  bool _value = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) setState(() => _value = prefs.getBool('move_failed_enabled') ?? false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SwitchListTile(
+      secondary: const Icon(Icons.drive_file_move, color: Colors.orange),
+      title: const Text('失败文件移入 failed/'),
+      subtitle: const Text('刮削失败的视频自动移动到同级 failed/ 文件夹'),
+      value: _value,
+      onChanged: (v) async {
+        setState(() => _value = v);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('move_failed_enabled', v);
+      },
     );
   }
 }
