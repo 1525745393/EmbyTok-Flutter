@@ -2405,6 +2405,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
             if (it.duration.inMinutes > 0) '${it.duration.inMinutes}分钟',
           ].join(' · '), style: const TextStyle(fontSize: 12)),
           onTap: () => _openPlayer(items, i),
+          onLongPress: () => _showCardMenu(context, it, s),
         );
       },
     );
@@ -2476,6 +2477,7 @@ class _GridPosterCard extends StatelessWidget {
         MaterialPageRoute<Widget>(builder: (_) => LocalDetailPage(item: item, onPlay: onPlay),
         ),
       ),
+      onLongPress: () => _showCardMenu(context, item, s),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2506,6 +2508,36 @@ class _GridPosterCard extends StatelessWidget {
   }
 }
 
+void _showCardMenu(BuildContext context, LocalVideoItem item, ScrapedMedia? s) {
+  showModalBottomSheet(
+    context: context,
+    builder: (_) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: const Text('详情'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => LocalDetailPage(item: item)));
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.search, color: Colors.green),
+            title: const Text('手动匹配 TMDB 元数据'),
+            subtitle: Text(s?.title ?? item.name, maxLines: 1),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => TmdbSearchPage(item: item)));
+            },
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 /// 横版 backdrop 卡片
 class _BackdropCard extends StatelessWidget {
   const _BackdropCard({required this.item, required this.state, this.onPlay});
@@ -2522,6 +2554,7 @@ class _BackdropCard extends StatelessWidget {
         MaterialPageRoute<Widget>(builder: (_) => LocalDetailPage(item: item, onPlay: onPlay),
         ),
       ),
+      onLongPress: () => _showCardMenu(context, item, s),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
