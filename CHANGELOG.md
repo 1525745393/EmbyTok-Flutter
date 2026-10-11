@@ -1,3 +1,35 @@
+# [2.376.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.375.0...v2.376.0) (2026-10-11)
+
+
+### Bug Fixes
+
+* moveToFailed文件名提取修正+同名文件加序号 ([2d802d5](https://github.com/1525745393/EmbyTok-Flutter/commit/2d802d5e21d2bd6f591153be1b985485fdd4963c))
+* 修复ExpansionTile不支持onLongPress和TmdbSearchPage参数错误 ([bf5e564](https://github.com/1525745393/EmbyTok-Flutter/commit/bf5e56451ea2dee418934704db588d5a861fcd09))
+* 完整列表页网格/backdrop/列表三种视图均支持长按弹出菜单 ([8f27e9a](https://github.com/1525745393/EmbyTok-Flutter/commit/8f27e9a7bfedf7a69184e557c0f6ffa8ae00b53a))
+* 日志级别选择后设置页副标题即时刷新 ([9e0271a](https://github.com/1525745393/EmbyTok-Flutter/commit/9e0271a8c61b91ddcb1afc75353c07ee9cb740aa))
+* 日志级别选择持久化到 SharedPreferences，重启后保留 ([6915e71](https://github.com/1525745393/EmbyTok-Flutter/commit/6915e711d2663d18eaf75fde72841c322af10bdd))
+* 本地模式下收藏页和演员列表不再调Emby API ([c31de3c](https://github.com/1525745393/EmbyTok-Flutter/commit/c31de3cf76226a80a5d4cb5727abec1feec18722))
+* 清空刮削记录前增加确认弹窗，防止误触 ([4cb9e97](https://github.com/1525745393/EmbyTok-Flutter/commit/4cb9e97c803897e965aa9ccf18ec2f524542f3ed))
+* 演员头像复制到actors/目录前等待下载完成，修复竞态 ([74f4091](https://github.com/1525745393/EmbyTok-Flutter/commit/74f4091dee635114bfc03e7aa55f794b2dce1d3e))
+* 演员头像目录改为.actors隐藏目录(Kodi/Plex约定) ([368eba7](https://github.com/1525745393/EmbyTok-Flutter/commit/368eba7f6f6e9cc0f74acab249775b44ffe399cb))
+* 电视剧分组文件夹长按弹出操作菜单 ([7adcd7d](https://github.com/1525745393/EmbyTok-Flutter/commit/7adcd7d39f1822776cc2398dcd02ad4e79c52c88))
+* 电视剧刮削自动剥离剧名末尾的第X季和年份，提升匹配率 ([5ade939](https://github.com/1525745393/EmbyTok-Flutter/commit/5ade93957390a6c0053a5424e1b76b76fe467811))
+* 电视剧类型海报卡片长按弹出操作菜单 ([1504b43](https://github.com/1525745393/EmbyTok-Flutter/commit/1504b4370c4722f4b8f1d34457b1dfae753d1c73))
+* 移除对void方法_showLogLevelPicker的await，修复编译错误 ([7f776dc](https://github.com/1525745393/EmbyTok-Flutter/commit/7f776dc25370144886277b8ab8184547c24af296))
+
+
+### Features
+
+* 刮削图片同时写标准命名(poster.jpg/fanart.jpg/thumb.jpg)，兼容Kodi/Emby ([9732a85](https://github.com/1525745393/EmbyTok-Flutter/commit/9732a85ffffba70f7f367dead468a26344088216))
+* 刮削失败的视频自动移动到failed/文件夹 ([f3896be](https://github.com/1525745393/EmbyTok-Flutter/commit/f3896be536f88a59c8c3b6a042844d7fc0462e3c))
+* 刮削记录按批次分组显示，参考mdcx-AI会话模式 ([c798115](https://github.com/1525745393/EmbyTok-Flutter/commit/c79811534bbff0cabdaf01e0f47d918214a100c8))
+* 刮削记录页实时刷新，后台刮削时自动更新列表 ([8ae9a13](https://github.com/1525745393/EmbyTok-Flutter/commit/8ae9a134121fe6dadf43c53119e254c8e72a732d))
+* 刮削记录页支持下拉刷新，查看最新刮削结果 ([a9be12c](https://github.com/1525745393/EmbyTok-Flutter/commit/a9be12ce79604fbf27bc2d1cc619a48cb96513e9))
+* 失败文件移动到failed/改为用户可选开关，默认关闭 ([5cf13a0](https://github.com/1525745393/EmbyTok-Flutter/commit/5cf13a097aac5b6b8f727570efe1e18e2a4ed084))
+* 日志查看器增加搜索框和模块tag筛选 ([f11a55b](https://github.com/1525745393/EmbyTok-Flutter/commit/f11a55b6c184d023c21dafb9c7f9ab4967104bbe))
+* 演员头像同时写入视频旁actors/子目录(Kodi/Jellyfin约定) ([f129373](https://github.com/1525745393/EmbyTok-Flutter/commit/f129373fc0bc66766569b74a517b5cb35577a371))
+* 电视剧刮削额外写tvshow.nfo+poster.jpg+fanart.jpg到剧集根目录 ([f8e9ad1](https://github.com/1525745393/EmbyTok-Flutter/commit/f8e9ad10014d15f621787d16962955c209c12f69))
+
 # [2.375.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.374.0...v2.375.0) (2026-10-11)
 
 
