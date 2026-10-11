@@ -81,7 +81,7 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
               subtitle: Text('当前: ${AppLogger.minLevel.name}'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () async {
-                await _showLogLevelPicker(context);
+                _showLogLevelPicker(context);
                 setLocal(() {});
               },
             ),
