@@ -18,6 +18,8 @@ class LogViewerPage extends StatefulWidget {
 
 class _LogViewerPageState extends State<LogViewerPage> {
   LogLevel? _filterLevel;
+  String? _filterTag;
+  String _search = '';
   List<String> _logs = [];
   bool _loading = true;
 
@@ -32,15 +34,34 @@ class _LogViewerPageState extends State<LogViewerPage> {
     final lines = await AppLogger.readRecentLogs(limit: 500);
     if (!mounted) return;
     setState(() {
-      _logs = lines.reversed.toList(); // 最新在前
+      _logs = lines.reversed.toList();
       _loading = false;
     });
   }
 
   List<String> get _filtered {
-    if (_filterLevel == null) return _logs;
-    final tag = _levelTag(_filterLevel!);
-    return _logs.where((l) => l.contains('[$tag]')).toList();
+    return _logs.where((l) {
+      if (_filterLevel != null && !l.contains('[${_levelTag(_filterLevel!)}]')) return false;
+      if (_filterTag != null && !l.contains('[$_filterTag]')) return false;
+      if (_search.isNotEmpty && !l.toLowerCase().contains(_search.toLowerCase())) return false;
+      return true;
+    }).toList();
+  }
+
+  /// 从日志行中提取所有出现过的模块 tag（[network]/[playback] 等）
+  List<String> get _availableTags {
+    final tags = <String>{};
+    for (final l in _logs) {
+      final matches = RegExp(r'\[(\w+)\]').allMatches(l);
+      for (final m in matches) {
+        final t = m.group(1)!;
+        // 跳过级别标签
+        if (!['DEBUG', 'INFO', 'WARN', 'ERROR', 'Breadcrumb'].contains(t)) {
+          tags.add(t);
+        }
+      }
+    }
+    return tags.toList()..sort();
   }
 
   String _levelTag(LogLevel level) => switch (level) {
@@ -114,10 +135,23 @@ class _LogViewerPageState extends State<LogViewerPage> {
       ),
       body: Column(
         children: [
+          // 搜索框
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: TextField(
+              decoration: const InputDecoration(
+                hintText: '搜索日志内容...',
+                prefixIcon: Icon(Icons.search, size: 20),
+                isDense: true,
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (v) => setState(() => _search = v),
+            ),
+          ),
           // 级别筛选栏
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Row(
               children: [
                 ChoiceChip(
@@ -136,6 +170,31 @@ class _LogViewerPageState extends State<LogViewerPage> {
               ],
             ),
           ),
+          // 模块 tag 筛选
+          if (_availableTags.isNotEmpty)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              child: Row(
+                children: [
+                  const Text('模块:', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  const SizedBox(width: 6),
+                  ChoiceChip(
+                    label: const Text('全部'),
+                    selected: _filterTag == null,
+                    onSelected: (_) => setState(() => _filterTag = null),
+                  ),
+                  for (final t in _availableTags) ...[
+                    const SizedBox(width: 4),
+                    ChoiceChip(
+                      label: Text(t),
+                      selected: _filterTag == t,
+                      onSelected: (_) => setState(() => _filterTag = t),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
