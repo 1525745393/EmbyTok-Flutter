@@ -319,7 +319,17 @@ class ScrapeMediaStore {
       final parent = f.parent;
       final failedDir = Directory('${parent.path}/failed');
       if (!await failedDir.exists()) await failedDir.create();
-      final newPath = '${failedDir.path}/${f.uri.pathSegments.last}';
+      final fileName = f.path.split('/').last;
+      var newPath = '${failedDir.path}/$fileName';
+      // 同名文件加序号
+      var i = 1;
+      while (await File(newPath).exists()) {
+        final dotIdx = fileName.lastIndexOf('.');
+        final name = dotIdx > 0 ? fileName.substring(0, dotIdx) : fileName;
+        final ext = dotIdx > 0 ? fileName.substring(dotIdx) : '';
+        newPath = '${failedDir.path}/$name ($i)$ext';
+        i++;
+      }
       await f.rename(newPath);
       AppLogger.info('已移动失败文件', tag: 'media', data: {'from': videoPath, 'to': newPath});
     } catch (e) {
