@@ -156,8 +156,15 @@ class ScrapeService {
       final episode = int.tryParse(seMatch.group(2)!);
       var title = name.substring(0, seMatch.start).trim();
       title = _cleanNoise(title);
+      // 剥离剧名末尾的"第X季"（如"庆余年第二季"→"庆余年"）
+      title = title.replaceAll(RegExp(r'第[一二三四五六七八九十\d]+季$'), '').trim();
+      // 提取年份
+      int? tvYear;
+      final yMatch = RegExp(r'(19|20)\d{2}').firstMatch(title);
+      if (yMatch != null) tvYear = int.tryParse(yMatch.group(0)!);
+      title = title.replaceAll(RegExp(r'\(?\s*(19|20)\d{2}\s*\)?'), '').trim();
       return ParsedName(
-          type: 'tv', title: title, season: season, episode: episode);
+          type: 'tv', title: title, year: tvYear, season: season, episode: episode);
     }
 
     // 剧集：1x01 / 1X01
@@ -262,7 +269,10 @@ class ScrapeService {
       }
       return cleaned;
     }
-    return segments.isNotEmpty ? _cleanNoise(segments.last.replaceAll(RegExp(r'[.\[\]_]'), ' ')) : null;
+    var last = segments.isNotEmpty ? segments.last : '';
+    last = _cleanNoise(last.replaceAll(RegExp(r'[.\[\]_]'), ' '));
+    last = last.replaceAll(RegExp(r'第[一二三四五六七八九十\d]+季$'), '').trim();
+    return last.isEmpty ? null : last;
   }
 
   /// 刮削一部电视剧（只搜一次 TMDB），返回基础元数据
