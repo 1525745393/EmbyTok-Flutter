@@ -160,22 +160,23 @@ jobs:
               raise SystemExit(1)
           print("✅ 蓝奏云登录成功")
 
-          apk = "frontend/build/app/outputs/flutter-apk/app-release.apk"
-          if not os.path.exists(apk):
-              print(f"⚠️ 未找到 {apk}")
-              raise SystemExit(0)
-          size_mb = os.path.getsize(apk) / 1024 / 1024
-          print(f"📦 APK 大小: {size_mb:.1f} MB")
-          if size_mb > 100:
-              print("⚠️ 超过蓝奏云 100MB 限制，跳过")
+          apks = sorted(glob.glob("frontend/build/app/outputs/flutter-apk/*.apk"))
+          if not apks:
+              print("⚠️ 未找到 APK 文件")
               raise SystemExit(0)
 
-          # 上传到根目录（folder_id=-1 表示根目录）
-          ret = lzc.upload(apk, pid=-1)
-          if ret.code != 0:
-              print(f"❌ 上传失败: {ret}")
-              raise SystemExit(1)
-          print(f"✅ 上传成功: {ret}")
+          for apk in apks:
+              size_mb = os.path.getsize(apk) / 1024 / 1024
+              name = os.path.basename(apk)
+              if size_mb > 100:
+                  print(f"⏭️  {name} ({size_mb:.1f}MB) 超过 100MB，跳过")
+                  continue
+              print(f"📤 上传 {name} ({size_mb:.1f}MB)...")
+              ret = lzc.upload(apk, pid=-1)
+              if ret.code != 0:
+                  print(f"❌ {name} 上传失败: {ret}")
+              else:
+                  print(f"✅ {name} 上传成功")
           PY
 
       - name: 失败时上传诊断日志
