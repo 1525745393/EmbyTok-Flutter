@@ -135,93 +135,37 @@ jobs:
           npx semantic-release
           echo "🎉 发布完成！请查看 Releases 页面下载 APK"
 
-      - name: 上传 APK 到蓝奏云
+      - name: 上传 APK 到 Gofile（备用下载）
         if: success()
         continue-on-error: true
-        env:
-          LANZOU_USER: ${{ secrets.LANZOU_USER }}
-          LANZOU_PASS: ${{ secrets.LANZOU_PASS }}
         run: |
-          echo "☁️ 上传 APK 到蓝奏云..."
-          pip install lanzou-api --quiet
-          python3 - <<'PY'
-          import os, glob
-          from lanzou.api import LanZouCloud
+          echo "☁️ 上传 APK 到 Gofile..."
+          UNIVERSAL_APK="frontend/build/app/outputs/flutter-apk/app-release.apk"
+          if [ ! -f "$UNIVERSAL_APK" ]; then
+            echo "⚠️ 未找到通用包 APK，跳过"
+            exit 0
+          fi
+          SIZE=$(du -m "$UNIVERSAL_APK" | cut -f1)
+          echo "📦 通用包大小: ${SIZE}MB"
 
-          user = os.environ["LANZOU_USER"]
-          pwd = os.environ["LANZOU_PASS"]
-          if not user or not pwd:
-              print("⚠️ 未配置 LANZOU_USER/LANZOU_PASS，跳过蓝奏云上传")
-              raise SystemExit(0)
+          # 获取可用服务器
+          SERVER=$(curl -s "https://api.gofile.io/servers" | python3 -c "import json,sys; print(json.load(sys.stdin)['data']['servers'][0]['name'])")
+          echo "🖥️ 使用服务器: $SERVER"
 
-          lzc = LanZouCloud()
-          ret = lzc.login(user, pwd)
-          if ret != lzc.SUCCESS:
-              print(f"❌ 蓝奏云登录失败 code={ret}")
-              raise SystemExit(1)
-          print("✅ 蓝奏云登录成功")
-
-          # 在根目录找或创建 EmbyTok 文件夹
-          FOLDER_NAME = "EmbyTok"
-          folder_id = -1
-          dirs = lzc.get_dir_list(-1)
-          existing = dirs.find_by_name(FOLDER_NAME) if dirs else None
-          if existing:
-              folder_id = existing.id
-              print(f"📁 找到已有文件夹: {FOLDER_NAME} (id={folder_id})")
-          else:
-            folder_id = lzc.mkdir(-1, FOLDER_NAME)
-            if folder_id <= 0:
-                print(f"❌ 创建文件夹失败 code={folder_id}")
-                raise SystemExit(1)
-            print(f"📁 创建文件夹: {FOLDER_NAME} (id={folder_id})")
-
-          apks = sorted(glob.glob("frontend/build/app/outputs/flutter-apk/*.apk"))
-          if not apks:
-              print("⚠️ 未找到 APK 文件")
-              raise SystemExit(0)
-
-          lanzou_share_url = ""
-          for apk in apks:
-              size_mb = os.path.getsize(apk) / 1024 / 1024
-              name = os.path.basename(apk)
-              if size_mb > 100:
-                  print(f"⏭️  {name} ({size_mb:.1f}MB) 超过 100MB，跳过")
-                  continue
-              print(f"📤 上传 {name} ({size_mb:.1f}MB) → {FOLDER_NAME}/")
-
-              # uploaded_handler 回调获取文件 ID
-              file_id_holder = {}
-              def on_uploaded(fid, is_file):
-                  if is_file:
-                      file_id_holder["fid"] = fid
-
-              ret = lzc.upload_file(
-                  apk,
-                  folder_id=folder_id,
-                  uploaded_handler=on_uploaded,
-              )
-              if ret != lzc.SUCCESS:
-                  print(f"❌ {name} 上传失败 code={ret}")
-                  continue
-              print(f"✅ {name} 上传成功 (id={file_id_holder.get('fid')})")
-
-              # 通用包获取分享链接
-              if name == "app-release.apk" and "fid" in file_id_holder:
-                  info = lzc.get_share_info(file_id_holder["fid"])
-                  lanzou_share_url = info.url if info else ""
-                  print(f"🔗 蓝奏云分享链接: {lanzou_share_url}")
+          # 上传
+          RESULT=$(curl -s -F "file=@${UNIVERSAL_APK}" "https://${SERVER}.gofile.io/contents/uploadfile")
+          DOWNLOAD_URL=$(echo "$RESULT" | python3 -c "import json,sys; print(json.load(sys.stdin)['data']['downloadPage'])")
+          echo "🔗 Gofile 下载链接: $DOWNLOAD_URL"
 
           # 写入 Dart 常量文件
-          dart_file = "frontend/lib/utils/lanzou_url.dart"
-          with open(dart_file, "w") as f:
-              f.write("// 本文件由 Android Release 工作流自动生成，请勿手动编辑\n")
-              f.write("// 每次发版上传蓝奏云后更新分享链接\n\n")
-              f.write("const String kLanzouShareUrl = '%s';\n" % lanzou_share_url)
-          print(f"📝 已写入 {dart_file}: {lanzou_share_url}")
-          PY
+          cat > frontend/lib/utils/lanzou_url.dart <<DART
+// 本文件由 Android Release 工作流自动生成，请勿手动编辑
+// 每次发版上传备用下载链接后更新
+const String kLanzouShareUrl = '$DOWNLOAD_URL';
+DART
+          echo "📝 已写入 lanzou_url.dart"
 
-      - name: 提交蓝奏云链接回仓库
+      - name: 提交备用下载链接回仓库
         if: success()
         continue-on-error: true
         run: |
@@ -229,7 +173,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git add frontend/lib/utils/lanzou_url.dart
           git diff --cached --quiet && echo "无变更" && exit 0
-          git commit -m "chore(release): 更新蓝奏云下载链接 [skip ci]"
+          git commit -m "chore(release): 更新备用下载链接 [skip ci]"
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
 
       - name: 失败时上传诊断日志
