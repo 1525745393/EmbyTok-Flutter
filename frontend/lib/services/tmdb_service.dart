@@ -154,14 +154,31 @@ class TmdbService {
     if (!isConfigured || query.isEmpty) return [];
     try {
       final encoded = Uri.encodeQueryComponent(query);
-      final yp = year != null ? '&year=$year' : '';
+      List<Map<String, dynamic>> results;
+      if (year != null) {
+        final yp = '&year=$year';
+        final r = await http
+            .get(Uri.parse(
+                '$_base/search/movie?api_key=$_apiKey&query=$encoded$yp&language=$language&include_adult=false'))
+            .timeout(const Duration(seconds: 6));
+        if (r.statusCode == 200) {
+          final data = jsonDecode(r.body);
+          results = (data['results'] as List? ?? [])
+              .map((m) => m as Map<String, dynamic>)
+              .toList();
+          if (results.isNotEmpty) return results;
+        }
+      }
       final r = await http
-          .get(Uri.parse('$_base/search/movie?api_key=$_apiKey&query=$encoded$yp&language=$language&include_adult=false'))
+          .get(Uri.parse(
+              '$_base/search/movie?api_key=$_apiKey&query=$encoded&language=$language&include_adult=false'))
           .timeout(const Duration(seconds: 6));
       if (r.statusCode != 200) return [];
       final data = jsonDecode(r.body);
-      final results = data['results'] as List? ?? [];
-      return results.map((m) => m as Map<String, dynamic>).toList();
+      results = (data['results'] as List? ?? [])
+          .map((m) => m as Map<String, dynamic>)
+          .toList();
+      return results;
     } catch (_) {
       return [];
     }
@@ -279,15 +296,33 @@ class TmdbService {
     if (!isConfigured || query.isEmpty) return [];
     try {
       final encoded = Uri.encodeQueryComponent(query);
-      final yp = year != null ? '&first_air_date_year=$year' : '';
+      List<Map<String, dynamic>> results;
+      // 第一次：带年份精确过滤
+      if (year != null) {
+        final yp = '&first_air_date_year=$year';
+        final r = await http
+            .get(Uri.parse(
+                '$_base/search/tv?api_key=$_apiKey&query=$encoded$yp&language=zh-CN'))
+            .timeout(const Duration(seconds: 6));
+        if (r.statusCode == 200) {
+          final data = jsonDecode(r.body);
+          results = (data['results'] as List? ?? [])
+              .map((m) => m as Map<String, dynamic>)
+              .toList();
+          if (results.isNotEmpty) return results;
+        }
+      }
+      // 第二次：去掉年份重试（避免首播日期不精确导致漏搜）
       final r = await http
           .get(Uri.parse(
-              '$_base/search/tv?api_key=$_apiKey&query=$encoded$yp&language=zh-CN'))
+              '$_base/search/tv?api_key=$_apiKey&query=$encoded&language=zh-CN'))
           .timeout(const Duration(seconds: 6));
       if (r.statusCode != 200) return [];
       final data = jsonDecode(r.body);
-      final results = data['results'] as List? ?? [];
-      return results.map((m) => m as Map<String, dynamic>).toList();
+      results = (data['results'] as List? ?? [])
+          .map((m) => m as Map<String, dynamic>)
+          .toList();
+      return results;
     } catch (_) {
       return [];
     }
