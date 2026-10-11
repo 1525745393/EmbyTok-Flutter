@@ -11,6 +11,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/synology_auth_provider.dart';
@@ -76,12 +77,29 @@ class _MainViewState extends ConsumerState<MainView> {
       if (shown == result.latestRelease!.version) return;
       if (!mounted) return;
       final v = result.latestRelease!;
+      // 跳过此版本：用户主动忽略后不再弹
+      final skipped = prefs.getString('update_skipped_ver') ?? '';
+      if (skipped == v.version) return;
+      if (!mounted) return;
+      // 查找 APK 附件
+      final apkAssets = v.assets.where((a) => a.isApk).toList();
       showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
           title: Text('发现新版本 v${v.version}'),
-          content: const Text('有可用更新，前往设置检查更新并下载安装。'),
+          content: Text(
+            '有可用更新。\n\n${v.body.isNotEmpty ? v.body : v.name}',
+            maxLines: 8,
+            overflow: TextOverflow.ellipsis,
+          ),
           actions: [
+            TextButton(
+              onPressed: () {
+                prefs.setString('update_skipped_ver', v.version);
+                Navigator.pop(ctx);
+              },
+              child: const Text('跳过此版本'),
+            ),
             TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: const Text('稍后'),
@@ -90,9 +108,14 @@ class _MainViewState extends ConsumerState<MainView> {
               onPressed: () {
                 prefs.setString('update_shown_ver', v.version);
                 Navigator.pop(ctx);
-                context.push('/settings');
+                if (apkAssets.isNotEmpty) {
+                  // 直接开始下载
+                  _directDownload(v, apkAssets.first);
+                } else {
+                  context.push('/settings');
+                }
               },
-              child: const Text('去更新'),
+              child: Text(apkAssets.isNotEmpty ? '下载安装' : '去更新'),
             ),
           ],
         ),
@@ -100,6 +123,99 @@ class _MainViewState extends ConsumerState<MainView> {
     } catch (_) {
       // 静默检查失败不打扰用户
     }
+  }
+
+  /// 直接下载 APK（从启动弹窗触发）
+  void _directDownload(ReleaseInfo release, ReleaseAsset apkAsset) {
+    final scheme = Theme.of(context).colorScheme;
+    final updateService = ref.read(updateCheckServiceProvider);
+    final progress = ValueNotifier<double>(0);
+    final status = ValueNotifier<String>('准备下载...');
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          try {
+            final savePath = await updateService.downloadApk(
+              apkAsset,
+              version: release.version,
+              onProgress: (p) {
+                progress.value = p;
+                status.value = p >= 0
+                    ? '${(p * 100).toStringAsFixed(0)}%'
+                    : '下载中...';
+              },
+              expectedSha256: release.sha256Digest,
+            );
+            if (!ctx.mounted) return;
+            Navigator.pop(ctx);
+            // 下载完成，弹窗提示安装
+            showDialog<void>(
+              context: context,
+              builder: (ic) => AlertDialog(
+                title: const Text('下载完成'),
+                content: Text('版本 ${release.version} 已下载完成，是否立即安装？'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ic),
+                    child: const Text('稍后安装'),
+                  ),
+                  FilledButton(
+                    onPressed: () {
+                      Navigator.pop(ic);
+                      // 安装 APK
+                      OpenFilex.open(savePath,
+                          type: 'application/vnd.android.package-archive');
+                    },
+                    child: const Text('立即安装'),
+                  ),
+                ],
+              ),
+            );
+          } catch (e) {
+            if (!ctx.mounted) return;
+            Navigator.pop(ctx);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('下载失败：$e'), backgroundColor: scheme.error),
+            );
+          }
+        });
+        return AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.downloading, size: 28, color: scheme.primary),
+                  const SizedBox(width: 12),
+                  const Text('正在下载更新', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                ],
+              ),
+              const SizedBox(height: 20),
+              ValueListenableBuilder<double>(
+                valueListenable: progress,
+                builder: (_, p, __) => LinearProgressIndicator(value: p > 0 ? p : null),
+              ),
+              const SizedBox(height: 12),
+              ValueListenableBuilder<String>(
+                valueListenable: status,
+                builder: (_, s, __) => Text(s, style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('取消'),
+            ),
+          ],
+        );
+      },
+    ).then((_) {
+      progress.dispose();
+      status.dispose();
+    });
   }
 
   @override
