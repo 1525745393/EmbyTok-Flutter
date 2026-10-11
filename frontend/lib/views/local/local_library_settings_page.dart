@@ -72,12 +72,17 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
           ),
           const Divider(),
           const _SectionTitle('日志'),
-          ListTile(
-            leading: const Icon(Icons.filter_alt, color: Colors.blueGrey),
-            title: const Text('日志级别'),
-            subtitle: Text('当前: ${AppLogger.minLevel.name}'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showLogLevelPicker(context),
+          StatefulBuilder(
+            builder: (context, setLocal) => ListTile(
+              leading: const Icon(Icons.filter_alt, color: Colors.blueGrey),
+              title: const Text('日志级别'),
+              subtitle: Text('当前: ${AppLogger.minLevel.name}'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () async {
+                await _showLogLevelPicker(context);
+                setLocal(() {});
+              },
+            ),
           ),
           ListTile(
             leading: const Icon(Icons.article, color: Colors.blueGrey),
