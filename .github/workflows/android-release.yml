@@ -135,6 +135,49 @@ jobs:
           npx semantic-release
           echo "🎉 发布完成！请查看 Releases 页面下载 APK"
 
+      - name: 上传 APK 到蓝奏云
+        if: success()
+        env:
+          LANZOU_USER: ${{ secrets.LANZOU_USER }}
+          LANZOU_PASS: ${{ secrets.LANZOU_PASS }}
+        run: |
+          echo "☁️ 上传 APK 到蓝奏云..."
+          pip install lanzou-api --quiet
+          python3 - <<'PY'
+          import os, glob
+          from lanzou.api import LanZouCloud
+
+          user = os.environ["LANZOU_USER"]
+          pwd = os.environ["LANZOU_PASS"]
+          if not user or not pwd:
+              print("⚠️ 未配置 LANZOU_USER/LANZOU_PASS，跳过蓝奏云上传")
+              raise SystemExit(0)
+
+          lzc = LanZouCloud()
+          ret = lzc.login(user, pwd)
+          if ret != 0:
+              print(f"❌ 蓝奏云登录失败 code={ret}")
+              raise SystemExit(1)
+          print("✅ 蓝奏云登录成功")
+
+          apk = "frontend/build/app/outputs/flutter-apk/app-release.apk"
+          if not os.path.exists(apk):
+              print(f"⚠️ 未找到 {apk}")
+              raise SystemExit(0)
+          size_mb = os.path.getsize(apk) / 1024 / 1024
+          print(f"📦 APK 大小: {size_mb:.1f} MB")
+          if size_mb > 100:
+              print("⚠️ 超过蓝奏云 100MB 限制，跳过")
+              raise SystemExit(0)
+
+          # 上传到根目录（folder_id=-1 表示根目录）
+          ret = lzc.upload(apk, pid=-1)
+          if ret.code != 0:
+              print(f"❌ 上传失败: {ret}")
+              raise SystemExit(1)
+          print(f"✅ 上传成功: {ret}")
+          PY
+
       - name: 失败时上传诊断日志
         if: failure()
         uses: actions/upload-artifact@v4
