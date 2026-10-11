@@ -1,3 +1,10 @@
+# [2.379.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.378.0...v2.379.0) (2026-10-11)
+
+
+### Features
+
+* 刮削记录页添加进行中横幅和条目详情 ([71c0d1b](https://github.com/1525745393/EmbyTok-Flutter/commit/71c0d1b254bb4daca3d7f58662dbad293caa2422))
+
 # [2.378.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.377.2...v2.378.0) (2026-10-11)
 
 
