@@ -311,6 +311,22 @@ class ScrapeMediaStore {
     await _historyLock;
   }
 
+  /// 刮削失败后将视频文件移动到同级 failed/ 文件夹
+  static Future<void> moveToFailed(String videoPath) async {
+    try {
+      final f = File(videoPath);
+      if (!await f.exists()) return;
+      final parent = f.parent;
+      final failedDir = Directory('${parent.path}/failed');
+      if (!await failedDir.exists()) await failedDir.create();
+      final newPath = '${failedDir.path}/${f.uri.pathSegments.last}';
+      await f.rename(newPath);
+      AppLogger.info('已移动失败文件', tag: 'media', data: {'from': videoPath, 'to': newPath});
+    } catch (e) {
+      AppLogger.warn('移动失败文件出错', tag: 'media', data: {'error': e.toString()});
+    }
+  }
+
   static Future<List<Map<String, dynamic>>> loadHistory() async {
     try {
       final f = await _historyPath();

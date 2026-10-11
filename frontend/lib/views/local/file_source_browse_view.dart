@@ -178,11 +178,13 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           } else {
             await ScrapeMediaStore.recordHistory(
               videoPath: item.path, status: 'failed', error: '未找到匹配结果', sessionId: sessionId);
+            await ScrapeMediaStore.moveToFailed(item.path);
           }
           } catch (e) {
             debugPrint('刮削失败 ${item.name}: $e');
             await ScrapeMediaStore.recordHistory(
               videoPath: item.path, status: 'failed', error: e.toString(), sessionId: sessionId);
+            await ScrapeMediaStore.moveToFailed(item.path);
           }
       }));
       i += concurrency;
