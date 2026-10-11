@@ -291,6 +291,17 @@ class _ScrapeHistoryPageState extends State<_ScrapeHistoryPage> {
   void initState() {
     super.initState();
     _load();
+    ScrapeMediaStore.historyChanged.addListener(_onHistoryChanged);
+  }
+
+  @override
+  void dispose() {
+    ScrapeMediaStore.historyChanged.removeListener(_onHistoryChanged);
+    super.dispose();
+  }
+
+  void _onHistoryChanged() {
+    _load();
   }
 
   Future<void> _load() async {

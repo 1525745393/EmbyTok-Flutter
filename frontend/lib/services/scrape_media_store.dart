@@ -228,6 +228,9 @@ class ScrapeMediaStore {
   static const _historyFile = 'scrape_history.json';
   static const _maxHistory = 500;
 
+  /// 历史记录变更通知（刮削中实时刷新用），值为写入次数
+  static final ValueNotifier<int> historyChanged = ValueNotifier<int>(0);
+
   /// 串行化历史写入，避免并发刮削时 read-modify-write 竞争丢记录
   static Future<void> _historyLock = Future.value();
 
@@ -262,6 +265,7 @@ class ScrapeMediaStore {
         list.insert(0, entry);
         if (list.length > _maxHistory) list = list.sublist(0, _maxHistory);
         await f.writeAsString(jsonEncode(list));
+        historyChanged.value++;
       } catch (e) {
         AppLogger.warn('写刮削历史失败', data: {'error': e.toString()});
       }
@@ -282,6 +286,7 @@ class ScrapeMediaStore {
     try {
       final f = await _historyPath();
       if (await f.exists()) await f.delete();
+      historyChanged.value++;
     } catch (_) {}
   }
 
