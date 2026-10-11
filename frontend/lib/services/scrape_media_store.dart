@@ -88,6 +88,38 @@ class ScrapeMediaStore {
       }
     }
 
+    // 2b) 电视剧：额外写 show 级别元数据到剧集根目录
+    if (media.type == 'tv' && base != null) {
+      try {
+        final episodeDir = File(base).parent; // Season 目录
+        final showDir = episodeDir.parent;     // 剧集根目录
+        // tvshow.nfo（show 级别，非 episodedetails）
+        final showNfo = File('${showDir.path}/tvshow.nfo');
+        if (!await showNfo.exists()) {
+          await showNfo.writeAsString(_buildShowNfo(media));
+        }
+        // poster.jpg / fanart.jpg 写到剧集根目录
+        if (media.posterPath != null && media.posterPath!.isNotEmpty) {
+          final centralDir = await _subDir('posters');
+          final centralPoster = File(_join(centralDir.path, '${_safeName(item.pathHash)}.jpg'));
+          if (await centralPoster.exists()) {
+            final dst = File('${showDir.path}/poster.jpg');
+            if (!await dst.exists()) await dst.writeAsBytes(await centralPoster.readAsBytes());
+          }
+        }
+        if (media.backdropPath != null && media.backdropPath!.isNotEmpty) {
+          final centralDir = await _subDir('backdrops');
+          final centralBackdrop = File(_join(centralDir.path, '${_safeName(item.pathHash)}.jpg'));
+          if (await centralBackdrop.exists()) {
+            final dst = File('${showDir.path}/fanart.jpg');
+            if (!await dst.exists()) await dst.writeAsBytes(await centralBackdrop.readAsBytes());
+          }
+        }
+      } catch (e) {
+        AppLogger.warn('写 show 级别元数据失败', data: {'error': e.toString()});
+      }
+    }
+
     // 3) 海报/背景/缩略图：先下中央目录，再尽力复制到视频旁
     // 同时写两种命名：{视频名}-poster.jpg 和 poster.jpg（Kodi/Jellyfin 标准）
     final jobs = <Future<void>>[];
@@ -405,20 +437,28 @@ class ScrapeMediaStore {
 
   /// 生成 Kodi/Emby/Jellyfin 兼容的 XML NFO
   static String _buildXmlNfo(ScrapedMedia m) {
+    return _buildNfo(m, isShow: false);
+  }
+
+  /// 构建 tvshow.nfo（show 级别，根节点 <tvshow>）
+  static String _buildShowNfo(ScrapedMedia m) {
+    return _buildNfo(m, isShow: true);
+  }
+
+  static String _buildNfo(ScrapedMedia m, {required bool isShow}) {
     String esc(String? s) => (s ?? '')
         .replaceAll('&', '&amp;')
         .replaceAll('<', '&lt;')
         .replaceAll('>', '&gt;')
         .replaceAll('"', '&quot;');
-    final isTv = m.type == 'tv';
-    final root = isTv ? 'episodedetails' : 'movie';
+    final root = isShow ? 'tvshow' : (m.type == 'tv' ? 'episodedetails' : 'movie');
     final sb = StringBuffer('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<$root>\n');
-    // TV: <showtitle> 是剧名，<title> 是单集标题（Kodi/Emby 标准）
-    if (isTv) sb.writeln('  <showtitle>${esc(m.title)}</showtitle>');
-    sb.writeln('  <title>${esc(m.episodeTitle ?? m.title)}</title>');
-    if (!isTv && m.year != null) sb.writeln('  <year>${m.year}</year>');
-    if (isTv && m.season != null) sb.writeln('  <season>${m.season}</season>');
-    if (isTv && m.episode != null) sb.writeln('  <episode>${m.episode}</episode>');
+    if (!isShow && m.type == 'tv') sb.writeln('  <showtitle>${esc(m.title)}</showtitle>');
+    sb.writeln('  <title>${esc(isShow ? m.title : (m.episodeTitle ?? m.title))}</title>');
+    if (!isShow && m.type != 'tv' && m.year != null) sb.writeln('  <year>${m.year}</year>');
+    if (isShow && m.year != null) sb.writeln('  <premiered>${m.year}-01-01</premiered>');
+    if (!isShow && m.type == 'tv' && m.season != null) sb.writeln('  <season>${m.season}</season>');
+    if (!isShow && m.type == 'tv' && m.episode != null) sb.writeln('  <episode>${m.episode}</episode>');
     if (m.rating != null) sb.writeln('  <rating>${m.rating}</rating>');
     if (m.overview != null && m.overview!.isNotEmpty) {
       sb.writeln('  <plot>${esc(m.overview)}</plot>');
