@@ -1,3 +1,10 @@
+# [2.380.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.379.3...v2.380.0) (2026-10-12)
+
+
+### Features
+
+* 后台自动刮削单独记录历史，失败也记录 ([a7a8109](https://github.com/1525745393/EmbyTok-Flutter/commit/a7a8109f5ee47829f18ecd974c798d58ba717f68))
+
 ## [2.379.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.379.2...v2.379.3) (2026-10-12)
 
 
