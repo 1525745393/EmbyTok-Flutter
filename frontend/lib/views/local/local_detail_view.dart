@@ -194,6 +194,19 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                           ),
                         ),
                         const SizedBox(height: 4),
+                        // 电视剧：显示 S01E01 · 单集标题
+                        if (scraped?.type == 'tv' && scraped?.season != null && scraped?.episode != null)
+                          Text(
+                            'S${scraped!.season!.toString().padLeft(2, '0')}E${scraped.episode!.toString().padLeft(2, '0')}'
+                            '${scraped.episodeTitle != null && scraped.episodeTitle!.isNotEmpty ? ' · ${scraped.episodeTitle}' : ''}',
+                            style: const TextStyle(
+                              color: Colors.pinkAccent,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              shadows: [Shadow(blurRadius: 4, color: Colors.black54)],
+                            ),
+                          ),
+                        const SizedBox(height: 4),
                         Text(
                           '${scraped?.year ?? ''} · ${widget.item.durationLabel}${scraped?.rating != null ? ' · ★${scraped!.rating!.toStringAsFixed(1)}' : ''}',
                           style: const TextStyle(color: Colors.white70, fontSize: 13),
@@ -300,20 +313,29 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        // 缩略图（点击放大）
+                        // 缩略图（点击放大）：电视剧优先显示单集剧照 stillPath
                         Expanded(
-                          child: GestureDetector(
-                            onTap: scraped.backdropPath != null
-                                ? () => _openImageViewer(context, TmdbService.backdropUrl(scraped.backdropPath!))
-                                : null,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: scraped.backdropPath != null
-                                  ? CachedNetworkImage(
-                                      imageUrl: TmdbService.backdropUrl(scraped.backdropPath!),
-                                      height: 135,
-                                      fit: BoxFit.cover,
-                                      errorWidget: (_, __, ___) => Container(
+                          child: Builder(builder: (_) {
+                            final mediaPath = scraped!.type == 'tv' && scraped!.stillPath != null && scraped!.stillPath!.isNotEmpty
+                                ? scraped!.stillPath
+                                : scraped.backdropPath;
+                            return GestureDetector(
+                              onTap: mediaPath != null
+                                  ? () => _openImageViewer(context,
+                                      scraped!.type == 'tv' && scraped!.stillPath != null
+                                          ? TmdbService.posterUrl(scraped!.stillPath!)
+                                          : TmdbService.backdropUrl(scraped.backdropPath!))
+                                  : null,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: mediaPath != null
+                                    ? CachedNetworkImage(
+                                        imageUrl: scraped!.type == 'tv' && scraped!.stillPath != null
+                                            ? TmdbService.posterUrl(scraped!.stillPath!)
+                                            : TmdbService.backdropUrl(scraped.backdropPath!),
+                                        height: 135,
+                                        fit: BoxFit.cover,
+                                        errorWidget: (_, __, ___) => Container(
                                         height: 135,
                                         color: scheme.surfaceContainerHighest,
                                       ),
@@ -324,6 +346,8 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                                     ),
                             ),
                           ),
+                          );
+                        }),
                         ),
                       ],
                     ),
