@@ -1,3 +1,11 @@
+## [2.384.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.384.0...v2.384.1) (2026-10-12)
+
+
+### Bug Fixes
+
+* .nfo 写入全部演员；修复角色名 key 不匹配；详情页海报走本地文件优先 ([c3db06c](https://github.com/1525745393/EmbyTok-Flutter/commit/c3db06c4323a14047030aa3fef60365a8a888092))
+* 修复 scraped 空安全导致的编译错误 ([fa6358b](https://github.com/1525745393/EmbyTok-Flutter/commit/fa6358b7fd73b9a08fe49ac55b394a5a8b9ed07d))
+
 # [2.384.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.383.0...v2.384.0) (2026-10-12)
 
 
