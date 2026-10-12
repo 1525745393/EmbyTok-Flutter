@@ -52,7 +52,7 @@ class TmdbService {
     if (!isConfigured) return null;
     try {
       final r = await http
-          .get(Uri.parse('$_base/person/$personId?api_key=$_apiKey'));
+          .get(Uri.parse('$_base/person/$personId?api_key=$_apiKey&language=zh-CN'));
       if (r.statusCode == 200) return jsonDecode(r.body) as Map<String, dynamic>;
     } catch (_) {}
     return null;
@@ -63,7 +63,7 @@ class TmdbService {
     if (!isConfigured) return null;
     try {
       final r = await http
-          .get(Uri.parse('$_base/person/$personId/combined_credits?api_key=$_apiKey'));
+          .get(Uri.parse('$_base/person/$personId/combined_credits?api_key=$_apiKey&language=zh-CN'));
       if (r.statusCode == 200) return jsonDecode(r.body) as Map<String, dynamic>;
     } catch (_) {}
     return null;
