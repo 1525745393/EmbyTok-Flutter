@@ -487,6 +487,12 @@ class ScrapeMediaStore {
       sb.writeln('  <actor>');
       sb.writeln('    <name>${esc(c['name'])}</name>');
       sb.writeln('    <role>${esc(c['role'])}</role>');
+      if (c['id'] != null && c['id'].isNotEmpty) {
+        sb.writeln('    <id>${esc(c['id'])}</id>');
+      }
+      if (c['profilePath'] != null && c['profilePath'].isNotEmpty) {
+        sb.writeln('    <thumb>${esc(c['profilePath'])}</thumb>');
+      }
       sb.writeln('  </actor>');
     }
     sb.writeln('</$root>');
@@ -524,8 +530,15 @@ class ScrapeMediaStore {
       final block = m.group(1) ?? '';
       final name = RegExp('<name[^>]*>([^<]*)</name>').firstMatch(block)?.group(1);
       final role = RegExp('<role[^>]*>([^<]*)</role>').firstMatch(block)?.group(1);
+      final id = RegExp('<id[^>]*>([^<]*)</id>').firstMatch(block)?.group(1);
+      final thumb = RegExp('<thumb[^>]*>([^<]*)</thumb>').firstMatch(block)?.group(1);
       if (name != null && name.isNotEmpty) {
-        cast.add({'name': name, 'role': role ?? ''});
+        cast.add({
+          'name': name,
+          'role': role ?? '',
+          if (id != null && id.isNotEmpty) 'id': id,
+          if (thumb != null && thumb.isNotEmpty) 'profilePath': thumb,
+        });
       }
     }
     return ScrapedMedia(

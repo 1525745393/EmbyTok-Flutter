@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -336,22 +337,18 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                                   child: SizedBox(
                                     width: 64,
                                     height: 64,
-                                    child: profile != null && profile.isNotEmpty
-                                        ? CachedNetworkImage(
-                                            imageUrl: TmdbService.personUrl(profile),
-                                            fit: BoxFit.cover,
-                                            placeholder: (_, __) => Container(
-                                              color: scheme.surfaceContainerHighest,
-                                            ),
-                                            errorWidget: (_, __, ___) => Container(
-                                              color: scheme.surfaceContainerHighest,
-                                              child: const Icon(Icons.person, size: 32),
-                                            ),
+                                    child: personId != null && personId > 0
+                                        ? FutureBuilder<File?>(
+                                            future: ScrapeMediaStore.castFile(personId),
+                                            builder: (_, snap) {
+                                              if (snap.hasData && snap.data != null) {
+                                                return Image.file(snap.data!,
+                                                    fit: BoxFit.cover);
+                                              }
+                                              return _castAvatar(profile, scheme);
+                                            },
                                           )
-                                        : Container(
-                                            color: scheme.surfaceContainerHighest,
-                                            child: const Icon(Icons.person, size: 32),
-                                          ),
+                                        : _castAvatar(profile, scheme),
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -554,6 +551,23 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
   }
 
   /// 打开 TMDB 网页
+  Widget _castAvatar(String? profile, ColorScheme scheme) {
+    if (profile != null && profile.isNotEmpty) {
+      return CachedNetworkImage(
+        imageUrl: TmdbService.personUrl(profile),
+        fit: BoxFit.cover,
+        placeholder: (_, __) => Container(color: scheme.surfaceContainerHighest),
+        errorWidget: (_, __, ___) => Container(
+            color: scheme.surfaceContainerHighest,
+            child: const Icon(Icons.person, size: 32)),
+      );
+    }
+    return Container(
+      color: scheme.surfaceContainerHighest,
+      child: const Icon(Icons.person, size: 32),
+    );
+  }
+
   void _openTmdbUrl(int tmdbId, String type) async {
     final url = type == 'tv'
         ? 'https://www.themoviedb.org/tv/$tmdbId'
