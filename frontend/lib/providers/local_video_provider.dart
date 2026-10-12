@@ -248,9 +248,10 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
       final cached = await ScrapeService.loadCache();
       final central = await ScrapeMediaStore.loadCentralAll();
       cached.addAll(central); // 文件存储优先（覆盖 prefs）
-      // App 目录和 localDir 文件：读视频旁 .nfo（prefs TTL 过期后仍可恢复）
+      // 视频旁 .nfo 是权威源：无论中央缓存是否存在，都用 .nfo 覆盖
+      // 这样用户手动改 .nfo、或重刮后选"保留旧图片"时，详情页以视频旁文件为准
       for (final it in items) {
-        if (it.path.isNotEmpty && !cached.containsKey(it.pathHash)) {
+        if (it.path.isNotEmpty) {
           final nfo = await ScrapeMediaStore.loadSibling(it.path);
           if (nfo != null) cached[it.pathHash] = nfo;
         }
