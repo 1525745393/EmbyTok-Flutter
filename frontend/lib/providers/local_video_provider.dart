@@ -339,6 +339,37 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
             // 补下载演员头像到本地（旧视频刮削时没下载，合并后有了 id/profilePath）
             if (merged.cast.isNotEmpty) {
               unawaited(ScrapeMediaStore.backfillCastAvatars(it.path, merged.cast));
+            } else if (merged.tvId != null) {
+              // 单集无演员数据：从 TMDB 拉整剧演员
+              unawaited(() async {
+                final showCast = await ScrapeService.fetchShowCast(merged.tvId!);
+                if (showCast.isNotEmpty) {
+                  cached[it.pathHash] = ScrapedMedia(
+                    tmdbId: merged.tmdbId,
+                    type: merged.type,
+                    title: merged.title,
+                    year: merged.year,
+                    posterPath: merged.posterPath,
+                    backdropPath: merged.backdropPath,
+                    overview: merged.overview,
+                    rating: merged.rating,
+                    genres: merged.genres,
+                    cast: showCast,
+                    directors: merged.directors,
+                    studios: merged.studios,
+                    imdbId: merged.imdbId,
+                    stillPath: merged.stillPath,
+                    episodeTitle: merged.episodeTitle,
+                    season: merged.season,
+                    episode: merged.episode,
+                    tvId: merged.tvId,
+                    certification: merged.certification,
+                    lowConfidence: merged.lowConfidence,
+                    scrapedAt: merged.scrapedAt,
+                  );
+                  unawaited(ScrapeMediaStore.backfillCastAvatars(it.path, showCast));
+                }
+              }());
             }
           } else {
             // 没有 .nfo 但中央缓存有数据：用中央数据创建 .nfo 并补下载图片

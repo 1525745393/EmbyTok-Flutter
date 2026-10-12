@@ -139,6 +139,29 @@ class ScrapeService {
     cache[key] = value;
   }
 
+  /// 当单集 cast 为空时，从 TMDB 拉取整剧演员列表。
+  /// 返回 cast 列表（[{name, role, id, profilePath}]），失败返回空列表。
+  static Future<List<Map<String, String>>> fetchShowCast(int tvId) async {
+    try {
+      var details = _tvDetailsCache[tvId];
+      if (details == null || details['credits'] == null) {
+        details = await TmdbService.getTvDetails(tvId);
+        if (details.isNotEmpty) _tvDetailsCache[tvId] = details;
+      }
+      final castList = (details['credits']?['cast'] as List?) ?? [];
+      return castList.take(10).map<Map<String, String>>((c) {
+        return {
+          'name': c['name'] as String? ?? '',
+          'role': c['character'] as String? ?? '',
+          'id': (c['id'] as num?)?.toString() ?? '',
+          'profilePath': c['profile_path'] as String? ?? '',
+        };
+      }).toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
   /// 文件名解析：提取片名、年份、季集号
   static ParsedName parseFilename(String filename, {String? parentDir}) {
     // 去扩展名
