@@ -494,6 +494,27 @@ class ScrapeMediaStore {
     }
   }
 
+  /// 补全旧 .nfo：如果缺少 embytok_* 扩展标签或单集字段，用中央缓存数据重新写一遍 .nfo。
+  /// 这是一次性迁移：写过一次后新 .nfo 就有完整字段了。
+  /// 返回 true 表示写了文件。
+  static Future<bool> backfillSibling(String videoPath, ScrapedMedia merged) async {
+    try {
+      final base = videoPath.substring(0, videoPath.length - _extOf(videoPath).length);
+      final nfo = File('$base.nfo');
+      if (!await nfo.exists()) return false;
+      final raw = await nfo.readAsString();
+      if (!raw.trim().startsWith('<')) return false;
+      // 已有 embytok_poster 标签说明是新格式，跳过
+      if (raw.contains('<embytok_poster>')) return false;
+      // 旧 .nfo：用合并后的数据重新写一遍（保留用户可能手改的 title/plot）
+      await nfo.writeAsString(_buildXmlNfo(merged));
+      return true;
+    } catch (e) {
+      AppLogger.warn('补全 .nfo 失败', data: {'path': videoPath, 'error': e.toString()});
+      return false;
+    }
+  }
+
   /// 生成 Kodi/Emby/Jellyfin 兼容的 XML NFO
   static String _buildXmlNfo(ScrapedMedia m) {
     return _buildNfo(m, isShow: false);

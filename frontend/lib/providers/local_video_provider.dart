@@ -1,5 +1,6 @@
 // 本地视频 Provider：列表状态、权限状态、筛选排序、加载状态
 // 对应 PRD《本地模式》§5.3
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
@@ -282,6 +283,8 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
               lowConfidence: nfo.lowConfidence,
               scrapedAt: nfo.scrapedAt,
             );
+            // 旧 .nfo 补全：把合并后的数据写回 .nfo（一次性迁移）
+            unawaited(ScrapeMediaStore.backfillSibling(it.path, cached[it.pathHash]!));
           }
         }
       }
