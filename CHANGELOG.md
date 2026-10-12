@@ -1,3 +1,20 @@
+# [2.385.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.384.1...v2.385.0) (2026-10-12)
+
+
+### Bug Fixes
+
+* TMDB images 方法返回类型 List<dynamic> 改为显式 List<String> 导致编译失败 ([3f0168d](https://github.com/1525745393/EmbyTok-Flutter/commit/3f0168d9d80a5ae0e03a029173035f93d1f03fb9))
+* 有旧数据时重刮必弹窗对比海报，不再只看 posterPath 是否变化 ([516fbf5](https://github.com/1525745393/EmbyTok-Flutter/commit/516fbf5366ec64b94899e0e5ad5cbd10a41ae90a))
+* 重刮弹窗 PageController 提到 StatefulBuilder 外避免 setD 重置滚动 ([00ecd1b](https://github.com/1525745393/EmbyTok-Flutter/commit/00ecd1b965391b2a4021f8b56ca5831be9bac965))
+
+
+### Features
+
+* 单集剧照和背景图均改为本地文件优先 ([7dc2604](https://github.com/1525745393/EmbyTok-Flutter/commit/7dc26047a206a4c859293d39bfdad19ef53dbc5c))
+* 详情页显示单集标题和季集号，电视剧优先显示单集剧照 ([67e0f89](https://github.com/1525745393/EmbyTok-Flutter/commit/67e0f890242f7012a9334e7ebbbe05b4b1d4f3cd))
+* 重刮对比弹窗同时显示海报和背景图新旧对比 ([f48101e](https://github.com/1525745393/EmbyTok-Flutter/commit/f48101ef7c5ebc252feddf1fade34f7060ce4ed6))
+* 重刮弹窗支持滑动浏览全部海报和背景图并选择使用 ([616c87e](https://github.com/1525745393/EmbyTok-Flutter/commit/616c87e561bdfb137f5629b917450a1d4bea1b98))
+
 ## [2.384.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.384.0...v2.384.1) (2026-10-12)
 
 
