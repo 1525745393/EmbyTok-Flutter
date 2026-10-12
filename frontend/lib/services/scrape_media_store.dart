@@ -223,6 +223,36 @@ class ScrapeMediaStore {
     }
   }
 
+  /// 补下载海报/背景/剧照：本地没有但有 CDN path 时，后台下载到视频旁和沙箱。
+  /// 用于旧视频（清了 App 数据，沙箱图没了，视频旁也没写过）。
+  static Future<void> backfillImages(String videoPath, ScrapedMedia media) async {
+    try {
+      final dir = File(videoPath).parent;
+      final base = videoPath.substring(0, videoPath.length - _extOf(videoPath).length);
+      // 海报
+      if (media.posterPath != null && media.posterPath!.isNotEmpty) {
+        final sibling = File('$base-poster.jpg');
+        if (!await sibling.exists() || await sibling.length() == 0) {
+          await _downloadImage(TmdbService.posterUrl(media.posterPath!), sibling.path);
+        }
+      }
+      // 背景
+      if (media.backdropPath != null && media.backdropPath!.isNotEmpty) {
+        final sibling = File('$base-backdrop.jpg');
+        if (!await sibling.exists() || await sibling.length() == 0) {
+          await _downloadImage(TmdbService.backdropUrl(media.backdropPath!), sibling.path);
+        }
+      }
+      // 单集剧照
+      if (media.stillPath != null && media.stillPath!.isNotEmpty) {
+        final sibling = File('$base-still.jpg');
+        if (!await sibling.exists() || await sibling.length() == 0) {
+          await _downloadImage(TmdbService.posterUrl(media.stillPath!, size: 'w300'), sibling.path);
+        }
+      }
+    } catch (_) {}
+  }
+
   /// 补下载演员头像：本地没有但有 personId+profilePath 时，后台下载到沙箱和视频旁 .actors/。
   /// 用于旧视频（刮削时 .nfo 缺 id/thumb，后来合并补全了）。
   static Future<void> backfillCastAvatars(String videoPath, List<Map<String, String>> cast) async {
