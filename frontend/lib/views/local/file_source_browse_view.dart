@@ -468,8 +468,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           media = base;
         }
         await ScrapeService.saveCache(item.pathHash, media);
-        // 写每集视频旁 .nfo/-poster.jpg
-        await ScrapeMediaStore.save(item, media);
+        // 写每集视频旁 .nfo/-poster.jpg（单集不单独写历史，父级已记录）
+        await ScrapeMediaStore.save(item, media, logHistory: false);
       } catch (e) { debugPrint('单集元数据保存失败 ${item.name}: $e'); }
       if (!mounted) return;
       setState(() => _scrapedCount = ++done);

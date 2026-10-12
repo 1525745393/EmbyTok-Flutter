@@ -324,7 +324,7 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
           if (m != null) {
             cached[item.pathHash] = m;
             await ScrapeService.saveCache(item.pathHash, m);
-            await ScrapeMediaStore.save(item, m);
+            await ScrapeMediaStore.save(item, m, logHistory: false);
             failed.remove(item.pathHash);
             ok++;
           } else {
@@ -379,7 +379,7 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
           if (m != null) {
             cached[item.pathHash] = m;
             await ScrapeService.saveCache(item.pathHash, m);
-            await ScrapeMediaStore.save(item, m);
+            await ScrapeMediaStore.save(item, m, logHistory: false);
             ok++;
           } else {
             failed[item.pathHash] = '未找到匹配';

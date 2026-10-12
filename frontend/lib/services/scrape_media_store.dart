@@ -67,7 +67,7 @@ class ScrapeMediaStore {
   // ---- 保存 ----
   // 双写策略：中央目录（App 沙箱，一定成功）作为权威副本；
   // 视频旁 .nfo/-poster.jpg（共享存储，可能因 Android 11+ 权限失败）尽力而为。
-  static Future<void> save(LocalVideoItem item, ScrapedMedia media, {String? sessionId}) async {
+  static Future<void> save(LocalVideoItem item, ScrapedMedia media, {String? sessionId, bool logHistory = true}) async {
     // 1) 中央目录元数据（一定成功）
     try {
       final dir = await _subDir('metadata');
@@ -78,13 +78,16 @@ class ScrapeMediaStore {
     }
 
     // 1b) 立即写刮削成功记录（不等图片下载，让记录页实时显示进度）
-    await recordHistory(
-      videoPath: item.path,
-      status: 'success',
-      matchedTitle: media.title,
-      matchedYear: media.year,
-      sessionId: sessionId,
-    );
+    // 自动后台刮削传 logHistory:false，不污染用户主动操作的记录页
+    if (logHistory) {
+      await recordHistory(
+        videoPath: item.path,
+        status: 'success',
+        matchedTitle: media.title,
+        matchedYear: media.year,
+        sessionId: sessionId,
+      );
+    }
 
     // 2) 视频旁 .nfo（Kodi/Emby/Jellyfin 兼容 XML 格式，尽力而为）
     final base = _siblingBase(item);
