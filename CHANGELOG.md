@@ -1,3 +1,10 @@
+# [2.381.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.380.3...v2.381.0) (2026-10-12)
+
+
+### Features
+
+* 批量刮削和电视剧组刮削每完成一个就增量刷新主页 ([0257671](https://github.com/1525745393/EmbyTok-Flutter/commit/0257671659c18d776c5cac0342ef963f926513a2))
+
 ## [2.380.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.380.2...v2.380.3) (2026-10-12)
 
 
