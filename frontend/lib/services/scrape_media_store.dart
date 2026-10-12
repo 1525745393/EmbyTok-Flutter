@@ -223,6 +223,43 @@ class ScrapeMediaStore {
     }
   }
 
+  /// 补下载演员头像：本地没有但有 personId+profilePath 时，后台下载到沙箱和视频旁 .actors/。
+  /// 用于旧视频（刮削时 .nfo 缺 id/thumb，后来合并补全了）。
+  static Future<void> backfillCastAvatars(String videoPath, List<Map<String, String>> cast) async {
+    try {
+      final actorsDir = Directory('${File(videoPath).parent.path}/.actors');
+      final castDir = await _subDir('cast');
+      for (final c in cast) {
+        final pid = c['id'];
+        final profile = c['profilePath'];
+        final name = c['name'];
+        if (pid == null || pid.isEmpty || profile == null || profile.isEmpty) continue;
+        final sandboxFile = File(_join(castDir.path, '$pid.jpg'));
+        File? pidFile;
+        try {
+          pidFile = File('${actorsDir.path}/$pid.jpg');
+        } catch (_) {}
+        if (await sandboxFile.exists() && await sandboxFile.length() > 0) continue;
+        if (pidFile != null && await pidFile.exists() && await pidFile.length() > 0) continue;
+        // 下载到沙箱
+        await _downloadImage(TmdbService.posterUrl(profile, size: 'w185'), sandboxFile.path);
+        if (!await sandboxFile.exists() || await sandboxFile.length() == 0) continue;
+        // 复制到视频旁 .actors/
+        try {
+          final bytes = await sandboxFile.readAsBytes();
+          if (!await actorsDir.exists()) await actorsDir.create(recursive: true);
+          final pidOut = File('${actorsDir.path}/$pid.jpg');
+          if (!await pidOut.exists()) await pidOut.writeAsBytes(bytes);
+          if (name != null && name.isNotEmpty) {
+            final safeName = name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+            final nameFile = File('${actorsDir.path}/$safeName.jpg');
+            if (!await nameFile.exists()) await nameFile.writeAsBytes(bytes);
+          }
+        } catch (_) {}
+      }
+    } catch (_) {}
+  }
+
   // 查找本地图片文件：先视频旁，不存在则回退中央目录
   static Future<File?> _findImage(LocalVideoItem item, String subDir, String siblingSuffix,
       {String? standardName}) async {

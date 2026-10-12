@@ -334,6 +334,10 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
             }
             // 旧 .nfo 补全：把合并后的数据写回 .nfo（一次性迁移）
             unawaited(ScrapeMediaStore.backfillSibling(it.path, merged));
+            // 补下载演员头像到本地（旧视频刮削时没下载，合并后有了 id/profilePath）
+            if (merged.cast.isNotEmpty) {
+              unawaited(ScrapeMediaStore.backfillCastAvatars(it.path, merged.cast));
+            }
           }
         }
       }
