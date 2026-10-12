@@ -1,3 +1,17 @@
+# [2.388.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.387.0...v2.388.0) (2026-10-12)
+
+
+### Bug Fixes
+
+* 演员头像合并——旧 .nfo 缺 id/profilePath 时从中央缓存按名补充 ([1d25e80](https://github.com/1525745393/EmbyTok-Flutter/commit/1d25e802d4afb3f7baf83893015155f07b7982ea))
+
+
+### Features
+
+* 旧视频演员头像自动补下载到本地 ([52e0004](https://github.com/1525745393/EmbyTok-Flutter/commit/52e0004bb5159973b6b9078d83edc7af4c499777))
+* 没有.nfo的视频也用中央缓存创建.nfo并补下载图片 ([563cd1c](https://github.com/1525745393/EmbyTok-Flutter/commit/563cd1c0a39b701878b9618959dd0d92d36d883e))
+* 海报/背景/剧照本地缺失时自动补下载到视频旁 ([eb82331](https://github.com/1525745393/EmbyTok-Flutter/commit/eb823317d63cbb8844b6d984aabec0a9e0f2672f))
+
 # [2.387.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.386.1...v2.387.0) (2026-10-12)
 
 
