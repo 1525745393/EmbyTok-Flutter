@@ -1,3 +1,15 @@
+# [2.387.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.386.1...v2.387.0) (2026-10-12)
+
+
+### Bug Fixes
+
+* .nfo 缺失字段全部回退中央缓存，修复电视剧单集详情页退化 ([2b9ef4e](https://github.com/1525745393/EmbyTok-Flutter/commit/2b9ef4e15ed07621c609079540729da2e5379b91))
+
+
+### Features
+
+* 旧 .nfo 自动补全 embytok_* 标签和单集字段 ([5e65b5f](https://github.com/1525745393/EmbyTok-Flutter/commit/5e65b5f17df94524f8ebf9dd85434c3be4199de2))
+
 ## [2.386.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.386.0...v2.386.1) (2026-10-12)
 
 
