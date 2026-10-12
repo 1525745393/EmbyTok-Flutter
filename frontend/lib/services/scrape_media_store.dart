@@ -131,6 +131,8 @@ class ScrapeMediaStore {
 
     // 3) 海报/背景/缩略图：先下中央目录，再尽力复制到视频旁
     // 同时写两种命名：{视频名}-poster.jpg 和 poster.jpg（Kodi/Jellyfin 标准）
+    // 图片下载是 best-effort，任何失败都不应让 save() 抛异常（成功记录已写入）
+    try {
     final jobs = <Future<void>>[];
     Future<void> dl(String? tmdbPath, String Function() url, String centralSubDir,
         String siblingSuffix, String standardName) async {
@@ -204,6 +206,9 @@ class ScrapeMediaStore {
     }
 
     await Future.wait(jobs);
+    } catch (e) {
+      AppLogger.warn('图片下载阶段异常（不影响元数据落盘）', data: {'error': e.toString()});
+    }
   }
 
   // 查找本地图片文件：先视频旁，不存在则回退中央目录
