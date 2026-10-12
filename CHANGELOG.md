@@ -1,3 +1,10 @@
+# [2.384.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.383.0...v2.384.0) (2026-10-12)
+
+
+### Features
+
+* 详情页重刮后弹窗对比新旧海报，用户决定是否覆盖视频旁图片 ([80ee5ab](https://github.com/1525745393/EmbyTok-Flutter/commit/80ee5ab7765eed66165b2ac89716aa9555afa117))
+
 # [2.383.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.382.0...v2.383.0) (2026-10-12)
 
 
