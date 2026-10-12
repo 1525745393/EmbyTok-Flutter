@@ -283,21 +283,18 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 海报（点击放大）
+                        // 海报（点击放大，本地文件优先）
                         GestureDetector(
                           onTap: () => _openImageViewer(context, TmdbService.posterUrl(scraped.posterPath!)),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
-                            child: CachedNetworkImage(
-                              imageUrl: TmdbService.posterUrl(scraped!.posterPath!),
+                            child: SizedBox(
                               width: 90,
                               height: 135,
-                              fit: BoxFit.cover,
-                              errorWidget: (_, __, ___) => Container(
-                                width: 90,
-                                height: 135,
-                                color: scheme.surfaceContainerHighest,
-                                child: const Icon(Icons.movie),
+                              child: LocalPosterImage(
+                                item: widget.item,
+                                posterPath: scraped.posterPath,
+                                fit: BoxFit.cover,
                               ),
                             ),
                           ),
@@ -437,7 +434,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                                     style: const TextStyle(fontSize: 11),
                                   ),
                                 ),
-                                if (c['character'] != null && c['character']!.isNotEmpty)
+                                if (c['role'] != null && c['role']!.isNotEmpty)
                                   Text(
                                     c['character']!,
                                     maxLines: 1,

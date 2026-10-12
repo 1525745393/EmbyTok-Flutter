@@ -530,7 +530,7 @@ class ScrapeMediaStore {
     for (final d in m.directors) {
       if (d.isNotEmpty) sb.writeln('  <director>${esc(d)}</director>');
     }
-    for (final c in m.cast.take(10)) {
+    for (final c in m.cast) {
       sb.writeln('  <actor>');
       sb.writeln('    <name>${esc(c['name'])}</name>');
       sb.writeln('    <role>${esc(c['role'])}</role>');
