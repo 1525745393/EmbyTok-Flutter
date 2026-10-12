@@ -340,6 +340,16 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
             if (merged.cast.isNotEmpty) {
               unawaited(ScrapeMediaStore.backfillCastAvatars(it.path, merged.cast));
             }
+          } else {
+            // 没有 .nfo 但中央缓存有数据：用中央数据创建 .nfo 并补下载图片
+            final central = cached[it.pathHash];
+            if (central != null) {
+              unawaited(ScrapeMediaStore.backfillSibling(it.path, central));
+              unawaited(ScrapeMediaStore.backfillImages(it.path, central));
+              if (central.cast.isNotEmpty) {
+                unawaited(ScrapeMediaStore.backfillCastAvatars(it.path, central.cast));
+              }
+            }
           }
         }
       }

@@ -568,7 +568,11 @@ class ScrapeMediaStore {
     try {
       final base = videoPath.substring(0, videoPath.length - _extOf(videoPath).length);
       final nfo = File('$base.nfo');
-      if (!await nfo.exists()) return false;
+      // .nfo 不存在：直接创建
+      if (!await nfo.exists()) {
+        await nfo.writeAsString(_buildXmlNfo(merged));
+        return true;
+      }
       final raw = await nfo.readAsString();
       if (!raw.trim().startsWith('<')) return false;
       // 已有 embytok_poster 标签说明是新格式，跳过
