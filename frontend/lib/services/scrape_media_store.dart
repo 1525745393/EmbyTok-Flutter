@@ -197,10 +197,19 @@ class ScrapeMediaStore {
               if (!await f.exists()) return;
               final actorsDir = Directory('${File(base).parent.path}/.actors');
               if (!await actorsDir.exists()) await actorsDir.create(recursive: true);
+              final bytes = await f.readAsBytes();
+              // Kodi/Jellyfin 约定：按演员名命名
               final safeName = name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
               final actorFile = File('${actorsDir.path}/$safeName.jpg');
               if (!await actorFile.exists()) {
-                await actorFile.writeAsBytes(await f.readAsBytes());
+                await actorFile.writeAsBytes(bytes);
+              }
+              // 同时按 personId 命名，清除 App 数据后可从 .nfo 恢复 personId 直接查找
+              if (pid != null && pid.isNotEmpty) {
+                final pidFile = File('${actorsDir.path}/$pid.jpg');
+                if (!await pidFile.exists()) {
+                  await pidFile.writeAsBytes(bytes);
+                }
               }
             } catch (_) {}
           }());
@@ -248,6 +257,20 @@ class ScrapeMediaStore {
     final dir = await _subDir('cast');
     final f = File(_join(dir.path, '$personId.jpg'));
     return await f.exists() ? f : null;
+  }
+
+  /// 查演员头像：先沙箱缓存，再查视频旁 .actors/{pid}.jpg（清除App数据后兜底）
+  static Future<File?> castFileForVideo(int personId, String videoPath) async {
+    // 1) 沙箱
+    final sandbox = await castFile(personId);
+    if (sandbox != null) return sandbox;
+    // 2) 视频旁 .actors/{pid}.jpg
+    try {
+      final dir = File(videoPath).parent;
+      final f = File('${dir.path}/.actors/$personId.jpg');
+      if (await f.exists() && await f.length() > 0) return f;
+    } catch (_) {}
+    return null;
   }
 
   // ---- 删除 / 重命名 ----

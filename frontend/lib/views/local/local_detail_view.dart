@@ -339,7 +339,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                                     height: 64,
                                     child: personId != null && personId > 0
                                         ? FutureBuilder<File?>(
-                                            future: ScrapeMediaStore.castFile(personId),
+                                            future: ScrapeMediaStore.castFileForVideo(personId, widget.item.path),
                                             builder: (_, snap) {
                                               if (snap.hasData && snap.data != null) {
                                                 return Image.file(snap.data!,
