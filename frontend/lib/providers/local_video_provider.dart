@@ -260,7 +260,7 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
           final nfo = await ScrapeMediaStore.loadSibling(it.path);
           if (nfo != null) {
             final prev = cached[it.pathHash];
-            cached[it.pathHash] = ScrapedMedia(
+            final merged = ScrapedMedia(
               tmdbId: nfo.tmdbId,
               type: nfo.type,
               title: nfo.title,
@@ -283,8 +283,27 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
               lowConfidence: nfo.lowConfidence,
               scrapedAt: nfo.scrapedAt,
             );
+            cached[it.pathHash] = merged;
+            // 诊断日志：电视剧单集字段是否完整
+            if (merged.type == 'tv') {
+              AppLogger.debug('单集元数据', data: {
+                'file': it.name,
+                'title': merged.title,
+                'episodeTitle': merged.episodeTitle,
+                'season': merged.season,
+                'episode': merged.episode,
+                'overview': merged.overview != null ? '${merged.overview!.length}字' : null,
+                'stillPath': merged.stillPath,
+                'posterPath': merged.posterPath,
+                'backdropPath': merged.backdropPath,
+                'nfoSeason': nfo.season,
+                'prevSeason': prev?.season,
+                'nfoEpisodeTitle': nfo.episodeTitle,
+                'prevEpisodeTitle': prev?.episodeTitle,
+              });
+            }
             // 旧 .nfo 补全：把合并后的数据写回 .nfo（一次性迁移）
-            unawaited(ScrapeMediaStore.backfillSibling(it.path, cached[it.pathHash]!));
+            unawaited(ScrapeMediaStore.backfillSibling(it.path, merged));
           }
         }
       }
