@@ -68,6 +68,11 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
       ..sort((a, b) => ((b['vote_count'] as num?) ?? 0)
           .compareTo((a['vote_count'] as num?) ?? 0));
 
+    // 本地已入库的 TMDB ID 集合
+    final localTmdbIds = ref.watch(localVideoProvider).scrapedMap.values
+        .map((s) => s.tmdbId)
+        .toSet();
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -202,24 +207,42 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                               itemBuilder: (_, i) {
                                 final m = movies[i] as Map<String, dynamic>;
                                 final poster = m['poster_path'] as String?;
+                                final inLibrary = localTmdbIds.contains(m['id']);
                                 return SizedBox(
                                   width: 110,
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(6),
-                                        child: poster != null
-                                            ? CachedNetworkImage(
-                                                imageUrl: TmdbService.posterUrl(poster, size: 'w185'),
-                                                height: 150,
-                                                fit: BoxFit.cover,
-                                              )
-                                            : Container(
-                                                height: 150,
-                                                color: scheme.surfaceContainerHighest,
-                                                child: const Icon(Icons.movie),
+                                      Stack(
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(6),
+                                            child: poster != null
+                                                ? CachedNetworkImage(
+                                                    imageUrl: TmdbService.posterUrl(poster, size: 'w185'),
+                                                    height: 150,
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : Container(
+                                                    height: 150,
+                                                    color: scheme.surfaceContainerHighest,
+                                                    child: const Icon(Icons.movie),
+                                                  ),
+                                          ),
+                                          if (inLibrary)
+                                            Positioned(
+                                              top: 4,
+                                              left: 4,
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.green,
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: const Text('已入库', style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)),
                                               ),
+                                            ),
+                                        ],
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
@@ -256,24 +279,42 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                               itemBuilder: (_, i) {
                                 final t = tvs[i] as Map<String, dynamic>;
                                 final poster = t['poster_path'] as String?;
+                                final inLibrary = localTmdbIds.contains(t['id']);
                                 return SizedBox(
                                   width: 110,
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(6),
-                                        child: poster != null
-                                            ? CachedNetworkImage(
-                                                imageUrl: TmdbService.posterUrl(poster, size: 'w185'),
-                                                height: 150,
-                                                fit: BoxFit.cover,
-                                              )
-                                            : Container(
-                                                height: 150,
-                                                color: scheme.surfaceContainerHighest,
-                                                child: const Icon(Icons.tv),
+                                      Stack(
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(6),
+                                            child: poster != null
+                                                ? CachedNetworkImage(
+                                                    imageUrl: TmdbService.posterUrl(poster, size: 'w185'),
+                                                    height: 150,
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : Container(
+                                                    height: 150,
+                                                    color: scheme.surfaceContainerHighest,
+                                                    child: const Icon(Icons.tv),
+                                                  ),
+                                          ),
+                                          if (inLibrary)
+                                            Positioned(
+                                              top: 4,
+                                              left: 4,
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.green,
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: const Text('已入库', style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)),
                                               ),
+                                            ),
+                                        ],
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
