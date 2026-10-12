@@ -1,3 +1,10 @@
+## [2.379.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.379.1...v2.379.2) (2026-10-12)
+
+
+### Bug Fixes
+
+* save()图片下载阶段加try-catch，避免异常导致成功后重复记录失败 ([8ffdc84](https://github.com/1525745393/EmbyTok-Flutter/commit/8ffdc84616f9161ab558d0ab461a51511ba67d23))
+
 ## [2.379.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.379.0...v2.379.1) (2026-10-12)
 
 
