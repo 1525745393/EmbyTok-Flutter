@@ -60,115 +60,201 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                       widget.item.name,
                     );
                     if (result != null) {
-                      await ScrapeService.saveCache(widget.item.pathHash, result);
-                      await ScrapeMediaStore.save(widget.item, result);
-                      final cached = Map<String, ScrapedMedia>.from(ref.read(localVideoProvider).scrapedMap);
-                      cached[widget.item.pathHash] = result;
-                      ref.read(localVideoProvider.notifier).updateScrapedMap(cached);
-                      // 有旧数据就弹窗对比新旧海报
-                      if (oldScraped != null && oldPosterPath != null && context.mounted) {
-                        final useNew = await showDialog<bool>(
+                      // 拉取全部候选海报和背景图，供用户滑动选择
+                      List<String> allPosters = [];
+                      List<String> allBackdrops = [];
+                      try {
+                        if (result.tmdbId != null) {
+                          if (result.type == 'tv') {
+                            final imgs = await TmdbService.getTvImages(result.tmdbId!);
+                            allPosters = imgs.posters;
+                            allBackdrops = imgs.backdrops;
+                          } else {
+                            final imgs = await TmdbService.getMovieImages(result.tmdbId!);
+                            allPosters = imgs.posters;
+                            allBackdrops = imgs.backdrops;
+                          }
+                        }
+                      } catch (_) {}
+                      // 保证当前主图在列表里
+                      if (result.posterPath != null && !allPosters.contains(result.posterPath)) {
+                        allPosters.insert(0, result.posterPath!);
+                      }
+                      if (result.backdropPath != null && !allBackdrops.contains(result.backdropPath)) {
+                        allBackdrops.insert(0, result.backdropPath!);
+                      }
+                      // 有旧数据或有多张候选图 → 弹窗让用户选
+                      if (context.mounted && (oldScraped != null || allPosters.isNotEmpty || allBackdrops.isNotEmpty)) {
+                        String selectedPoster = result.posterPath ?? '';
+                        String selectedBackdrop = result.backdropPath ?? '';
+                        final confirmed = await showDialog<bool>(
                           context: context,
-                          builder: (_) => AlertDialog(
-                            backgroundColor: const Color(0xFF1E1E1E),
-                            title: const Text('刮削完成，确认图片', style: TextStyle(color: Colors.white)),
-                            content: SizedBox(
-                              width: 320,
-                              height: 380,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // 海报对比
-                                  const Text('海报', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                                  const SizedBox(height: 4),
-                                  SizedBox(
-                                    height: 110,
-                                    child: Row(
-                                      children: [
-                                        Expanded(child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(6),
-                                          child: oldPosterPath != null
-                                              ? CachedNetworkImage(
-                                                  imageUrl: TmdbService.posterUrl(oldPosterPath, size: 'w185'),
-                                                  fit: BoxFit.cover,
-                                                  errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey),
-                                                )
-                                              : const Icon(Icons.image, color: Colors.grey, size: 32),
-                                        )),
-                                        const SizedBox(width: 8),
-                                        Expanded(child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(6),
-                                          child: result.posterPath != null
-                                              ? CachedNetworkImage(
-                                                  imageUrl: TmdbService.posterUrl(result.posterPath!, size: 'w185'),
-                                                  fit: BoxFit.cover,
-                                                  errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey),
-                                                )
-                                              : const Icon(Icons.image, color: Colors.grey, size: 32),
-                                        )),
-                                      ],
+                          builder: (_) => StatefulBuilder(
+                            builder: (ctx, setD) => AlertDialog(
+                              backgroundColor: const Color(0xFF1E1E1E),
+                              title: const Text('刮削完成，滑动选择图片', style: TextStyle(color: Colors.white, fontSize: 16)),
+                              content: SizedBox(
+                                width: 320,
+                                height: 420,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('海报（${allPosters.length} 张）',
+                                        style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                    const SizedBox(height: 4),
+                                    SizedBox(
+                                      height: 130,
+                                      child: allPosters.isEmpty
+                                          ? const Center(child: Icon(Icons.image, color: Colors.grey))
+                                          : PageView.builder(
+                                              itemCount: allPosters.length,
+                                              onPageChanged: (i) => setD(() => selectedPoster = allPosters[i]),
+                                              controller: PageController(
+                                                viewportFraction: 0.45,
+                                                initialPage: allPosters.indexOf(selectedPoster).clamp(0, allPosters.length - 1),
+                                              ),
+                                              itemBuilder: (_, i) {
+                                                final p = allPosters[i];
+                                                final selected = p == selectedPoster;
+                                                return GestureDetector(
+                                                  onTap: () => setD(() => selectedPoster = p),
+                                                  child: Container(
+                                                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                                                    decoration: BoxDecoration(
+                                                      borderRadius: BorderRadius.circular(6),
+                                                      border: Border.all(
+                                                        color: selected ? Colors.pinkAccent : Colors.transparent,
+                                                        width: 2,
+                                                      ),
+                                                    ),
+                                                    child: ClipRRect(
+                                                      borderRadius: BorderRadius.circular(4),
+                                                      child: CachedNetworkImage(
+                                                        imageUrl: TmdbService.posterUrl(p, size: 'w185'),
+                                                        fit: BoxFit.cover,
+                                                        errorWidget: (_, __, ___) =>
+                                                            const Icon(Icons.broken_image, color: Colors.grey),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  // 背景图对比
-                                  const Text('背景图', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                                  const SizedBox(height: 4),
-                                  SizedBox(
-                                    height: 90,
-                                    child: Row(
-                                      children: [
-                                        Expanded(child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(6),
-                                          child: oldBackdropPath != null
-                                              ? CachedNetworkImage(
-                                                  imageUrl: TmdbService.backdropUrl(oldBackdropPath, size: 'w300'),
-                                                  fit: BoxFit.cover,
-                                                  errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey),
-                                                )
-                                              : const Icon(Icons.image, color: Colors.grey, size: 32),
-                                        )),
-                                        const SizedBox(width: 8),
-                                        Expanded(child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(6),
-                                          child: result.backdropPath != null
-                                              ? CachedNetworkImage(
-                                                  imageUrl: TmdbService.backdropUrl(result.backdropPath!, size: 'w300'),
-                                                  fit: BoxFit.cover,
-                                                  errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey),
-                                                )
-                                              : const Icon(Icons.image, color: Colors.grey, size: 32),
-                                        )),
-                                      ],
+                                    const SizedBox(height: 12),
+                                    Text('背景图（${allBackdrops.length} 张）',
+                                        style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                    const SizedBox(height: 4),
+                                    SizedBox(
+                                      height: 90,
+                                      child: allBackdrops.isEmpty
+                                          ? const Center(child: Icon(Icons.image, color: Colors.grey))
+                                          : PageView.builder(
+                                              itemCount: allBackdrops.length,
+                                              onPageChanged: (i) => setD(() => selectedBackdrop = allBackdrops[i]),
+                                              controller: PageController(
+                                                viewportFraction: 0.8,
+                                                initialPage: allBackdrops.indexOf(selectedBackdrop).clamp(0, allBackdrops.length - 1),
+                                              ),
+                                              itemBuilder: (_, i) {
+                                                final b = allBackdrops[i];
+                                                final selected = b == selectedBackdrop;
+                                                return GestureDetector(
+                                                  onTap: () => setD(() => selectedBackdrop = b),
+                                                  child: Container(
+                                                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                                                    decoration: BoxDecoration(
+                                                      borderRadius: BorderRadius.circular(6),
+                                                      border: Border.all(
+                                                        color: selected ? Colors.pinkAccent : Colors.transparent,
+                                                        width: 2,
+                                                      ),
+                                                    ),
+                                                    child: ClipRRect(
+                                                      borderRadius: BorderRadius.circular(4),
+                                                      child: CachedNetworkImage(
+                                                        imageUrl: TmdbService.backdropUrl(b, size: 'w300'),
+                                                        fit: BoxFit.cover,
+                                                        errorWidget: (_, __, ___) =>
+                                                            const Icon(Icons.broken_image, color: Colors.grey),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, false),
+                                  child: const Text('保留旧图片', style: TextStyle(color: Colors.grey)),
+                                ),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.pinkAccent),
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('使用选中图片', style: TextStyle(color: Colors.white)),
+                                ),
+                              ],
                             ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: const Text('保留旧图片', style: TextStyle(color: Colors.grey)),
-                              ),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(backgroundColor: Colors.pinkAccent),
-                                onPressed: () => Navigator.pop(context, true),
-                                child: const Text('使用新图片', style: TextStyle(color: Colors.white)),
-                              ),
-                            ],
                           ),
                         );
-                        if (useNew == true) {
+                        if (confirmed == true) {
+                          // 用用户选中的图片路径覆盖 result
+                          final newResult = ScrapedMedia(
+                            tmdbId: result.tmdbId,
+                            type: result.type,
+                            title: result.title,
+                            year: result.year,
+                            posterPath: selectedPoster.isEmpty ? result.posterPath : selectedPoster,
+                            backdropPath: selectedBackdrop.isEmpty ? result.backdropPath : selectedBackdrop,
+                            overview: result.overview,
+                            rating: result.rating,
+                            genres: result.genres,
+                            cast: result.cast,
+                            directors: result.directors,
+                            studios: result.studios,
+                            imdbId: result.imdbId,
+                            stillPath: result.stillPath,
+                            episodeTitle: result.episodeTitle,
+                            season: result.season,
+                            episode: result.episode,
+                            tvId: result.tvId,
+                            certification: result.certification,
+                            lowConfidence: result.lowConfidence,
+                            scrapedAt: result.scrapedAt,
+                          );
+                          await ScrapeService.saveCache(widget.item.pathHash, newResult);
+                          await ScrapeMediaStore.save(widget.item, newResult);
                           await ScrapeMediaStore.forceOverwriteSiblingImages(widget.item);
+                          final cached = Map<String, ScrapedMedia>.from(ref.read(localVideoProvider).scrapedMap);
+                          cached[widget.item.pathHash] = newResult;
+                          ref.read(localVideoProvider.notifier).updateScrapedMap(cached);
                           if (context.mounted) {
-                            messenger.showSnackBar(const SnackBar(content: Text('已更新视频旁图片')));
+                            messenger.showSnackBar(const SnackBar(content: Text('已保存选中的图片')));
                           }
                         } else {
+                          // 保留旧：只保存元数据不覆盖视频旁图片
+                          await ScrapeService.saveCache(widget.item.pathHash, result);
+                          final cached = Map<String, ScrapedMedia>.from(ref.read(localVideoProvider).scrapedMap);
+                          cached[widget.item.pathHash] = result;
+                          ref.read(localVideoProvider.notifier).updateScrapedMap(cached);
                           if (context.mounted) {
                             messenger.showSnackBar(const SnackBar(content: Text('已保留旧图片')));
                           }
                         }
                       } else {
-                        messenger.showSnackBar(const SnackBar(content: Text('刮削完成')));
+                        // 无旧数据也无候选图，直接保存
+                        await ScrapeService.saveCache(widget.item.pathHash, result);
+                        await ScrapeMediaStore.save(widget.item, result);
+                        final cached = Map<String, ScrapedMedia>.from(ref.read(localVideoProvider).scrapedMap);
+                        cached[widget.item.pathHash] = result;
+                        ref.read(localVideoProvider.notifier).updateScrapedMap(cached);
+                        if (context.mounted) {
+                          messenger.showSnackBar(const SnackBar(content: Text('刮削完成')));
+                        }
                       }
                     } else {
                       await ScrapeMediaStore.recordHistory(

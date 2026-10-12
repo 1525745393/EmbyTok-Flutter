@@ -379,6 +379,52 @@ class TmdbService {
     return 'https://image.tmdb.org/t/p/$size$path';
   }
 
+  /// 获取电影全部海报和背景图（用户选择用哪张）
+  static Future<({List<String> posters, List<String> backdrops})> getMovieImages(int movieId) async {
+    if (!isConfigured) return (posters: [], backdrops: []);
+    try {
+      final r = await http
+          .get(Uri.parse('$_base/movie/$movieId/images?api_key=$_apiKey&include_image_language=zh,en,null'))
+          .timeout(const Duration(seconds: 6));
+      if (r.statusCode != 200) return (posters: [], backdrops: []);
+      final data = jsonDecode(r.body);
+      final posters = (data['posters'] as List? ?? [])
+          .map((m) => (m as Map<String, dynamic>)['file_path'] as String? ?? '')
+          .where((s) => s.isNotEmpty)
+          .toList();
+      final backdrops = (data['backdrops'] as List? ?? [])
+          .map((m) => (m as Map<String, dynamic>)['file_path'] as String? ?? '')
+          .where((s) => s.isNotEmpty)
+          .toList();
+      return (posters: posters, backdrops: backdrops);
+    } catch (_) {
+      return (posters: [], backdrops: []);
+    }
+  }
+
+  /// 获取电视剧全部海报和背景图
+  static Future<({List<String> posters, List<String> backdrops})> getTvImages(int tvId) async {
+    if (!isConfigured) return (posters: [], backdrops: []);
+    try {
+      final r = await http
+          .get(Uri.parse('$_base/tv/$tvId/images?api_key=$_apiKey&include_image_language=zh,en,null'))
+          .timeout(const Duration(seconds: 6));
+      if (r.statusCode != 200) return (posters: [], backdrops: []);
+      final data = jsonDecode(r.body);
+      final posters = (data['posters'] as List? ?? [])
+          .map((m) => (m as Map<String, dynamic>)['file_path'] as String? ?? '')
+          .where((s) => s.isNotEmpty)
+          .toList();
+      final backdrops = (data['backdrops'] as List? ?? [])
+          .map((m) => (m as Map<String, dynamic>)['file_path'] as String? ?? '')
+          .where((s) => s.isNotEmpty)
+          .toList();
+      return (posters: posters, backdrops: backdrops);
+    } catch (_) {
+      return (posters: [], backdrops: []);
+    }
+  }
+
   /// 影片评论（reviews）
   static Future<List<Map<String, dynamic>>> getMovieReviews(int movieId) async {
     if (!isConfigured) return [];
