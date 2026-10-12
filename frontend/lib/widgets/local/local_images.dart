@@ -24,16 +24,21 @@ class LocalPosterImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (posterPath == null || posterPath!.isEmpty) return placeholder;
+    // 即使 posterPath 为 null（从 .nfo 恢复的元数据），也先查本地海报文件
     return FutureBuilder<File?>(
       future: ScrapeMediaStore.posterFile(item),
       builder: (_, snap) {
         if (snap.hasData && snap.data != null) {
-          return Image.file(snap.data!, fit: fit, errorBuilder: (_, __, ___) => _cdn());
+          return Image.file(snap.data!, fit: fit, errorBuilder: (_, __, ___) => _placeholderOrCdn());
         }
-        return _cdn();
+        return _placeholderOrCdn();
       },
     );
+  }
+
+  Widget _placeholderOrCdn() {
+    if (posterPath == null || posterPath!.isEmpty) return placeholder;
+    return _cdn();
   }
 
   Widget _cdn() => CachedNetworkImage(
@@ -58,18 +63,23 @@ class LocalBackdropImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (backdropPath == null || backdropPath!.isEmpty) {
-      return const ColoredBox(color: Color(0xFF1A1A1A));
-    }
+    // 即使 backdropPath 为 null（从 .nfo 恢复），也先查本地背景图文件
     return FutureBuilder<File?>(
       future: ScrapeMediaStore.backdropFile(item),
       builder: (_, snap) {
         if (snap.hasData && snap.data != null) {
-          return Image.file(snap.data!, fit: fit, errorBuilder: (_, __, ___) => _cdn());
+          return Image.file(snap.data!, fit: fit, errorBuilder: (_, __, ___) => _placeholderOrCdn());
         }
-        return _cdn();
+        return _placeholderOrCdn();
       },
     );
+  }
+
+  Widget _placeholderOrCdn() {
+    if (backdropPath == null || backdropPath!.isEmpty) {
+      return const ColoredBox(color: Color(0xFF1A1A1A));
+    }
+    return _cdn();
   }
 
   Widget _cdn() => CachedNetworkImage(
