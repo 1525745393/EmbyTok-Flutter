@@ -52,6 +52,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                   final messenger = ScaffoldMessenger.of(context);
                   final oldScraped = ref.read(localVideoProvider).scrapedMap[widget.item.pathHash];
                   final oldPosterPath = oldScraped?.posterPath;
+                  final oldBackdropPath = oldScraped?.backdropPath;
                   messenger.showSnackBar(const SnackBar(content: Text('正在重新刮削…')));
                   try {
                     final result = await ScrapeService.scrapeFile(
@@ -70,57 +71,88 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                           context: context,
                           builder: (_) => AlertDialog(
                             backgroundColor: const Color(0xFF1E1E1E),
-                            title: const Text('刮削完成，确认海报', style: TextStyle(color: Colors.white)),
+                            title: const Text('刮削完成，确认图片', style: TextStyle(color: Colors.white)),
                             content: SizedBox(
-                              width: 300,
-                              height: 260,
-                              child: Row(
+                              width: 320,
+                              height: 380,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Expanded(child: Column(
-                                    children: [
-                                      const Text('旧海报', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                                      const SizedBox(height: 4),
-                                      Expanded(child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: oldPosterPath != null
-                                            ? CachedNetworkImage(
-                                                imageUrl: TmdbService.posterUrl(oldPosterPath, size: 'w185'),
-                                                fit: BoxFit.cover,
-                                                errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey),
-                                              )
-                                            : const Icon(Icons.image, color: Colors.grey, size: 40),
-                                      )),
-                                    ],
-                                  )),
-                                  const SizedBox(width: 12),
-                                  Expanded(child: Column(
-                                    children: [
-                                      const Text('新海报', style: TextStyle(color: Colors.pinkAccent, fontSize: 12)),
-                                      const SizedBox(height: 4),
-                                      Expanded(child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: result.posterPath != null
-                                            ? CachedNetworkImage(
-                                                imageUrl: TmdbService.posterUrl(result.posterPath!, size: 'w185'),
-                                                fit: BoxFit.cover,
-                                                errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey),
-                                              )
-                                            : const Icon(Icons.image, color: Colors.grey, size: 40),
-                                      )),
-                                    ],
-                                  )),
+                                  // 海报对比
+                                  const Text('海报', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                  const SizedBox(height: 4),
+                                  SizedBox(
+                                    height: 110,
+                                    child: Row(
+                                      children: [
+                                        Expanded(child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(6),
+                                          child: oldPosterPath != null
+                                              ? CachedNetworkImage(
+                                                  imageUrl: TmdbService.posterUrl(oldPosterPath, size: 'w185'),
+                                                  fit: BoxFit.cover,
+                                                  errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey),
+                                                )
+                                              : const Icon(Icons.image, color: Colors.grey, size: 32),
+                                        )),
+                                        const SizedBox(width: 8),
+                                        Expanded(child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(6),
+                                          child: result.posterPath != null
+                                              ? CachedNetworkImage(
+                                                  imageUrl: TmdbService.posterUrl(result.posterPath!, size: 'w185'),
+                                                  fit: BoxFit.cover,
+                                                  errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey),
+                                                )
+                                              : const Icon(Icons.image, color: Colors.grey, size: 32),
+                                        )),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  // 背景图对比
+                                  const Text('背景图', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                  const SizedBox(height: 4),
+                                  SizedBox(
+                                    height: 90,
+                                    child: Row(
+                                      children: [
+                                        Expanded(child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(6),
+                                          child: oldBackdropPath != null
+                                              ? CachedNetworkImage(
+                                                  imageUrl: TmdbService.backdropUrl(oldBackdropPath, size: 'w300'),
+                                                  fit: BoxFit.cover,
+                                                  errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey),
+                                                )
+                                              : const Icon(Icons.image, color: Colors.grey, size: 32),
+                                        )),
+                                        const SizedBox(width: 8),
+                                        Expanded(child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(6),
+                                          child: result.backdropPath != null
+                                              ? CachedNetworkImage(
+                                                  imageUrl: TmdbService.backdropUrl(result.backdropPath!, size: 'w300'),
+                                                  fit: BoxFit.cover,
+                                                  errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey),
+                                                )
+                                              : const Icon(Icons.image, color: Colors.grey, size: 32),
+                                        )),
+                                      ],
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(context, false),
-                                child: const Text('保留旧海报', style: TextStyle(color: Colors.grey)),
+                                child: const Text('保留旧图片', style: TextStyle(color: Colors.grey)),
                               ),
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(backgroundColor: Colors.pinkAccent),
                                 onPressed: () => Navigator.pop(context, true),
-                                child: const Text('使用新海报', style: TextStyle(color: Colors.white)),
+                                child: const Text('使用新图片', style: TextStyle(color: Colors.white)),
                               ),
                             ],
                           ),
@@ -128,11 +160,11 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                         if (useNew == true) {
                           await ScrapeMediaStore.forceOverwriteSiblingImages(widget.item);
                           if (context.mounted) {
-                            messenger.showSnackBar(const SnackBar(content: Text('已更新视频旁海报')));
+                            messenger.showSnackBar(const SnackBar(content: Text('已更新视频旁图片')));
                           }
                         } else {
                           if (context.mounted) {
-                            messenger.showSnackBar(const SnackBar(content: Text('已保留旧海报')));
+                            messenger.showSnackBar(const SnackBar(content: Text('已保留旧图片')));
                           }
                         }
                       } else {
