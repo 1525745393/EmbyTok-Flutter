@@ -248,12 +248,38 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
       final cached = await ScrapeService.loadCache();
       final central = await ScrapeMediaStore.loadCentralAll();
       cached.addAll(central); // 文件存储优先（覆盖 prefs）
-      // 视频旁 .nfo 是权威源：无论中央缓存是否存在，都用 .nfo 覆盖
-      // 这样用户手动改 .nfo、或重刮后选"保留旧图片"时，详情页以视频旁文件为准
+      // 视频旁 .nfo 是权威源：覆盖文本元数据；
+      // 但 embytok_* 标签是新加的，旧 .nfo 没有，此时保留中央缓存的 poster/backdrop/still path，
+      // 否则会把中央缓存里已有 path 覆盖成 null，导致详情页无图。
       for (final it in items) {
         if (it.path.isNotEmpty) {
           final nfo = await ScrapeMediaStore.loadSibling(it.path);
-          if (nfo != null) cached[it.pathHash] = nfo;
+          if (nfo != null) {
+            final prev = cached[it.pathHash];
+            cached[it.pathHash] = ScrapedMedia(
+              tmdbId: nfo.tmdbId,
+              type: nfo.type,
+              title: nfo.title,
+              year: nfo.year,
+              posterPath: nfo.posterPath ?? prev?.posterPath,
+              backdropPath: nfo.backdropPath ?? prev?.backdropPath,
+              overview: nfo.overview,
+              rating: nfo.rating,
+              genres: nfo.genres,
+              cast: nfo.cast,
+              directors: nfo.directors,
+              studios: nfo.studios,
+              imdbId: nfo.imdbId,
+              stillPath: nfo.stillPath ?? prev?.stillPath,
+              episodeTitle: nfo.episodeTitle,
+              season: nfo.season,
+              episode: nfo.episode,
+              tvId: nfo.tvId ?? prev?.tvId,
+              certification: nfo.certification ?? prev?.certification,
+              lowConfidence: nfo.lowConfidence,
+              scrapedAt: nfo.scrapedAt,
+            );
+          }
         }
       }
       state = state.copyWith(
