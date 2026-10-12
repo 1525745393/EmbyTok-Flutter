@@ -484,6 +484,13 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
   void updateScrapedMap(Map<String, ScrapedMedia> map) {
     state = state.copyWith(scrapedMap: map);
   }
+
+  /// 增量添加单条刮削结果（批量刮削时每完成一个就调一次，实时刷新主页）
+  void addScrapedEntry(String pathHash, ScrapedMedia media) {
+    final updated = Map<String, ScrapedMedia>.from(state.scrapedMap);
+    updated[pathHash] = media;
+    state = state.copyWith(scrapedMap: updated);
+  }
   void toggleSelected(String id) {
     final s = {...state.selected};
     if (s.contains(id)) {

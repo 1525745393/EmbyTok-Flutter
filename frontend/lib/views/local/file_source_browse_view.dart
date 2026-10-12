@@ -184,6 +184,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           if (m != null) {
             await ScrapeService.saveCache(pathHash, m);
             await ScrapeMediaStore.save(item, m, sessionId: sessionId);
+            // 增量更新主页，不用等全部刮完
+            ref.read(localVideoProvider.notifier).addScrapedEntry(pathHash, m);
             success++;
           } else {
             await ScrapeMediaStore.recordHistory(
@@ -487,6 +489,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         await ScrapeService.saveCache(item.pathHash, media);
         // 写每集视频旁 .nfo/-poster.jpg（单集不单独写历史，整剧末尾统一记录）
         await ScrapeMediaStore.save(item, media, logHistory: false);
+        // 增量更新主页
+        ref.read(localVideoProvider.notifier).addScrapedEntry(item.pathHash, media);
       } catch (e) {
         debugPrint('单集元数据保存失败 ${item.name}: $e');
         epFail++;
