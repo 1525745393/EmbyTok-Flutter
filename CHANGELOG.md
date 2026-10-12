@@ -1,3 +1,15 @@
+# [2.382.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.381.1...v2.382.0) (2026-10-12)
+
+
+### Bug Fixes
+
+* 修复actor块id/profilePath的null安全分析错误 ([d81220e](https://github.com/1525745393/EmbyTok-Flutter/commit/d81220ec487c5693389e059f3c9c1fbab32bdeb4))
+
+
+### Features
+
+* .nfo记录演员personId和profilePath，清除App数据后头像可恢复 ([50ee41f](https://github.com/1525745393/EmbyTok-Flutter/commit/50ee41f77d0f0e0c3b8e64975aae529830d5e3d0))
+
 ## [2.381.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.381.0...v2.381.1) (2026-10-12)
 
 
