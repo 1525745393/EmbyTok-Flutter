@@ -64,13 +64,13 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                       final cached = Map<String, ScrapedMedia>.from(ref.read(localVideoProvider).scrapedMap);
                       cached[widget.item.pathHash] = result;
                       ref.read(localVideoProvider.notifier).updateScrapedMap(cached);
-                      // 海报变了 → 弹窗对比新旧海报
-                      if (oldPosterPath != result.posterPath && context.mounted) {
+                      // 有旧数据就弹窗对比新旧海报
+                      if (oldScraped != null && oldPosterPath != null && context.mounted) {
                         final useNew = await showDialog<bool>(
                           context: context,
                           builder: (_) => AlertDialog(
                             backgroundColor: const Color(0xFF1E1E1E),
-                            title: const Text('刮削完成，海报已更新', style: TextStyle(color: Colors.white)),
+                            title: const Text('刮削完成，确认海报', style: TextStyle(color: Colors.white)),
                             content: SizedBox(
                               width: 300,
                               height: 260,
