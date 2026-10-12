@@ -1,3 +1,10 @@
+## [2.380.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.380.1...v2.380.2) (2026-10-12)
+
+
+### Bug Fixes
+
+* 刮削完成后实时刷新媒体库主页 ([f9d4b74](https://github.com/1525745393/EmbyTok-Flutter/commit/f9d4b7494722ac91939258e8973f29490e75353c))
+
 ## [2.380.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.380.0...v2.380.1) (2026-10-12)
 
 
