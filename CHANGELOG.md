@@ -1,3 +1,11 @@
+## [2.386.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.386.0...v2.386.1) (2026-10-12)
+
+
+### Bug Fixes
+
+* .nfo 覆盖中央缓存时，embytok_* 缺失的 path 保留中央值 ([0d53758](https://github.com/1525745393/EmbyTok-Flutter/commit/0d53758156b147523fb47ce2a3ded70b7bccd9fc))
+* 视频旁 .nfo 改为权威源，覆盖中央缓存 ([3991023](https://github.com/1525745393/EmbyTok-Flutter/commit/39910232b7986f6b7474beae65c78973e9521137))
+
 # [2.386.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.385.0...v2.386.0) (2026-10-12)
 
 
