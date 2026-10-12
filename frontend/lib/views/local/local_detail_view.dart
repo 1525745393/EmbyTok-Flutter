@@ -285,7 +285,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                       children: [
                         // 海报（点击放大，本地文件优先）
                         GestureDetector(
-                          onTap: () => _openImageViewer(context, TmdbService.posterUrl(scraped.posterPath!)),
+                          onTap: () => _openImageViewer(context, TmdbService.posterUrl(scraped!.posterPath!)),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: SizedBox(
@@ -293,7 +293,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                               height: 135,
                               child: LocalPosterImage(
                                 item: widget.item,
-                                posterPath: scraped.posterPath,
+                                posterPath: scraped!.posterPath,
                                 fit: BoxFit.cover,
                               ),
                             ),
