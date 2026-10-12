@@ -1,3 +1,11 @@
+## [2.379.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.379.0...v2.379.1) (2026-10-12)
+
+
+### Bug Fixes
+
+* TMDB搜索年份过滤为空时去掉年份重试，修复中文剧搜不到 ([1242bdb](https://github.com/1525745393/EmbyTok-Flutter/commit/1242bdb98b7e6e05cb0e75734ab1086a2e6b32b2))
+* 手动匹配和重新刮削落盘元数据+写刮削记录，成功记录实时显示 ([d807a9c](https://github.com/1525745393/EmbyTok-Flutter/commit/d807a9c2e21982c721f012cfe986b6cb3ffc58d7))
+
 # [2.379.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.378.0...v2.379.0) (2026-10-11)
 
 
