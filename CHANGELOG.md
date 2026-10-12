@@ -1,3 +1,21 @@
+# [2.389.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.388.2...v2.389.0) (2026-10-12)
+
+
+### Bug Fixes
+
+* 后台补全cast和中文元数据后未更新state导致UI不刷新 ([cf4043b](https://github.com/1525745393/EmbyTok-Flutter/commit/cf4043bc8f984920b37eb9b2be07e0c7a0218811))
+* 提升图片默认清晰度——海报w300→w500，背景w780→w1280，头像w185→h632 ([e4e041d](https://github.com/1525745393/EmbyTok-Flutter/commit/e4e041d24586d032770e19d6926dd4c75ddf4482))
+* 演员角色名显示优化——宽度限制+最多两行+条件兼容character/role ([83d9ac8](https://github.com/1525745393/EmbyTok-Flutter/commit/83d9ac8358ac3017dc2825bfa601e384572530de))
+* 演员详情页API加language=zh-CN，传记和作品显示中文 ([308b712](https://github.com/1525745393/EmbyTok-Flutter/commit/308b7129d97d0787cb383c7045a1e9f2754f6468))
+* 电视剧单集无演员时从TMDB拉取整剧cast补上 ([a3c8cbe](https://github.com/1525745393/EmbyTok-Flutter/commit/a3c8cbe08cb0764209e628fae8ef7ed93cb15f53))
+
+
+### Features
+
+* 演员详情页作品列表显示已入库角标 ([8da31aa](https://github.com/1525745393/EmbyTok-Flutter/commit/8da31aaadf8b2f3e24d67afcb038acd321a2db9e))
+* 自动检测英文genre并后台重拉中文元数据 ([707c6e5](https://github.com/1525745393/EmbyTok-Flutter/commit/707c6e575dfc8bf74c92c204ddc327d5d420f942))
+* 详情页相关推荐显示已入库角标 ([0684963](https://github.com/1525745393/EmbyTok-Flutter/commit/068496373132cfe023757b000d37ca8348dce203))
+
 ## [2.388.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.388.1...v2.388.2) (2026-10-12)
 
 
