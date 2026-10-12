@@ -1,3 +1,10 @@
+## [2.380.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.380.2...v2.380.3) (2026-10-12)
+
+
+### Bug Fixes
+
+* 修复电视剧组刮削中途退出时isScraping未重置+更新过时注释 ([a595766](https://github.com/1525745393/EmbyTok-Flutter/commit/a595766e94257841bb13e2daf1ef86535bbf7c7f))
+
 ## [2.380.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.380.1...v2.380.2) (2026-10-12)
 
 
