@@ -1,3 +1,10 @@
+## [2.380.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.380.0...v2.380.1) (2026-10-12)
+
+
+### Bug Fixes
+
+* 补全电视剧组刮削和详情页重刮的历史记录 ([ecfe596](https://github.com/1525745393/EmbyTok-Flutter/commit/ecfe596d0cc54382ef92b910a81e78931873d4b2))
+
 # [2.380.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.379.3...v2.380.0) (2026-10-12)
 
 
