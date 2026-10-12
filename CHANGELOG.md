@@ -1,3 +1,10 @@
+## [2.389.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.389.0...v2.389.1) (2026-10-12)
+
+
+### Bug Fixes
+
+* 补全图片尺寸升级——硬编码URL和小头像列表用合适尺寸 ([8e97cb4](https://github.com/1525745393/EmbyTok-Flutter/commit/8e97cb4a52b393fd309b4cae96fda84ebee94ccd))
+
 # [2.389.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.388.2...v2.389.0) (2026-10-12)
 
 
