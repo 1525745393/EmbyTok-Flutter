@@ -416,12 +416,27 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       _scraping = true;
       _scrapedCount = 0;
     });
+    final sessionId = DateTime.now().millisecondsSinceEpoch.toString();
+    ScrapeMediaStore.isScraping.value = true;
     // 第一步：按剧名搜一次 TMDB
     ScrapedMedia? base;
     try {
       base = await ScrapeService.scrapeTvSeries(seriesName);
-    } catch (e) { debugPrint('剧集刮削失败 $seriesName: $e'); }
+    } catch (e) {
+      debugPrint('剧集刮削失败 $seriesName: $e');
+    }
     if (base == null) {
+      ScrapeMediaStore.isScraping.value = false;
+      // 记录整剧失败
+      if (eps.isNotEmpty) {
+        await ScrapeMediaStore.recordHistory(
+          videoPath: eps.first.path,
+          status: 'failed',
+          matchedTitle: seriesName,
+          error: '未在 TMDB 找到该剧',
+          sessionId: sessionId,
+        );
+      }
       if (mounted) {
         setState(() => _scraping = false);
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('未在 TMDB 找到该剧')));
@@ -429,7 +444,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       return;
     }
     // 第二步：给每集叠加季集号 + 拉取单集详情（标题/简介/剧照），并存缓存
-    int done = 0;
+    int done = 0, epFail = 0;
     for (final item in eps) {
       try {
         final ep = ScrapeService.extractEpisode(item.name);
@@ -468,12 +483,25 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           media = base;
         }
         await ScrapeService.saveCache(item.pathHash, media);
-        // 写每集视频旁 .nfo/-poster.jpg（单集不单独写历史，父级已记录）
+        // 写每集视频旁 .nfo/-poster.jpg（单集不单独写历史，整剧末尾统一记录）
         await ScrapeMediaStore.save(item, media, logHistory: false);
-      } catch (e) { debugPrint('单集元数据保存失败 ${item.name}: $e'); }
+      } catch (e) {
+        debugPrint('单集元数据保存失败 ${item.name}: $e');
+        epFail++;
+      }
       if (!mounted) return;
       setState(() => _scrapedCount = ++done);
     }
+    // 整剧刮削成功后写一条汇总记录
+    await ScrapeMediaStore.recordHistory(
+      videoPath: eps.first.path,
+      status: 'success',
+      matchedTitle: base.title,
+      matchedYear: base.year,
+      error: epFail > 0 ? '$epFail 集保存失败' : null,
+      sessionId: sessionId,
+    );
+    ScrapeMediaStore.isScraping.value = false;
     final cache = await ScrapeService.loadCache();
     if (!mounted) return;
     setState(() {

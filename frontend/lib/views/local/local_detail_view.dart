@@ -50,21 +50,35 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                 onPressed: () async {
                   final messenger = ScaffoldMessenger.of(context);
                   messenger.showSnackBar(const SnackBar(content: Text('正在重新刮削…')));
-                  final result = await ScrapeService.scrapeFile(
-                    widget.item.pathHash,
-                    widget.item.name,
-                  );
-                  if (result != null) {
-                    // 写入 SharedPreferences 缓存（即时刷新 UI）
-                    await ScrapeService.saveCache(widget.item.pathHash, result);
-                    // 落盘：中央目录 JSON + 视频旁 .nfo + 海报/头像
-                    await ScrapeMediaStore.save(widget.item, result);
-                    final cached = Map<String, ScrapedMedia>.from(ref.read(localVideoProvider).scrapedMap);
-                    cached[widget.item.pathHash] = result;
-                    ref.read(localVideoProvider.notifier).updateScrapedMap(cached);
-                    messenger.showSnackBar(const SnackBar(content: Text('刮削完成')));
-                  } else {
-                    messenger.showSnackBar(const SnackBar(content: Text('未找到匹配结果')));
+                  try {
+                    final result = await ScrapeService.scrapeFile(
+                      widget.item.pathHash,
+                      widget.item.name,
+                    );
+                    if (result != null) {
+                      await ScrapeService.saveCache(widget.item.pathHash, result);
+                      await ScrapeMediaStore.save(widget.item, result);
+                      final cached = Map<String, ScrapedMedia>.from(ref.read(localVideoProvider).scrapedMap);
+                      cached[widget.item.pathHash] = result;
+                      ref.read(localVideoProvider.notifier).updateScrapedMap(cached);
+                      messenger.showSnackBar(const SnackBar(content: Text('刮削完成')));
+                    } else {
+                      await ScrapeMediaStore.recordHistory(
+                        videoPath: widget.item.path,
+                        status: 'failed',
+                        matchedTitle: widget.item.name,
+                        error: '未找到匹配结果',
+                      );
+                      messenger.showSnackBar(const SnackBar(content: Text('未找到匹配结果')));
+                    }
+                  } catch (e) {
+                    await ScrapeMediaStore.recordHistory(
+                      videoPath: widget.item.path,
+                      status: 'failed',
+                      matchedTitle: widget.item.name,
+                      error: e.toString(),
+                    );
+                    messenger.showSnackBar(SnackBar(content: Text('刮削失败: $e')));
                   }
                 },
               ),
