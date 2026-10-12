@@ -40,11 +40,11 @@ class TmdbService {
 
   static bool get isConfigured => _apiKey.isNotEmpty;
 
-  static String posterUrl(String path, {String size = 'w300'}) =>
+  static String posterUrl(String path, {String size = 'w500'}) =>
       '$_imgBase/$size$path';
-  static String backdropUrl(String path, {String size = 'w780'}) =>
+  static String backdropUrl(String path, {String size = 'w1280'}) =>
       '$_imgBase/$size$path';
-  static String personUrl(String path, {String size = 'w185'}) =>
+  static String personUrl(String path, {String size = 'h632'}) =>
       '$_imgBase/$size$path';
 
   /// 获取演员详情

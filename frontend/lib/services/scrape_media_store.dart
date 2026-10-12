@@ -161,7 +161,7 @@ class ScrapeMediaStore {
 
     if (media.posterPath != null && media.posterPath!.isNotEmpty) {
       jobs.add(dl(media.posterPath,
-          () => TmdbService.posterUrl(media.posterPath!, size: 'w342'), 'posters', '-poster.jpg', 'poster.jpg'));
+          () => TmdbService.posterUrl(media.posterPath!, size: 'w500'), 'posters', '-poster.jpg', 'poster.jpg'));
     }
     if (media.backdropPath != null && media.backdropPath!.isNotEmpty) {
       jobs.add(dl(media.backdropPath,
@@ -233,7 +233,7 @@ class ScrapeMediaStore {
       if (media.posterPath != null && media.posterPath!.isNotEmpty) {
         final sibling = File('$base-poster.jpg');
         if (!await sibling.exists() || await sibling.length() == 0) {
-          await _downloadImage(TmdbService.posterUrl(media.posterPath!), sibling.path);
+          await _downloadImage(TmdbService.posterUrl(media.posterPath!, size: 'w500'), sibling.path);
         }
       }
       // 背景
