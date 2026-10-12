@@ -19,7 +19,7 @@ class LocalVideoAdapter {
               role: c['role'] ?? '',
               type: 'Actor',
               imageUrl: (c['profilePath']?.isNotEmpty ?? false)
-                  ? TmdbService.personUrl(c['profilePath']!)
+                  ? TmdbService.personUrl(c['profilePath']!, size: 'w185')
                   : null,
             ))
         .toList();
@@ -41,10 +41,10 @@ class LocalVideoAdapter {
       people: people,
       // 本地刮削后：把 TMDB poster URL 放进 imageTags['Primary']，复用现有海报渲染
       imageTags: scraped?.posterPath != null
-          ? {'Primary': 'https://image.tmdb.org/t/p/w300${scraped!.posterPath}'}
+          ? {'Primary': 'https://image.tmdb.org/t/p/w500${scraped!.posterPath}'}
           : const {},
       backdropImageTags: scraped?.backdropPath != null
-          ? ['https://image.tmdb.org/t/p/w780${scraped!.backdropPath}']
+          ? ['https://image.tmdb.org/t/p/w1280${scraped!.backdropPath}']
           : const [],
       isLocalFile: true,
       localPath: it.networkUrl != null && it.networkUrl!.isNotEmpty ? null : it.path,

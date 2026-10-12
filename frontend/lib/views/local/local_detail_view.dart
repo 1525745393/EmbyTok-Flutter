@@ -805,7 +805,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
   Widget _castAvatar(String? profile, ColorScheme scheme) {
     if (profile != null && profile.isNotEmpty) {
       return CachedNetworkImage(
-        imageUrl: TmdbService.personUrl(profile),
+        imageUrl: TmdbService.personUrl(profile, size: 'w185'),
         fit: BoxFit.cover,
         placeholder: (_, __) => Container(color: scheme.surfaceContainerHighest),
         errorWidget: (_, __, ___) => Container(
