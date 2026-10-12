@@ -628,6 +628,8 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                             return const SizedBox.shrink();
                           }
                           final recs = snap.data!.take(10).toList();
+                          final localTmdbIds = ref.watch(localVideoProvider).scrapedMap.values
+                              .map((s) => s.tmdbId).toSet();
                           return ListView.separated(
                             scrollDirection: Axis.horizontal,
                             itemCount: recs.length,
@@ -635,19 +637,33 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                             itemBuilder: (_, i) {
                               final r = recs[i];
                               final poster = r['poster_path'] as String?;
+                              final inLibrary = localTmdbIds.contains(r['id']);
                               return SizedBox(
                                 width: 110,
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: poster != null
-                                          ? CachedNetworkImage(
-                                              imageUrl: TmdbService.posterUrl(poster),
-                                              height: 140, width: 110, fit: BoxFit.cover,
-                                            )
-                                          : Container(height: 140, width: 110, color: Colors.grey[800]),
+                                    Stack(
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: poster != null
+                                              ? CachedNetworkImage(
+                                                  imageUrl: TmdbService.posterUrl(poster),
+                                                  height: 140, width: 110, fit: BoxFit.cover,
+                                                )
+                                              : Container(height: 140, width: 110, color: Colors.grey[800]),
+                                        ),
+                                        if (inLibrary)
+                                          Positioned(
+                                            top: 4, left: 4,
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(4)),
+                                              child: const Text('已入库', style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)),
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
