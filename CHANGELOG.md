@@ -1,3 +1,10 @@
+## [2.388.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.388.1...v2.388.2) (2026-10-12)
+
+
+### Bug Fixes
+
+* 类型标签 HTML 实体解码——Sci-Fi &amp; Fantasy 显示为 Sci-Fi & Fantasy ([dfa3afa](https://github.com/1525745393/EmbyTok-Flutter/commit/dfa3afa768a3010d13b3b1407624d1d510228dba))
+
 ## [2.388.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.388.0...v2.388.1) (2026-10-12)
 
 
