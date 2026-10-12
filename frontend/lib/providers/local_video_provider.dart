@@ -371,6 +371,16 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
                 }
               }());
             }
+            // 检测到 genre 全英文：后台重新拉取中文元数据
+            if (ScrapeService.needsChineseRefetch(merged)) {
+              unawaited(() async {
+                final updated = await ScrapeService.refetchChinese(merged);
+                if (updated != null) {
+                  cached[it.pathHash] = updated;
+                  unawaited(ScrapeMediaStore.backfillSibling(it.path, updated));
+                }
+              }());
+            }
           } else {
             // 没有 .nfo 但中央缓存有数据：用中央数据创建 .nfo 并补下载图片
             final central = cached[it.pathHash];

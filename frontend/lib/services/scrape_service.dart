@@ -162,6 +162,75 @@ class ScrapeService {
     }
   }
 
+  /// 检测 genre 是否全是英文（无中文字符），说明缓存是早期非中文数据。
+  static bool needsChineseRefetch(ScrapedMedia m) {
+    if (m.genres.isEmpty) return false;
+    final hasChinese = m.genres.any((g) => RegExp(r'[\u4e00-\u9fff]').hasMatch(g));
+    return !hasChinese;
+  }
+
+  /// 重新从 TMDB 拉取中文元数据（genre/overview/title 等）。
+  /// 返回更新后的 ScrapedMedia，保留 episode/still 等单集字段。
+  static Future<ScrapedMedia?> refetchChinese(ScrapedMedia m) async {
+    try {
+      if (m.type == 'tv' && m.tvId != null) {
+        final details = await TmdbService.getTvDetails(m.tvId!);
+        if (details.isEmpty) return null;
+        _tvDetailsCache[m.tvId!] = details;
+        return ScrapedMedia(
+          tmdbId: m.tmdbId,
+          type: 'tv',
+          title: details['name'] as String? ?? m.title,
+          year: m.year,
+          posterPath: details['poster_path'] as String? ?? m.posterPath,
+          backdropPath: details['backdrop_path'] as String? ?? m.backdropPath,
+          overview: details['overview'] as String? ?? m.overview,
+          rating: (details['vote_average'] as num?)?.toDouble() ?? m.rating,
+          genres: (details['genres'] as List?)?.map((g) => g['name'] as String).toList() ?? m.genres,
+          cast: m.cast,
+          directors: m.directors,
+          studios: m.studios,
+          imdbId: m.imdbId,
+          stillPath: m.stillPath,
+          episodeTitle: m.episodeTitle,
+          season: m.season,
+          episode: m.episode,
+          tvId: m.tvId,
+          certification: m.certification,
+          lowConfidence: m.lowConfidence,
+          scrapedAt: DateTime.now().millisecondsSinceEpoch,
+        );
+      } else if (m.type == 'movie' && m.tmdbId > 0) {
+        final details = await TmdbService.getMovieDetails(m.tmdbId);
+        if (details.isEmpty) return null;
+        return ScrapedMedia(
+          tmdbId: m.tmdbId,
+          type: 'movie',
+          title: details['title'] as String? ?? m.title,
+          year: m.year,
+          posterPath: details['poster_path'] as String? ?? m.posterPath,
+          backdropPath: details['backdrop_path'] as String? ?? m.backdropPath,
+          overview: details['overview'] as String? ?? m.overview,
+          rating: (details['vote_average'] as num?)?.toDouble() ?? m.rating,
+          genres: (details['genres'] as List?)?.map((g) => g['name'] as String).toList() ?? m.genres,
+          cast: m.cast,
+          directors: m.directors,
+          studios: m.studios,
+          imdbId: m.imdbId,
+          stillPath: m.stillPath,
+          episodeTitle: m.episodeTitle,
+          season: m.season,
+          episode: m.episode,
+          tvId: m.tvId,
+          certification: m.certification,
+          lowConfidence: m.lowConfidence,
+          scrapedAt: DateTime.now().millisecondsSinceEpoch,
+        );
+      }
+    } catch (_) {}
+    return null;
+  }
+
   /// 文件名解析：提取片名、年份、季集号
   static ParsedName parseFilename(String filename, {String? parentDir}) {
     // 去扩展名
