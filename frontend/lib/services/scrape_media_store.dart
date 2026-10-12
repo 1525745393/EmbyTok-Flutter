@@ -487,11 +487,13 @@ class ScrapeMediaStore {
       sb.writeln('  <actor>');
       sb.writeln('    <name>${esc(c['name'])}</name>');
       sb.writeln('    <role>${esc(c['role'])}</role>');
-      if (c['id'] != null && c['id'].isNotEmpty) {
-        sb.writeln('    <id>${esc(c['id'])}</id>');
+      final cid = c['id'];
+      if (cid != null && cid.isNotEmpty) {
+        sb.writeln('    <id>${esc(cid)}</id>');
       }
-      if (c['profilePath'] != null && c['profilePath'].isNotEmpty) {
-        sb.writeln('    <thumb>${esc(c['profilePath'])}</thumb>');
+      final cprofile = c['profilePath'];
+      if (cprofile != null && cprofile.isNotEmpty) {
+        sb.writeln('    <thumb>${esc(cprofile)}</thumb>');
       }
       sb.writeln('  </actor>');
     }
