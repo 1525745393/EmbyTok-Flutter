@@ -435,14 +435,25 @@ class _ScrapeHistoryPageState extends State<_ScrapeHistoryPage> {
                                   ? lastTime.difference(firstTime)
                                   : null;
                               final rate = list.isEmpty ? 0 : (okCount / list.length * 100).round();
+                              final gkey = groupKeys[gi];
+                              final groupLabel = switch (gkey) {
+                                'auto' => '后台自动刮削',
+                                'single' => '手动操作',
+                                _ when gkey.startsWith('retry_') => '重试失败项',
+                                _ => '批量刮削',
+                              };
                               return Card(
                                 margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 child: ExpansionTile(
                                   leading: Icon(
-                                    failCount == 0 ? Icons.check_circle : Icons.warning,
-                                    color: failCount == 0 ? Colors.green : Colors.orange,
+                                    gkey == 'auto'
+                                        ? Icons.cloud_download_outlined
+                                        : (failCount == 0 ? Icons.check_circle : Icons.warning),
+                                    color: gkey == 'auto'
+                                        ? Colors.blue
+                                        : (failCount == 0 ? Colors.green : Colors.orange),
                                   ),
-                                  title: Text('${list.length} 个文件 · 成功 $okCount · 失败 $failCount'),
+                                  title: Text('$groupLabel · ${list.length} 个文件 · 成功 $okCount · 失败 $failCount'),
                                   subtitle: Text(
                                     '${firstTime?.toString().substring(0, 16) ?? ''} · 成功率 $rate%'
                                     '${duration != null ? ' · 耗时 ${duration.inSeconds}s' : ''}',

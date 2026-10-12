@@ -324,15 +324,21 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
           if (m != null) {
             cached[item.pathHash] = m;
             await ScrapeService.saveCache(item.pathHash, m);
-            await ScrapeMediaStore.save(item, m, logHistory: false);
+            await ScrapeMediaStore.save(item, m, sessionId: 'auto');
             failed.remove(item.pathHash);
             ok++;
           } else {
             failed[item.pathHash] = '未找到匹配';
+            await ScrapeMediaStore.recordHistory(
+              videoPath: item.path, status: 'failed',
+              error: '未找到匹配', sessionId: 'auto');
             fail++;
           }
         } catch (e) {
           failed[item.pathHash] = e.toString();
+          await ScrapeMediaStore.recordHistory(
+            videoPath: item.path, status: 'failed',
+            error: e.toString(), sessionId: 'auto');
           fail++;
         }
         done++;
@@ -362,6 +368,7 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
     );
     final cached = Map<String, ScrapedMedia>.from(state.scrapedMap);
     final failed = <String, String>{};
+    final sessionId = 'retry_${DateTime.now().millisecondsSinceEpoch}';
     var done = 0, ok = 0, fail = 0;
     const concurrency = 4;
     var i = 0;
@@ -379,14 +386,20 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
           if (m != null) {
             cached[item.pathHash] = m;
             await ScrapeService.saveCache(item.pathHash, m);
-            await ScrapeMediaStore.save(item, m, logHistory: false);
+            await ScrapeMediaStore.save(item, m, sessionId: sessionId);
             ok++;
           } else {
             failed[item.pathHash] = '未找到匹配';
+            await ScrapeMediaStore.recordHistory(
+              videoPath: item.path, status: 'failed',
+              error: '未找到匹配', sessionId: sessionId);
             fail++;
           }
         } catch (e) {
           failed[item.pathHash] = e.toString();
+          await ScrapeMediaStore.recordHistory(
+            videoPath: item.path, status: 'failed',
+            error: e.toString(), sessionId: sessionId);
           fail++;
         }
         done++;
