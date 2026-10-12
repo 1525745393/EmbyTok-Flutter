@@ -87,6 +87,15 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                       if (context.mounted && (oldScraped != null || allPosters.isNotEmpty || allBackdrops.isNotEmpty)) {
                         String selectedPoster = result.posterPath ?? '';
                         String selectedBackdrop = result.backdropPath ?? '';
+                        // PageController 必须在弹窗外创建，否则 setD 重建时会重置滚动位置
+                        final posterController = PageController(
+                          viewportFraction: 0.45,
+                          initialPage: allPosters.isEmpty ? 0 : allPosters.indexOf(selectedPoster).clamp(0, allPosters.length - 1),
+                        );
+                        final backdropController = PageController(
+                          viewportFraction: 0.8,
+                          initialPage: allBackdrops.isEmpty ? 0 : allBackdrops.indexOf(selectedBackdrop).clamp(0, allBackdrops.length - 1),
+                        );
                         final confirmed = await showDialog<bool>(
                           context: context,
                           builder: (_) => StatefulBuilder(
@@ -108,16 +117,18 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                                           ? const Center(child: Icon(Icons.image, color: Colors.grey))
                                           : PageView.builder(
                                               itemCount: allPosters.length,
+                                              controller: posterController,
                                               onPageChanged: (i) => setD(() => selectedPoster = allPosters[i]),
-                                              controller: PageController(
-                                                viewportFraction: 0.45,
-                                                initialPage: allPosters.indexOf(selectedPoster).clamp(0, allPosters.length - 1),
-                                              ),
                                               itemBuilder: (_, i) {
                                                 final p = allPosters[i];
                                                 final selected = p == selectedPoster;
                                                 return GestureDetector(
-                                                  onTap: () => setD(() => selectedPoster = p),
+                                                  onTap: () {
+                                                    setD(() => selectedPoster = p);
+                                                    posterController.animateToPage(i,
+                                                        duration: const Duration(milliseconds: 200),
+                                                        curve: Curves.easeOut);
+                                                  },
                                                   child: Container(
                                                     margin: const EdgeInsets.symmetric(horizontal: 4),
                                                     decoration: BoxDecoration(
@@ -151,16 +162,18 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                                           ? const Center(child: Icon(Icons.image, color: Colors.grey))
                                           : PageView.builder(
                                               itemCount: allBackdrops.length,
+                                              controller: backdropController,
                                               onPageChanged: (i) => setD(() => selectedBackdrop = allBackdrops[i]),
-                                              controller: PageController(
-                                                viewportFraction: 0.8,
-                                                initialPage: allBackdrops.indexOf(selectedBackdrop).clamp(0, allBackdrops.length - 1),
-                                              ),
                                               itemBuilder: (_, i) {
                                                 final b = allBackdrops[i];
                                                 final selected = b == selectedBackdrop;
                                                 return GestureDetector(
-                                                  onTap: () => setD(() => selectedBackdrop = b),
+                                                  onTap: () {
+                                                    setD(() => selectedBackdrop = b);
+                                                    backdropController.animateToPage(i,
+                                                        duration: const Duration(milliseconds: 200),
+                                                        curve: Curves.easeOut);
+                                                  },
                                                   child: Container(
                                                     margin: const EdgeInsets.symmetric(horizontal: 4),
                                                     decoration: BoxDecoration(
@@ -189,18 +202,20 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                               ),
                               actions: [
                                 TextButton(
-                                  onPressed: () => Navigator.pop(context, false),
+                                  onPressed: () => Navigator.of(ctx).pop(false),
                                   child: const Text('保留旧图片', style: TextStyle(color: Colors.grey)),
                                 ),
                                 ElevatedButton(
                                   style: ElevatedButton.styleFrom(backgroundColor: Colors.pinkAccent),
-                                  onPressed: () => Navigator.pop(context, true),
+                                  onPressed: () => Navigator.of(ctx).pop(true),
                                   child: const Text('使用选中图片', style: TextStyle(color: Colors.white)),
                                 ),
                               ],
                             ),
                           ),
                         );
+                        posterController.dispose();
+                        backdropController.dispose();
                         if (confirmed == true) {
                           // 用用户选中的图片路径覆盖 result
                           final newResult = ScrapedMedia(
