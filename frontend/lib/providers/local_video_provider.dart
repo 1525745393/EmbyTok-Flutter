@@ -367,6 +367,7 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
                     lowConfidence: merged.lowConfidence,
                     scrapedAt: merged.scrapedAt,
                   );
+                  state = state.copyWith(scrapedMap: Map.unmodifiable(cached));
                   unawaited(ScrapeMediaStore.backfillCastAvatars(it.path, showCast));
                 }
               }());
@@ -377,6 +378,7 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
                 final updated = await ScrapeService.refetchChinese(merged);
                 if (updated != null) {
                   cached[it.pathHash] = updated;
+                  state = state.copyWith(scrapedMap: Map.unmodifiable(cached));
                   unawaited(ScrapeMediaStore.backfillSibling(it.path, updated));
                 }
               }());
