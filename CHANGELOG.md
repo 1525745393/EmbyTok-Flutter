@@ -1,3 +1,10 @@
+## [2.379.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.379.2...v2.379.3) (2026-10-12)
+
+
+### Bug Fixes
+
+* 自动后台刮削不写历史记录，避免与用户主动操作混淆 ([0015639](https://github.com/1525745393/EmbyTok-Flutter/commit/001563993ddd1f3cc606368ca26b1b688dbf9cf4))
+
 ## [2.379.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.379.1...v2.379.2) (2026-10-12)
 
 
