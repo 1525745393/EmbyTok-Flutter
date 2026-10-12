@@ -1,3 +1,10 @@
+# [2.383.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.382.0...v2.383.0) (2026-10-12)
+
+
+### Features
+
+* 演员头像同时按personId存到视频旁.actors目录，清除App数据后离线也能显示 ([79a3e69](https://github.com/1525745393/EmbyTok-Flutter/commit/79a3e69a156505c2b3f042b15574827291c1cdde))
+
 # [2.382.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.381.1...v2.382.0) (2026-10-12)
 
 
