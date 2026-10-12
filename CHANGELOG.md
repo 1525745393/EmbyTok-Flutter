@@ -1,3 +1,10 @@
+# [2.386.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.385.0...v2.386.0) (2026-10-12)
+
+
+### Features
+
+* .nfo 新增 embytok_poster/backdrop/still 扩展标签存 CDN 路径 ([4d551a0](https://github.com/1525745393/EmbyTok-Flutter/commit/4d551a08942b7c63570d50c081fd2bf373584365))
+
 # [2.385.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.384.1...v2.385.0) (2026-10-12)
 
 
