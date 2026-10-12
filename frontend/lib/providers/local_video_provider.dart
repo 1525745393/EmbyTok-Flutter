@@ -260,6 +260,36 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
           final nfo = await ScrapeMediaStore.loadSibling(it.path);
           if (nfo != null) {
             final prev = cached[it.pathHash];
+            // 演员合并：.nfo 有演员名但可能缺 id/profilePath（旧格式），
+            // 按名字匹配中央缓存补充 id 和头像路径。
+            final mergedCast = <Map<String, String>>[];
+            final prevCastByName = <String, Map<String, String>>{};
+            if (prev?.cast != null) {
+              for (final c in prev!.cast) {
+                final name = c['name'] ?? '';
+                if (name.isNotEmpty) prevCastByName[name] = c;
+              }
+            }
+            for (final nc in nfo.cast) {
+              final name = nc['name'] ?? '';
+              final match = prevCastByName[name];
+              mergedCast.add({
+                'name': name,
+                'role': nc['role'] ?? match?['role'] ?? '',
+                if (nc['id'] != null && nc['id']!.isNotEmpty)
+                  'id': nc['id']!
+                else if (match?['id'] != null && match!['id']!.isNotEmpty)
+                  'id': match['id']!,
+                if (nc['profilePath'] != null && nc['profilePath']!.isNotEmpty)
+                  'profilePath': nc['profilePath']!
+                else if (match?['profilePath'] != null && match!['profilePath']!.isNotEmpty)
+                  'profilePath': match['profilePath']!,
+              });
+            }
+            // .nfo 没有演员但中央有，用中央的
+            if (mergedCast.isEmpty && prev?.cast != null) {
+              mergedCast.addAll(prev!.cast);
+            }
             final merged = ScrapedMedia(
               tmdbId: nfo.tmdbId,
               type: nfo.type,
@@ -270,7 +300,7 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
               overview: nfo.overview ?? prev?.overview,
               rating: nfo.rating ?? prev?.rating,
               genres: nfo.genres.isNotEmpty ? nfo.genres : (prev?.genres ?? const []),
-              cast: nfo.cast.isNotEmpty ? nfo.cast : (prev?.cast ?? const []),
+              cast: mergedCast,
               directors: nfo.directors.isNotEmpty ? nfo.directors : (prev?.directors ?? const []),
               studios: nfo.studios.isNotEmpty ? nfo.studios : (prev?.studios ?? const []),
               imdbId: nfo.imdbId ?? prev?.imdbId,
