@@ -593,7 +593,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                                 ),
                                 if (c['role'] != null && c['role']!.isNotEmpty)
                                   Text(
-                                    c['character']!,
+                                    c['character'] ?? c['role'] ?? '',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     textAlign: TextAlign.center,
