@@ -1,3 +1,10 @@
+## [2.388.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.388.0...v2.388.1) (2026-10-12)
+
+
+### Bug Fixes
+
+* 详情页演员角色名崩溃——c['character']! 空指针 ([261a2c0](https://github.com/1525745393/EmbyTok-Flutter/commit/261a2c0e0a0be507c50eaea587939ba271358c9d))
+
 # [2.388.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.387.0...v2.388.0) (2026-10-12)
 
 
