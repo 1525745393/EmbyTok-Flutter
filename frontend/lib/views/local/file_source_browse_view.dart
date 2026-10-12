@@ -212,6 +212,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         _scraped = cache;
         _scraping = false;
       });
+      // 刷新全局 provider，让媒体库主页实时显示新刮削的元数据
+      ref.read(localVideoProvider.notifier).refresh();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('刮削完成：成功 $success / 共 ${_items.length} 个视频')),
       );
@@ -508,6 +510,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       _scraped = cache;
       _scraping = false;
     });
+    ref.read(localVideoProvider.notifier).refresh();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('刮削完成：$done 集共享《${base.title}》元数据')));
     }

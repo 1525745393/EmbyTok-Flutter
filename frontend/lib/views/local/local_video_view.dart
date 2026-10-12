@@ -2406,7 +2406,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
             if (it.duration.inMinutes > 0) '${it.duration.inMinutes}分钟',
           ].join(' · '), style: const TextStyle(fontSize: 12)),
           onTap: () => _openPlayer(items, i),
-          onLongPress: () => _showCardMenu(context, it, s),
+          onLongPress: () => _showCardMenu(context, ref, it, s),
         );
       },
     );
@@ -2463,14 +2463,14 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
 }
 
 /// 竖版海报卡片
-class _GridPosterCard extends StatelessWidget {
+class _GridPosterCard extends ConsumerWidget {
   const _GridPosterCard({required this.item, required this.state, this.onPlay});
   final LocalVideoItem item;
   final LocalVideoState state;
   final VoidCallback? onPlay;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final s = state.scrapedMap[item.pathHash];
     return GestureDetector(
       onTap: () => Navigator.push(
@@ -2478,7 +2478,7 @@ class _GridPosterCard extends StatelessWidget {
         MaterialPageRoute<Widget>(builder: (_) => LocalDetailPage(item: item, onPlay: onPlay),
         ),
       ),
-      onLongPress: () => _showCardMenu(context, item, s),
+      onLongPress: () => _showCardMenu(context, ref, item, s),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2509,7 +2509,7 @@ class _GridPosterCard extends StatelessWidget {
   }
 }
 
-void _showCardMenu(BuildContext context, LocalVideoItem item, ScrapedMedia? s) {
+void _showCardMenu(BuildContext context, WidgetRef ref, LocalVideoItem item, ScrapedMedia? s) {
   showModalBottomSheet(
     context: context,
     builder: (_) => SafeArea(
@@ -2528,14 +2528,17 @@ void _showCardMenu(BuildContext context, LocalVideoItem item, ScrapedMedia? s) {
             leading: const Icon(Icons.search, color: Colors.green),
             title: const Text('手动匹配 TMDB 元数据'),
             subtitle: Text(s?.title ?? item.name, maxLines: 1),
-            onTap: () {
+            onTap: () async {
               Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => TmdbSearchPage(
+              final done = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => TmdbSearchPage(
                 initialQuery: s?.title ?? item.name,
                 pathHash: item.pathHash,
                 filename: item.name,
                 videoItem: item,
               )));
+              if (done == true) {
+                ref.read(localVideoProvider.notifier).refresh();
+              }
             },
           ),
         ],
@@ -2545,14 +2548,14 @@ void _showCardMenu(BuildContext context, LocalVideoItem item, ScrapedMedia? s) {
 }
 
 /// 横版 backdrop 卡片
-class _BackdropCard extends StatelessWidget {
+class _BackdropCard extends ConsumerWidget {
   const _BackdropCard({required this.item, required this.state, this.onPlay});
   final LocalVideoItem item;
   final LocalVideoState state;
   final VoidCallback? onPlay;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final s = state.scrapedMap[item.pathHash];
     return GestureDetector(
       onTap: () => Navigator.push(
@@ -2560,7 +2563,7 @@ class _BackdropCard extends StatelessWidget {
         MaterialPageRoute<Widget>(builder: (_) => LocalDetailPage(item: item, onPlay: onPlay),
         ),
       ),
-      onLongPress: () => _showCardMenu(context, item, s),
+      onLongPress: () => _showCardMenu(context, ref, item, s),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
