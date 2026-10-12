@@ -251,6 +251,9 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
       // 视频旁 .nfo 是权威源：覆盖文本元数据；
       // 但 embytok_* 标签是新加的，旧 .nfo 没有，此时保留中央缓存的 poster/backdrop/still path，
       // 否则会把中央缓存里已有 path 覆盖成 null，导致详情页无图。
+      // 所有可空字段都在 .nfo 缺失时回退中央缓存：
+      // 旧 .nfo 可能没有 embytok_* 标签、<season>/<episode>、单集简介等，
+      // 直接覆盖会让电视剧单集详情页退化成整剧详情页。
       for (final it in items) {
         if (it.path.isNotEmpty) {
           final nfo = await ScrapeMediaStore.loadSibling(it.path);
@@ -260,20 +263,20 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
               tmdbId: nfo.tmdbId,
               type: nfo.type,
               title: nfo.title,
-              year: nfo.year,
+              year: nfo.year ?? prev?.year,
               posterPath: nfo.posterPath ?? prev?.posterPath,
               backdropPath: nfo.backdropPath ?? prev?.backdropPath,
-              overview: nfo.overview,
-              rating: nfo.rating,
-              genres: nfo.genres,
-              cast: nfo.cast,
-              directors: nfo.directors,
-              studios: nfo.studios,
-              imdbId: nfo.imdbId,
+              overview: nfo.overview ?? prev?.overview,
+              rating: nfo.rating ?? prev?.rating,
+              genres: nfo.genres.isNotEmpty ? nfo.genres : (prev?.genres ?? const []),
+              cast: nfo.cast.isNotEmpty ? nfo.cast : (prev?.cast ?? const []),
+              directors: nfo.directors.isNotEmpty ? nfo.directors : (prev?.directors ?? const []),
+              studios: nfo.studios.isNotEmpty ? nfo.studios : (prev?.studios ?? const []),
+              imdbId: nfo.imdbId ?? prev?.imdbId,
               stillPath: nfo.stillPath ?? prev?.stillPath,
-              episodeTitle: nfo.episodeTitle,
-              season: nfo.season,
-              episode: nfo.episode,
+              episodeTitle: nfo.episodeTitle ?? prev?.episodeTitle,
+              season: nfo.season ?? prev?.season,
+              episode: nfo.episode ?? prev?.episode,
               tvId: nfo.tvId ?? prev?.tvId,
               certification: nfo.certification ?? prev?.certification,
               lowConfidence: nfo.lowConfidence,
