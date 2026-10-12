@@ -313,41 +313,41 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        // 缩略图（点击放大）：电视剧优先显示单集剧照 stillPath
+                        // 缩略图（点击放大）：电视剧优先单集剧照，电影用 backdrop，均本地文件优先
                         Expanded(
                           child: Builder(builder: (_) {
-                            final mediaPath = scraped!.type == 'tv' && scraped!.stillPath != null && scraped!.stillPath!.isNotEmpty
-                                ? scraped!.stillPath
-                                : scraped.backdropPath;
+                            final isTvStill = scraped!.type == 'tv' &&
+                                scraped!.stillPath != null &&
+                                scraped!.stillPath!.isNotEmpty;
+                            final cdnUrl = isTvStill
+                                ? TmdbService.posterUrl(scraped!.stillPath!)
+                                : (scraped!.backdropPath != null
+                                    ? TmdbService.backdropUrl(scraped!.backdropPath!)
+                                    : null);
                             return GestureDetector(
-                              onTap: mediaPath != null
-                                  ? () => _openImageViewer(context,
-                                      scraped!.type == 'tv' && scraped!.stillPath != null
-                                          ? TmdbService.posterUrl(scraped!.stillPath!)
-                                          : TmdbService.backdropUrl(scraped.backdropPath!))
+                              onTap: cdnUrl != null
+                                  ? () => _openImageViewer(context, cdnUrl)
                                   : null,
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
-                                child: mediaPath != null
-                                    ? CachedNetworkImage(
-                                        imageUrl: scraped!.type == 'tv' && scraped!.stillPath != null
-                                            ? TmdbService.posterUrl(scraped!.stillPath!)
-                                            : TmdbService.backdropUrl(scraped.backdropPath!),
-                                        height: 135,
-                                        fit: BoxFit.cover,
-                                        errorWidget: (_, __, ___) => Container(
-                                        height: 135,
-                                        color: scheme.surfaceContainerHighest,
-                                      ),
-                                    )
-                                  : Container(
-                                      height: 135,
-                                      color: scheme.surfaceContainerHighest,
-                                    ),
-                            ),
-                          ),
-                          );
-                        }),
+                                child: SizedBox(
+                                  height: 135,
+                                  width: double.infinity,
+                                  child: isTvStill
+                                      ? LocalStillImage(
+                                          item: widget.item,
+                                          stillPath: scraped!.stillPath,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : LocalBackdropImage(
+                                          item: widget.item,
+                                          backdropPath: scraped!.backdropPath,
+                                          fit: BoxFit.cover,
+                                        ),
+                                ),
+                              ),
+                            );
+                          }),
                         ),
                       ],
                     ),

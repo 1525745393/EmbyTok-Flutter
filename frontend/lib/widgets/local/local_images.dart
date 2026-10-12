@@ -89,6 +89,43 @@ class LocalBackdropImage extends StatelessWidget {
       );
 }
 
+/// 本地优先单集剧照
+class LocalStillImage extends StatelessWidget {
+  const LocalStillImage({
+    super.key,
+    required this.item,
+    required this.stillPath,
+    this.fit = BoxFit.cover,
+  });
+  final LocalVideoItem item;
+  final String? stillPath;
+  final BoxFit fit;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<File?>(
+      future: ScrapeMediaStore.stillFile(item),
+      builder: (_, snap) {
+        if (snap.hasData && snap.data != null) {
+          return Image.file(snap.data!, fit: fit, errorBuilder: (_, __, ___) => _cdn());
+        }
+        return _cdn();
+      },
+    );
+  }
+
+  Widget _cdn() {
+    if (stillPath == null || stillPath!.isEmpty) {
+      return const ColoredBox(color: Color(0xFF1A1A1A));
+    }
+    return CachedNetworkImage(
+      imageUrl: TmdbService.posterUrl(stillPath!, size: 'w300'),
+      fit: fit,
+      errorWidget: (_, __, ___) => const ColoredBox(color: Color(0xFF1A1A1A)),
+    );
+  }
+}
+
 /// 本地优先演员头像（按 personId）
 class LocalCastAvatar extends StatelessWidget {
 
