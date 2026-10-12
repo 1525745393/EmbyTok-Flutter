@@ -538,7 +538,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                     const Text('演员', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 8),
                     SizedBox(
-                      height: 110,
+                      height: 120,
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: scraped.cast.length,
@@ -594,13 +594,16 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                                     style: const TextStyle(fontSize: 11),
                                   ),
                                 ),
-                                if (c['role'] != null && c['role']!.isNotEmpty)
-                                  Text(
-                                    c['character'] ?? c['role'] ?? '',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(fontSize: 9, color: Colors.white54),
+                                if ((c['role'] ?? '').isNotEmpty || (c['character'] ?? '').isNotEmpty)
+                                  SizedBox(
+                                    width: 72,
+                                    child: Text(
+                                      c['character'] ?? c['role'] ?? '',
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontSize: 9, color: Colors.white54),
+                                    ),
                                   ),
                               ],
                             ),
