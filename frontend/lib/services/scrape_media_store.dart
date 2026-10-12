@@ -544,6 +544,16 @@ class ScrapeMediaStore {
       }
       sb.writeln('  </actor>');
     }
+    // EmbyTok 自用扩展标签：存 TMDB CDN 路径，Kodi/Jellyfin 会忽略
+    if (m.posterPath != null && m.posterPath!.isNotEmpty) {
+      sb.writeln('  <embytok_poster>${esc(m.posterPath)}</embytok_poster>');
+    }
+    if (m.backdropPath != null && m.backdropPath!.isNotEmpty) {
+      sb.writeln('  <embytok_backdrop>${esc(m.backdropPath)}</embytok_backdrop>');
+    }
+    if (m.stillPath != null && m.stillPath!.isNotEmpty) {
+      sb.writeln('  <embytok_still>${esc(m.stillPath)}</embytok_still>');
+    }
     sb.writeln('</$root>');
     return sb.toString();
   }
@@ -604,6 +614,9 @@ class ScrapeMediaStore {
       season: int.tryParse(tag('season') ?? ''),
       episode: int.tryParse(tag('episode') ?? ''),
       episodeTitle: isTv ? title : null,
+      posterPath: tag('embytok_poster'),
+      backdropPath: tag('embytok_backdrop'),
+      stillPath: tag('embytok_still'),
       scrapedAt: DateTime.now().millisecondsSinceEpoch,
     );
   }
