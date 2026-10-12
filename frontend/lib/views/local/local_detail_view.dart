@@ -50,6 +50,8 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                 tooltip: '重新刮削元数据',
                 onPressed: () async {
                   final messenger = ScaffoldMessenger.of(context);
+                  final oldScraped = ref.read(localVideoProvider).scrapedMap[widget.item.pathHash];
+                  final oldPosterPath = oldScraped?.posterPath;
                   messenger.showSnackBar(const SnackBar(content: Text('正在重新刮削…')));
                   try {
                     final result = await ScrapeService.scrapeFile(
@@ -62,7 +64,80 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                       final cached = Map<String, ScrapedMedia>.from(ref.read(localVideoProvider).scrapedMap);
                       cached[widget.item.pathHash] = result;
                       ref.read(localVideoProvider.notifier).updateScrapedMap(cached);
-                      messenger.showSnackBar(const SnackBar(content: Text('刮削完成')));
+                      // 海报变了 → 弹窗对比新旧海报
+                      if (oldPosterPath != result.posterPath && context.mounted) {
+                        final useNew = await showDialog<bool>(
+                          context: context,
+                          builder: (_) => AlertDialog(
+                            backgroundColor: const Color(0xFF1E1E1E),
+                            title: const Text('刮削完成，海报已更新', style: TextStyle(color: Colors.white)),
+                            content: SizedBox(
+                              width: 300,
+                              height: 260,
+                              child: Row(
+                                children: [
+                                  Expanded(child: Column(
+                                    children: [
+                                      const Text('旧海报', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                                      const SizedBox(height: 4),
+                                      Expanded(child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: oldPosterPath != null
+                                            ? CachedNetworkImage(
+                                                imageUrl: TmdbService.posterUrl(oldPosterPath, size: 'w185'),
+                                                fit: BoxFit.cover,
+                                                errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey),
+                                              )
+                                            : const Icon(Icons.image, color: Colors.grey, size: 40),
+                                      )),
+                                    ],
+                                  )),
+                                  const SizedBox(width: 12),
+                                  Expanded(child: Column(
+                                    children: [
+                                      const Text('新海报', style: TextStyle(color: Colors.pinkAccent, fontSize: 12)),
+                                      const SizedBox(height: 4),
+                                      Expanded(child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: result.posterPath != null
+                                            ? CachedNetworkImage(
+                                                imageUrl: TmdbService.posterUrl(result.posterPath!, size: 'w185'),
+                                                fit: BoxFit.cover,
+                                                errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey),
+                                              )
+                                            : const Icon(Icons.image, color: Colors.grey, size: 40),
+                                      )),
+                                    ],
+                                  )),
+                                ],
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('保留旧海报', style: TextStyle(color: Colors.grey)),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.pinkAccent),
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('使用新海报', style: TextStyle(color: Colors.white)),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (useNew == true) {
+                          await ScrapeMediaStore.forceOverwriteSiblingImages(widget.item);
+                          if (context.mounted) {
+                            messenger.showSnackBar(const SnackBar(content: Text('已更新视频旁海报')));
+                          }
+                        } else {
+                          if (context.mounted) {
+                            messenger.showSnackBar(const SnackBar(content: Text('已保留旧海报')));
+                          }
+                        }
+                      } else {
+                        messenger.showSnackBar(const SnackBar(content: Text('刮削完成')));
+                      }
                     } else {
                       await ScrapeMediaStore.recordHistory(
                         videoPath: widget.item.path,

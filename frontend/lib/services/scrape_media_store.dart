@@ -273,6 +273,30 @@ class ScrapeMediaStore {
     return null;
   }
 
+  /// 强制用中央目录的图片覆盖视频旁的海报/背景图（用户确认后调用）
+  static Future<void> forceOverwriteSiblingImages(LocalVideoItem item) async {
+    final base = _siblingBase(item);
+    if (base == null) return;
+    try {
+      final centralPosters = await _subDir('posters');
+      final srcPoster = File(_join(centralPosters.path, '${_safeName(item.pathHash)}.jpg'));
+      if (await srcPoster.exists()) {
+        final bytes = await srcPoster.readAsBytes();
+        await File('$base-poster.jpg').writeAsBytes(bytes);
+        await File('${File(base).parent.path}/poster.jpg').writeAsBytes(bytes);
+      }
+      final centralBackdrops = await _subDir('backdrops');
+      final srcBackdrop = File(_join(centralBackdrops.path, '${_safeName(item.pathHash)}.jpg'));
+      if (await srcBackdrop.exists()) {
+        final bytes = await srcBackdrop.readAsBytes();
+        await File('$base-backdrop.jpg').writeAsBytes(bytes);
+        await File('${File(base).parent.path}/fanart.jpg').writeAsBytes(bytes);
+      }
+    } catch (e) {
+      AppLogger.warn('覆盖视频旁图片失败', data: {'error': e.toString()});
+    }
+  }
+
   // ---- 删除 / 重命名 ----
   static Future<void> delete(LocalVideoItem item) async {
     try {
