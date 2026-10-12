@@ -498,7 +498,10 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                                 color: scheme.surfaceContainerHighest,
                                 borderRadius: BorderRadius.circular(4),
                               ),
-                              child: Text(g, style: const TextStyle(fontSize: 11)),
+                              child: Text(
+                                g.replaceAll('&amp;', '&').replaceAll('&lt;', '<').replaceAll('&gt;', '>').replaceAll('&quot;', '"'),
+                                style: const TextStyle(fontSize: 11),
+                              ),
                             )),
                         if (scraped.year != null)
                           Container(
