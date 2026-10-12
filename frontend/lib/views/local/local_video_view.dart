@@ -1348,6 +1348,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
             initialQuery: item.name,
             pathHash: item.pathHash,
             filename: item.name,
+            videoItem: item,
           ),
         ),
       );
@@ -2533,6 +2534,7 @@ void _showCardMenu(BuildContext context, LocalVideoItem item, ScrapedMedia? s) {
                 initialQuery: s?.title ?? item.name,
                 pathHash: item.pathHash,
                 filename: item.name,
+                videoItem: item,
               )));
             },
           ),

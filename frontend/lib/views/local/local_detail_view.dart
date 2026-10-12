@@ -8,6 +8,7 @@ import '../../models/local_video_item.dart';
 import '../../services/local_video_service.dart';
 import '../../services/tmdb_service.dart';
 import '../../services/scrape_service.dart';
+import '../../services/scrape_media_store.dart';
 import 'person_detail_view.dart';
 import '../../widgets/local/local_images.dart';
 
@@ -54,12 +55,16 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                     widget.item.name,
                   );
                   if (result != null) {
-                    // 写入磁盘缓存，避免重启后演员头像/元数据丢失
+                    // 写入 SharedPreferences 缓存（即时刷新 UI）
                     await ScrapeService.saveCache(widget.item.pathHash, result);
+                    // 落盘：中央目录 JSON + 视频旁 .nfo + 海报/头像
+                    await ScrapeMediaStore.save(widget.item, result);
                     final cached = Map<String, ScrapedMedia>.from(ref.read(localVideoProvider).scrapedMap);
                     cached[widget.item.pathHash] = result;
                     ref.read(localVideoProvider.notifier).updateScrapedMap(cached);
                     messenger.showSnackBar(const SnackBar(content: Text('刮削完成')));
+                  } else {
+                    messenger.showSnackBar(const SnackBar(content: Text('未找到匹配结果')));
                   }
                 },
               ),

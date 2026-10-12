@@ -1,11 +1,14 @@
 // TMDB 手动搜索选择页（刮削 P1）
-// 长按本地文件 → 输入关键词 → 选择结果 → 更新缓存
+// 长按本地文件 → 输入关键词 → 选择结果 → 落盘元数据 + 写刮削记录
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../models/local_video_item.dart';
 import '../../services/tmdb_service.dart';
+import '../../services/scrape_service.dart';
+import '../../services/scrape_media_store.dart';
 
 class TmdbSearchPage extends StatefulWidget {
 
@@ -14,10 +17,13 @@ class TmdbSearchPage extends StatefulWidget {
     required this.initialQuery,
     required this.pathHash,
     required this.filename,
+    this.videoItem,
   });
   final String initialQuery;
   final String pathHash;
   final String filename;
+  /// 完整视频项（提供后才会落盘到中央目录和写历史记录）
+  final LocalVideoItem? videoItem;
 
   @override
   State<TmdbSearchPage> createState() => _TmdbSearchPageState();
@@ -61,35 +67,58 @@ class _TmdbSearchPageState extends State<TmdbSearchPage> {
     }
   }
 
-  Future<void> _select(Map<String, dynamic> item) async {
-    final id = item['id'] as int;
+  Future<void> _select(Map<String, dynamic> result) async {
+    final id = result['id'] as int;
+    setState(() => _loading = true);
     // 获取详情
     final details = _type == 'movie'
         ? await TmdbService.getMovieDetails(id)
         : await TmdbService.getTvDetails(id);
-    final d = details.isEmpty ? item : details;
-    // 保存到缓存
-    final sp = await SharedPreferences.getInstance();
-    final data = {
-      'tmdbId': id,
-      'type': _type,
-      'title': d[_type == 'movie' ? 'title' : 'name'] ?? '',
-      'year': null,
-      'posterPath': d['poster_path'],
-      'backdropPath': d['backdrop_path'],
-      'overview': d['overview'],
-      'rating': (d['vote_average'] as num?)?.toDouble(),
-      'genres': (d['genres'] as List?)?.map((g) => g['name'] as String).toList() ?? [],
-      'cast': ((d['credits']?['cast'] as List?) ?? [])
+    final d = details.isEmpty ? result : details;
+
+    // 提取年份
+    final dateStr = d[_type == 'movie' ? 'release_date' : 'first_air_date'] as String?;
+    int? year;
+    if (dateStr != null && dateStr.length >= 4) {
+      year = int.tryParse(dateStr.substring(0, 4));
+    }
+
+    // 构造完整 ScrapedMedia
+    final media = ScrapedMedia(
+      tmdbId: id,
+      type: _type,
+      title: d[_type == 'movie' ? 'title' : 'name'] ?? '',
+      year: year,
+      posterPath: d['poster_path'],
+      backdropPath: d['backdrop_path'],
+      overview: d['overview'],
+      rating: (d['vote_average'] as num?)?.toDouble(),
+      genres: (d['genres'] as List?)?.map((g) => g['name'] as String).toList() ?? const [],
+      cast: ((d['credits']?['cast'] as List?) ?? [])
           .take(10)
           .map((c) => {
+                'id': (c['id'] as num?)?.toString() ?? '',
                 'name': c['name'] as String? ?? '',
                 'role': c['character'] as String? ?? '',
+                'profilePath': c['profile_path'] as String? ?? '',
               })
           .toList(),
-      'scrapedAt': DateTime.now().millisecondsSinceEpoch,
-    };
-    await sp.setString('scrape_${widget.pathHash}', jsonEncode(data));
+      directors: ((d['credits']?['crew'] as List?) ?? [])
+          .where((c) => c['job'] == 'Director')
+          .map((c) => c['name'] as String)
+          .toList(),
+      scrapedAt: DateTime.now().millisecondsSinceEpoch,
+    );
+
+    // 1) 写 SharedPreferences 缓存（即时刷新 UI）
+    final sp = await SharedPreferences.getInstance();
+    await sp.setString('scrape_${widget.pathHash}', jsonEncode(media.toJson()));
+
+    // 2) 落盘：中央目录 JSON + 视频旁 .nfo + 海报/头像图片
+    if (widget.videoItem != null) {
+      await ScrapeMediaStore.save(widget.videoItem!, media);
+    }
+
     if (mounted) Navigator.pop(context, true);
   }
 

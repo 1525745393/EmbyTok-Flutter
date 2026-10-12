@@ -77,6 +77,15 @@ class ScrapeMediaStore {
       AppLogger.warn('写中央元数据失败', data: {'error': e.toString()});
     }
 
+    // 1b) 立即写刮削成功记录（不等图片下载，让记录页实时显示进度）
+    await recordHistory(
+      videoPath: item.path,
+      status: 'success',
+      matchedTitle: media.title,
+      matchedYear: media.year,
+      sessionId: sessionId,
+    );
+
     // 2) 视频旁 .nfo（Kodi/Emby/Jellyfin 兼容 XML 格式，尽力而为）
     final base = _siblingBase(item);
     if (base != null) {
@@ -195,14 +204,6 @@ class ScrapeMediaStore {
     }
 
     await Future.wait(jobs);
-
-    await recordHistory(
-      videoPath: item.path,
-      status: 'success',
-      matchedTitle: media.title,
-      matchedYear: media.year,
-      sessionId: sessionId,
-    );
   }
 
   // 查找本地图片文件：先视频旁，不存在则回退中央目录
