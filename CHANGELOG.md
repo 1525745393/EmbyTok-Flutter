@@ -1,3 +1,10 @@
+## [2.381.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.381.0...v2.381.1) (2026-10-12)
+
+
+### Bug Fixes
+
+* 清除App数据后从.nfo恢复元数据时也显示本地海报 ([b863f77](https://github.com/1525745393/EmbyTok-Flutter/commit/b863f77c1e3c30b3d6ae80dc553c1c5859897673))
+
 # [2.381.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.380.3...v2.381.0) (2026-10-12)
 
 
