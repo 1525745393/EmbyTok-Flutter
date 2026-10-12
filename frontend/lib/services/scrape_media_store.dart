@@ -78,7 +78,7 @@ class ScrapeMediaStore {
     }
 
     // 1b) 立即写刮削成功记录（不等图片下载，让记录页实时显示进度）
-    // 自动后台刮削传 logHistory:false，不污染用户主动操作的记录页
+    // logHistory:false 用于电视剧整剧刮削时的单集落盘（整剧末尾统一写一条汇总记录）
     if (logHistory) {
       await recordHistory(
         videoPath: item.path,

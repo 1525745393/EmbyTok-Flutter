@@ -491,7 +491,10 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         debugPrint('单集元数据保存失败 ${item.name}: $e');
         epFail++;
       }
-      if (!mounted) return;
+      if (!mounted) {
+        ScrapeMediaStore.isScraping.value = false;
+        return;
+      }
       setState(() => _scrapedCount = ++done);
     }
     // 整剧刮削成功后写一条汇总记录
