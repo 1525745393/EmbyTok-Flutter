@@ -1,3 +1,10 @@
+## [2.389.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.389.1...v2.389.2) (2026-10-13)
+
+
+### Bug Fixes
+
+* 已入库角标ref.watch移到build顶部，避免FutureBuilder重复请求推荐API ([d499f3f](https://github.com/1525745393/EmbyTok-Flutter/commit/d499f3ff425b6829b6e44e977950ae188a8c6d4f))
+
 ## [2.389.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.389.0...v2.389.1) (2026-10-12)
 
 
