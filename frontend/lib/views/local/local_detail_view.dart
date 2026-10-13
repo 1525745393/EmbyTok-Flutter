@@ -31,8 +31,10 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final scraped = ref.watch(localVideoProvider).scrapedMap[widget.item.pathHash];
-    final isFav = ref.watch(localVideoProvider).favoriteHashes.contains(widget.item.pathHash);
+    final localState = ref.watch(localVideoProvider);
+    final scraped = localState.scrapedMap[widget.item.pathHash];
+    final isFav = localState.favoriteHashes.contains(widget.item.pathHash);
+    final localTmdbIds = localState.scrapedMap.values.map((s) => s.tmdbId).toSet();
     final totalMs = widget.item.duration.inMilliseconds;
 
     return Scaffold(
@@ -628,8 +630,6 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                             return const SizedBox.shrink();
                           }
                           final recs = snap.data!.take(10).toList();
-                          final localTmdbIds = ref.watch(localVideoProvider).scrapedMap.values
-                              .map((s) => s.tmdbId).toSet();
                           return ListView.separated(
                             scrollDirection: Axis.horizontal,
                             itemCount: recs.length,
