@@ -381,7 +381,12 @@ class LocalVideoService {
     }).toList();
   }
 
-  /// 撤销最近一次重命名（把 newPath 改回 oldPath）
+  /// 记录重命名历史（公开方法，供文件夹重命名调用）
+  Future<void> recordRename(String oldPath, String newPath) async {
+    await _recordRename(oldPath, newPath);
+  }
+
+  /// 撤销最近一次重命名（文件或文件夹）
   Future<String> undoLastRename() async {
     final sp = await SharedPreferences.getInstance();
     final list = sp.getStringList(_renameHistoryKey) ?? [];
@@ -390,9 +395,16 @@ class LocalVideoService {
     final i = first.indexOf('|');
     final oldPath = first.substring(0, i);
     final newPath = first.substring(i + 1);
+    // 支持文件和文件夹
     final f = File(newPath);
-    if (!await f.exists()) throw Exception('文件已不存在，无法撤销');
-    await f.rename(oldPath);
+    final d = Directory(newPath);
+    if (await f.exists()) {
+      await f.rename(oldPath);
+    } else if (await d.exists()) {
+      await d.rename(oldPath);
+    } else {
+      throw Exception('文件已不存在，无法撤销');
+    }
     list.removeAt(0);
     await sp.setStringList(_renameHistoryKey, list);
     return oldPath;

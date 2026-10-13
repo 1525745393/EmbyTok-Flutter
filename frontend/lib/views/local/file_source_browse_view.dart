@@ -666,6 +666,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     try {
       final newPath = '${dirPath.substring(0, dirPath.lastIndexOf('/'))}/$newName';
       await Directory(dirPath).rename(newPath);
+      await LocalVideoService().recordRename(dirPath, newPath);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('文件夹重命名成功')));
         _scan();
@@ -721,6 +722,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       final newPath = '${dirPath.substring(0, dirPath.lastIndexOf('/'))}/$newName';
       if (await Directory(newPath).exists()) throw Exception('目标文件夹已存在');
       await Directory(dirPath).rename(newPath);
+      await LocalVideoService().recordRename(dirPath, newPath);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('文件夹已重命名为: $newName')));
         _scan();
