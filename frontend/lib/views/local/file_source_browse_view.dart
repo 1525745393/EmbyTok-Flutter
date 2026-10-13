@@ -240,6 +240,16 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                 : const Icon(Icons.auto_awesome),
             tooltip: '刮削此文件夹',
           ),
+          // 电影模式批量操作菜单
+          if (widget.source.config['mediaType'] != 'tv')
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+              onSelected: _onMovieBatchAction,
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'renameAllMovies', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('一键重命名所有电影')])),
+                PopupMenuItem(value: 'organizeMovies', child: Row(children: [Icon(Icons.folder_special, size: 18), SizedBox(width: 8), Text('整理文件结构')])),
+              ],
+            ),
         ],
       ),
       body: _loading
@@ -631,6 +641,104 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('重命名失败: $e')));
       }
+    }
+  }
+
+  /// 电影模式批量操作分发
+  void _onMovieBatchAction(String action) async {
+    switch (action) {
+      case 'renameAllMovies':
+        await _renameAllMovies();
+        break;
+      case 'organizeMovies':
+        await _organizeMovies();
+        break;
+    }
+  }
+
+  /// 一键重命名所有电影：按刮削信息改为 "片名 (年份)"
+  Future<void> _renameAllMovies() async {
+    int ok = 0, fail = 0;
+    for (final item in _items) {
+      try {
+        final s = _scraped[item.pathHash];
+        if (s != null) {
+          await LocalVideoService().renameByScraped(item, s);
+          ok++;
+        }
+      } catch (_) {
+        fail++;
+      }
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('重命名完成：成功 $ok，失败 $fail（无刮削数据的已跳过）'))),
+      );
+      _scan();
+    }
+  }
+
+  /// 整理电影文件结构：每部电影移入独立文件夹
+  /// 例：电影/哪吒.mp4 → 电影/哪吒 (2019)/哪吒 (2019).mp4
+  Future<void> _organizeMovies() async {
+    // 统计需要移动的电影数
+    final needMove = _items.where((item) {
+      final s = _scraped[item.pathHash];
+      if (s == null) return false;
+      final title = s.title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
+      final folderName = s.year != null ? '$title (${s.year})' : title;
+      final parent = item.path.substring(0, item.path.lastIndexOf('/'));
+      // 已在同名文件夹里就跳过
+      return !parent.endsWith('/$folderName') && parent != folderName;
+    }).toList();
+
+    if (needMove.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('无需整理：所有电影已在独立文件夹中')),
+        );
+      }
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('整理电影文件结构'),
+        content: Text('将把 $needMove 部电影移入独立文件夹：\n\n例：电影/哪吒.mp4 → 电影/哪吒 (2019)/哪吒 (2019).mp4\n\n是否继续？'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('开始整理')),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    int ok = 0, fail = 0;
+    for (final item in needMove) {
+      try {
+        final s = _scraped[item.pathHash]!;
+        final title = s.title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
+        final folderName = s.year != null ? '$title (${s.year})' : title;
+        final parent = item.path.substring(0, item.path.lastIndexOf('/'));
+        final dot = item.path.lastIndexOf('.');
+        final ext = dot > 0 ? item.path.substring(dot) : '';
+        final movieDir = Directory('$parent/$folderName');
+        if (!await movieDir.exists()) await movieDir.create(recursive: true);
+        final newPath = '$parent/$folderName/$folderName$ext';
+        if (!await File(newPath).exists()) {
+          await File(item.path).rename(newPath);
+          ok++;
+        }
+      } catch (_) {
+        fail++;
+      }
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('整理完成：移动 $ok 个文件，失败 $fail')),
+      );
+      _scan();
     }
   }
 
