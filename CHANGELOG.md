@@ -1,3 +1,26 @@
+# [2.390.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.389.2...v2.390.0) (2026-10-13)
+
+
+### Bug Fixes
+
+* 修复语法错误——多了一个右括号导致flutter analyze失败 ([fd6f260](https://github.com/1525745393/EmbyTok-Flutter/commit/fd6f260299a7489237c0c72f8829811f03302243))
+* 删除视频时清理旁置文件+中央缓存；重命名时迁移缓存到新pathHash ([3e65395](https://github.com/1525745393/EmbyTok-Flutter/commit/3e653951b77448508671739897081aa53ae6920f))
+* 历史弹窗撤销走统一方法undoRenameEntry，同步恢复旁置文件和缓存 ([ed7e323](https://github.com/1525745393/EmbyTok-Flutter/commit/ed7e32307f3c2c747be04e8149595e82406d5f13))
+* 整理结构顺序错误导致Season目录双重嵌套+电影整理补旁置文件移动 ([6a784f9](https://github.com/1525745393/EmbyTok-Flutter/commit/6a784f912dc31b7e6642cd672686e9b5ab2ec588))
+* 文件夹重命名也记录历史，撤销支持文件和文件夹 ([4153743](https://github.com/1525745393/EmbyTok-Flutter/commit/41537432c7978a41b9065d03ffa0b56b3805ae6c))
+* 清理死代码；整理结构记录历史；文件夹重命名批量迁移内部缓存 ([b4a9ac2](https://github.com/1525745393/EmbyTok-Flutter/commit/b4a9ac2eaba2d7a2ed0aecb57d07cc81b43a5ffc))
+* 电视剧重命名和整理修复 ([d39e32c](https://github.com/1525745393/EmbyTok-Flutter/commit/d39e32c4fbb297a46ee92bd0d048ed2358878f68))
+* 电视剧集列表显示集号——标题显示SxxExx+单集标题，副标题显示剧名 ([02ee8e4](https://github.com/1525745393/EmbyTok-Flutter/commit/02ee8e4304ba3ab40903be1411f044ba0209d850))
+* 重命名历史弹窗逐条撤销支持文件夹（之前硬编码File会失败） ([f70d217](https://github.com/1525745393/EmbyTok-Flutter/commit/f70d217bad06e1ef118f764b1fb6f0a1f2b752df))
+
+
+### Features
+
+* 文件源管理适配电影——批量重命名+整理到独立文件夹 ([fca4769](https://github.com/1525745393/EmbyTok-Flutter/commit/fca4769643f16fb82a74e17c8977ed1f9887a43f))
+* 文件管理菜单新增'撤销上次重命名'入口 ([2b52af8](https://github.com/1525745393/EmbyTok-Flutter/commit/2b52af84310cf7a9ab49aa9208c1e757b76dc5d1))
+* 电视剧分组菜单新增'按刮削信息重命名文件夹' ([b7c0ca2](https://github.com/1525745393/EmbyTok-Flutter/commit/b7c0ca2c0f8b73a6a6b9e0d0630b9a7ad4abf9a5))
+* 重命名历史弹窗——查看所有记录并支持逐条撤销 ([6598578](https://github.com/1525745393/EmbyTok-Flutter/commit/659857882f4b99a4623f6dcb00e2ddfe868bba5a))
+
 ## [2.389.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.389.1...v2.389.2) (2026-10-13)
 
 
