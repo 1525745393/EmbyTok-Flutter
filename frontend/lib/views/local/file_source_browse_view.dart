@@ -589,6 +589,13 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         if (m == null) continue;
         final season = int.tryParse(m.group(1)!) ?? 1;
         var parent = item.path.substring(0, item.path.lastIndexOf('/'));
+        // 先判断是否已在 Season X 子文件夹里
+        final seasonMatch = RegExp(r'[\/\\][Ss]eason\s*(\d+)$', caseSensitive: false).firstMatch(parent);
+        if (seasonMatch != null) {
+          // 已在 Season 目录里：取上一级作为剧名目录，跳过
+          parent = parent.substring(0, seasonMatch.start);
+          continue;
+        }
         // 如果父目录名不是剧名，先创建剧名子文件夹
         final parentName = parent.substring(parent.lastIndexOf('/') + 1);
         if (parentName != safeSeries) {
@@ -596,8 +603,6 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           final showDir = Directory(parent);
           if (!await showDir.exists()) await showDir.create(recursive: true);
         }
-        // 已在 Season X 子文件夹里就跳过，避免重复嵌套
-        if (RegExp(r'[\/\\][Ss]eason\s*\d+$', caseSensitive: false).hasMatch(parent)) continue;
         final seasonDir = Directory('$parent/Season $season');
         if (!await seasonDir.exists()) await seasonDir.create(recursive: true);
         // item.name 不含扩展名，需从原 path 拼回
@@ -806,6 +811,17 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         final newPath = '$parent/$folderName/$folderName$ext';
         if (!await File(newPath).exists()) {
           await File(item.path).rename(newPath);
+          // 同步移动旁置的 .nfo/海报/背景
+          try {
+            final oldBase = item.path.substring(0, dot);
+            final newBase = newPath.substring(0, newPath.lastIndexOf('.'));
+            for (final suffix in ['.nfo', '-poster.jpg', '-backdrop.jpg']) {
+              final oldSibling = File('$oldBase$suffix');
+              if (await oldSibling.exists()) {
+                await oldSibling.rename('$newBase$suffix');
+              }
+            }
+          } catch (_) {}
           ok++;
         }
       } catch (_) {
