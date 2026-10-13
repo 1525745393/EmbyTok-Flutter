@@ -569,7 +569,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('整理文件结构'),
-        content: Text('将按 SxxEyy 把集数移动到对应 "Season X" 子文件夹。\n\n例：$seriesName/S01E01.mp4 → $seriesName/Season 1/S01E01.mp4\n\n是否继续？'),
+        content: Text('将按 SxxEyy 把集数移动到 "剧名/Season X" 子文件夹。\n\n例：$seriesName/S01E01.mp4 → $seriesName/Season 1/S01E01.mp4\n\n是否继续？'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
           TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('开始整理')),
@@ -578,12 +578,20 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     );
     if (confirm != true || !mounted) return;
     int ok = 0, fail = 0;
+    final safeSeries = seriesName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
     for (final item in eps) {
       try {
         final m = RegExp(r'[Ss](\d{1,2})[._ -]?[Ee](\d{1,2})').firstMatch(item.name);
         if (m == null) continue;
         final season = int.tryParse(m.group(1)!) ?? 1;
-        final parent = item.path.substring(0, item.path.lastIndexOf('/'));
+        var parent = item.path.substring(0, item.path.lastIndexOf('/'));
+        // 如果父目录名不是剧名，先创建剧名子文件夹
+        final parentName = parent.substring(parent.lastIndexOf('/') + 1);
+        if (parentName != safeSeries) {
+          parent = '$parent/$safeSeries';
+          final showDir = Directory(parent);
+          if (!await showDir.exists()) await showDir.create(recursive: true);
+        }
         // 已在 Season X 子文件夹里就跳过，避免重复嵌套
         if (RegExp(r'[\/\\][Ss]eason\s*\d+$', caseSensitive: false).hasMatch(parent)) continue;
         final seasonDir = Directory('$parent/Season $season');
@@ -594,6 +602,17 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         final newPath = '$parent/Season $season/${item.name}$ext';
         if (!await File(newPath).exists()) {
           await File(item.path).rename(newPath);
+          // 同步移动旁置的 .nfo/海报/剧照等文件
+          try {
+            final oldBase = item.path.substring(0, dot);
+            final newBase = newPath.substring(0, newPath.lastIndexOf('.'));
+            for (final suffix in ['.nfo', '-poster.jpg', '-backdrop.jpg', '-still.jpg']) {
+              final oldSibling = File('$oldBase$suffix');
+              if (await oldSibling.exists()) {
+                await oldSibling.rename('$newBase$suffix');
+              }
+            }
+          } catch (_) {}
           ok++;
         }
       } catch (_) {

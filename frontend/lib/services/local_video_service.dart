@@ -393,14 +393,17 @@ class LocalVideoService {
     final safeTitle = (s.title).replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
     String newName;
     if (s.type == 'tv') {
-      // 从原文件名或父目录提取 SxxExx
-      final epMatch = RegExp(r'[Ss](\d{1,2})[._ -]?[Ee](\d{1,2})').firstMatch(item.name);
-      if (epMatch != null) {
-        final se = 'S${epMatch.group(1)!.padLeft(2, '0')}E${epMatch.group(2)!.padLeft(2, '0')}';
-        newName = '$safeTitle $se';
+      // 优先使用刮削的季集号，其次从文件名提取
+      String? se;
+      if (s.season != null && s.episode != null) {
+        se = 'S${s.season!.toString().padLeft(2, '0')}E${s.episode!.toString().padLeft(2, '0')}';
       } else {
-        newName = safeTitle;
+        final epMatch = RegExp(r'[Ss](\d{1,2})[._ -]?[Ee](\d{1,2})').firstMatch(item.name);
+        if (epMatch != null) {
+          se = 'S${epMatch.group(1)!.padLeft(2, '0')}E${epMatch.group(2)!.padLeft(2, '0')}';
+        }
       }
+      newName = se != null ? '$safeTitle $se' : safeTitle;
     } else if (s.year != null) {
       newName = '$safeTitle (${s.year})';
     } else {
