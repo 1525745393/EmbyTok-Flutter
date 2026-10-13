@@ -354,6 +354,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                     const PopupMenuItem(value: 'renameAll', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('一键重命名集数')])),
                     const PopupMenuItem(value: 'organize', child: Row(children: [Icon(Icons.folder_special, size: 18), SizedBox(width: 8), Text('整理文件结构')])),
                     const PopupMenuItem(value: 'renameFolder', child: Row(children: [Icon(Icons.drive_file_rename_outline, size: 18), SizedBox(width: 8), Text('重命名文件夹')])),
+                    const PopupMenuItem(value: 'renameFolderScraped', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('按刮削信息重命名文件夹')])),
                   ],
                 ),
                 children: entry.value.map((it) {
@@ -420,6 +421,9 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         break;
       case 'renameFolder':
         await _renameFolder(seriesName, dirPath);
+        break;
+      case 'renameFolderScraped':
+        await _renameFolderByScraped(seriesName, dirPath, eps);
         break;
     }
   }
@@ -654,6 +658,61 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       await Directory(dirPath).rename(newPath);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('文件夹重命名成功')));
+        _scan();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('重命名失败: $e')));
+      }
+    }
+  }
+
+  /// 按刮削信息重命名剧名文件夹为 "剧名 (年份)"
+  Future<void> _renameFolderByScraped(String seriesName, String dirPath, List<LocalVideoItem> eps) async {
+    // 从任一集的刮削数据取剧名和年份
+    ScrapedMedia? s;
+    for (final ep in eps) {
+      final candidate = _scraped[ep.pathHash];
+      if (candidate != null) { s = candidate; break; }
+    }
+    if (s == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('无刮削数据，请先刮削本剧')));
+      }
+      return;
+    }
+    final safeTitle = s.title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
+    final newName = s.year != null ? '$safeTitle (${s.year})' : safeTitle;
+    if (newName == seriesName) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('文件夹名已正确，无需重命名')));
+      }
+      return;
+    }
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('按刮削信息重命名文件夹'),
+        content: Text('$seriesName\n→\n$newName\n\n是否继续？'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('确定')),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    if (dirPath.isEmpty || dirPath.lastIndexOf('/') < 0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('无法定位文件夹路径')));
+      }
+      return;
+    }
+    try {
+      final newPath = '${dirPath.substring(0, dirPath.lastIndexOf('/'))}/$newName';
+      if (await Directory(newPath).exists()) throw Exception('目标文件夹已存在');
+      await Directory(dirPath).rename(newPath);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('文件夹已重命名为: $newName')));
         _scan();
       }
     } catch (e) {
