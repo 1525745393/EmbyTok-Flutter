@@ -248,15 +248,16 @@ class LocalVideoService {
       if (item.isAppDirFile) {
         final f = File(item.path);
         if (f.existsSync()) await f.delete();
-        return true;
       } else if (item.assetId != null) {
         final ok = await PhotoManager.editor.deleteWithIds([item.assetId!]);
-        return ok.contains(item.assetId);
+        if (!ok.contains(item.assetId)) return false;
       } else if (item.path.isNotEmpty && File(item.path).existsSync()) {
         // localDir 共享存储文件：直接删除（需 MANAGE_EXTERNAL_STORAGE）
         await File(item.path).delete();
-        return true;
       }
+      // 清理旁置 .nfo/海报/剧照和中央缓存
+      try { await ScrapeMediaStore.delete(item); } catch (_) {}
+      return true;
     } catch (_) {}
     return false;
   }
@@ -341,6 +342,18 @@ class LocalVideoService {
     // 双轨落盘：同步重命名视频旁刮削文件
     try {
       await ScrapeMediaStore.rename(item.path, newPath);
+    } catch (_) {}
+    // 迁移中央缓存：旧 pathHash 的数据搬到新 pathHash
+    try {
+      final sp = await SharedPreferences.getInstance();
+      const prefix = 'scrape_';
+      final oldKey = '$prefix${item.pathHash}';
+      final raw = sp.getString(oldKey);
+      if (raw != null) {
+        final newPathHash = 'localdir:$newPath';
+        await sp.setString('$prefix$newPathHash', raw);
+        await sp.remove(oldKey);
+      }
     } catch (_) {}
     return newPath;
   }
