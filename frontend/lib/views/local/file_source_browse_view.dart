@@ -602,8 +602,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         // 先判断是否已在 Season X 子文件夹里
         final seasonMatch = RegExp(r'[\/\\][Ss]eason\s*(\d+)$', caseSensitive: false).firstMatch(parent);
         if (seasonMatch != null) {
-          // 已在 Season 目录里：取上一级作为剧名目录，跳过
-          parent = parent.substring(0, seasonMatch.start);
+          // 已在 Season 目录里，跳过
           continue;
         }
         // 如果父目录名不是剧名，先创建剧名子文件夹
@@ -621,6 +620,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         final newPath = '$parent/Season $season/${item.name}$ext';
         if (!await File(newPath).exists()) {
           await File(item.path).rename(newPath);
+          await LocalVideoService().recordRename(item.path, newPath);
           // 同步移动旁置的 .nfo/海报/剧照等文件
           try {
             final oldBase = item.path.substring(0, dot);
@@ -672,6 +672,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       final newPath = '${dirPath.substring(0, dirPath.lastIndexOf('/'))}/$newName';
       await Directory(dirPath).rename(newPath);
       await LocalVideoService().recordRename(dirPath, newPath);
+      await LocalVideoService().migrateFolderCache(dirPath, newPath);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('文件夹重命名成功')));
         _scan();
@@ -728,6 +729,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       if (await Directory(newPath).exists()) throw Exception('目标文件夹已存在');
       await Directory(dirPath).rename(newPath);
       await LocalVideoService().recordRename(dirPath, newPath);
+      await LocalVideoService().migrateFolderCache(dirPath, newPath);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('文件夹已重命名为: $newName')));
         _scan();
@@ -903,6 +905,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         final newPath = '$parent/$folderName/$folderName$ext';
         if (!await File(newPath).exists()) {
           await File(item.path).rename(newPath);
+          await LocalVideoService().recordRename(item.path, newPath);
           // 同步移动旁置的 .nfo/海报/背景
           try {
             final oldBase = item.path.substring(0, dot);

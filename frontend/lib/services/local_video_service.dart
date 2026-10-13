@@ -386,6 +386,23 @@ class LocalVideoService {
     await _recordRename(oldPath, newPath);
   }
 
+  /// 文件夹重命名后，批量迁移内部所有文件的缓存 pathHash
+  Future<void> migrateFolderCache(String oldDir, String newDir) async {
+    try {
+      final sp = await SharedPreferences.getInstance();
+      const prefix = 'scrape_';
+      final oldPrefix = '$prefix$oldDir/';
+      final keys = sp.getKeys().where((k) => k.startsWith(oldPrefix)).toList();
+      for (final key in keys) {
+        final raw = sp.getString(key);
+        if (raw == null) continue;
+        final newKey = key.replaceFirst(oldPrefix, '$prefix$newDir/');
+        await sp.setString(newKey, raw);
+        await sp.remove(key);
+      }
+    } catch (_) {}
+  }
+
   /// 撤销最近一次重命名（文件或文件夹）
   Future<String> undoLastRename() async {
     final sp = await SharedPreferences.getInstance();
