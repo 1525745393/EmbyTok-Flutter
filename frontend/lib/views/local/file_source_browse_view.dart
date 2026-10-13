@@ -784,20 +784,12 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                   onPressed: () async {
                     Navigator.pop(_);
                     try {
-                      // 撤销指定条目：把 newPath 改回 oldPath（支持文件和文件夹）
+                      await LocalVideoService().undoRenameEntry(e.key, e.value);
+                      // 从历史中移除该条目
                       final sp = await SharedPreferences.getInstance();
                       final list = sp.getStringList('rename_history') ?? [];
                       list.removeAt(i);
                       await sp.setStringList('rename_history', list);
-                      final f = File(e.value);
-                      final d = Directory(e.value);
-                      if (await f.exists()) {
-                        await f.rename(e.key);
-                      } else if (await d.exists()) {
-                        await d.rename(e.key);
-                      } else {
-                        throw Exception('文件已不存在');
-                      }
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('已撤销: $newName')));
                         _scan();

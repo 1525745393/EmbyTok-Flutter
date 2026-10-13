@@ -395,7 +395,15 @@ class LocalVideoService {
     final i = first.indexOf('|');
     final oldPath = first.substring(0, i);
     final newPath = first.substring(i + 1);
-    // 支持文件和文件夹
+    await undoRenameEntry(oldPath, newPath);
+    list.removeAt(0);
+    await sp.setStringList(_renameHistoryKey, list);
+    return oldPath;
+  }
+
+  /// 撤销指定重命名条目：恢复文件+旁置文件+缓存
+  Future<void> undoRenameEntry(String oldPath, String newPath) async {
+    // 1. 恢复主文件/文件夹
     final f = File(newPath);
     final d = Directory(newPath);
     if (await f.exists()) {
@@ -405,9 +413,29 @@ class LocalVideoService {
     } else {
       throw Exception('文件已不存在，无法撤销');
     }
-    list.removeAt(0);
-    await sp.setStringList(_renameHistoryKey, list);
-    return oldPath;
+    // 2. 恢复旁置 .nfo/海报/剧照
+    try {
+      final oldBase = oldPath.substring(0, oldPath.lastIndexOf('.'));
+      final newBase = newPath.substring(0, newPath.lastIndexOf('.'));
+      for (final suffix in ['.nfo', '-poster.jpg', '-backdrop.jpg', '-still.jpg']) {
+        final oldSibling = File('$newBase$suffix');
+        if (await oldSibling.exists()) {
+          await oldSibling.rename('$oldBase$suffix');
+        }
+      }
+    } catch (_) {}
+    // 3. 迁移缓存：newPathHash → oldPathHash
+    try {
+      final sp = await SharedPreferences.getInstance();
+      const prefix = 'scrape_';
+      final oldKey = '$prefix$oldPath';
+      final newKey = '$prefix$newPath';
+      final raw = sp.getString(newKey);
+      if (raw != null) {
+        await sp.setString(oldKey, raw);
+        await sp.remove(newKey);
+      }
+    } catch (_) {}
   }
 
   /// 根据刮削元数据一键重命名文件
