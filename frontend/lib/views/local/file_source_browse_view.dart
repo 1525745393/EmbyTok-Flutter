@@ -836,6 +836,30 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     }
   }
 
+  String _itemTitle(ScrapedMedia? s, LocalVideoItem item) {
+    if (s == null) return item.name;
+    // 电视剧单集：显示集号和单集标题，不再只显示剧名
+    if (s.type == 'tv' && s.season != null && s.episode != null) {
+      final se = 'S${s.season!.toString().padLeft(2, '0')}E${s.episode!.toString().padLeft(2, '0')}';
+      if (s.episodeTitle != null && s.episodeTitle!.isNotEmpty) {
+        return '$se · ${s.episodeTitle}';
+      }
+      return se;
+    }
+    return s.title;
+  }
+
+  String _itemSubtitle(ScrapedMedia? s, LocalVideoItem item) {
+    final parts = <String>[];
+    if (s != null) {
+      // 电视剧单集：副标题显示剧名
+      if (s.type == 'tv' && s.season != null) parts.add(s.title);
+      if (s.year != null) parts.add('${s.year}');
+    }
+    parts.add(item.sizeLabel);
+    return parts.join(' · ');
+  }
+
   Widget _buildItemTile(LocalVideoItem item, int index) {
     final s = _scraped[item.pathHash];
     return ListTile(
@@ -864,8 +888,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                 ),
         ),
       ),
-      title: Text(s?.title ?? item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text(s?.year != null ? '${s!.year} · ${item.sizeLabel}' : item.sizeLabel),
+      title: Text(_itemTitle(s, item), maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: Text(_itemSubtitle(s, item), maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: const Icon(Icons.play_arrow, size: 20),
       onTap: () => Navigator.push(
         context,
