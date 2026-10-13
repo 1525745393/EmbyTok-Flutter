@@ -849,7 +849,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     }
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('重命名完成：成功 $ok，失败 $fail（无刮削数据的已跳过）'))),
+        SnackBar(content: Text('重命名完成：成功 $ok，失败 $fail（无刮削数据的已跳过）')),
       );
       _scan();
     }
