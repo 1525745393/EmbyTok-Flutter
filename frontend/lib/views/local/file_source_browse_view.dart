@@ -249,6 +249,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                 PopupMenuItem(value: 'renameAllMovies', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('一键重命名所有电影')])),
                 PopupMenuItem(value: 'organizeMovies', child: Row(children: [Icon(Icons.folder_special, size: 18), SizedBox(width: 8), Text('整理文件结构')])),
                 PopupMenuItem(value: 'undoRename', child: Row(children: [Icon(Icons.undo, size: 18, color: Colors.orange), SizedBox(width: 8), Text('撤销上次重命名')])),
+                PopupMenuItem(value: 'renameHistory', child: Row(children: [Icon(Icons.history, size: 18), SizedBox(width: 8), Text('重命名历史')])),
               ],
             ),
         ],
@@ -357,6 +358,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                     const PopupMenuItem(value: 'renameFolder', child: Row(children: [Icon(Icons.drive_file_rename_outline, size: 18), SizedBox(width: 8), Text('重命名文件夹')])),
                     const PopupMenuItem(value: 'renameFolderScraped', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('按刮削信息重命名文件夹')])),
                     const PopupMenuItem(value: 'undoRename', child: Row(children: [Icon(Icons.undo, size: 18, color: Colors.orange), SizedBox(width: 8), Text('撤销上次重命名')])),
+                    const PopupMenuItem(value: 'renameHistory', child: Row(children: [Icon(Icons.history, size: 18), SizedBox(width: 8), Text('重命名历史')])),
                   ],
                 ),
                 children: entry.value.map((it) {
@@ -429,6 +431,9 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         break;
       case 'undoRename':
         await _undoLastRename();
+        break;
+      case 'renameHistory':
+        await _showRenameHistory();
         break;
     }
   }
@@ -749,6 +754,65 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     }
   }
 
+  /// 查看重命名历史
+  Future<void> _showRenameHistory() async {
+    final history = await LocalVideoService().getRenameHistory();
+    if (!mounted) return;
+    if (history.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('暂无重命名记录')));
+      return;
+    }
+    await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('重命名历史'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.separated(
+            shrinkWrap: true,
+            itemCount: history.length,
+            separatorBuilder: (_, __) => const Divider(height: 1),
+            itemBuilder: (_, i) {
+              final e = history[i];
+              final oldName = e.key.split('/').last;
+              final newName = e.value.split('/').last;
+              return ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text('$oldName → $newName', maxLines: 1, overflow: TextOverflow.ellipsis),
+                trailing: TextButton(
+                  onPressed: () async {
+                    Navigator.pop(_);
+                    try {
+                      // 撤销指定条目：把 newPath 改回 oldPath
+                      final sp = await SharedPreferences.getInstance();
+                      final list = sp.getStringList('rename_history') ?? [];
+                      list.removeAt(i);
+                      await sp.setStringList('rename_history', list);
+                      await File(e.value).rename(e.key);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('已撤销: $newName')));
+                        _scan();
+                      }
+                    } catch (ex) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('撤销失败: ${ex.toString().replaceFirst('Exception: ', '')}')));
+                      }
+                    }
+                  },
+                  child: const Text('撤销'),
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('关闭')),
+        ],
+      ),
+    );
+  }
+
   /// 电影模式批量操作分发
   void _onMovieBatchAction(String action) async {
     switch (action) {
@@ -760,6 +824,9 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         break;
       case 'undoRename':
         await _undoLastRename();
+        break;
+      case 'renameHistory':
+        await _showRenameHistory();
         break;
     }
   }
