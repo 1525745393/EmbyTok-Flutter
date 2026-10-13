@@ -248,6 +248,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
               itemBuilder: (_) => const [
                 PopupMenuItem(value: 'renameAllMovies', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('一键重命名所有电影')])),
                 PopupMenuItem(value: 'organizeMovies', child: Row(children: [Icon(Icons.folder_special, size: 18), SizedBox(width: 8), Text('整理文件结构')])),
+                PopupMenuItem(value: 'undoRename', child: Row(children: [Icon(Icons.undo, size: 18, color: Colors.orange), SizedBox(width: 8), Text('撤销上次重命名')])),
               ],
             ),
         ],
@@ -355,6 +356,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                     const PopupMenuItem(value: 'organize', child: Row(children: [Icon(Icons.folder_special, size: 18), SizedBox(width: 8), Text('整理文件结构')])),
                     const PopupMenuItem(value: 'renameFolder', child: Row(children: [Icon(Icons.drive_file_rename_outline, size: 18), SizedBox(width: 8), Text('重命名文件夹')])),
                     const PopupMenuItem(value: 'renameFolderScraped', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('按刮削信息重命名文件夹')])),
+                    const PopupMenuItem(value: 'undoRename', child: Row(children: [Icon(Icons.undo, size: 18, color: Colors.orange), SizedBox(width: 8), Text('撤销上次重命名')])),
                   ],
                 ),
                 children: entry.value.map((it) {
@@ -424,6 +426,9 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         break;
       case 'renameFolderScraped':
         await _renameFolderByScraped(seriesName, dirPath, eps);
+        break;
+      case 'undoRename':
+        await _undoLastRename();
         break;
     }
   }
@@ -727,6 +732,21 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     }
   }
 
+  /// 撤销最近一次重命名
+  Future<void> _undoLastRename() async {
+    try {
+      final newPath = await LocalVideoService().undoLastRename();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('已撤销: ${newPath.split('/').last}')));
+        _scan();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))));
+      }
+    }
+  }
+
   /// 电影模式批量操作分发
   void _onMovieBatchAction(String action) async {
     switch (action) {
@@ -735,6 +755,9 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         break;
       case 'organizeMovies':
         await _organizeMovies();
+        break;
+      case 'undoRename':
+        await _undoLastRename();
         break;
     }
   }
