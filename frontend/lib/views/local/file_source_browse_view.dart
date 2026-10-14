@@ -593,8 +593,6 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     if (confirm != true || !mounted) return;
     int ok = 0, fail = 0, dup = 0;
     final safeSeries = seriesName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
-    // 记录移动过的源目录，整理后清理空目录
-    final movedFromDirs = <String>{};
     for (final item in eps) {
       try {
         final m = RegExp(r'[Ss](\d{1,2})[._ -]?[Ee](\d{1,2})').firstMatch(item.name);
@@ -625,7 +623,6 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           continue;
         }
         await File(item.path).rename(newPath);
-        movedFromDirs.add(item.path.substring(0, item.path.lastIndexOf('/')));
         await LocalVideoService().recordRename(item.path, newPath);
         // 同步移动旁置的 .nfo/海报/剧照等文件
         try {
@@ -642,18 +639,6 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       } catch (_) {
         fail++;
       }
-    }
-    // 清理移动后留下的空目录（最多向上删2层：Season目录和剧名目录）
-    for (final dir in movedFromDirs) {
-      try {
-        var d = Directory(dir);
-        for (var i = 0; i < 3 && await d.exists(); i++) {
-          final contents = await d.list().toList();
-          if (contents.isNotEmpty) break;
-          await d.delete();
-          d = d.parent;
-        }
-      } catch (_) {}
     }
     if (mounted) {
       final msg = StringBuffer('整理完成：移动 $ok 个文件');
@@ -912,7 +897,6 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     if (confirm != true || !mounted) return;
 
     int ok = 0, fail = 0, dup = 0;
-    final movedFromDirs = <String>{};
     for (final item in needMove) {
       try {
         final s = _scraped[item.pathHash]!;
@@ -929,7 +913,6 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           continue;
         }
         await File(item.path).rename(newPath);
-        movedFromDirs.add(parent);
         await LocalVideoService().recordRename(item.path, newPath);
         // 同步移动旁置的 .nfo/海报/背景
         try {
@@ -946,15 +929,6 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       } catch (_) {
         fail++;
       }
-    }
-    // 清理移动后留下的空目录
-    for (final dir in movedFromDirs) {
-      try {
-        final d = Directory(dir);
-        if (await d.exists() && await d.list().isEmpty) {
-          await d.delete();
-        }
-      } catch (_) {}
     }
     if (mounted) {
       final msg = StringBuffer('整理完成：移动 $ok 个文件');
