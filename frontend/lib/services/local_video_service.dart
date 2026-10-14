@@ -403,6 +403,20 @@ class LocalVideoService {
     } catch (_) {}
   }
 
+  /// 单个文件移动后，迁移中央缓存从旧路径到新路径
+  Future<void> migrateCachePath(String oldPath, String newPath) async {
+    try {
+      final sp = await SharedPreferences.getInstance();
+      const prefix = 'scrape_localdir:';
+      final oldKey = '$prefix$oldPath';
+      final raw = sp.getString(oldKey);
+      if (raw != null) {
+        await sp.setString('$prefix$newPath', raw);
+        await sp.remove(oldKey);
+      }
+    } catch (_) {}
+  }
+
   /// 撤销最近一次重命名（文件或文件夹）
   Future<String> undoLastRename() async {
     final sp = await SharedPreferences.getInstance();

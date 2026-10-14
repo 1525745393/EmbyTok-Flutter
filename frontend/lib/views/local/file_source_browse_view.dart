@@ -551,11 +551,13 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   Future<void> _renameAllEpisodes(String seriesName, List<LocalVideoItem> eps) async {
     int ok = 0;
     int fail = 0;
+    int skip = 0;
     for (final item in eps) {
       try {
         final s = _scraped[item.pathHash];
         if (s != null) {
           await LocalVideoService().renameByScraped(item, s);
+          ok++;
         } else {
           // 没有刮削数据，从文件名提取 SxxExx
           final m = RegExp(r'[Ss](\d{1,2})[._ -]?[Ee](\d{1,2})').firstMatch(item.name);
@@ -563,15 +565,20 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
             final se = 'S${m.group(1)!.padLeft(2, '0')}E${m.group(2)!.padLeft(2, '0')}';
             final safe = seriesName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
             await LocalVideoService().renameFile(item, '$safe $se');
+            ok++;
+          } else {
+            skip++;
           }
         }
-        ok++;
       } catch (_) {
         fail++;
       }
     }
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('重命名完成：成功 $ok，失败 $fail')));
+      final msg = StringBuffer('重命名完成：成功 $ok');
+      if (skip > 0) msg.write('，跳过 $skip');
+      if (fail > 0) msg.write('，失败 $fail');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg.toString())));
       _scan();
     }
   }
@@ -624,6 +631,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         }
         await File(item.path).rename(newPath);
         await LocalVideoService().recordRename(item.path, newPath);
+        await LocalVideoService().migrateCachePath(item.path, newPath);
         // 同步移动旁置的 .nfo/海报/剧照等文件
         try {
           final oldBase = item.path.substring(0, dot);
@@ -914,6 +922,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         }
         await File(item.path).rename(newPath);
         await LocalVideoService().recordRename(item.path, newPath);
+        await LocalVideoService().migrateCachePath(item.path, newPath);
         // 同步移动旁置的 .nfo/海报/背景
         try {
           final oldBase = item.path.substring(0, dot);
