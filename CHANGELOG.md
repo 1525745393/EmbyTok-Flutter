@@ -1,3 +1,10 @@
+## [2.391.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.391.0...v2.391.1) (2026-10-14)
+
+
+### Bug Fixes
+
+* 缓存迁移漏了localdir:前缀导致文件夹重命名后刮削数据丢失 ([21f6b12](https://github.com/1525745393/EmbyTok-Flutter/commit/21f6b12daf0d941ae96b75ac0ffcd7a8af2af4bf))
+
 # [2.391.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.390.0...v2.391.0) (2026-10-14)
 
 
