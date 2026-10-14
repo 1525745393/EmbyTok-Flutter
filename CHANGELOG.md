@@ -1,3 +1,10 @@
+# [2.392.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.391.2...v2.392.0) (2026-10-14)
+
+
+### Features
+
+* 长按进入多选模式，支持批量重命名和批量删除 ([630c2bd](https://github.com/1525745393/EmbyTok-Flutter/commit/630c2bd4d032d1fe84bcac2587c47afb849ca56b))
+
 ## [2.391.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.391.1...v2.391.2) (2026-10-14)
 
 
