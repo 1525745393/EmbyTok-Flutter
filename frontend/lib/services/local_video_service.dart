@@ -390,7 +390,7 @@ class LocalVideoService {
   Future<void> migrateFolderCache(String oldDir, String newDir) async {
     try {
       final sp = await SharedPreferences.getInstance();
-      const prefix = 'scrape_';
+      const prefix = 'scrape_localdir:';
       final oldPrefix = '$prefix$oldDir/';
       final keys = sp.getKeys().where((k) => k.startsWith(oldPrefix)).toList();
       for (final key in keys) {
@@ -444,7 +444,7 @@ class LocalVideoService {
     // 3. 迁移缓存：newPathHash → oldPathHash
     try {
       final sp = await SharedPreferences.getInstance();
-      const prefix = 'scrape_';
+      const prefix = 'scrape_localdir:';
       final oldKey = '$prefix$oldPath';
       final newKey = '$prefix$newPath';
       final raw = sp.getString(newKey);
