@@ -36,6 +36,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   String? _error;
   bool _scraping = false;
   int _scrapedCount = 0;
+  // 多选模式
+  final Set<String> _selected = {};
 
   @override
   void initState() {
@@ -254,6 +256,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
             ),
         ],
       ),
+      bottomNavigationBar: _buildSelectionBar(),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -976,42 +979,143 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
 
   Widget _buildItemTile(LocalVideoItem item, int index) {
     final s = _scraped[item.pathHash];
+    final selecting = _selected.isNotEmpty;
+    final isSelected = _selected.contains(item.pathHash);
     return ListTile(
-      leading: SizedBox(
-        width: 48,
-        height: 68,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: s?.posterPath != null
-              ? CachedNetworkImage(imageUrl: TmdbService.posterUrl(s!.posterPath!), fit: BoxFit.cover)
-              : Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Container(color: Colors.grey[800], child: const Icon(Icons.movie, size: 20)),
-                    if (s != null)
-                      Positioned(
-                        top: 2,
-                        right: 2,
-                        child: Container(
-                          padding: const EdgeInsets.all(1),
-                          decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(6)),
-                          child: const Icon(Icons.check, size: 10, color: Colors.white),
-                        ),
+      leading: selecting
+          ? Icon(isSelected ? Icons.check_circle : Icons.circle_outlined,
+              color: isSelected ? Colors.pink : Colors.grey, size: 28)
+          : SizedBox(
+              width: 48,
+              height: 68,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: s?.posterPath != null
+                    ? CachedNetworkImage(imageUrl: TmdbService.posterUrl(s!.posterPath!), fit: BoxFit.cover)
+                    : Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Container(color: Colors.grey[800], child: const Icon(Icons.movie, size: 20)),
+                          if (s != null)
+                            Positioned(
+                              top: 2,
+                              right: 2,
+                              child: Container(
+                                padding: const EdgeInsets.all(1),
+                                decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(6)),
+                                child: const Icon(Icons.check, size: 10, color: Colors.white),
+                              ),
+                            ),
+                        ],
                       ),
-                  ],
-                ),
-        ),
-      ),
+              ),
+            ),
       title: Text(_itemTitle(s, item), maxLines: 1, overflow: TextOverflow.ellipsis),
       subtitle: Text(_itemSubtitle(s, item), maxLines: 1, overflow: TextOverflow.ellipsis),
-      trailing: const Icon(Icons.play_arrow, size: 20),
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute<Widget>(builder: (_) => LocalPlayPage(items: _items, initialIndex: index),
-        ),
-      ),
-      onLongPress: () => _showLongPressMenu(item),
+      trailing: selecting ? null : const Icon(Icons.play_arrow, size: 20),
+      selected: isSelected,
+      selectedTileColor: Colors.pink.withValues(alpha: 0.1),
+      onTap: () {
+        if (selecting) {
+          setState(() {
+            if (isSelected) {
+              _selected.remove(item.pathHash);
+            } else {
+              _selected.add(item.pathHash);
+            }
+          });
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute<Widget>(builder: (_) => LocalPlayPage(items: _items, initialIndex: index)),
+          );
+        }
+      },
+      onLongPress: () {
+        if (selecting) return;
+        setState(() => _selected.add(item.pathHash));
+      },
     );
+  }
+
+  /// 多选模式下的底部操作栏
+  Widget? _buildSelectionBar() {
+    if (_selected.isEmpty) return null;
+    return BottomAppBar(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          TextButton.icon(
+            icon: const Icon(Icons.close, color: Colors.grey),
+            label: const Text('取消'),
+            onPressed: () => setState(() => _selected.clear()),
+          ),
+          Text('已选 ${_selected.length}'),
+          TextButton.icon(
+            icon: const Icon(Icons.auto_fix_high, color: Colors.green),
+            label: const Text('按刮削重命名'),
+            onPressed: () => _batchRename(),
+          ),
+          TextButton.icon(
+            icon: const Icon(Icons.delete, color: Colors.red),
+            label: const Text('删除'),
+            onPressed: () => _batchDelete(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _batchRename() async {
+    int ok = 0, fail = 0;
+    for (final item in _items.where((i) => _selected.contains(i.pathHash))) {
+      try {
+        final s = _scraped[item.pathHash];
+        if (s != null) {
+          await LocalVideoService().renameByScraped(item, s);
+          ok++;
+        } else {
+          fail++;
+        }
+      } catch (_) {
+        fail++;
+      }
+    }
+    setState(() => _selected.clear());
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('批量重命名：成功 $ok，失败 $fail')));
+      _scan();
+    }
+  }
+
+  Future<void> _batchDelete() async {
+    final count = _selected.length;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('批量删除'),
+        content: Text('确定删除选中的 $count 个文件？此操作不可撤销。'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('删除')),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    int ok = 0, fail = 0;
+    for (final item in _items.where((i) => _selected.contains(i.pathHash))) {
+      try {
+        await LocalVideoService().delete(item);
+        ok++;
+      } catch (_) {
+        fail++;
+      }
+    }
+    setState(() => _selected.clear());
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('批量删除：成功 $ok，失败 $fail')));
+      _scan();
+    }
   }
 
   void _showLongPressMenu(LocalVideoItem item) async {
