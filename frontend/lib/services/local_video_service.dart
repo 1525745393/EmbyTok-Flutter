@@ -453,6 +453,18 @@ class LocalVideoService {
         await sp.remove(newKey);
       }
     } catch (_) {}
+    // 4. 清理整理时创建的空目录（从newPath父目录向上最多删3层）
+    try {
+      var dir = newPath.substring(0, newPath.lastIndexOf('/'));
+      for (var i = 0; i < 3; i++) {
+        final d = Directory(dir);
+        if (!await d.exists()) break;
+        final contents = await d.list().toList();
+        if (contents.isNotEmpty) break;
+        await d.delete();
+        dir = dir.substring(0, dir.lastIndexOf('/'));
+      }
+    } catch (_) {}
   }
 
   /// 根据刮削元数据一键重命名文件
