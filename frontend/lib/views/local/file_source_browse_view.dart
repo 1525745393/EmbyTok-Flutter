@@ -231,6 +231,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         title: Text(widget.source.name),
         actions: [
           IconButton(onPressed: _scan, icon: const Icon(Icons.refresh)),
+          IconButton(onPressed: _showRenameHistory, icon: const Icon(Icons.history), tooltip: '重命名历史'),
           IconButton(
             onPressed: _scraping ? null : _scrapeAll,
             icon: _scraping
@@ -589,11 +590,27 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   /// 整理文件结构：把扁平集数移动到 Season X 子文件夹
   /// 如 西游记/S01E01.mp4 → 西游记/Season 1/S01E01.mp4
   Future<void> _organizeStructure(String seriesName, List<LocalVideoItem> eps) async {
+    // 先统计将要移动的文件数
+    var willMove = 0;
+    for (final item in eps) {
+      final m = RegExp(r'[Ss](\d{1,2})[._ -]?[Ee](\d{1,2})').firstMatch(item.name);
+      if (m == null) continue;
+      var parent = item.path.substring(0, item.path.lastIndexOf('/'));
+      final seasonMatch = RegExp(r'[\/\\][Ss]eason\s*(\d+)$', caseSensitive: false).firstMatch(parent);
+      if (seasonMatch != null) continue;
+      willMove++;
+    }
+    if (willMove == 0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('所有集数已在 Season 目录中，无需整理')));
+      }
+      return;
+    }
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('整理文件结构'),
-        content: Text('将按 SxxEyy 把集数移动到 "剧名/Season X" 子文件夹。\n\n例：$seriesName/S01E01.mp4 → $seriesName/Season 1/S01E01.mp4\n\n是否继续？'),
+        content: Text('将移动 $willMove 个集数到 "$seriesName/Season X/" 子文件夹。\n\n是否继续？'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
           TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('开始整理')),
@@ -1033,7 +1050,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       },
       onLongPress: () {
         if (selecting) return;
-        setState(() => _selected.add(item.pathHash));
+        _showLongPressMenu(item);
       },
     );
   }
@@ -1141,10 +1158,19 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
               enabled: item.assetId == null,
               onTap: () => Navigator.pop(context, 'rename'),
             ),
+            ListTile(
+              leading: const Icon(Icons.check_box_outlined),
+              title: const Text('多选'),
+              onTap: () => Navigator.pop(context, 'select'),
+            ),
           ],
         ),
       ),
     );
+    if (action == 'select') {
+      setState(() => _selected.add(item.pathHash));
+      return;
+    }
     if (action == 'autoRename' && s != null) {
       try {
         await LocalVideoService().renameByScraped(item, s);
@@ -1160,11 +1186,26 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     } else if (action == 'rename') {
       if (!mounted) return;
       final ctrl = TextEditingController(text: item.name);
+      final ext = item.path.contains('.') ? item.path.substring(item.path.lastIndexOf('.')) : '';
       final newName = await showDialog<String>(
         context: context,
         builder: (_) => AlertDialog(
           title: const Text('重命名'),
-          content: TextField(controller: ctrl, autofocus: true, decoration: const InputDecoration(hintText: '新文件名')),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(controller: ctrl, autofocus: true, decoration: const InputDecoration(hintText: '新文件名（不含扩展名）')),
+              const SizedBox(height: 12),
+              ValueListenableBuilder(
+                valueListenable: ctrl,
+                builder: (_, __, ___) => Text(
+                  '预览: ${ctrl.text.trim()}$ext',
+                  style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                ),
+              ),
+            ],
+          ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
             TextButton(onPressed: () => Navigator.pop(context, ctrl.text.trim()), child: const Text('确定')),
