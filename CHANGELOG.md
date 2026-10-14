@@ -1,3 +1,10 @@
+## [2.391.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.391.1...v2.391.2) (2026-10-14)
+
+
+### Bug Fixes
+
+* 整理结构迁移缓存避免刮削数据丢失；重命名统计区分成功/跳过/失败 ([ca44888](https://github.com/1525745393/EmbyTok-Flutter/commit/ca448888518ad9c610fc135700c33ca1e9768b7c))
+
 ## [2.391.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.391.0...v2.391.1) (2026-10-14)
 
 
