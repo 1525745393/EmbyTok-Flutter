@@ -1,3 +1,10 @@
+# [2.391.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.390.0...v2.391.0) (2026-10-14)
+
+
+### Features
+
+* 整理后重复检测+空目录自动清理+撤销时恢复目录结构 ([423af0e](https://github.com/1525745393/EmbyTok-Flutter/commit/423af0ec4f4c008ee5e1339b32e9d0737241a3da))
+
 # [2.390.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.389.2...v2.390.0) (2026-10-13)
 
 
