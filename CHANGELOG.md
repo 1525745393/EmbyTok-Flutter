@@ -1,3 +1,10 @@
+# [2.393.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.392.0...v2.393.0) (2026-10-14)
+
+
+### Features
+
+* 历史图标入AppBar；长按菜单恢复+多选入口；重命名实时预览；整理前显示文件数 ([f0ed32b](https://github.com/1525745393/EmbyTok-Flutter/commit/f0ed32b83c3e4631299f4d337044370fb1e4bfd8))
+
 # [2.392.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.391.2...v2.392.0) (2026-10-14)
 
 
