@@ -1258,7 +1258,15 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
               const SizedBox(width: 6),
               Text('未刮削', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
             ])
-          : Text(_itemTitle(s, item), maxLines: 1, overflow: TextOverflow.ellipsis),
+          : Row(children: [
+              Expanded(child: Text(_itemTitle(s, item), maxLines: 1, overflow: TextOverflow.ellipsis)),
+              // 元数据不完整标记：缺海报或简介
+              if (s.posterPath == null || s.overview == null || s.overview!.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(left: 6),
+                  child: Icon(Icons.error_outline, size: 14, color: Colors.orange),
+                ),
+            ]),
       subtitle: Text(_itemSubtitle(s, item), maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: selecting ? null : const Icon(Icons.play_arrow, size: 20),
       selected: isSelected,
@@ -1399,6 +1407,12 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                 onTap: () => Navigator.pop(context, 'autoRename'),
               ),
             ListTile(
+              leading: const Icon(Icons.refresh, color: Colors.blue),
+              title: const Text('重新刮削'),
+              subtitle: Text(s != null ? '已有元数据，重新拉取TMDB' : '从未刮削过，拉取TMDB元数据', maxLines: 1),
+              onTap: () => Navigator.pop(context, 'rescrape'),
+            ),
+            ListTile(
               leading: const Icon(Icons.drive_file_rename_outline),
               title: const Text('手动重命名'),
               subtitle: Text(item.name, maxLines: 1),
@@ -1447,6 +1461,39 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('删除失败: $e')));
           }
+        }
+      }
+      return;
+    }
+    if (action == 'rescrape') {
+      try {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const AlertDialog(
+            content: Row(children: [CircularProgressIndicator(), SizedBox(width: 16), Text('正在刮削...')]),
+          ),
+        );
+        final m = await ScrapeService.scrapeFile(
+          item.pathHash, item.name,
+          parentDir: item.relativePath,
+          mediaTypeHint: widget.source.config['mediaType'],
+        );
+        if (!mounted) return;
+        Navigator.pop(context);
+        if (m != null) {
+          await ScrapeService.saveCache(item.pathHash, m);
+          await ScrapeMediaStore.save(item, m);
+          ref.read(localVideoProvider.notifier).addScrapedEntry(item.pathHash, m);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('刮削成功：${m.title}')));
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('未在 TMDB 找到匹配')));
+        }
+        setState(() {});
+      } catch (e) {
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('刮削失败: $e')));
         }
       }
       return;
