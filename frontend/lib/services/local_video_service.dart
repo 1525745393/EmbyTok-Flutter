@@ -452,17 +452,19 @@ class LocalVideoService {
     } else {
       throw Exception('文件已不存在，无法撤销');
     }
-    // 2. 恢复旁置 .nfo/海报/剧照
-    try {
-      final oldBase = oldPath.substring(0, oldPath.lastIndexOf('.'));
-      final newBase = newPath.substring(0, newPath.lastIndexOf('.'));
-      for (final suffix in ['.nfo', '-poster.jpg', '-backdrop.jpg', '-still.jpg']) {
-        final oldSibling = File('$newBase$suffix');
-        if (await oldSibling.exists()) {
-          await oldSibling.rename('$oldBase$suffix');
+    // 2. 恢复旁置 .nfo/海报/剧照（文件夹重命名无旁置文件，跳过）
+    if (await f.exists()) {
+      try {
+        final oldBase = oldPath.substring(0, oldPath.lastIndexOf('.'));
+        final newBase = newPath.substring(0, newPath.lastIndexOf('.'));
+        for (final suffix in ['.nfo', '-poster.jpg', '-backdrop.jpg', '-still.jpg']) {
+          final oldSibling = File('$newBase$suffix');
+          if (await oldSibling.exists()) {
+            await oldSibling.rename('$oldBase$suffix');
+          }
         }
-      }
-    } catch (_) {}
+      } catch (_) {}
+    }
     // 3. 迁移缓存：newPathHash → oldPathHash
     //    目录重命名时内部所有文件的缓存也要反向迁移
     try {
