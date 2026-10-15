@@ -1,3 +1,19 @@
+# [2.395.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.394.2...v2.395.0) (2026-10-15)
+
+
+### Bug Fixes
+
+* 撤销文件夹重命名跳过旁置文件恢复（避免RangeError） ([99576a5](https://github.com/1525745393/EmbyTok-Flutter/commit/99576a5f6da944bb18a91339fa1b7876394e3688))
+* 电影整理移.actors；长按菜单加删除；批量重命名区分skip；删除预览文件名；分组索引O(1) ([7a60234](https://github.com/1525745393/EmbyTok-Flutter/commit/7a60234b25ef7b0c80b97ebca922f652cf6cd69f))
+
+
+### Features
+
+* 一键重命名集数时显示加载框 ([33e8605](https://github.com/1525745393/EmbyTok-Flutter/commit/33e8605a49f6869bc41eff554b5c439304574e61))
+* 历史清空按钮；集号正则支持Season X Episode Y格式；整理提示无法识别数 ([a427ed4](https://github.com/1525745393/EmbyTok-Flutter/commit/a427ed48a1bf2b1ccc3deef2cf3fea15ed8e27f9))
+* 文件夹重命名实时路径预览；整理时显示加载进度框 ([4081545](https://github.com/1525745393/EmbyTok-Flutter/commit/408154531e7402efc681f5e9c90d110a496a7d5f))
+* 集号正则支持Episode 01格式；电影整理后清理空目录 ([2aa4cb8](https://github.com/1525745393/EmbyTok-Flutter/commit/2aa4cb845d4a8776815eb5d61223f3e8b2c97710))
+
 ## [2.394.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.394.1...v2.394.2) (2026-10-15)
 
 
