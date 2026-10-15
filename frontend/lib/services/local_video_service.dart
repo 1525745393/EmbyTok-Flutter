@@ -257,6 +257,14 @@ class LocalVideoService {
       }
       // 清理旁置 .nfo/海报/剧照和中央缓存
       try { await ScrapeMediaStore.delete(item); } catch (_) {}
+      // 清理 SharedPreferences：刮削缓存、收藏、续播位置
+      try {
+        final sp = await SharedPreferences.getInstance();
+        await sp.remove('scrape_${item.pathHash}');
+        await sp.remove('local_favorite_${item.pathHash}');
+        await sp.remove('local_resume_${item.pathHash}');
+        await sp.remove('local_resume_time_${item.pathHash}');
+      } catch (_) {}
       return true;
     } catch (_) {}
     return false;
