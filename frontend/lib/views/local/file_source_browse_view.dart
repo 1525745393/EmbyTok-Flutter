@@ -30,6 +30,22 @@ class FileSourceBrowseView extends ConsumerStatefulWidget {
 }
 
 class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
+  /// 匹配集号：S01E01 / S01.E01 / Season 1 Episode 1 / Season01E01
+  static final _epRegex = RegExp(
+    r'(?:[Ss](\d{1,2})[._ -]?[Ee](\d{1,2}))|(?:[Ss]eason\s*(\d{1,2})\s*[Ee]pisode\s*(\d{1,2}))',
+    caseSensitive: false,
+  );
+
+  /// 从文件名提取季集号，返回 (season, episode) 或 null
+  static (int, int)? _parseSeasonEpisode(String name) {
+    final m = _epRegex.firstMatch(name);
+    if (m == null) return null;
+    final s = m.group(1) ?? m.group(3);
+    final e = m.group(2) ?? m.group(4);
+    if (s == null || e == null) return null;
+    return (int.parse(s), int.parse(e));
+  }
+
   List<LocalVideoItem> _items = [];
   Map<String, ScrapedMedia> _scraped = {};
   bool _loading = true;
@@ -312,8 +328,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
 
   Widget _buildBody() {
     // mediaType=tv 或文件名含 SxxExx 模式时按文件夹分组
-    final hasTvPattern = _items.any((it) =>
-        RegExp(r'[Ss]\d{1,2}[._ -]?[Ee]\d{1,2}').hasMatch(it.name));
+    final hasTvPattern = _items.any((it) => _parseSeasonEpisode(it.name) != null);
     final isTv = widget.source.config['mediaType'] == 'tv' || hasTvPattern;
     // TV 类型按文件夹分组
     if (isTv) {
@@ -578,12 +593,12 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           await LocalVideoService().renameByScraped(item, s);
           ok++;
         } else {
-          // 没有刮削数据，从文件名提取 SxxExx
-          final m = RegExp(r'[Ss](\d{1,2})[._ -]?[Ee](\d{1,2})').firstMatch(item.name);
-          if (m != null) {
-            final se = 'S${m.group(1)!.padLeft(2, '0')}E${m.group(2)!.padLeft(2, '0')}';
+          // 没有刮削数据，从文件名提取季集号
+          final se = _parseSeasonEpisode(item.name);
+          if (se != null) {
+            final seStr = 'S${se.$1.toString().padLeft(2, '0')}E${se.$2.toString().padLeft(2, '0')}';
             final safe = seriesName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
-            await LocalVideoService().renameFile(item, '$safe $se');
+            await LocalVideoService().renameFile(item, '$safe $seStr');
             ok++;
           } else {
             skip++;
@@ -607,9 +622,10 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   Future<void> _organizeStructure(String seriesName, List<LocalVideoItem> eps) async {
     // 先统计将要移动的文件数
     var willMove = 0;
+    var noEpInfo = 0;
     for (final item in eps) {
-      final m = RegExp(r'[Ss](\d{1,2})[._ -]?[Ee](\d{1,2})').firstMatch(item.name);
-      if (m == null) continue;
+      final ep = _parseSeasonEpisode(item.name);
+      if (ep == null) { noEpInfo++; continue; }
       var parent = item.path.substring(0, item.path.lastIndexOf('/'));
       final seasonMatch = RegExp(r'[\/\\][Ss]eason\s*(\d+)$', caseSensitive: false).firstMatch(parent);
       if (seasonMatch != null) continue;
@@ -617,7 +633,9 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     }
     if (willMove == 0) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('所有集数已在 Season 目录中，无需整理')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(noEpInfo > 0 ? '所有集数已整理或无法识别集号（$noEpInfo 个跳过）' : '所有集数已在 Season 目录中，无需整理'),
+        ));
       }
       return;
     }
@@ -625,7 +643,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('整理文件结构'),
-        content: Text('将移动 $willMove 个集数到 "$seriesName/Season X/" 子文件夹。\n\n是否继续？'),
+        content: Text('将移动 $willMove 个集数到 "$seriesName/Season X/" 子文件夹。${noEpInfo > 0 ? '\n\n$noEpInfo 个文件无法识别集号，将跳过。' : ''}\n\n是否继续？'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
           TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('开始整理')),
@@ -633,13 +651,13 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       ),
     );
     if (confirm != true || !mounted) return;
-    int ok = 0, fail = 0, dup = 0;
+    int ok = 0, fail = 0, dup = 0, skip = 0;
     final safeSeries = seriesName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
     for (final item in eps) {
       try {
-        final m = RegExp(r'[Ss](\d{1,2})[._ -]?[Ee](\d{1,2})').firstMatch(item.name);
-        if (m == null) continue;
-        final season = int.tryParse(m.group(1)!) ?? 1;
+        final ep = _parseSeasonEpisode(item.name);
+        if (ep == null) { skip++; continue; }
+        final season = ep.$1;
         var parent = item.path.substring(0, item.path.lastIndexOf('/'));
         // 先判断是否已在 Season X 子文件夹里
         final seasonMatch = RegExp(r'[\/\\][Ss]eason\s*(\d+)$', caseSensitive: false).firstMatch(parent);
@@ -686,6 +704,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     if (mounted) {
       final msg = StringBuffer('整理完成：移动 $ok 个文件');
       if (dup > 0) msg.write('，$dup 个重复已跳过');
+      if (skip > 0) msg.write('，$skip 个无法识别');
       if (fail > 0) msg.write('，失败 $fail');
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg.toString())));
       _scan();
@@ -863,6 +882,17 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           ),
         ),
         actions: [
+          TextButton(
+            onPressed: () async {
+              final sp = await SharedPreferences.getInstance();
+              await sp.setStringList('rename_history', []);
+              if (mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('历史已清空')));
+              }
+            },
+            child: const Text('清空', style: TextStyle(color: Colors.red)),
+          ),
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('关闭')),
         ],
       ),

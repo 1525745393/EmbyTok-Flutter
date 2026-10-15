@@ -504,9 +504,16 @@ class LocalVideoService {
       if (s.season != null && s.episode != null) {
         se = 'S${s.season!.toString().padLeft(2, '0')}E${s.episode!.toString().padLeft(2, '0')}';
       } else {
-        final epMatch = RegExp(r'[Ss](\d{1,2})[._ -]?[Ee](\d{1,2})').firstMatch(item.name);
+        final epMatch = RegExp(
+          r'(?:[Ss](\d{1,2})[._ -]?[Ee](\d{1,2}))|(?:[Ss]eason\s*(\d{1,2})\s*[Ee]pisode\s*(\d{1,2}))',
+          caseSensitive: false,
+        ).firstMatch(item.name);
         if (epMatch != null) {
-          se = 'S${epMatch.group(1)!.padLeft(2, '0')}E${epMatch.group(2)!.padLeft(2, '0')}';
+          final s = epMatch.group(1) ?? epMatch.group(3);
+          final e = epMatch.group(2) ?? epMatch.group(4);
+          if (s != null && e != null) {
+            se = 'S${s.padLeft(2, '0')}E${e.padLeft(2, '0')}';
+          }
         }
       }
       newName = se != null ? '$safeTitle $se' : safeTitle;
