@@ -409,6 +409,21 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
               title: const Text('重命名文件夹'),
               onTap: () => Navigator.pop(context, 'renameFolder'),
             ),
+            ListTile(
+              leading: const Icon(Icons.auto_fix_high, color: Colors.green),
+              title: const Text('按刮削信息重命名文件夹'),
+              onTap: () => Navigator.pop(context, 'renameFolderScraped'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.undo, color: Colors.orange),
+              title: const Text('撤销上次重命名'),
+              onTap: () => Navigator.pop(context, 'undoRename'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.history),
+              title: const Text('重命名历史'),
+              onTap: () => Navigator.pop(context, 'renameHistory'),
+            ),
           ],
         ),
       ),
@@ -652,15 +667,15 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         await File(item.path).rename(newPath);
         await LocalVideoService().recordRename(item.path, newPath);
         await LocalVideoService().migrateCachePath(item.path, newPath);
-        // 同步移动旁置的 .nfo/海报/剧照等文件
+        // 双轨落盘：同步重命名旁置文件并清理沙箱旧元数据
         try {
-          final oldBase = item.path.substring(0, dot);
-          final newBase = newPath.substring(0, newPath.lastIndexOf('.'));
-          for (final suffix in ['.nfo', '-poster.jpg', '-backdrop.jpg', '-still.jpg']) {
-            final oldSibling = File('$oldBase$suffix');
-            if (await oldSibling.exists()) {
-              await oldSibling.rename('$newBase$suffix');
-            }
+          await ScrapeMediaStore.rename(item.path, newPath);
+          // 同步移动 .actors/ 目录
+          final oldActorsDir = Directory('${item.path.substring(0, dot)}/.actors');
+          if (await oldActorsDir.exists()) {
+            final newActorsDir = Directory('${newPath.substring(0, newPath.lastIndexOf('.'))}/.actors');
+            if (!await newActorsDir.parent.exists()) await newActorsDir.parent.create(recursive: true);
+            await oldActorsDir.rename(newActorsDir.path);
           }
         } catch (_) {}
         ok++;
@@ -703,6 +718,12 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     }
     try {
       final newPath = '${dirPath.substring(0, dirPath.lastIndexOf('/'))}/$newName';
+      if (await Directory(newPath).exists()) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('文件夹 "$newName" 已存在')));
+        }
+        return;
+      }
       await Directory(dirPath).rename(newPath);
       await LocalVideoService().recordRename(dirPath, newPath);
       await LocalVideoService().migrateFolderCache(dirPath, newPath);
@@ -943,16 +964,9 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         await File(item.path).rename(newPath);
         await LocalVideoService().recordRename(item.path, newPath);
         await LocalVideoService().migrateCachePath(item.path, newPath);
-        // 同步移动旁置的 .nfo/海报/背景
+        // 双轨落盘：同步重命名旁置文件并清理沙箱旧元数据
         try {
-          final oldBase = item.path.substring(0, dot);
-          final newBase = newPath.substring(0, newPath.lastIndexOf('.'));
-          for (final suffix in ['.nfo', '-poster.jpg', '-backdrop.jpg']) {
-            final oldSibling = File('$oldBase$suffix');
-            if (await oldSibling.exists()) {
-              await oldSibling.rename('$newBase$suffix');
-            }
-          }
+          await ScrapeMediaStore.rename(item.path, newPath);
         } catch (_) {}
         ok++;
       } catch (_) {
