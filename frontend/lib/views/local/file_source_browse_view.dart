@@ -250,6 +250,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       appBar: AppBar(
         title: Text(widget.source.name),
         actions: [
+          IconButton(onPressed: _showHelp, icon: const Icon(Icons.help_outline), tooltip: '使用帮助'),
           IconButton(onPressed: _scan, icon: const Icon(Icons.refresh)),
           IconButton(onPressed: _showRenameHistory, icon: const Icon(Icons.history), tooltip: '重命名历史'),
           IconButton(
@@ -878,6 +879,38 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))));
       }
     }
+  }
+
+  /// 使用帮助
+  void _showHelp() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Row(children: [Icon(Icons.help_outline), SizedBox(width: 8), Text('使用帮助')]),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              _HelpItem('刮削', '从 TMDB 拉取海报、简介、演员等元数据，写入 .nfo 文件。'),
+              _HelpItem('按刮削重命名', '用 TMDB 的标准片名+年份重命名文件。需先刮削。'),
+              _HelpItem('按文件夹名重命名', '直接用父文件夹名重命名文件，无需刮削。'),
+              _HelpItem('整理文件结构（电影）', '把电影移入独立文件夹，自动从文件名提取片名和年份。'),
+              _HelpItem('整理文件结构（电视剧）', '把集数移入 Season X 子文件夹，并改名为标准格式。'),
+              _HelpItem('一键重命名集数', '把所有集数改为"剧名 S01E01"格式。'),
+              _HelpItem('重命名文件夹', '修改剧集所在文件夹名称。'),
+              _HelpItem('重新刮削', '长按某个文件，单独重新拉取 TMDB 元数据。'),
+              _HelpItem('橙色感叹号', '元数据不完整（缺海报或简介），可重新刮削补全。'),
+              _HelpItem('重命名历史', '查看历史重命名记录，支持撤销。'),
+              _HelpItem('多选', '长按文件进入多选模式，可批量重命名或删除。'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('知道了')),
+        ],
+      ),
+    );
   }
 
   /// 查看重命名历史
@@ -1615,6 +1648,26 @@ class _SeriesEpisodePage extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _HelpItem extends StatelessWidget {
+  final String title;
+  final String desc;
+  const _HelpItem(this.title, this.desc);
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          const SizedBox(height: 2),
+          Text(desc, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+        ],
       ),
     );
   }
