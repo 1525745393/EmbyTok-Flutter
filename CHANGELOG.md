@@ -1,3 +1,10 @@
+# [2.399.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.398.0...v2.399.0) (2026-10-15)
+
+
+### Features
+
+* 列表显示元数据不完整标记，长按菜单支持单独重新刮削 ([bcd86c9](https://github.com/1525745393/EmbyTok-Flutter/commit/bcd86c9201cc30e97f65428a3f85a3dbf70b0204))
+
 # [2.398.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.397.0...v2.398.0) (2026-10-15)
 
 
