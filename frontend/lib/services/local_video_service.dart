@@ -507,12 +507,12 @@ class LocalVideoService {
         se = 'S${s.season!.toString().padLeft(2, '0')}E${s.episode!.toString().padLeft(2, '0')}';
       } else {
         final epMatch = RegExp(
-          r'(?:[Ss](\d{1,2})[._ -]?[Ee](\d{1,2}))|(?:[Ss]eason\s*(\d{1,2})\s*[Ee]pisode\s*(\d{1,2}))|(?:[Ee]pisode\s*(\d{1,2}))',
+          r'(?:[Ss](\d{1,2})[._ -]?[Ee](\d{1,2}))|(?:[Ss]eason\s*(\d{1,2})\s*[Ee]pisode\s*(\d{1,2}))|(?:[Ee]pisode\s*(\d{1,2}))|(?:第\s*(\d{1,2})\s*集)',
           caseSensitive: false,
         ).firstMatch(item.name);
         if (epMatch != null) {
           final s = epMatch.group(1) ?? epMatch.group(3);
-          final e = epMatch.group(2) ?? epMatch.group(4) ?? epMatch.group(5);
+          final e = epMatch.group(2) ?? epMatch.group(4) ?? epMatch.group(5) ?? epMatch.group(6);
           if (e != null) {
             se = 'S${(s ?? '1').padLeft(2, '0')}E${e.padLeft(2, '0')}';
           }
