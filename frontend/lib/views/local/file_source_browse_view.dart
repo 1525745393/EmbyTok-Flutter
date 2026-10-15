@@ -657,6 +657,13 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       ),
     );
     if (confirm != true || !mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(children: [CircularProgressIndicator(), SizedBox(width: 16), Text('正在整理...')]),
+      ),
+    );
     int ok = 0, fail = 0, dup = 0, skip = 0;
     final safeSeries = seriesName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
     for (final item in eps) {
@@ -708,6 +715,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       }
     }
     if (mounted) {
+      Navigator.pop(context); // 关闭加载框
       final msg = StringBuffer('整理完成：移动 $ok 个文件');
       if (dup > 0) msg.write('，$dup 个重复已跳过');
       if (skip > 0) msg.write('，$skip 个无法识别');
@@ -719,19 +727,39 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
 
   Future<void> _renameFolder(String oldName, String dirPath) async {
     final ctrl = TextEditingController(text: oldName);
+    String preview = oldName;
+    final parentPath = dirPath.isNotEmpty && dirPath.lastIndexOf('/') > 0
+        ? dirPath.substring(0, dirPath.lastIndexOf('/'))
+        : '';
     final newName = await showDialog<String>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('重命名剧集文件夹'),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: '输入新文件夹名'),
+      builder: (_) => StatefulBuilder(
+        builder: (_, setDialog) => AlertDialog(
+          title: const Text('重命名剧集文件夹'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: ctrl,
+                autofocus: true,
+                onChanged: (v) => setDialog(() => preview = v.trim()),
+                decoration: const InputDecoration(hintText: '输入新文件夹名'),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '$parentPath/$preview',
+                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+            TextButton(onPressed: () => Navigator.pop(context, ctrl.text.trim()), child: const Text('确定')),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
-          TextButton(onPressed: () => Navigator.pop(context, ctrl.text.trim()), child: const Text('确定')),
-        ],
       ),
     );
     if (newName == null || newName.isEmpty || newName == oldName) return;
@@ -980,7 +1008,13 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       ),
     );
     if (confirm != true || !mounted) return;
-
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(children: [CircularProgressIndicator(), SizedBox(width: 16), Text('正在整理...')]),
+      ),
+    );
     int ok = 0, fail = 0, dup = 0;
     for (final item in needMove) {
       try {
@@ -1030,6 +1064,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       }
     } catch (_) {}
     if (mounted) {
+      Navigator.pop(context); // 关闭加载框
       final msg = StringBuffer('整理完成：移动 $ok 个文件');
       if (dup > 0) msg.write('，$dup 个重复已跳过');
       if (fail > 0) msg.write('，失败 $fail');
