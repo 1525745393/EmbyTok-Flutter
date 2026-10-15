@@ -1,3 +1,10 @@
+# [2.394.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.393.0...v2.394.0) (2026-10-15)
+
+
+### Features
+
+* 未刮削文件标记；多选全选；重命名冲突覆盖确认 ([e7d318e](https://github.com/1525745393/EmbyTok-Flutter/commit/e7d318edbfab6ad69e27509c0baacd54cf27ff2d))
+
 # [2.393.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.392.0...v2.393.0) (2026-10-14)
 
 
