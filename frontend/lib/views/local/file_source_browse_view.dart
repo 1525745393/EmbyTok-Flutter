@@ -30,9 +30,9 @@ class FileSourceBrowseView extends ConsumerStatefulWidget {
 }
 
 class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
-  /// 匹配集号：S01E01 / S01.E01 / Season 1 Episode 1 / Season01E01
+  /// 匹配集号：S01E01 / S01.E01 / Season 1 Episode 1 / Episode 01（默认季1）
   static final _epRegex = RegExp(
-    r'(?:[Ss](\d{1,2})[._ -]?[Ee](\d{1,2}))|(?:[Ss]eason\s*(\d{1,2})\s*[Ee]pisode\s*(\d{1,2}))',
+    r'(?:[Ss](\d{1,2})[._ -]?[Ee](\d{1,2}))|(?:[Ss]eason\s*(\d{1,2})\s*[Ee]pisode\s*(\d{1,2}))|(?:[Ee]pisode\s*(\d{1,2}))',
     caseSensitive: false,
   );
 
@@ -40,10 +40,13 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   static (int, int)? _parseSeasonEpisode(String name) {
     final m = _epRegex.firstMatch(name);
     if (m == null) return null;
+    // SxxExx: group(1)=season, group(2)=episode
+    // Season X Episode Y: group(3)=season, group(4)=episode
+    // Episode Y: group(5)=episode, season 默认 1
     final s = m.group(1) ?? m.group(3);
-    final e = m.group(2) ?? m.group(4);
-    if (s == null || e == null) return null;
-    return (int.parse(s), int.parse(e));
+    final e = m.group(2) ?? m.group(4) ?? m.group(5);
+    if (e == null) return null;
+    return (s != null ? int.parse(s) : 1, int.parse(e));
   }
 
   List<LocalVideoItem> _items = [];
@@ -1013,6 +1016,19 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         fail++;
       }
     }
+    // 清理整理后空的旧文件夹（仅当目录为空时）
+    try {
+      final cleanedDirs = <String>{};
+      for (final item in needMove) {
+        final parent = item.path.substring(0, item.path.lastIndexOf('/'));
+        if (parent.isEmpty || cleanedDirs.contains(parent)) continue;
+        final dir = Directory(parent);
+        if (await dir.exists() && (await dir.list().isEmpty)) {
+          await dir.delete();
+          cleanedDirs.add(parent);
+        }
+      }
+    } catch (_) {}
     if (mounted) {
       final msg = StringBuffer('整理完成：移动 $ok 个文件');
       if (dup > 0) msg.write('，$dup 个重复已跳过');
