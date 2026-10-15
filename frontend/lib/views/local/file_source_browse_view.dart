@@ -269,12 +269,15 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert),
               onSelected: _onMovieBatchAction,
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: 'renameAllMovies', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('按刮削重命名')])),
-                PopupMenuItem(value: 'renameByFolder', child: Row(children: [Icon(Icons.folder, size: 18), SizedBox(width: 8), Text('按文件夹名重命名')])),
-                PopupMenuItem(value: 'organizeMovies', child: Row(children: [Icon(Icons.folder_special, size: 18), SizedBox(width: 8), Text('整理文件结构')])),
-                PopupMenuItem(value: 'undoRename', child: Row(children: [Icon(Icons.undo, size: 18, color: Colors.orange), SizedBox(width: 8), Text('撤销上次重命名')])),
-                PopupMenuItem(value: 'renameHistory', child: Row(children: [Icon(Icons.history, size: 18), SizedBox(width: 8), Text('重命名历史')])),
+              itemBuilder: (_) => [
+                const PopupMenuItem(enabled: false, child: Text('── 刮削前整理 ──', style: TextStyle(fontSize: 12, color: Colors.grey))),
+                const PopupMenuItem(value: 'organizeMovies', child: Row(children: [Icon(Icons.folder_special, size: 18), SizedBox(width: 8), Text('整理文件结构')])),
+                const PopupMenuItem(value: 'renameByFolder', child: Row(children: [Icon(Icons.folder, size: 18), SizedBox(width: 8), Text('按文件夹名重命名')])),
+                const PopupMenuItem(enabled: false, child: Text('── 刮削后整理 ──', style: TextStyle(fontSize: 12, color: Colors.grey))),
+                const PopupMenuItem(value: 'renameAllMovies', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('按刮削重命名')])),
+                const PopupMenuItem(enabled: false, child: Text('── 其他 ──', style: TextStyle(fontSize: 12, color: Colors.grey))),
+                const PopupMenuItem(value: 'undoRename', child: Row(children: [Icon(Icons.undo, size: 18, color: Colors.orange), SizedBox(width: 8), Text('撤销上次重命名')])),
+                const PopupMenuItem(value: 'renameHistory', child: Row(children: [Icon(Icons.history, size: 18), SizedBox(width: 8), Text('重命名历史')])),
               ],
             ),
         ],
@@ -382,10 +385,13 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                   onSelected: (v) => _onGroupAction(v, entry.key, groupDir[entry.key] ?? '', entry.value),
                   itemBuilder: (_) => [
                     const PopupMenuItem(value: 'scrape', child: Row(children: [Icon(Icons.search, size: 18), SizedBox(width: 8), Text('刮削本剧')])),
-                    const PopupMenuItem(value: 'renameAll', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('一键重命名集数')])),
+                    const PopupMenuItem(enabled: false, child: Text('── 刮削前整理 ──', style: TextStyle(fontSize: 12, color: Colors.grey))),
                     const PopupMenuItem(value: 'organize', child: Row(children: [Icon(Icons.folder_special, size: 18), SizedBox(width: 8), Text('整理文件结构')])),
                     const PopupMenuItem(value: 'renameFolder', child: Row(children: [Icon(Icons.drive_file_rename_outline, size: 18), SizedBox(width: 8), Text('重命名文件夹')])),
+                    const PopupMenuItem(enabled: false, child: Text('── 刮削后整理 ──', style: TextStyle(fontSize: 12, color: Colors.grey))),
+                    const PopupMenuItem(value: 'renameAll', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('一键重命名集数')])),
                     const PopupMenuItem(value: 'renameFolderScraped', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('按刮削信息重命名文件夹')])),
+                    const PopupMenuItem(enabled: false, child: Text('── 其他 ──', style: TextStyle(fontSize: 12, color: Colors.grey))),
                     const PopupMenuItem(value: 'undoRename', child: Row(children: [Icon(Icons.undo, size: 18, color: Colors.orange), SizedBox(width: 8), Text('撤销上次重命名')])),
                     const PopupMenuItem(value: 'renameHistory', child: Row(children: [Icon(Icons.history, size: 18), SizedBox(width: 8), Text('重命名历史')])),
                   ],
@@ -418,10 +424,9 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
               title: const Text('刮削本剧'),
               onTap: () => Navigator.pop(context, 'scrape'),
             ),
-            ListTile(
-              leading: const Icon(Icons.auto_fix_high, color: Colors.green),
-              title: const Text('一键重命名集数'),
-              onTap: () => Navigator.pop(context, 'renameAll'),
+            const ListTile(
+              enabled: false,
+              title: Text('── 刮削前整理 ──', style: TextStyle(fontSize: 12, color: Colors.grey)),
             ),
             ListTile(
               leading: const Icon(Icons.folder_special),
@@ -433,10 +438,23 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
               title: const Text('重命名文件夹'),
               onTap: () => Navigator.pop(context, 'renameFolder'),
             ),
+            const ListTile(
+              enabled: false,
+              title: Text('── 刮削后整理 ──', style: TextStyle(fontSize: 12, color: Colors.grey)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.auto_fix_high, color: Colors.green),
+              title: const Text('一键重命名集数'),
+              onTap: () => Navigator.pop(context, 'renameAll'),
+            ),
             ListTile(
               leading: const Icon(Icons.auto_fix_high, color: Colors.green),
               title: const Text('按刮削信息重命名文件夹'),
               onTap: () => Navigator.pop(context, 'renameFolderScraped'),
+            ),
+            const ListTile(
+              enabled: false,
+              title: Text('── 其他 ──', style: TextStyle(fontSize: 12, color: Colors.grey)),
             ),
             ListTile(
               leading: const Icon(Icons.undo, color: Colors.orange),
