@@ -456,7 +456,9 @@ class LocalVideoService {
       }
     } catch (_) {}
     // 3. 迁移缓存：newPathHash → oldPathHash
+    //    目录重命名时内部所有文件的缓存也要反向迁移
     try {
+      await migrateFolderCache(newPath, oldPath);
       final sp = await SharedPreferences.getInstance();
       const prefix = 'scrape_localdir:';
       final oldKey = '$prefix$oldPath';
