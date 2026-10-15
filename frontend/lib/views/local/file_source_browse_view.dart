@@ -488,10 +488,11 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     });
     final sessionId = DateTime.now().millisecondsSinceEpoch.toString();
     ScrapeMediaStore.isScraping.value = true;
-    // 第一步：按剧名搜一次 TMDB
+    // 第一步：按剧名搜一次 TMDB（去掉括号年份避免搜索偏差）
     ScrapedMedia? base;
     try {
-      base = await ScrapeService.scrapeTvSeries(seriesName);
+      final searchName = seriesName.replaceAll(RegExp(r'\s*\(\d{4}\)\s*'), '').trim();
+      base = await ScrapeService.scrapeTvSeries(searchName);
     } catch (e) {
       debugPrint('剧集刮削失败 $seriesName: $e');
     }
