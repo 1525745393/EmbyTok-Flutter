@@ -728,7 +728,6 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         final ext = dot > 0 ? item.path.substring(dot) : '';
         // TMDB 标准格式：剧名 - S01E01.ext
         final seStr = 'S${season.toString().padLeft(2, '0')}E${ep.$2.toString().padLeft(2, '0')}';
-        final seStr = 'S${season.toString().padLeft(2, '0')}E${ep.$2.toString().padLeft(2, '0')}';
         final newPath = '$parent/Season ${season.toString().padLeft(2, '0')}/$safeSeries - $seStr$ext';
         if (await File(newPath).exists()) {
           dup++;
@@ -1150,7 +1149,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     int? year;
     String titlePart;
     if (yearMatch != null) {
-      year = int.tryParse(yearMatch.group(0)!);
+      year = int.tryParse(yearMatch.group(1)!);
       titlePart = name.substring(0, yearMatch.start);
     } else {
       titlePart = name;
