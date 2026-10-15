@@ -1,3 +1,10 @@
+## [2.394.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.394.1...v2.394.2) (2026-10-15)
+
+
+### Bug Fixes
+
+* 整理统一走ScrapeMediaStore.rename清理沙箱；移动.actors目录；长按菜单补全；文件夹重命名冲突检测 ([4282107](https://github.com/1525745393/EmbyTok-Flutter/commit/4282107cbcb006d49a2d1bc514c19419da2f5c04))
+
 ## [2.394.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.394.0...v2.394.1) (2026-10-15)
 
 
