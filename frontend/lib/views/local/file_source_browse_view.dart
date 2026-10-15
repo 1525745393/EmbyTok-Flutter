@@ -1038,6 +1038,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
 
   /// 从文件名提取片名和年份（无刮削数据时使用）
   /// 例：[bdys.me]王牌替身.2023.HD1080P → (王牌替身, 2023)
+  /// 例：长空之王.Born.to.Fly.2023.4K → (长空之王, 2023)
   static (String, int?)? _parseTitleYear(String filename) {
     var name = filename;
     // 去掉扩展名
@@ -1057,6 +1058,11 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     }
     // 清理：去掉末尾的点、空格、分隔符
     titlePart = titlePart.replaceAll(RegExp(r'[.\s\-_]+$'), '').trim();
+    // 如果片名包含中文，优先取中文部分（中英双语片名只留中文）
+    final chineseMatch = RegExp(r'[\u4e00-\u9fff][\u4e00-\u9fff0-9]*').firstMatch(titlePart);
+    if (chineseMatch != null) {
+      titlePart = chineseMatch.group(0)!;
+    }
     if (titlePart.isEmpty) return null;
     return (titlePart, year);
   }
