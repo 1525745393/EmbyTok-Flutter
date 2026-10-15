@@ -345,6 +345,10 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         final rootPath = m != null ? rel.substring(0, m.start) : rel;
         groupDir.putIfAbsent(folder, () => rootPath);
       }
+      // 建立 pathHash → 列表索引映射，避免每集 O(n) indexOf
+      final indexByHash = {
+        for (var i = 0; i < _items.length; i++) _items[i].pathHash: i,
+      };
       return ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -381,8 +385,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                   ],
                 ),
                 children: entry.value.map((it) {
-                  final realIndex = _items.indexOf(it);
-                  return _buildItemTile(it, realIndex < 0 ? 0 : realIndex);
+                  return _buildItemTile(it, indexByHash[it.pathHash] ?? 0);
                 }).toList(),
               ),
               ),
@@ -997,6 +1000,13 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         // 双轨落盘：同步重命名旁置文件并清理沙箱旧元数据
         try {
           await ScrapeMediaStore.rename(item.path, newPath);
+          // 同步移动 .actors/ 目录
+          final oldActorsDir = Directory('${item.path.substring(0, dot)}/.actors');
+          if (await oldActorsDir.exists()) {
+            final newActorsDir = Directory('${newPath.substring(0, newPath.lastIndexOf('.'))}/.actors');
+            if (!await newActorsDir.parent.exists()) await newActorsDir.parent.create(recursive: true);
+            await oldActorsDir.rename(newActorsDir.path);
+          }
         } catch (_) {}
         ok++;
       } catch (_) {
@@ -1144,7 +1154,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   }
 
   Future<void> _batchRename() async {
-    int ok = 0, fail = 0;
+    int ok = 0, fail = 0, skip = 0;
     for (final item in _items.where((i) => _selected.contains(i.pathHash))) {
       try {
         final s = _scraped[item.pathHash];
@@ -1152,7 +1162,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           await LocalVideoService().renameByScraped(item, s);
           ok++;
         } else {
-          fail++;
+          skip++;
         }
       } catch (_) {
         fail++;
@@ -1160,18 +1170,24 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     }
     setState(() => _selected.clear());
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('批量重命名：成功 $ok，失败 $fail')));
+      final msg = StringBuffer('批量重命名：成功 $ok');
+      if (skip > 0) msg.write('，$skip 个未刮削');
+      if (fail > 0) msg.write('，失败 $fail');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg.toString())));
       _scan();
     }
   }
 
   Future<void> _batchDelete() async {
-    final count = _selected.length;
+    final selectedItems = _items.where((i) => _selected.contains(i.pathHash)).toList();
+    final count = selectedItems.length;
+    final preview = selectedItems.take(3).map((i) => i.name).join('\n');
+    final more = count > 3 ? '\n... 等 $count 个文件' : '';
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('批量删除'),
-        content: Text('确定删除选中的 $count 个文件？此操作不可撤销。'),
+        content: Text('确定删除以下 $count 个文件？\n\n$preview$more\n\n此操作不可撤销。'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
           TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('删除')),
@@ -1223,12 +1239,45 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
               title: const Text('多选'),
               onTap: () => Navigator.pop(context, 'select'),
             ),
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: const Text('删除'),
+              enabled: item.assetId == null,
+              onTap: () => Navigator.pop(context, 'delete'),
+            ),
           ],
         ),
       ),
     );
     if (action == 'select') {
       setState(() => _selected.add(item.pathHash));
+      return;
+    }
+    if (action == 'delete') {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('删除文件'),
+          content: Text('确定删除 "${item.name}"？\n此操作不可撤销。'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
+            TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('删除')),
+          ],
+        ),
+      );
+      if (confirm == true) {
+        try {
+          await LocalVideoService().delete(item);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('已删除: ${item.name}')));
+            _scan();
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('删除失败: $e')));
+          }
+        }
+      }
       return;
     }
     if (action == 'autoRename' && s != null) {
