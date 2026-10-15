@@ -658,7 +658,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('整理文件结构'),
-        content: Text('将移动 $willMove 个集数到 "$seriesName/Season X/" 子文件夹。${noEpInfo > 0 ? '\n\n$noEpInfo 个文件无法识别集号，将跳过。' : ''}\n\n是否继续？'),
+        content: Text('将整理 $willMove 个集数为标准格式：\n$seriesName/Season X/$seriesName - S01E01.ext\n\n${noEpInfo > 0 ? '$noEpInfo 个文件无法识别集号，将跳过。\n\n' : ''}是否继续？'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
           TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('开始整理')),
@@ -699,7 +699,9 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         // item.name 不含扩展名，需从原 path 拼回
         final dot = item.path.lastIndexOf('.');
         final ext = dot > 0 ? item.path.substring(dot) : '';
-        final newPath = '$parent/Season $season/${item.name}$ext';
+        // TMDB 标准格式：剧名 - S01E01.ext
+        final seStr = 'S${season.toString().padLeft(2, '0')}E${ep.$2.toString().padLeft(2, '0')}';
+        final newPath = '$parent/Season $season/$safeSeries - $seStr$ext';
         if (await File(newPath).exists()) {
           dup++;
           continue;
