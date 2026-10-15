@@ -30,9 +30,9 @@ class FileSourceBrowseView extends ConsumerStatefulWidget {
 }
 
 class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
-  /// 匹配集号：S01E01 / S01.E01 / Season 1 Episode 1 / Episode 01（默认季1）/ 第1集（默认季1）
+  /// 匹配集号：S01E01 / S01.E01 / Season 1 Episode 1 / Episode 01 / E01 / EP01 / 第1集（默认季1）
   static final _epRegex = RegExp(
-    r'(?:[Ss](\d{1,2})[._ -]?[Ee](\d{1,2}))|(?:[Ss]eason\s*(\d{1,2})\s*[Ee]pisode\s*(\d{1,2}))|(?:[Ee]pisode\s*(\d{1,2}))|(?:第\s*(\d{1,2})\s*集)',
+    r'(?:[Ss](\d{1,2})[._ -]?[Ee](\d{1,2}))|(?:[Ss]eason\s*(\d{1,2})\s*[Ee]pisode\s*(\d{1,2}))|(?:[Ee][Pp]?\s*(\d{1,2}))|(?:第\s*(\d{1,2})\s*集)',
     caseSensitive: false,
   );
 
@@ -42,7 +42,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     if (m == null) return null;
     // SxxExx: group(1)=season, group(2)=episode
     // Season X Episode Y: group(3)=season, group(4)=episode
-    // Episode Y: group(5)=episode, season 默认 1
+    // E01/EP01: group(5)=episode, season 默认 1
     // 第Y集: group(6)=episode, season 默认 1
     final s = m.group(1) ?? m.group(3);
     final e = m.group(2) ?? m.group(4) ?? m.group(5) ?? m.group(6);
