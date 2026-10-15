@@ -1,3 +1,11 @@
+## [2.394.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.394.0...v2.394.1) (2026-10-15)
+
+
+### Bug Fixes
+
+* 删除文件时清理刮削缓存/收藏/续播位置 ([9b2310e](https://github.com/1525745393/EmbyTok-Flutter/commit/9b2310e7e4c7281b6f11df470361792481e75b0e))
+* 撤销文件夹重命名时同步迁移内部所有文件缓存 ([b829240](https://github.com/1525745393/EmbyTok-Flutter/commit/b8292404556f66092cfa2f761e4950b1470753c6))
+
 # [2.394.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.393.0...v2.394.0) (2026-10-15)
 
 
