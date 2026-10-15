@@ -699,6 +699,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       ),
     );
     int ok = 0, fail = 0, dup = 0, skip = 0;
+    final dupFiles = <String>[];
     for (final item in eps) {
       try {
         final ep = _parseSeasonEpisode(item.name);
@@ -720,16 +721,18 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           }
           parent = newParent;
         }
-        final seasonDir = Directory('$parent/Season $season');
+        final seasonDir = Directory('$parent/Season ${season.toString().padLeft(2, '0')}');
         if (!await seasonDir.exists()) await seasonDir.create(recursive: true);
         // item.name 不含扩展名，需从原 path 拼回
         final dot = item.path.lastIndexOf('.');
         final ext = dot > 0 ? item.path.substring(dot) : '';
         // TMDB 标准格式：剧名 - S01E01.ext
         final seStr = 'S${season.toString().padLeft(2, '0')}E${ep.$2.toString().padLeft(2, '0')}';
-        final newPath = '$parent/Season $season/$safeSeries - $seStr$ext';
+        final seStr = 'S${season.toString().padLeft(2, '0')}E${ep.$2.toString().padLeft(2, '0')}';
+        final newPath = '$parent/Season ${season.toString().padLeft(2, '0')}/$safeSeries - $seStr$ext';
         if (await File(newPath).exists()) {
           dup++;
+          dupFiles.add(item.name);
           continue;
         }
         await File(item.path).rename(newPath);
@@ -770,6 +773,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       if (dup > 0) msg.write('，$dup 个重复已跳过');
       if (skip > 0) msg.write('，$skip 个无法识别');
       if (fail > 0) msg.write('，失败 $fail');
+      if (dupFiles.isNotEmpty) msg.write('\n重复：${dupFiles.take(3).join("、")}${dupFiles.length > 3 ? " 等" : ""}');
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg.toString())));
       _scan();
     }
@@ -1216,6 +1220,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       ),
     );
     int ok = 0, fail = 0, dup = 0;
+    final dupFiles = <String>[];
     for (final item in needMove) {
       try {
         final s = _scraped[item.pathHash];
@@ -1239,6 +1244,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         final newPath = '$parent/$folderName/$folderName$ext';
         if (await File(newPath).exists()) {
           dup++;
+          dupFiles.add(item.name);
           continue;
         }
         await File(item.path).rename(newPath);
@@ -1278,6 +1284,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       final msg = StringBuffer('整理完成：移动 $ok 个文件');
       if (dup > 0) msg.write('，$dup 个重复已跳过');
       if (fail > 0) msg.write('，失败 $fail');
+      if (dupFiles.isNotEmpty) msg.write('\n重复：${dupFiles.take(3).join("、")}${dupFiles.length > 3 ? " 等" : ""}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(msg.toString())),
       );
