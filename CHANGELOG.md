@@ -1,3 +1,12 @@
+# [2.397.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.396.0...v2.397.0) (2026-10-15)
+
+
+### Features
+
+* 电视剧整理结构同时重命名为TMDB标准格式（剧名 - S01E01） ([87ef424](https://github.com/1525745393/EmbyTok-Flutter/commit/87ef424ca856e301ddb9fdf991ba43688f1b77a6))
+* 集号识别支持E01/EP01格式 ([89ccf78](https://github.com/1525745393/EmbyTok-Flutter/commit/89ccf78c664b4e34462f9f75a8a479c5372407d1))
+* 集号识别支持中文格式第X集 ([cc68d55](https://github.com/1525745393/EmbyTok-Flutter/commit/cc68d558dfe9b1b5a58a8a2f27ce31e365b7482c))
+
 # [2.396.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.395.0...v2.396.0) (2026-10-15)
 
 
