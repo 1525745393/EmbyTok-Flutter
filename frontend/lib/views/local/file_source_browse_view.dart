@@ -1027,7 +1027,13 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                       ),
               ),
             ),
-      title: Text(_itemTitle(s, item), maxLines: 1, overflow: TextOverflow.ellipsis),
+      title: s == null
+          ? Row(children: [
+              Expanded(child: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis)),
+              const SizedBox(width: 6),
+              Text('未刮削', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+            ])
+          : Text(_itemTitle(s, item), maxLines: 1, overflow: TextOverflow.ellipsis),
       subtitle: Text(_itemSubtitle(s, item), maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: selecting ? null : const Icon(Icons.play_arrow, size: 20),
       selected: isSelected,
@@ -1066,6 +1072,16 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
             icon: const Icon(Icons.close, color: Colors.grey),
             label: const Text('取消'),
             onPressed: () => setState(() => _selected.clear()),
+          ),
+          TextButton(
+            child: Text(_selected.length == _items.length ? '取消全选' : '全选'),
+            onPressed: () => setState(() {
+              if (_selected.length == _items.length) {
+                _selected.clear();
+              } else {
+                _selected.addAll(_items.map((i) => i.pathHash));
+              }
+            }),
           ),
           Text('已选 ${_selected.length}'),
           TextButton.icon(
@@ -1214,6 +1230,23 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       );
       if (newName != null && newName.isNotEmpty) {
         try {
+          final parent = item.path.substring(0, item.path.lastIndexOf('/'));
+          final target = '$parent/$newName$ext';
+          if (await File(target).exists() && target != item.path) {
+            if (!mounted) return;
+            final overwrite = await showDialog<bool>(
+              context: context,
+              builder: (_) => AlertDialog(
+                title: const Text('文件已存在'),
+                content: Text('$newName$ext 已存在，是否覆盖？'),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
+                  TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('覆盖')),
+                ],
+              ),
+            );
+            if (overwrite != true) return;
+          }
           await LocalVideoService().renameFile(item, newName);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('重命名成功')));
