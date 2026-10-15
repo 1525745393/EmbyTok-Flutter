@@ -1229,7 +1229,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           title = s.title;
           year = s.year;
         } else {
-          final parsed = _parseTitleYear(item.name)!;
+          final parsed = _parseTitleYear(item.name);
+          if (parsed == null) { fail++; continue; }
           title = parsed.$1;
           year = parsed.$2;
         }

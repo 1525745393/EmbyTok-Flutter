@@ -227,7 +227,6 @@ class ScrapeMediaStore {
   /// 用于旧视频（清了 App 数据，沙箱图没了，视频旁也没写过）。
   static Future<void> backfillImages(String videoPath, ScrapedMedia media) async {
     try {
-      final dir = File(videoPath).parent;
       final base = videoPath.substring(0, videoPath.length - _extOf(videoPath).length);
       // 海报
       if (media.posterPath != null && media.posterPath!.isNotEmpty) {
