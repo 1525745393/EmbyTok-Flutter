@@ -1036,19 +1036,55 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     }
   }
 
+  /// 从文件名提取片名和年份（无刮削数据时使用）
+  /// 例：[bdys.me]王牌替身.2023.HD1080P → (王牌替身, 2023)
+  static (String, int?)? _parseTitleYear(String filename) {
+    var name = filename;
+    // 去掉扩展名
+    final dot = name.lastIndexOf('.');
+    if (dot > 0) name = name.substring(0, dot);
+    // 去掉 [网站名] 前缀
+    name = name.replaceFirst(RegExp(r'^\[[^\]]*\]'), '').trim();
+    // 找年份（19xx-20xx）
+    final yearMatch = RegExp(r'(19\d{2}|20\d{2})').firstMatch(name);
+    int? year;
+    String titlePart;
+    if (yearMatch != null) {
+      year = int.tryParse(yearMatch.group(0)!);
+      titlePart = name.substring(0, yearMatch.start);
+    } else {
+      titlePart = name;
+    }
+    // 清理：去掉末尾的点、空格、分隔符
+    titlePart = titlePart.replaceAll(RegExp(r'[.\s\-_]+$'), '').trim();
+    if (titlePart.isEmpty) return null;
+    return (titlePart, year);
+  }
+
   /// 整理电影文件结构：每部电影移入独立文件夹
   /// 例：电影/哪吒.mp4 → 电影/哪吒 (2019)/哪吒 (2019).mp4
   Future<void> _organizeMovies() async {
-    // 统计需要移动的电影数
-    final needMove = _items.where((item) {
+    // 统计需要移动的电影数（有刮削用刮削，无刮削从文件名提取）
+    final needMove = <LocalVideoItem>[];
+    for (final item in _items) {
       final s = _scraped[item.pathHash];
-      if (s == null) return false;
-      final title = s.title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
-      final folderName = s.year != null ? '$title (${s.year})' : title;
+      String title;
+      int? year;
+      if (s != null) {
+        title = s.title;
+        year = s.year;
+      } else {
+        final parsed = _parseTitleYear(item.name);
+        if (parsed == null) continue;
+        title = parsed.$1;
+        year = parsed.$2;
+      }
+      final folderName = year != null ? '$title ($year)' : title;
       final parent = item.path.substring(0, item.path.lastIndexOf('/'));
-      // 已在同名文件夹里就跳过
-      return !parent.endsWith('/$folderName') && parent != folderName;
-    }).toList();
+      if (!parent.endsWith('/$folderName') && parent != folderName) {
+        needMove.add(item);
+      }
+    }
 
     if (needMove.isEmpty) {
       if (mounted) {
@@ -1081,9 +1117,19 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     int ok = 0, fail = 0, dup = 0;
     for (final item in needMove) {
       try {
-        final s = _scraped[item.pathHash]!;
-        final title = s.title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
-        final folderName = s.year != null ? '$title (${s.year})' : title;
+        final s = _scraped[item.pathHash];
+        String title;
+        int? year;
+        if (s != null) {
+          title = s.title;
+          year = s.year;
+        } else {
+          final parsed = _parseTitleYear(item.name)!;
+          title = parsed.$1;
+          year = parsed.$2;
+        }
+        final safeTitle = title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
+        final folderName = year != null ? '$safeTitle ($year)' : safeTitle;
         final parent = item.path.substring(0, item.path.lastIndexOf('/'));
         final dot = item.path.lastIndexOf('.');
         final ext = dot > 0 ? item.path.substring(dot) : '';
