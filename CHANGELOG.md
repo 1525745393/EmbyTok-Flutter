@@ -1,3 +1,11 @@
+# [2.400.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.399.0...v2.400.0) (2026-10-15)
+
+
+### Features
+
+* 帮助说明增加推荐流程和实际示例 ([35f6e42](https://github.com/1525745393/EmbyTok-Flutter/commit/35f6e42c450aa44fa03ab125eaa97aade8b83dee))
+* 文件管理添加使用帮助说明 ([ffa47fb](https://github.com/1525745393/EmbyTok-Flutter/commit/ffa47fbe45db385ddb4b5837106d9ddb6da54d7e))
+
 # [2.399.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.398.0...v2.399.0) (2026-10-15)
 
 
