@@ -961,22 +961,43 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
 
   /// 一键重命名所有电影：按刮削信息改为 "片名 (年份)"
   Future<void> _renameAllMovies() async {
-    int ok = 0, fail = 0;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(children: [CircularProgressIndicator(), SizedBox(width: 16), Text('正在重命名...')]),
+      ),
+    );
+    int ok = 0, fail = 0, skip = 0;
     for (final item in _items) {
       try {
         final s = _scraped[item.pathHash];
         if (s != null) {
           await LocalVideoService().renameByScraped(item, s);
           ok++;
+        } else {
+          // 无刮削数据：用父文件夹名作为电影名
+          final parent = item.path.substring(0, item.path.lastIndexOf('/'));
+          final folderName = parent.substring(parent.lastIndexOf('/') + 1);
+          final dot = item.name.lastIndexOf('.');
+          final nameWithoutExt = dot > 0 ? item.name.substring(0, dot) : item.name;
+          if (folderName.isNotEmpty && folderName != nameWithoutExt) {
+            await LocalVideoService().renameFile(item, folderName);
+            ok++;
+          } else {
+            skip++;
+          }
         }
       } catch (_) {
         fail++;
       }
     }
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('重命名完成：成功 $ok，失败 $fail（无刮削数据的已跳过）')),
-      );
+      Navigator.pop(context);
+      final msg = StringBuffer('重命名完成：成功 $ok');
+      if (skip > 0) msg.write('，跳过 $skip');
+      if (fail > 0) msg.write('，失败 $fail');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg.toString())));
       _scan();
     }
   }
