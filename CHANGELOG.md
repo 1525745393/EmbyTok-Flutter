@@ -1,3 +1,17 @@
+# [2.398.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.397.0...v2.398.0) (2026-10-15)
+
+
+### Bug Fixes
+
+* 电影片名提取优先取中文部分，支持中英双语文件名 ([3e93686](https://github.com/1525745393/EmbyTok-Flutter/commit/3e93686fbeaa485cf458f73d6074ed845e0f05c6))
+* 电视剧刮削搜索时去掉括号年份，避免TMDB搜不到 ([1d432ae](https://github.com/1525745393/EmbyTok-Flutter/commit/1d432ae3c1956a82e9ef60a2db97473dd3afe8ab))
+
+
+### Features
+
+* 电影整理无刮削时自动从文件名提取片名年份（支持[网站]前缀格式） ([8255719](https://github.com/1525745393/EmbyTok-Flutter/commit/82557198d852353acaa2ccc75ee9ea176cb8c43a))
+* 电视剧整理自动规范化文件夹名[2022]→(2022)，并支持EP08格式 ([c9212b9](https://github.com/1525745393/EmbyTok-Flutter/commit/c9212b95df7f912687cc1ad9bc682b32de295111))
+
 # [2.397.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.396.0...v2.397.0) (2026-10-15)
 
 
