@@ -268,7 +268,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
               icon: const Icon(Icons.more_vert),
               onSelected: _onMovieBatchAction,
               itemBuilder: (_) => const [
-                PopupMenuItem(value: 'renameAllMovies', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('一键重命名所有电影')])),
+                PopupMenuItem(value: 'renameAllMovies', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('按刮削重命名')])),
+                PopupMenuItem(value: 'renameByFolder', child: Row(children: [Icon(Icons.folder, size: 18), SizedBox(width: 8), Text('按文件夹名重命名')])),
                 PopupMenuItem(value: 'organizeMovies', child: Row(children: [Icon(Icons.folder_special, size: 18), SizedBox(width: 8), Text('整理文件结构')])),
                 PopupMenuItem(value: 'undoRename', child: Row(children: [Icon(Icons.undo, size: 18, color: Colors.orange), SizedBox(width: 8), Text('撤销上次重命名')])),
                 PopupMenuItem(value: 'renameHistory', child: Row(children: [Icon(Icons.history, size: 18), SizedBox(width: 8), Text('重命名历史')])),
@@ -947,6 +948,9 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       case 'renameAllMovies':
         await _renameAllMovies();
         break;
+      case 'renameByFolder':
+        await _renameMoviesByFolder();
+        break;
       case 'organizeMovies':
         await _organizeMovies();
         break;
@@ -959,7 +963,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     }
   }
 
-  /// 一键重命名所有电影：按刮削信息改为 "片名 (年份)"
+  /// 按刮削信息重命名电影为 "片名 (年份)"
   Future<void> _renameAllMovies() async {
     showDialog(
       context: context,
@@ -976,17 +980,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           await LocalVideoService().renameByScraped(item, s);
           ok++;
         } else {
-          // 无刮削数据：用父文件夹名作为电影名
-          final parent = item.path.substring(0, item.path.lastIndexOf('/'));
-          final folderName = parent.substring(parent.lastIndexOf('/') + 1);
-          final dot = item.name.lastIndexOf('.');
-          final nameWithoutExt = dot > 0 ? item.name.substring(0, dot) : item.name;
-          if (folderName.isNotEmpty && folderName != nameWithoutExt) {
-            await LocalVideoService().renameFile(item, folderName);
-            ok++;
-          } else {
-            skip++;
-          }
+          skip++;
         }
       } catch (_) {
         fail++;
@@ -995,6 +989,43 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     if (mounted) {
       Navigator.pop(context);
       final msg = StringBuffer('重命名完成：成功 $ok');
+      if (skip > 0) msg.write('，$skip 个未刮削');
+      if (fail > 0) msg.write('，失败 $fail');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg.toString())));
+      _scan();
+    }
+  }
+
+  /// 按父文件夹名重命名电影文件（无需刮削）
+  /// 例：哪吒 (2019)/random.mp4 → 哪吒 (2019)/哪吒 (2019).mp4
+  Future<void> _renameMoviesByFolder() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(children: [CircularProgressIndicator(), SizedBox(width: 16), Text('正在重命名...')]),
+      ),
+    );
+    int ok = 0, fail = 0, skip = 0;
+    for (final item in _items) {
+      try {
+        final parent = item.path.substring(0, item.path.lastIndexOf('/'));
+        final folderName = parent.substring(parent.lastIndexOf('/') + 1);
+        final dot = item.name.lastIndexOf('.');
+        final nameWithoutExt = dot > 0 ? item.name.substring(0, dot) : item.name;
+        if (folderName.isNotEmpty && folderName != nameWithoutExt) {
+          await LocalVideoService().renameFile(item, folderName);
+          ok++;
+        } else {
+          skip++;
+        }
+      } catch (_) {
+        fail++;
+      }
+    }
+    if (mounted) {
+      Navigator.pop(context);
+      final msg = StringBuffer('按文件夹名重命名：成功 $ok');
       if (skip > 0) msg.write('，跳过 $skip');
       if (fail > 0) msg.write('，失败 $fail');
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg.toString())));
