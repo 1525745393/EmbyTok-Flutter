@@ -589,6 +589,13 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
 
   /// 一键重命名某部剧的所有集为 "剧名 S01E01.ext"
   Future<void> _renameAllEpisodes(String seriesName, List<LocalVideoItem> eps) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(children: [CircularProgressIndicator(), SizedBox(width: 16), Text('正在重命名...')]),
+      ),
+    );
     int ok = 0;
     int fail = 0;
     int skip = 0;
@@ -615,6 +622,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       }
     }
     if (mounted) {
+      Navigator.pop(context); // 关闭加载框
       final msg = StringBuffer('重命名完成：成功 $ok');
       if (skip > 0) msg.write('，跳过 $skip');
       if (fail > 0) msg.write('，失败 $fail');
