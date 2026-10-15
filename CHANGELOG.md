@@ -1,3 +1,11 @@
+# [2.396.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.395.0...v2.396.0) (2026-10-15)
+
+
+### Features
+
+* 电影无刮削时用文件夹名重命名文件，支持预整理TMDB格式 ([fe898b3](https://github.com/1525745393/EmbyTok-Flutter/commit/fe898b359d2b68c07cb3a5ec27fb049260d3aaf0))
+* 电影菜单新增按文件夹名重命名（无需刮削） ([1cf3a58](https://github.com/1525745393/EmbyTok-Flutter/commit/1cf3a58822ade9e77f4a783ad9b7dfe66445ce49))
+
 # [2.395.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.394.2...v2.395.0) (2026-10-15)
 
 
