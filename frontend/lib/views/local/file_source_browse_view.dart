@@ -751,6 +751,19 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         fail++;
       }
     }
+    // 清理整理后空的旧文件夹
+    try {
+      final cleanedDirs = <String>{};
+      for (final item in eps) {
+        final parent = item.path.substring(0, item.path.lastIndexOf('/'));
+        if (parent.isEmpty || cleanedDirs.contains(parent)) continue;
+        final dir = Directory(parent);
+        if (await dir.exists() && (await dir.list().isEmpty)) {
+          await dir.delete();
+          cleanedDirs.add(parent);
+        }
+      }
+    } catch (_) {}
     if (mounted) {
       Navigator.pop(context); // 关闭加载框
       final msg = StringBuffer('整理完成：移动 $ok 个文件');
@@ -1128,8 +1141,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     if (dot > 0) name = name.substring(0, dot);
     // 去掉 [网站名] 前缀
     name = name.replaceFirst(RegExp(r'^\[[^\]]*\]'), '').trim();
-    // 找年份（19xx-20xx）
-    final yearMatch = RegExp(r'(19\d{2}|20\d{2})').firstMatch(name);
+    // 找年份（19xx-20xx，前面必须是分隔符，避免片名含数字误判）
+    final yearMatch = RegExp(r'(?:^|[.\s\[\-(])(19\d{2}|20\d{2})(?=[.\s\]\-)_.]|$)').firstMatch(name);
     int? year;
     String titlePart;
     if (yearMatch != null) {
