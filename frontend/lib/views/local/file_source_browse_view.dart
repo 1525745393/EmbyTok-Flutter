@@ -634,8 +634,11 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   }
 
   /// 整理文件结构：把扁平集数移动到 Season X 子文件夹
-  /// 如 西游记/S01E01.mp4 → 西游记/Season 1/S01E01.mp4
+  /// 如 西游记/S01E01.mp4 → 西游记/Season 1/西游记 - S01E01.mp4
   Future<void> _organizeStructure(String seriesName, List<LocalVideoItem> eps) async {
+    // 标准化文件夹名：[2022] → (2022)
+    var safeSeries = seriesName.replaceAll(RegExp(r'\[(\d{4})\]'), r'($1)');
+    safeSeries = safeSeries.replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
     // 先统计将要移动的文件数
     var willMove = 0;
     var noEpInfo = 0;
@@ -659,7 +662,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('整理文件结构'),
-        content: Text('将整理 $willMove 个集数为标准格式：\n$seriesName/Season X/$seriesName - S01E01.ext\n\n${noEpInfo > 0 ? '$noEpInfo 个文件无法识别集号，将跳过。\n\n' : ''}是否继续？'),
+        content: Text('将整理 $willMove 个集数为标准格式：\n$safeSeries/Season X/$safeSeries - S01E01.ext\n\n${noEpInfo > 0 ? '$noEpInfo 个文件无法识别集号，将跳过。\n\n' : ''}是否继续？'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
           TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('开始整理')),
@@ -675,7 +678,6 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       ),
     );
     int ok = 0, fail = 0, dup = 0, skip = 0;
-    final safeSeries = seriesName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
     for (final item in eps) {
       try {
         final ep = _parseSeasonEpisode(item.name);
@@ -688,12 +690,14 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           // 已在 Season 目录里，跳过
           continue;
         }
-        // 如果父目录名不是剧名，先创建剧名子文件夹
+        // 如果父目录名和标准化剧名不一致（如 [2022] vs (2022)），重命名父目录
         final parentName = parent.substring(parent.lastIndexOf('/') + 1);
         if (parentName != safeSeries) {
-          parent = '$parent/$safeSeries';
-          final showDir = Directory(parent);
-          if (!await showDir.exists()) await showDir.create(recursive: true);
+          final newParent = parent.substring(0, parent.lastIndexOf('/') + 1) + safeSeries;
+          if (!await Directory(newParent).exists()) {
+            await Directory(parent).rename(newParent);
+          }
+          parent = newParent;
         }
         final seasonDir = Directory('$parent/Season $season');
         if (!await seasonDir.exists()) await seasonDir.create(recursive: true);
