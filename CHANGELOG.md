@@ -1,3 +1,38 @@
+# [2.401.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.400.0...v2.401.0) (2026-10-16)
+
+
+### Bug Fixes
+
+* Season目录补零，整理后重复文件显示具体文件名 ([8ab2141](https://github.com/1525745393/EmbyTok-Flutter/commit/8ab214174f9ace6aaef363ed3211dd091f593e68))
+* 修复弹幕文件导入冲突和括号语法错误 ([fea935d](https://github.com/1525745393/EmbyTok-Flutter/commit/fea935d664370aee41baf5ee833dc8ce0393ee41))
+* 修复整理文件结构菜单项括号不匹配导致CI编译失败 ([be9b58d](https://github.com/1525745393/EmbyTok-Flutter/commit/be9b58dd594cde5a61f54ed776bdd3e1b94b82c6))
+* 修正弹幕菜单项括号数量 ([74b834d](https://github.com/1525745393/EmbyTok-Flutter/commit/74b834ded3cf90a92385af1deb0f3f270fc6e318))
+* 年份提取加边界避免片名含数字误判，电视剧整理后清理空目录 ([9ff7dc9](https://github.com/1525745393/EmbyTok-Flutter/commit/9ff7dc9c018c1366ad346b0c34127a169c546f38))
+* 年份提取用group(1)避免含分隔符，删除重复变量声明 ([a447385](https://github.com/1525745393/EmbyTok-Flutter/commit/a447385b6503c273bb973f5e873969ffddc30cea))
+* 整理文件结构移到刮削后分组，避免重复 ([77b84ac](https://github.com/1525745393/EmbyTok-Flutter/commit/77b84ac2ad9f6d047e0963fb7948001a609c45db))
+* 用多行格式重整理文件结构菜单项，修复括号和孤立代码 ([a1a8d20](https://github.com/1525745393/EmbyTok-Flutter/commit/a1a8d2073fa71857a64cd47546a4463d5176398a))
+* 电影整理needMove检测使用净化后的文件名避免重复检测 ([17787d1](https://github.com/1525745393/EmbyTok-Flutter/commit/17787d1027cb1188ba1ca8892d69a1656a295df8))
+* 电影整理时_parseTitleYear空值保护，删除未使用变量 ([86b69c8](https://github.com/1525745393/EmbyTok-Flutter/commit/86b69c89aade31b1f7c121450422da1a1caa473b))
+* 相关推荐API添加中文语言参数，推荐作品显示中文标题 ([abb2416](https://github.com/1525745393/EmbyTok-Flutter/commit/abb2416da68bfd359803deefac25c88e95bc5593))
+* 补全Card闭合括号 ([a6d29be](https://github.com/1525745393/EmbyTok-Flutter/commit/a6d29be6af7c0f2c08e37c3831e76ea6813fa720))
+* 补全Padding闭合括号 ([134c4f5](https://github.com/1525745393/EmbyTok-Flutter/commit/134c4f5bf8e782a5d9dd09f1d604a369db100c96))
+* 评论全部显示，不再只显示前3条 ([c0a46e4](https://github.com/1525745393/EmbyTok-Flutter/commit/c0a46e4818beb00fb819f7def3a5c72a44aa78da))
+* 适配现有弹幕组件API，修复括号语法 ([1877e47](https://github.com/1525745393/EmbyTok-Flutter/commit/1877e47523368eadc06b611ed3a7fa314979d3b2))
+
+
+### Features
+
+* 全屏播放器接入弹幕层，自动按标题+集号加载弹弹Play弹幕 ([b7d4afb](https://github.com/1525745393/EmbyTok-Flutter/commit/b7d4afba54349c71de6b796c3d340f3c4715152f))
+* 接入弹弹Play弹幕源，支持按片名+集号匹配弹幕并渲染 ([a4ef771](https://github.com/1525745393/EmbyTok-Flutter/commit/a4ef77144dada79f7a1dac0694505c16b77d1dd8))
+* 播放器控制栏添加弹幕开关按钮 ([0570303](https://github.com/1525745393/EmbyTok-Flutter/commit/0570303659a60e91be1e4a12ca8e9a661462935c))
+* 整理文件结构按钮加副标题说明无刮削时也能用 ([0cef76b](https://github.com/1525745393/EmbyTok-Flutter/commit/0cef76b3552fa279d766ea39444e04a8a14a3197))
+* 菜单按刮削前/刮削后分组显示 ([78897ac](https://github.com/1525745393/EmbyTok-Flutter/commit/78897acf1584038a3cc90e66575b10cdb918fd7a))
+
+
+### Performance Improvements
+
+* 常用正则预编译为static常量，避免循环中重复编译 ([182c2df](https://github.com/1525745393/EmbyTok-Flutter/commit/182c2dfb047587c7a1cffcf5b4e11b260ed9f867))
+
 # [2.400.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.399.0...v2.400.0) (2026-10-15)
 
 
