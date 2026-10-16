@@ -434,6 +434,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                 }).toList(),
               ),
             ),
+          ),
         ],
       );
     }
