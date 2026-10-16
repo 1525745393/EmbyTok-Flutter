@@ -19,7 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:video_player/video_player.dart';
 import '../services/danmaku_service.dart';
-import '../widgets/danmaku_overlay.dart';
+import '../widgets/video/danmaku_overlay.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
