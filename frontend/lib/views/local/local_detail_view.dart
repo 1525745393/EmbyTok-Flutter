@@ -729,7 +729,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                           return const Text('暂无评论', style: TextStyle(color: Colors.white38, fontSize: 12));
                         }
                         return Column(
-                          children: snap.data!.take(3).map((r) {
+                          children: snap.data!.map((r) {
                             final author = r['author'] ?? '';
                             final content = r['content'] ?? '';
                             final rating = r['author_details']?['rating'];
