@@ -18,6 +18,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:video_player/video_player.dart';
+import '../services/danmaku_service.dart';
+import '../widgets/danmaku_overlay.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
@@ -212,12 +214,20 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
   // 字幕
   List<SubtitleCue> _subtitleCues = const <SubtitleCue>[];
 
+  // 弹幕
+  List<DanmakuItem> _danmakus = [];
+  bool _danmakuEnabled = true;
+  StreamController<Duration>? _positionController;
+
   Timer? _resumePlayTimer;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    // 初始化位置流控制器，供弹幕层使用
+    _positionController = StreamController<Duration>.broadcast();
 
     // 同步竖屏已设置的画面比例，避免横屏选中态与渲染不一致
     final currentFit = ref.read(videoFitModeProvider);
@@ -372,6 +382,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
     _positionMsNotifier.dispose();
     _showBrightnessUINotifier.dispose();
     _previewBrightnessNotifier.dispose();
+    _positionController?.close();
 
     if (_originalBrightness != null) {
       try {
@@ -391,6 +402,26 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
     super.dispose();
   }
 
+  /// 加载弹幕：根据当前播放项的标题和集号匹配弹弹Play弹幕
+  Future<void> _loadDanmaku(MediaItem item) async {
+    final title = item.title ?? '';
+    if (title.isEmpty) return;
+    // 电视剧：从标题中提取集号；电影：集号为1
+    int episode = 1;
+    // 尝试从标题提取 S01E02 或 第X集
+    final epMatch = RegExp(r'[Ss]0*(\d+)[._ -]?[Ee]0*(\d+)').firstMatch(title);
+    if (epMatch != null) {
+      episode = int.tryParse(epMatch.group(2)!) ?? 1;
+    } else {
+      final cnMatch = RegExp(r'第(\d+)集').firstMatch(title);
+      if (cnMatch != null) episode = int.tryParse(cnMatch.group(1)!) ?? 1;
+    }
+    final list = await DanmakuService.getDanmaku(title, episode);
+    if (mounted && list.isNotEmpty) {
+      setState(() => _danmakus = list);
+    }
+  }
+
   int? _getCurrentIndex() {
     final items = ref.read(videoListProvider).items;
     final current = ref.read(playbackStateProvider).item;
@@ -406,6 +437,13 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
     final controller = ref.watch(currentVideoControllerProvider);
     final playingItem = ref.watch(playbackStateProvider.select((s) => s.item));
     final items = ref.watch(videoListProvider.select((s) => s.items));
+
+    // 加载弹幕（仅在播放项变化时触发）
+    if (playingItem != null && _danmakus.isEmpty && _danmakuEnabled) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadDanmaku(playingItem);
+      });
+    }
 
     bool isControllerReady;
     bool hasError;
@@ -482,6 +520,16 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                         ),
                       );
                     },
+                  ),
+
+                // 弹幕层：叠加在视频上，跟随播放时间滚动
+                if (isControllerReady && !hasError && _danmakuEnabled && _danmakus.isNotEmpty)
+                  Positioned.fill(
+                    child: DanmakuOverlay(
+                      positionStream: _positionController!.stream,
+                      danmakus: _danmakus,
+                      enabled: _danmakuEnabled,
+                    ),
                   ),
 
                 // 播放信息 OSD（PRD P1：多播放器引擎/编码/分辨率显示，左上角半透明）
@@ -793,6 +841,7 @@ void _setupControllerListener(VideoPlayerController? controller) {
     if (ms != _lastPositionMs) {
       _lastPositionMs = ms;
       _positionMsNotifier.value = ms;
+      _positionController?.add(Duration(milliseconds: ms));
     }
 
     if (needsRebuild && mounted) {
