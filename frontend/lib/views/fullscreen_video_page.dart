@@ -1541,6 +1541,18 @@ Widget _buildErrorState(VideoPlayerController? controller) {
                           : null,
                       tooltip: '字幕',
                     ),
+                    // 弹幕开关
+                    IconButton(
+                      icon: Icon(
+                        _danmakuEnabled ? Icons.subtitles_off : Icons.subtitles,
+                        color: _danmakuEnabled ? Colors.amber : Colors.white,
+                        size: 22,
+                      ),
+                      onPressed: () {
+                        setState(() => _danmakuEnabled = !_danmakuEnabled);
+                      },
+                      tooltip: _danmakuEnabled ? '关闭弹幕' : '开启弹幕',
+                    ),
                     // PRD P1：章节导航按钮（有章节时才显示）
                     if (playingItem?.chapters != null &&
                         playingItem!.chapters!.isNotEmpty)
