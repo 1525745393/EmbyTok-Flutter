@@ -1183,7 +1183,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         title = parsed.$1;
         year = parsed.$2;
       }
-      final folderName = year != null ? '$title ($year)' : title;
+      final safeTitle = title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
+      final folderName = year != null ? '$safeTitle ($year)' : safeTitle;
       final parent = item.path.substring(0, item.path.lastIndexOf('/'));
       if (!parent.endsWith('/$folderName') && parent != folderName) {
         needMove.add(item);
