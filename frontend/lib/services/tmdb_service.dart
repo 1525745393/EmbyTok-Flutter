@@ -209,7 +209,7 @@ class TmdbService {
     try {
       final r = await http
           .get(Uri.parse(
-              '$_base/movie/$movieId/recommendations?api_key=$_apiKey'))
+              '$_base/movie/$movieId/recommendations?api_key=$_apiKey&language=zh-CN'))
           .timeout(const Duration(seconds: 6));
       if (r.statusCode != 200) return [];
       final data = jsonDecode(r.body);
@@ -227,7 +227,7 @@ class TmdbService {
     try {
       final r = await http
           .get(Uri.parse(
-              '$_base/tv/$tvId/recommendations?api_key=$_apiKey'))
+              '$_base/tv/$tvId/recommendations?api_key=$_apiKey&language=zh-CN'))
           .timeout(const Duration(seconds: 6));
       if (r.statusCode != 200) return [];
       final data = jsonDecode(r.body);
