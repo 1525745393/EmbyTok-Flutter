@@ -18,7 +18,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:video_player/video_player.dart';
-import '../services/danmaku_service.dart';
+import '../services/danmaku_service.dart' hide DanmakuItem;
 import '../widgets/video/danmaku_overlay.dart';
 
 import '../models/models.dart';
@@ -408,7 +408,6 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
     if (title.isEmpty) return;
     // 电视剧：从标题中提取集号；电影：集号为1
     int episode = 1;
-    // 尝试从标题提取 S01E02 或 第X集
     final epMatch = RegExp(r'[Ss]0*(\d+)[._ -]?[Ee]0*(\d+)').firstMatch(title);
     if (epMatch != null) {
       episode = int.tryParse(epMatch.group(2)!) ?? 1;
@@ -416,9 +415,26 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
       final cnMatch = RegExp(r'第(\d+)集').firstMatch(title);
       if (cnMatch != null) episode = int.tryParse(cnMatch.group(1)!) ?? 1;
     }
-    final list = await DanmakuService.getDanmaku(title, episode);
-    if (mounted && list.isNotEmpty) {
-      setState(() => _danmakus = list);
+    final rawList = await DanmakuService.getDanmaku(title, episode);
+    if (mounted && rawList.isNotEmpty) {
+      // 转换为 Widget 的 DanmakuItem 格式
+      final converted = <DanmakuItem>[];
+      for (var i = 0; i < rawList.length; i++) {
+        final d = rawList[i];
+        Color color;
+        try {
+          color = Color(int.parse(d.color.replaceFirst('#', '0xFF')));
+        } catch (_) {
+          color = Colors.white;
+        }
+        converted.add(DanmakuItem(
+          text: d.text,
+          startMs: d.time * 1000,
+          y: (i % 8) / 8.0, // 分8轨
+          color: color,
+        ));
+      }
+      setState(() => _danmakus = converted);
     }
   }
 
@@ -526,7 +542,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                 if (isControllerReady && !hasError && _danmakuEnabled && _danmakus.isNotEmpty)
                   Positioned.fill(
                     child: DanmakuOverlay(
-                      positionStream: _positionController!.stream,
+                      positionMs: _positionMsNotifier,
                       danmakus: _danmakus,
                       enabled: _danmakuEnabled,
                     ),
