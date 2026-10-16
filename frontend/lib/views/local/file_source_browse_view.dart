@@ -282,7 +282,19 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                 const PopupMenuItem(enabled: false, child: Text('── 刮削前整理 ──', style: TextStyle(fontSize: 12, color: Colors.grey))),
                 const PopupMenuItem(value: 'renameByFolder', child: Row(children: [Icon(Icons.folder, size: 18), SizedBox(width: 8), Text('按文件夹名重命名')])),
                 const PopupMenuItem(enabled: false, child: Text('── 刮削后整理 ──', style: TextStyle(fontSize: 12, color: Colors.grey))),
-                PopupMenuItem(value: 'organizeMovies', child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Icon(Icons.folder_special, size: 18), SizedBox(width: 8), Text('整理文件结构')]), Padding(padding: EdgeInsets.only(left: 26), child: Text('（无刮削时自动从文件名提取）', style: TextStyle(fontSize: 11, color: Colors.grey))])),
+                PopupMenuItem(
+                  value: 'organizeMovies',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [Icon(Icons.folder_special, size: 18), SizedBox(width: 8), Text('整理文件结构')]),
+                      Padding(
+                        padding: EdgeInsets.only(left: 26),
+                        child: Text('（无刮削时自动从文件名提取）', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      ),
+                    ],
+                  ),
+                ),
                 const PopupMenuItem(value: 'renameAllMovies', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('按刮削重命名')])),
                 const PopupMenuItem(enabled: false, child: Text('── 其他 ──', style: TextStyle(fontSize: 12, color: Colors.grey))),
                 const PopupMenuItem(value: 'undoRename', child: Row(children: [Icon(Icons.undo, size: 18, color: Colors.orange), SizedBox(width: 8), Text('撤销上次重命名')])),
@@ -397,7 +409,19 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                     const PopupMenuItem(enabled: false, child: Text('── 刮削前整理 ──', style: TextStyle(fontSize: 12, color: Colors.grey))),
                     const PopupMenuItem(value: 'renameFolder', child: Row(children: [Icon(Icons.drive_file_rename_outline, size: 18), SizedBox(width: 8), Text('重命名文件夹')])),
                     const PopupMenuItem(enabled: false, child: Text('── 刮削后整理 ──', style: TextStyle(fontSize: 12, color: Colors.grey))),
-                    PopupMenuItem(value: 'organize', child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Icon(Icons.folder_special, size: 18), SizedBox(width: 8), Text('整理文件结构')]), Padding(padding: EdgeInsets.only(left: 26), child: Text('（无刮削时用文件夹名）', style: TextStyle(fontSize: 11, color: Colors.grey))])),
+                    PopupMenuItem(
+                      value: 'organize',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(children: [Icon(Icons.folder_special, size: 18), SizedBox(width: 8), Text('整理文件结构')]),
+                          Padding(
+                            padding: EdgeInsets.only(left: 26),
+                            child: Text('（无刮削时用文件夹名）', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                          ),
+                        ],
+                      ),
+                    ),
                     const PopupMenuItem(value: 'renameAll', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('一键重命名集数')])),
                     const PopupMenuItem(value: 'renameFolderScraped', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('按刮削信息重命名文件夹')])),
                     const PopupMenuItem(enabled: false, child: Text('── 其他 ──', style: TextStyle(fontSize: 12, color: Colors.grey))),
@@ -408,7 +432,6 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                 children: entry.value.map((it) {
                   return _buildItemTile(it, indexByHash[it.pathHash] ?? 0);
                 }).toList(),
-              ),
               ),
             ),
         ],
