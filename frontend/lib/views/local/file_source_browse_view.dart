@@ -35,6 +35,15 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     r'(?:[Ss](\d{1,2})[._ -]?[Ee](\d{1,2}))|(?:[Ss]eason\s*(\d{1,2})\s*[Ee]pisode\s*(\d{1,2}))|(?:[Ee][Pp]?\s*(\d{1,2}))|(?:第\s*(\d{1,2})\s*集)',
     caseSensitive: false,
   );
+  // 预编译常用正则，避免在循环中重复编译
+  static final _seasonDirRegex = RegExp(r'[\/\\][Ss]eason\s*(\d+)$', caseSensitive: false);
+  static final _sanitizeRegex = RegExp(r'[\\/:*?"<>|]');
+  static final _yearBracketRegex = RegExp(r'\[(\d{4})\]');
+  static final _yearParenRegex = RegExp(r'\s*\(\d{4}\)\s*');
+  static final _websitePrefixRegex = RegExp(r'^\[[^\]]*\]');
+  static final _yearRegex = RegExp(r'(?:^|[.\s\[\-(])(19\d{2}|20\d{2})(?=[.\s\]\-)_.]|$)');
+  static final _trailingSepRegex = RegExp(r'[.\s\-_]+$');
+  static final _chineseRegex = RegExp(r'[\u4e00-\u9fff][\u4e00-\u9fff0-9]*');
 
   /// 从文件名提取季集号，返回 (season, episode) 或 null
   static (int, int)? _parseSeasonEpisode(String name) {
@@ -511,7 +520,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     // 第一步：按剧名搜一次 TMDB（去掉括号年份避免搜索偏差）
     ScrapedMedia? base;
     try {
-      final searchName = seriesName.replaceAll(RegExp(r'\s*\(\d{4}\)\s*'), '').trim();
+      final searchName = seriesName.replaceAll(_yearParenRegex, '').trim();
       base = await ScrapeService.scrapeTvSeries(searchName);
     } catch (e) {
       debugPrint('剧集刮削失败 $seriesName: $e');
@@ -633,7 +642,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           final se = _parseSeasonEpisode(item.name);
           if (se != null) {
             final seStr = 'S${se.$1.toString().padLeft(2, '0')}E${se.$2.toString().padLeft(2, '0')}';
-            final safe = seriesName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
+            final safe = seriesName.replaceAll(_sanitizeRegex, '').trim();
             await LocalVideoService().renameFile(item, '$safe $seStr');
             ok++;
           } else {
@@ -658,8 +667,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   /// 如 西游记/S01E01.mp4 → 西游记/Season 1/西游记 - S01E01.mp4
   Future<void> _organizeStructure(String seriesName, List<LocalVideoItem> eps) async {
     // 标准化文件夹名：[2022] → (2022)
-    var safeSeries = seriesName.replaceAll(RegExp(r'\[(\d{4})\]'), r'($1)');
-    safeSeries = safeSeries.replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
+    var safeSeries = seriesName.replaceAll(_yearBracketRegex, r'($1)');
+    safeSeries = safeSeries.replaceAll(_sanitizeRegex, '').trim();
     // 先统计将要移动的文件数
     var willMove = 0;
     var noEpInfo = 0;
@@ -667,7 +676,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       final ep = _parseSeasonEpisode(item.name);
       if (ep == null) { noEpInfo++; continue; }
       var parent = item.path.substring(0, item.path.lastIndexOf('/'));
-      final seasonMatch = RegExp(r'[\/\\][Ss]eason\s*(\d+)$', caseSensitive: false).firstMatch(parent);
+      final seasonMatch = _seasonDirRegex.firstMatch(parent);
       if (seasonMatch != null) continue;
       willMove++;
     }
@@ -707,7 +716,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         final season = ep.$1;
         var parent = item.path.substring(0, item.path.lastIndexOf('/'));
         // 先判断是否已在 Season X 子文件夹里
-        final seasonMatch = RegExp(r'[\/\\][Ss]eason\s*(\d+)$', caseSensitive: false).firstMatch(parent);
+        final seasonMatch = _seasonDirRegex.firstMatch(parent);
         if (seasonMatch != null) {
           // 已在 Season 目录里，跳过
           continue;
@@ -858,7 +867,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       }
       return;
     }
-    final safeTitle = s.title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
+    final safeTitle = s.title.replaceAll(_sanitizeRegex, '').trim();
     final newName = s.year != null ? '$safeTitle (${s.year})' : safeTitle;
     if (newName == seriesName) {
       if (mounted) {
@@ -1143,9 +1152,9 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     final dot = name.lastIndexOf('.');
     if (dot > 0) name = name.substring(0, dot);
     // 去掉 [网站名] 前缀
-    name = name.replaceFirst(RegExp(r'^\[[^\]]*\]'), '').trim();
+    name = name.replaceFirst(_websitePrefixRegex, '').trim();
     // 找年份（19xx-20xx，前面必须是分隔符，避免片名含数字误判）
-    final yearMatch = RegExp(r'(?:^|[.\s\[\-(])(19\d{2}|20\d{2})(?=[.\s\]\-)_.]|$)').firstMatch(name);
+    final yearMatch = _yearRegex.firstMatch(name);
     int? year;
     String titlePart;
     if (yearMatch != null) {
@@ -1155,9 +1164,9 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       titlePart = name;
     }
     // 清理：去掉末尾的点、空格、分隔符
-    titlePart = titlePart.replaceAll(RegExp(r'[.\s\-_]+$'), '').trim();
+    titlePart = titlePart.replaceAll(_trailingSepRegex, '').trim();
     // 如果片名包含中文，优先取中文部分（中英双语片名只留中文）
-    final chineseMatch = RegExp(r'[\u4e00-\u9fff][\u4e00-\u9fff0-9]*').firstMatch(titlePart);
+    final chineseMatch = _chineseRegex.firstMatch(titlePart);
     if (chineseMatch != null) {
       titlePart = chineseMatch.group(0)!;
     }
@@ -1183,7 +1192,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         title = parsed.$1;
         year = parsed.$2;
       }
-      final safeTitle = title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
+      final safeTitle = title.replaceAll(_sanitizeRegex, '').trim();
       final folderName = year != null ? '$safeTitle ($year)' : safeTitle;
       final parent = item.path.substring(0, item.path.lastIndexOf('/'));
       if (!parent.endsWith('/$folderName') && parent != folderName) {
@@ -1235,7 +1244,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           title = parsed.$1;
           year = parsed.$2;
         }
-        final safeTitle = title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
+        final safeTitle = title.replaceAll(_sanitizeRegex, '').trim();
         final folderName = year != null ? '$safeTitle ($year)' : safeTitle;
         final parent = item.path.substring(0, item.path.lastIndexOf('/'));
         final dot = item.path.lastIndexOf('.');
