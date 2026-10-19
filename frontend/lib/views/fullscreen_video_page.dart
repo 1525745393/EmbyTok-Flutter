@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:screen_brightness/screen_brightness.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 import '../services/danmaku_service.dart' hide DanmakuItem;
 import '../widgets/video/danmaku_overlay.dart';
@@ -30,7 +31,6 @@ import '../utils/safe_insets.dart';
 import '../utils/system_gesture_exclusion.dart';
 import '../widgets/video/episode_list_panel.dart';
 import '../widgets/video/chapter_picker.dart';
-import '../widgets/video/danmaku_overlay.dart';
 import '../widgets/video/playback_info_osd.dart';
 import '../widgets/video/subtitle_renderer.dart';
 import '../widgets/video/subtitle_selector.dart';
@@ -220,6 +220,10 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
   // 防重复请求：匹配失败/网络失败返回空时不再每帧重试；播放项切换时重置
   String? _danmakuItemId;
   bool _danmakuLoadAttempted = false;
+  // 弹幕高级设置（P3）：字号/透明度/滚动速度，持久化到 SharedPreferences
+  double _danmakuFontSize = 16;
+  double _danmakuOpacity = 1.0;
+  double _danmakuSpeed = 0.3;
   StreamController<Duration>? _positionController;
 
   Timer? _resumePlayTimer;
@@ -231,6 +235,9 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
 
     // 初始化位置流控制器，供弹幕层使用
     _positionController = StreamController<Duration>.broadcast();
+
+    // 加载弹幕高级设置（P3）
+    _loadDanmakuSettings();
 
     // 同步竖屏已设置的画面比例，避免横屏选中态与渲染不一致
     final currentFit = ref.read(videoFitModeProvider);
@@ -451,6 +458,91 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
     return null;
   }
 
+  // ---- 弹幕高级设置（P3） ----
+  Future<void> _loadDanmakuSettings() async {
+    try {
+      final sp = await SharedPreferences.getInstance();
+      final fs = sp.getDouble('danmaku_font_size');
+      final op = sp.getDouble('danmaku_opacity');
+      final spd = sp.getDouble('danmaku_speed');
+      if (!mounted) return;
+      setState(() {
+        _danmakuFontSize = (fs != null && fs >= 10 && fs <= 40) ? fs : 16;
+        _danmakuOpacity = (op != null && op >= 0.1 && op <= 1.0) ? op : 1.0;
+        _danmakuSpeed = (spd != null && spd >= 0.05 && spd <= 0.6) ? spd : 0.3;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _showDanmakuSettings() async {
+    var fontSize = _danmakuFontSize;
+    var opacity = _danmakuOpacity;
+    var speed = _danmakuSpeed;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E1E),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('弹幕设置', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                _danmakuSliderRow('字号', fontSize, 10, 40,
+                    (v) => setSheetState(() => fontSize = v), '${fontSize.round()}'),
+                _danmakuSliderRow('透明度', opacity, 0.1, 1.0,
+                    (v) => setSheetState(() => opacity = v), '${(opacity * 100).round()}%'),
+                _danmakuSliderRow('滚动速度', speed, 0.05, 0.6,
+                    (v) => setSheetState(() => speed = v), speed.toStringAsFixed(2)),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _danmakuFontSize = fontSize;
+                        _danmakuOpacity = opacity;
+                        _danmakuSpeed = speed;
+                      });
+                      SharedPreferences.getInstance().then((sp) {
+                        sp.setDouble('danmaku_font_size', fontSize);
+                        sp.setDouble('danmaku_opacity', opacity);
+                        sp.setDouble('danmaku_speed', speed);
+                      });
+                      Navigator.of(ctx).pop();
+                    },
+                    child: const Text('保存'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _danmakuSliderRow(String label, double value, double min, double max,
+      ValueChanged<double> onChanged, String display) {
+    return Row(
+      children: [
+        SizedBox(width: 64, child: Text(label, style: const TextStyle(fontSize: 13, color: Colors.white70))),
+        Expanded(
+          child: Slider(
+            value: value.clamp(min, max).toDouble(),
+            min: min,
+            max: max,
+            onChanged: onChanged,
+          ),
+        ),
+        SizedBox(width: 48, child: Text(display, textAlign: TextAlign.right, style: const TextStyle(fontSize: 12, color: Colors.white70))),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = ref.watch(currentVideoControllerProvider);
@@ -557,6 +649,9 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                       positionMs: _positionMsNotifier,
                       danmakus: _danmakus,
                       enabled: _danmakuEnabled,
+                      fontSize: _danmakuFontSize,
+                      opacity: _danmakuOpacity,
+                      scrollSpeed: _danmakuSpeed,
                     ),
                   ),
 
@@ -579,6 +674,9 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                         // TODO: 接入 dandanplay_api.dart 根据影片名拉取弹幕
                         danmakus: const [],
                         enabled: true,
+                        fontSize: _danmakuFontSize,
+                        opacity: _danmakuOpacity,
+                        scrollSpeed: _danmakuSpeed,
                       ),
                     ),
                   ),
@@ -1584,6 +1682,12 @@ Widget _buildErrorState(VideoPlayerController? controller) {
                         });
                       },
                       tooltip: _danmakuEnabled ? '关闭弹幕' : '开启弹幕',
+                    ),
+                    // 弹幕设置（P3）：字号/透明度/滚动速度
+                    IconButton(
+                      icon: const Icon(Icons.tune, size: 20, color: Colors.white),
+                      onPressed: _showDanmakuSettings,
+                      tooltip: '弹幕设置',
                     ),
                     // PRD P1：章节导航按钮（有章节时才显示）
                     if (playingItem?.chapters != null &&

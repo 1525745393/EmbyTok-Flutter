@@ -30,6 +30,9 @@ class DanmakuOverlay extends StatefulWidget {
     required this.positionMs,
     required this.danmakus,
     this.enabled = true,
+    this.fontSize = 16,
+    this.opacity = 1.0,
+    this.scrollSpeed = 0.3,
   });
   /// 当前播放位置（毫秒）
   final ValueNotifier<int> positionMs;
@@ -39,6 +42,15 @@ class DanmakuOverlay extends StatefulWidget {
 
   /// 是否启用
   final bool enabled;
+
+  /// 弹幕字号（P3 高级设置）
+  final double fontSize;
+
+  /// 弹幕透明度 0~1（P3 高级设置）
+  final double opacity;
+
+  /// 滚动速度：每毫秒水平移动比例（P3 高级设置，越小越慢）
+  final double scrollSpeed;
 
   @override
   State<DanmakuOverlay> createState() => _DanmakuOverlayState();
@@ -67,9 +79,9 @@ class _DanmakuOverlayState extends State<DanmakuOverlay>
     if (delta <= 0) return;
 
     setState(() {
-      // 移动现有弹幕
+      // 移动现有弹幕（P3：速度可配置）
       for (final d in _active) {
-        d.x -= delta * 0.3; // 滚动速度
+        d.x -= delta * widget.scrollSpeed;
       }
       _active.removeWhere((d) => d.x < -200);
     });
@@ -110,8 +122,8 @@ class _DanmakuOverlayState extends State<DanmakuOverlay>
                 child: Text(
                   d.text,
                   style: TextStyle(
-                    color: d.color,
-                    fontSize: 16,
+                    color: d.color.withValues(alpha: widget.opacity),
+                    fontSize: widget.fontSize,
                     fontWeight: FontWeight.w500,
                     shadows: const [
                       Shadow(color: Colors.black, blurRadius: 4),

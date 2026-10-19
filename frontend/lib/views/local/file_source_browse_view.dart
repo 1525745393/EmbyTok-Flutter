@@ -690,12 +690,79 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
 
   /// 整理文件结构：把扁平集数移动到 Season X 子文件夹
   /// 如 西游记/S01E01.mp4 → 西游记/Season 1/西游记 - S01E01.mp4
+  /// 整理变更清单预览确认（P3）：展示 old → new 明细，确认后才执行
+  Future<bool?> _showChangePreviewDialog({
+    required String title,
+    required List<({String oldPath, String newPath})> plan,
+    int skipCount = 0,
+    int dupCount = 0,
+  }) async {
+    const maxShow = 20;
+    final list = plan.take(maxShow).toList();
+    final more = plan.length - list.length;
+    return showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(title),
+        contentPadding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 320,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '将移动 ${plan.length} 个文件'
+                '${skipCount > 0 ? '（$skipCount 个无法识别将跳过）' : ''}'
+                '${dupCount > 0 ? '（$dupCount 个目标已存在将跳过）' : ''}：',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: list.length,
+                  itemBuilder: (_, i) {
+                    final p = list[i];
+                    final oldName = p.oldPath.substring(p.oldPath.lastIndexOf('/') + 1);
+                    final newDir = p.newPath.substring(0, p.newPath.lastIndexOf('/'));
+                    final newName = p.newPath.substring(p.newPath.lastIndexOf('/') + 1);
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(oldName, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text('→ $newDir/$newName',
+                              style: const TextStyle(fontSize: 12, color: Colors.green)),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              if (more > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text('…还有 $more 项', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('开始整理')),
+        ],
+      ),
+    );
+  }
+
   Future<void> _organizeStructure(String seriesName, List<LocalVideoItem> eps) async {
     // 标准化文件夹名：[2022] → (2022)
     var safeSeries = seriesName.replaceAll(_yearBracketRegex, r'($1)');
     safeSeries = safeSeries.replaceAll(_sanitizeRegex, '').trim();
-    // 先统计将要移动的文件数
-    var willMove = 0;
+    // 预计算变更清单（P3：old → new 预览，执行前展示确认）
+    final plan = <({String oldPath, String newPath})>[];
     var noEpInfo = 0;
     for (final item in eps) {
       final ep = _parseSeasonEpisode(item.name);
@@ -703,9 +770,20 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       var parent = item.path.substring(0, item.path.lastIndexOf('/'));
       final seasonMatch = _seasonDirRegex.firstMatch(parent);
       if (seasonMatch != null) continue;
-      willMove++;
+      // 预览中先应用父目录标准化（[2022] → (2022)），与实际执行一致
+      final parentName = parent.substring(parent.lastIndexOf('/') + 1);
+      if (parentName != safeSeries) {
+        parent = parent.substring(0, parent.lastIndexOf('/') + 1) + safeSeries;
+      }
+      final dot = item.path.lastIndexOf('.');
+      final ext = dot > 0 ? item.path.substring(dot) : '';
+      final seStr = 'S${ep.$1.toString().padLeft(2, '0')}E${ep.$2.toString().padLeft(2, '0')}';
+      plan.add((
+        oldPath: item.path,
+        newPath: '$parent/Season ${ep.$1.toString().padLeft(2, '0')}/$safeSeries - $seStr$ext',
+      ));
     }
-    if (willMove == 0) {
+    if (plan.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(noEpInfo > 0 ? '所有集数已整理或无法识别集号（$noEpInfo 个跳过）' : '所有集数已在 Season 目录中，无需整理'),
@@ -713,16 +791,16 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       }
       return;
     }
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('整理文件结构'),
-        content: Text('将整理 $willMove 个集数为标准格式：\n$safeSeries/Season X/$safeSeries - S01E01.ext\n\n${noEpInfo > 0 ? '$noEpInfo 个文件无法识别集号，将跳过。\n\n' : ''}是否继续？'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('开始整理')),
-        ],
-      ),
+    // 统计目标已存在的重复项（仅提示，不阻止执行）
+    var dupCount = 0;
+    for (final p in plan) {
+      if (await File(p.newPath).exists()) dupCount++;
+    }
+    final confirm = await _showChangePreviewDialog(
+      title: '整理文件结构',
+      plan: plan,
+      skipCount: noEpInfo,
+      dupCount: dupCount,
     );
     if (confirm != true || !mounted) return;
     showDialog(
@@ -1234,16 +1312,48 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       return;
     }
 
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('整理电影文件结构'),
-        content: Text('将把 $needMove 部电影移入独立文件夹：\n\n例：电影/哪吒.mp4 → 电影/哪吒 (2019)/哪吒 (2019).mp4\n\n是否继续？'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('开始整理')),
-        ],
-      ),
+    // 预计算变更清单（P3：old → new 预览）
+    final plan = <({String oldPath, String newPath})>[];
+    for (final item in needMove) {
+      final s = _scraped[item.pathHash];
+      String title;
+      int? year;
+      if (s != null) {
+        title = s.title;
+        year = s.year;
+      } else {
+        final parsed = _parseTitleYear(item.name);
+        if (parsed == null) continue;
+        title = parsed.$1;
+        year = parsed.$2;
+      }
+      final safeTitle = title.replaceAll(_sanitizeRegex, '').trim();
+      final folderName = year != null ? '$safeTitle ($year)' : safeTitle;
+      final parent = item.path.substring(0, item.path.lastIndexOf('/'));
+      final dot = item.path.lastIndexOf('.');
+      final ext = dot > 0 ? item.path.substring(dot) : '';
+      plan.add((
+        oldPath: item.path,
+        newPath: '$parent/$folderName/$folderName$ext',
+      ));
+    }
+    if (plan.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('无需整理：所有电影已在独立文件夹中')),
+        );
+      }
+      return;
+    }
+    // 统计目标已存在的重复项（仅提示，不阻止执行）
+    var dupCount = 0;
+    for (final p in plan) {
+      if (await File(p.newPath).exists()) dupCount++;
+    }
+    final confirm = await _showChangePreviewDialog(
+      title: '整理电影文件结构',
+      plan: plan,
+      dupCount: dupCount,
     );
     if (confirm != true || !mounted) return;
     showDialog(

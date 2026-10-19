@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/video_comments_provider.dart';
 import '../../providers/local_video_provider.dart';
 import '../../services/tmdb_service.dart';
+import '../../services/scrape_service.dart';
 
 /// 打开视频评论弹层
 /// [title]/[year]/[isTv] 用于在线 Emby 视频按标题搜索 TMDB 获取评论
@@ -57,12 +58,24 @@ class _VideoCommentsSheet extends ConsumerStatefulWidget {
 class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
   final TextEditingController _inputController = TextEditingController();
   bool _submitting = false;
-  late final Future<List<Map<String, dynamic>>> _tmdbFuture = _fetchTmdbReviews();
+  // P3：改为可重建（刷新重试时重新赋值）
+  late Future<List<Map<String, dynamic>>> _tmdbFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _tmdbFuture = _fetchTmdbReviews();
+  }
 
   @override
   void dispose() {
     _inputController.dispose();
     super.dispose();
+  }
+
+  /// 手动刷新 TMDB 评论（P3：失败/为空可重试，空结果不写缓存所以会真实重发）
+  void _retryTmdbReviews() {
+    setState(() => _tmdbFuture = _fetchTmdbReviews());
   }
 
   Future<void> _submit() async {
@@ -79,14 +92,13 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
   }
 
   Future<List<Map<String, dynamic>>> _fetchTmdbReviews() async {
-    // 本地视频：直接用 scraped tmdbId
+    // 本地视频：直接用 scraped tmdbId（走 P3 评论缓存）
     final pathHash = widget.itemId.startsWith('local_') ? widget.itemId.substring(6) : null;
     if (pathHash != null) {
       final scraped = ref.read(localVideoProvider).scrapedMap[pathHash];
       if (scraped != null && scraped.tmdbId > 0) {
-        return scraped.type == 'tv'
-            ? TmdbService.getTvReviews(scraped.tvId ?? scraped.tmdbId)
-            : TmdbService.getMovieReviews(scraped.tmdbId);
+        return ScrapeService.fetchReviews(
+            scraped.type, scraped.tvId ?? scraped.tmdbId);
       }
       return [];
     }
@@ -100,7 +112,7 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
           results = await TmdbService.searchTv(widget.title!);
         }
         if (results.isEmpty) return [];
-        return TmdbService.getTvReviews(results.first['id'] as int);
+        return ScrapeService.fetchReviews('tv', results.first['id'] as int);
       } else {
         var results = await TmdbService.searchMovies(widget.title!);
         // 优先选年份匹配的结果
@@ -109,7 +121,7 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
           if (matched.isNotEmpty) results = matched;
         }
         if (results.isEmpty) return [];
-        return TmdbService.getMovieReviews(results.first['id'] as int);
+        return ScrapeService.fetchReviews('movie', results.first['id'] as int);
       }
     } catch (_) {
       return [];
@@ -140,7 +152,20 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
           ));
           children.addAll(localComments.map((c) => _CommentTile(comment: c)));
         }
-        if (children.isEmpty) return _EmptyComments(scheme: scheme);
+        if (children.isEmpty) {
+          // P3：TMDB 评论为空/失败时提供手动刷新（可重试）
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Expanded(child: _EmptyComments(scheme: scheme)),
+              TextButton.icon(
+                onPressed: _retryTmdbReviews,
+                icon: const Icon(Icons.refresh, size: 16),
+                label: const Text('刷新 TMDB 评论'),
+              ),
+            ],
+          );
+        }
         return ListView(controller: scrollController, padding: const EdgeInsets.symmetric(vertical: 8), children: children);
       },
     );

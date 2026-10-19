@@ -559,8 +559,8 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                     scraped?.posterPath != null
                         ? LocalPosterImage(item: item, posterPath: scraped!.posterPath, placeholder: _thumbPlaceholder(item))
                         : _thumbPlaceholder(item),
-                    // 刮削成功角标
-                    if (scraped != null)
+                    // 刮削状态角标：完整=绿勾，不完整=黄感叹号，未刮削不显示（P3）
+                    if (scraped != null && ScrapeService.statusOf(scraped) == ScrapeStatus.complete)
                       Positioned(
                         top: 4,
                         right: 4,
@@ -571,6 +571,19 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Icon(Icons.check, size: 12, color: Colors.white),
+                        ),
+                      ),
+                    if (scraped != null && ScrapeService.statusOf(scraped) == ScrapeStatus.incomplete)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Colors.amber,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.warning_amber, size: 12, color: Colors.black87),
                         ),
                       ),
                   ],
@@ -755,17 +768,21 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
 
   /// 统计行（P1 #5）
   String _buildStatsLine(LocalVideoState state) {
-    int movies = 0, tvs = 0, unscraped = 0;
+    int movies = 0, tvs = 0, unscraped = 0, incomplete = 0;
     int totalBytes = 0;
     for (final it in state.items) {
       totalBytes += it.sizeBytes;
       final s = state.scrapedMap[it.pathHash];
       if (s == null) {
         unscraped++;
-      } else if (s.type == 'tv') {
-        tvs++;
       } else {
-        movies++;
+        // 完整/不完整都计入对应类型；不完整单独计数便于用户补全
+        if (ScrapeService.statusOf(s) == ScrapeStatus.incomplete) incomplete++;
+        if (s.type == 'tv') {
+          tvs++;
+        } else {
+          movies++;
+        }
       }
     }
     String sizeLabel;
@@ -777,7 +794,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
       sizeLabel =
           '${(totalBytes / 1024 / 1024 / 1024).toStringAsFixed(2)} GB';
     }
-    return '$movies 部电影 · $tvs 部剧集 · $unscraped 未识别 · 占用 $sizeLabel';
+    return '$movies 部电影 · $tvs 部剧集 · $unscraped 未识别 · $incomplete 不完整 · 占用 $sizeLabel';
   }
 
   /// 海报横滑区块（P1）：最近添加 / 未观看
@@ -1933,6 +1950,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
   String _sortBy = 'name';
   bool _sortAscending = true;
   String? _genreFilter; // 分类 Tab 当前选中类型
+  String? _scrapeStatusFilter; // 分类 Tab 刮削状态筛选：unscraped/incomplete/complete
   String _watchFilter = '全部'; // 全部/续看/未观看/已观看
   bool _showSearch = false;
   String _searchQuery = '';
@@ -2275,8 +2293,58 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
                 final s = state.scrapedMap[it.pathHash];
                 return s?.genres.contains(_genreFilter) ?? false;
               }).toList();
+        // 刮削状态筛选（P3）：未刮削/不完整/完整
+        final statusFilter = _scrapeStatusFilter;
+        final statusFiltered = statusFilter == null
+            ? filtered
+            : filtered.where((it) {
+                final st = ScrapeService.statusOf(state.scrapedMap[it.pathHash]);
+                switch (statusFilter) {
+                  case 'unscraped':
+                    return st == ScrapeStatus.unscraped;
+                  case 'incomplete':
+                    return st == ScrapeStatus.incomplete;
+                  case 'complete':
+                    return st == ScrapeStatus.complete;
+                  default:
+                    return true;
+                }
+              }).toList();
         return Column(
           children: [
+            // 刮削状态筛选 chips（P3）
+            SizedBox(
+              height: 40,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: [
+                  ChoiceChip(
+                    label: const Text('全部'),
+                    selected: _scrapeStatusFilter == null,
+                    onSelected: (_) => setState(() => _scrapeStatusFilter = null),
+                  ),
+                  const SizedBox(width: 8),
+                  ChoiceChip(
+                    label: const Text('未刮削'),
+                    selected: _scrapeStatusFilter == 'unscraped',
+                    onSelected: (_) => setState(() => _scrapeStatusFilter = 'unscraped'),
+                  ),
+                  const SizedBox(width: 8),
+                  ChoiceChip(
+                    label: const Text('不完整'),
+                    selected: _scrapeStatusFilter == 'incomplete',
+                    onSelected: (_) => setState(() => _scrapeStatusFilter = 'incomplete'),
+                  ),
+                  const SizedBox(width: 8),
+                  ChoiceChip(
+                    label: const Text('完整'),
+                    selected: _scrapeStatusFilter == 'complete',
+                    onSelected: (_) => setState(() => _scrapeStatusFilter = 'complete'),
+                  ),
+                ],
+              ),
+            ),
             SizedBox(
               height: 40,
               child: ListView(
@@ -2301,9 +2369,9 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
               ),
             ),
             Expanded(
-              child: filtered.isEmpty
+              child: statusFiltered.isEmpty
                   ? const Center(child: Text('暂无内容'))
-                  : _buildBody(filtered, state),
+                  : _buildBody(statusFiltered, state),
             ),
           ],
         );

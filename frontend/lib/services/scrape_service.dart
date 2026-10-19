@@ -122,8 +122,23 @@ class ScrapedMedia { // P2#2：年份未精确匹配时标记
       };
 }
 
+/// 刮削完整性状态（P3）：用于列表标记与筛选
+enum ScrapeStatus { unscraped, incomplete, complete }
+
 class ScrapeService {
   static const _prefix = 'scrape_';
+
+  /// 元数据完整性判定：
+  /// - unscraped：无刮削结果
+  /// - incomplete：有刮削但缺关键字段（简介/海报/演员），用户可单独补全
+  /// - complete：关键字段齐全
+  static ScrapeStatus statusOf(ScrapedMedia? m) {
+    if (m == null) return ScrapeStatus.unscraped;
+    final overviewOk = m.overview != null && m.overview!.trim().isNotEmpty;
+    final posterOk = m.posterPath != null && m.posterPath!.isNotEmpty;
+    if (!overviewOk || !posterOk || m.cast.isEmpty) return ScrapeStatus.incomplete;
+    return ScrapeStatus.complete;
+  }
 
   /// TV 系列详情缓存（同一部剧只拉一次 getTvDetails）
   static final Map<int, Map<String, dynamic>> _tvDetailsCache = {};
@@ -138,6 +153,28 @@ class ScrapeService {
     }
     cache[key] = value;
   }
+
+  // ---- 评论缓存（P3） ----
+  /// key: "$type:$id"，仅成功（非空）结果入缓存，避免详情页/评论弹层重复请求 TMDB
+  static final Map<String, List<Map<String, dynamic>>> _reviewsCache = {};
+
+  /// 获取 TMDB 评论（带缓存）；[force]=true 绕过缓存重新请求（用户手动刷新/失败重试）
+  static Future<List<Map<String, dynamic>>> fetchReviews(
+      String type, int id, {bool force = false}) async {
+    final key = '$type:$id';
+    if (!force) {
+      final cached = _reviewsCache[key];
+      if (cached != null) return cached;
+    }
+    final list = type == 'tv'
+        ? await TmdbService.getTvReviews(id)
+        : await TmdbService.getMovieReviews(id);
+    if (list.isNotEmpty) _reviewsCache[key] = list;
+    return list;
+  }
+
+  /// 清空评论缓存（设置页"清除刮削缓存"时联动调用）
+  static void clearReviewsCache() => _reviewsCache.clear();
 
   /// 当单集 cast 为空时，从 TMDB 拉取整剧演员列表。
   /// 返回 cast 列表（[{name, role, id, profilePath}]），失败返回空列表。
@@ -774,5 +811,7 @@ class ScrapeService {
     for (final key in sp.getKeys().where((k) => k.startsWith(_prefix))) {
       await sp.remove(key);
     }
+    // P3：同步清空内存评论缓存
+    clearReviewsCache();
   }
 }

@@ -28,6 +28,9 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
   late final Future<int?> _resumeFuture =
       LocalVideoService().readResumeMs(widget.item.pathHash);
 
+  /// 评论 future（P3）：缓存于 State，避免每次 build 重复请求 TMDB；刷新时重建
+  Future<List<Map<String, dynamic>>>? _reviewsFuture;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -715,18 +718,20 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                       style: const TextStyle(color: Colors.white54, fontSize: 12),
                     ),
                   ],
-                  // TMDB 评论
+                  // TMDB 评论（P3：缓存 future + 失败/为空可手动刷新重试）
                   if (scraped != null && scraped.tmdbId > 0) ...[
                     const SizedBox(height: 20),
                     const Text('评论', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 8),
                     FutureBuilder<List<Map<String, dynamic>>>(
-                      future: scraped.type == 'tv'
-                          ? TmdbService.getTvReviews(scraped.tvId ?? scraped.tmdbId)
-                          : TmdbService.getMovieReviews(scraped.tmdbId),
+                      future: _reviewsFuture ??=
+                          ScrapeService.fetchReviews(scraped.type, scraped.tvId ?? scraped.tmdbId),
                       builder: (_, snap) {
+                        if (snap.hasError) {
+                          return _retryReviews(scraped, failed: true);
+                        }
                         if (!snap.hasData || snap.data!.isEmpty) {
-                          return const Text('暂无评论', style: TextStyle(color: Colors.white38, fontSize: 12));
+                          return _retryReviews(scraped);
                         }
                         return Column(
                           children: snap.data!.map((r) {
@@ -798,6 +803,29 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
           Expanded(child: Text(value, style: const TextStyle(color: Colors.white, fontSize: 12))),
         ],
       ),
+    );
+  }
+
+  /// 评论为空/加载失败时的占位 + 手动刷新（P3：失败可重试）
+  Widget _retryReviews(ScrapedMedia scraped, {bool failed = false}) {
+    return Row(
+      children: [
+        Text(
+          failed ? '评论加载失败' : '暂无评论',
+          style: const TextStyle(color: Colors.white38, fontSize: 12),
+        ),
+        TextButton.icon(
+          icon: const Icon(Icons.refresh, size: 14),
+          label: const Text('刷新', style: TextStyle(fontSize: 12)),
+          onPressed: () => setState(() {
+            _reviewsFuture = ScrapeService.fetchReviews(
+              scraped.type,
+              scraped.tvId ?? scraped.tmdbId,
+              force: true,
+            );
+          }),
+        ),
+      ],
     );
   }
 
