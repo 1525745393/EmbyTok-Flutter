@@ -1,3 +1,10 @@
+## [2.401.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.1...v2.401.2) (2026-10-19)
+
+
+### Bug Fixes
+
+* **media:** 本地媒体库P3 元数据完整性标记/评论缓存/弹幕设置/整理预览 ([c7d8496](https://github.com/1525745393/EmbyTok-Flutter/commit/c7d84965c28f392c9ef0ee450b2f9021744ce7ec))
+
 ## [2.401.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.0...v2.401.1) (2026-10-19)
 
 
