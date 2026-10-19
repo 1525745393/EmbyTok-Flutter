@@ -1,3 +1,10 @@
+## [2.401.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.0...v2.401.1) (2026-10-19)
+
+
+### Bug Fixes
+
+* 本地媒体库P2 图片缓存/下载限流/弹幕防重/元数据测试 ([7aae7d2](https://github.com/1525745393/EmbyTok-Flutter/commit/7aae7d2a18cf63be85fdc09205a67d5b4a14e2b9))
+
 # [2.401.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.400.0...v2.401.0) (2026-10-16)
 
 
