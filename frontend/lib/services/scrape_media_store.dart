@@ -512,7 +512,27 @@ class ScrapeMediaStore {
   }
 
   // ---- 下载 ----
-  static Future<void> _downloadImage(String url, String? savePath) async {
+  // TMDB 限流保护：全局限定同时最多 3 个下载任务。
+  // save() 的整剧刮削会一次性排队几十张图（海报+演员头像），无限制并发容易 429。
+  static int _activeDownloads = 0;
+  static const int _maxConcurrentDownloads = 3;
+
+  static Future<T> _limited<T>(Future<T> Function() task) async {
+    while (_activeDownloads >= _maxConcurrentDownloads) {
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+    }
+    _activeDownloads++;
+    try {
+      return await task();
+    } finally {
+      _activeDownloads--;
+    }
+  }
+
+  static Future<void> _downloadImage(String url, String? savePath) =>
+      _limited(() => _downloadImageInner(url, savePath));
+
+  static Future<void> _downloadImageInner(String url, String? savePath) async {
     if (url.isEmpty || savePath == null) return;
     try {
       final f = File(savePath);

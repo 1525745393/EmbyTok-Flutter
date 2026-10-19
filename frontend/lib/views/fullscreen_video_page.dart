@@ -217,6 +217,9 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
   // 弹幕
   List<DanmakuItem> _danmakus = [];
   bool _danmakuEnabled = true;
+  // 防重复请求：匹配失败/网络失败返回空时不再每帧重试；播放项切换时重置
+  String? _danmakuItemId;
+  bool _danmakuLoadAttempted = false;
   StreamController<Duration>? _positionController;
 
   Timer? _resumePlayTimer;
@@ -454,11 +457,20 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
     final playingItem = ref.watch(playbackStateProvider.select((s) => s.item));
     final items = ref.watch(videoListProvider.select((s) => s.items));
 
-    // 加载弹幕（仅在播放项变化时触发）
-    if (playingItem != null && _danmakus.isEmpty && _danmakuEnabled) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _loadDanmaku(playingItem);
-      });
+    // 加载弹幕（仅在播放项变化时触发一次；失败不自动重试，避免每帧重复请求）
+    if (playingItem != null) {
+      final itemId = playingItem.id;
+      if (_danmakuItemId != itemId) {
+        _danmakuItemId = itemId;
+        _danmakus = [];
+        _danmakuLoadAttempted = false;
+      }
+      if (_danmakus.isEmpty && !_danmakuLoadAttempted && _danmakuEnabled) {
+        _danmakuLoadAttempted = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _loadDanmaku(playingItem);
+        });
+      }
     }
 
     bool isControllerReady;
@@ -1565,7 +1577,11 @@ Widget _buildErrorState(VideoPlayerController? controller) {
                         size: 22,
                       ),
                       onPressed: () {
-                        setState(() => _danmakuEnabled = !_danmakuEnabled);
+                        setState(() {
+                          _danmakuEnabled = !_danmakuEnabled;
+                          // 手动重新开启时允许重新尝试加载弹幕
+                          if (_danmakuEnabled) _danmakuLoadAttempted = false;
+                        });
                       },
                       tooltip: _danmakuEnabled ? '关闭弹幕' : '开启弹幕',
                     ),

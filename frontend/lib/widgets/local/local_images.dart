@@ -8,14 +8,17 @@ import '../../services/scrape_media_store.dart';
 import '../../services/tmdb_service.dart';
 
 /// 本地优先海报
-class LocalPosterImage extends StatelessWidget {
+///
+/// 用 StatefulWidget 缓存 FutureBuilder 的 future，避免列表滚动重建时
+/// 每次 build 都重新发起 posterFile() 查询导致图片闪烁/抖动。
+class LocalPosterImage extends StatefulWidget {
 
   const LocalPosterImage({
     super.key,
     required this.item,
     required this.posterPath,
     this.fit = BoxFit.cover,
-    this.placeholder = const ColoredBox(color: const Color(0xFF2A2A2A)),
+    this.placeholder = const ColoredBox(color: Color(0xFF2A2A2A)),
   });
   final LocalVideoItem item;
   final String? posterPath;
@@ -23,13 +26,35 @@ class LocalPosterImage extends StatelessWidget {
   final Widget placeholder;
 
   @override
+  State<LocalPosterImage> createState() => _LocalPosterImageState();
+}
+
+class _LocalPosterImageState extends State<LocalPosterImage> {
+  Future<File?>? _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = ScrapeMediaStore.posterFile(widget.item);
+  }
+
+  @override
+  void didUpdateWidget(LocalPosterImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 列表项复用 State 时（ListView.builder），item 变化才重建 future
+    if (oldWidget.item.pathHash != widget.item.pathHash) {
+      _future = ScrapeMediaStore.posterFile(widget.item);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     // 即使 posterPath 为 null（从 .nfo 恢复的元数据），也先查本地海报文件
     return FutureBuilder<File?>(
-      future: ScrapeMediaStore.posterFile(item),
+      future: _future,
       builder: (_, snap) {
         if (snap.hasData && snap.data != null) {
-          return Image.file(snap.data!, fit: fit, errorBuilder: (_, __, ___) => _placeholderOrCdn());
+          return Image.file(snap.data!, fit: widget.fit, errorBuilder: (_, __, ___) => _placeholderOrCdn());
         }
         return _placeholderOrCdn();
       },
@@ -37,19 +62,19 @@ class LocalPosterImage extends StatelessWidget {
   }
 
   Widget _placeholderOrCdn() {
-    if (posterPath == null || posterPath!.isEmpty) return placeholder;
+    if (widget.posterPath == null || widget.posterPath!.isEmpty) return widget.placeholder;
     return _cdn();
   }
 
   Widget _cdn() => CachedNetworkImage(
-        imageUrl: TmdbService.posterUrl(posterPath!),
-        fit: fit,
-        errorWidget: (_, __, ___) => placeholder,
+        imageUrl: TmdbService.posterUrl(widget.posterPath!),
+        fit: widget.fit,
+        errorWidget: (_, __, ___) => widget.placeholder,
       );
 }
 
 /// 本地优先背景
-class LocalBackdropImage extends StatelessWidget {
+class LocalBackdropImage extends StatefulWidget {
 
   const LocalBackdropImage({
     super.key,
@@ -62,13 +87,34 @@ class LocalBackdropImage extends StatelessWidget {
   final BoxFit fit;
 
   @override
+  State<LocalBackdropImage> createState() => _LocalBackdropImageState();
+}
+
+class _LocalBackdropImageState extends State<LocalBackdropImage> {
+  Future<File?>? _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = ScrapeMediaStore.backdropFile(widget.item);
+  }
+
+  @override
+  void didUpdateWidget(LocalBackdropImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.item.pathHash != widget.item.pathHash) {
+      _future = ScrapeMediaStore.backdropFile(widget.item);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     // 即使 backdropPath 为 null（从 .nfo 恢复），也先查本地背景图文件
     return FutureBuilder<File?>(
-      future: ScrapeMediaStore.backdropFile(item),
+      future: _future,
       builder: (_, snap) {
         if (snap.hasData && snap.data != null) {
-          return Image.file(snap.data!, fit: fit, errorBuilder: (_, __, ___) => _placeholderOrCdn());
+          return Image.file(snap.data!, fit: widget.fit, errorBuilder: (_, __, ___) => _placeholderOrCdn());
         }
         return _placeholderOrCdn();
       },
@@ -76,21 +122,21 @@ class LocalBackdropImage extends StatelessWidget {
   }
 
   Widget _placeholderOrCdn() {
-    if (backdropPath == null || backdropPath!.isEmpty) {
+    if (widget.backdropPath == null || widget.backdropPath!.isEmpty) {
       return const ColoredBox(color: Color(0xFF1A1A1A));
     }
     return _cdn();
   }
 
   Widget _cdn() => CachedNetworkImage(
-        imageUrl: TmdbService.backdropUrl(backdropPath!),
-        fit: fit,
+        imageUrl: TmdbService.backdropUrl(widget.backdropPath!),
+        fit: widget.fit,
         errorWidget: (_, __, ___) => const ColoredBox(color: Color(0xFF1A1A1A)),
       );
 }
 
 /// 本地优先单集剧照
-class LocalStillImage extends StatelessWidget {
+class LocalStillImage extends StatefulWidget {
   const LocalStillImage({
     super.key,
     required this.item,
@@ -102,12 +148,33 @@ class LocalStillImage extends StatelessWidget {
   final BoxFit fit;
 
   @override
+  State<LocalStillImage> createState() => _LocalStillImageState();
+}
+
+class _LocalStillImageState extends State<LocalStillImage> {
+  Future<File?>? _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = ScrapeMediaStore.stillFile(widget.item);
+  }
+
+  @override
+  void didUpdateWidget(LocalStillImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.item.pathHash != widget.item.pathHash) {
+      _future = ScrapeMediaStore.stillFile(widget.item);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder<File?>(
-      future: ScrapeMediaStore.stillFile(item),
+      future: _future,
       builder: (_, snap) {
         if (snap.hasData && snap.data != null) {
-          return Image.file(snap.data!, fit: fit, errorBuilder: (_, __, ___) => _cdn());
+          return Image.file(snap.data!, fit: widget.fit, errorBuilder: (_, __, ___) => _cdn());
         }
         return _cdn();
       },
@@ -115,19 +182,19 @@ class LocalStillImage extends StatelessWidget {
   }
 
   Widget _cdn() {
-    if (stillPath == null || stillPath!.isEmpty) {
+    if (widget.stillPath == null || widget.stillPath!.isEmpty) {
       return const ColoredBox(color: Color(0xFF1A1A1A));
     }
     return CachedNetworkImage(
-      imageUrl: TmdbService.posterUrl(stillPath!, size: 'w300'),
-      fit: fit,
+      imageUrl: TmdbService.posterUrl(widget.stillPath!, size: 'w300'),
+      fit: widget.fit,
       errorWidget: (_, __, ___) => const ColoredBox(color: Color(0xFF1A1A1A)),
     );
   }
 }
 
 /// 本地优先演员头像（按 personId）
-class LocalCastAvatar extends StatelessWidget {
+class LocalCastAvatar extends StatefulWidget {
 
   const LocalCastAvatar({
     super.key,
@@ -140,14 +207,35 @@ class LocalCastAvatar extends StatelessWidget {
   final double size;
 
   @override
+  State<LocalCastAvatar> createState() => _LocalCastAvatarState();
+}
+
+class _LocalCastAvatarState extends State<LocalCastAvatar> {
+  Future<File?>? _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = ScrapeMediaStore.castFile(widget.personId);
+  }
+
+  @override
+  void didUpdateWidget(LocalCastAvatar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.personId != widget.personId) {
+      _future = ScrapeMediaStore.castFile(widget.personId);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ClipOval(
       child: FutureBuilder<File?>(
-        future: ScrapeMediaStore.castFile(personId),
+        future: _future,
         builder: (_, snap) {
           if (snap.hasData && snap.data != null) {
             return Image.file(snap.data!,
-                width: size, height: size, fit: BoxFit.cover,
+                width: widget.size, height: widget.size, fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => _cdn());
           }
           return _cdn();
@@ -157,20 +245,20 @@ class LocalCastAvatar extends StatelessWidget {
   }
 
   Widget _cdn() {
-    if (profilePath == null || profilePath!.isEmpty) {
+    if (widget.profilePath == null || widget.profilePath!.isEmpty) {
       return Container(
-        width: size, height: size,
+        width: widget.size, height: widget.size,
         color: Colors.grey[800],
-        child: Icon(Icons.person, size: size * 0.5, color: Colors.white30),
+        child: Icon(Icons.person, size: widget.size * 0.5, color: Colors.white30),
       );
     }
     return CachedNetworkImage(
-      imageUrl: TmdbService.posterUrl(profilePath!, size: 'w185'),
-      width: size, height: size, fit: BoxFit.cover,
+      imageUrl: TmdbService.posterUrl(widget.profilePath!, size: 'w185'),
+      width: widget.size, height: widget.size, fit: BoxFit.cover,
       errorWidget: (_, __, ___) => Container(
-        width: size, height: size,
+        width: widget.size, height: widget.size,
         color: Colors.grey[800],
-        child: Icon(Icons.person, size: size * 0.5, color: Colors.white30),
+        child: Icon(Icons.person, size: widget.size * 0.5, color: Colors.white30),
       ),
     );
   }

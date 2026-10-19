@@ -13,6 +13,7 @@ import '../../services/local_dir_scanner.dart';
 import '../../services/local_video_service.dart';
 import '../../services/scrape_service.dart';
 import '../../services/scrape_media_store.dart';
+import '../../utils/image_cache_manager.dart';
 import '../../services/smb_scanner.dart';
 import '../../services/tmdb_service.dart';
 import '../../services/webdav_scanner.dart';
@@ -1364,7 +1365,14 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: s?.posterPath != null
-                    ? CachedNetworkImage(imageUrl: TmdbService.posterUrl(s!.posterPath!), fit: BoxFit.cover)
+                    ? CachedNetworkImage(
+                        imageUrl: TmdbService.posterUrl(s!.posterPath!, size: 'w300'),
+                        fit: BoxFit.cover,
+                        // 统一走缩略图缓存管理器 + 限制解码尺寸，避免滚动重建抖动和 OOM
+                        cacheManager: AppImageCacheManager.thumbnail,
+                        memCacheWidth: 240,
+                        memCacheHeight: 340,
+                      )
                     : Stack(
                         fit: StackFit.expand,
                         children: [

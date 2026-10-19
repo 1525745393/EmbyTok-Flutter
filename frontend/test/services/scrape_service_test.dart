@@ -75,4 +75,57 @@ void main() {
       expect(p.title, 'My Show');
     });
   });
+
+  group('applyEpisodeInfo 单集条目复用系列元数据', () {
+    ScrapedMedia base() => const ScrapedMedia(
+          tmdbId: 123,
+          type: 'tv',
+          title: '测试剧',
+          year: 2020,
+          posterPath: '/p.jpg',
+          backdropPath: '/b.jpg',
+          overview: '整剧简介',
+          rating: 8.5,
+          genres: ['剧情'],
+          cast: [
+            {'name': '张三', 'role': '主角', 'id': '1', 'profilePath': '/a.jpg'},
+          ],
+          tvId: 456,
+          scrapedAt: 1,
+        );
+
+    test('保留整剧元数据并替换季集号', () {
+      final ep = ScrapeService.applyEpisodeInfo(base(), 2, 5);
+      expect(ep.type, 'tv');
+      expect(ep.season, 2);
+      expect(ep.episode, 5);
+      expect(ep.title, '测试剧');
+      expect(ep.year, 2020);
+      expect(ep.overview, '整剧简介');
+      expect(ep.posterPath, '/p.jpg');
+      expect(ep.backdropPath, '/b.jpg');
+      expect(ep.cast.length, 1);
+      expect(ep.cast.first['name'], '张三');
+      expect(ep.tvId, 456);
+      expect(ep.tmdbId, 123);
+    });
+
+    test('单集条目不携带上一集的剧照/集名（防止串集）', () {
+      final src = ScrapedMedia(
+        tmdbId: 1,
+        type: 'tv',
+        title: '剧',
+        stillPath: '/s1.jpg',
+        episodeTitle: '第一集',
+        season: 1,
+        episode: 1,
+        scrapedAt: 1,
+      );
+      final ep = ScrapeService.applyEpisodeInfo(src, 1, 2);
+      expect(ep.episode, 2);
+      expect(ep.season, 1);
+      expect(ep.stillPath, isNull);
+      expect(ep.episodeTitle, isNull);
+    });
+  });
 }
