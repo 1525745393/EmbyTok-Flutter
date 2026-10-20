@@ -1,3 +1,11 @@
+## [2.401.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.2...v2.401.3) (2026-10-20)
+
+
+### Bug Fixes
+
+* **local:** 本地媒体库修复审查发现的5项问题 ([e35b91b](https://github.com/1525745393/EmbyTok-Flutter/commit/e35b91b05304040c9bada6a2b5248225b7c02f49))
+* **local:** 补 local_play_page 缺失的 currentVideoControllerProvider import ([af61660](https://github.com/1525745393/EmbyTok-Flutter/commit/af616608ef94ea7e0a450e4e8faafacec6735591))
+
 ## [2.401.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.1...v2.401.2) (2026-10-19)
 
 
