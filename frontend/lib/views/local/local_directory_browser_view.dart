@@ -87,29 +87,43 @@ class _LocalDirectoryBrowserViewState extends State<LocalDirectoryBrowserView> {
       }
       final List<_DirEntry> dirs = [];
       final List<_DirEntry> videos = [];
+      // 先收集条目，再分批并发 stat：大目录（千级）不串行阻塞，
+      // 单项 stat 失败（无权限/损坏条目）跳过，不拖垮整个列表
+      final pending = <(FileSystemEntity, String)>[];
       await for (final entity in dir.list(followLinks: false)) {
         final name = _basename(entity.path);
         if (name.startsWith('.')) continue; // 隐藏目录
-        final stat = await entity.stat();
-        if (stat.type == FileSystemEntityType.directory) {
-          dirs.add(_DirEntry(
-            name: name,
-            path: entity.path,
-            isDir: true,
-            modifiedAt: stat.modified,
-          ));
-        } else if (stat.type == FileSystemEntityType.file) {
-          final ext = _extOf(name).toLowerCase();
-          if (_videoExts.contains(ext)) {
-            videos.add(_DirEntry(
-              name: name,
-              path: entity.path,
-              isDir: false,
-              sizeBytes: stat.size,
-              modifiedAt: stat.modified,
-            ));
+        pending.add((entity, name));
+      }
+      const batchSize = 16; // 对齐项目既有并发批次
+      for (var i = 0; i < pending.length; i += batchSize) {
+        final batch = pending.skip(i).take(batchSize).toList();
+        await Future.wait(batch.map((e) async {
+          final (entity, name) = e;
+          try {
+            final stat = await entity.stat();
+            if (stat.type == FileSystemEntityType.directory) {
+              dirs.add(_DirEntry(
+                name: name,
+                path: entity.path,
+                isDir: true,
+                modifiedAt: stat.modified,
+              ));
+            } else if (stat.type == FileSystemEntityType.file) {
+              if (_videoExts.contains(_extOf(name))) {
+                videos.add(_DirEntry(
+                  name: name,
+                  path: entity.path,
+                  isDir: false,
+                  sizeBytes: stat.size,
+                  modifiedAt: stat.modified,
+                ));
+              }
+            }
+          } catch (_) {
+            // 单项 stat 失败：跳过该项，不影响其余条目
           }
-        }
+        }));
       }
       dirs.sort((a, b) => a.name.compareTo(b.name));
       videos.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
@@ -133,8 +147,10 @@ class _LocalDirectoryBrowserViewState extends State<LocalDirectoryBrowserView> {
   }
 
   void _playVideo(_DirEntry entry) {
+    // id 必须与 LocalDirScanner 一致（'localdir:<path>'）：同一文件在目录浏览
+    // 与媒体库列表播放共用续播/收藏/刮削缓存键，进度与收藏互通
     final item = LocalVideoItem(
-      id: 'local_dir:${entry.path}',
+      id: 'localdir:${entry.path}',
       name: _basenameWithoutExt(entry.name),
       path: entry.path,
       sizeBytes: entry.sizeBytes ?? 0,
@@ -143,7 +159,7 @@ class _LocalDirectoryBrowserViewState extends State<LocalDirectoryBrowserView> {
       height: 0,
       mimeType: 'video/*',
       modifiedAt: entry.modifiedAt,
-      isAppDirFile: true, // 直接用 file:// 路径播放
+      isAppDirFile: false, // 共享存储真实路径，与扫描构造一致
       relativePath: _dirname(entry.path),
     );
     Navigator.push(
@@ -244,7 +260,9 @@ class _LocalDirectoryBrowserViewState extends State<LocalDirectoryBrowserView> {
                   '${_fmtSize(e.sizeBytes ?? 0)} · ${_fmtDate(e.modifiedAt)}',
                   style: const TextStyle(fontSize: 12),
                 ),
-          onTap: () => e.isDir ? _openDir(e.path) : _playVideo(e),
+          onTap: widget.pickMode
+              ? (e.isDir ? () => _openDir(e.path) : null) // 选择目录模式：视频文件不可点（不进播放页）
+              : () => e.isDir ? _openDir(e.path) : _playVideo(e),
         );
       },
     );
