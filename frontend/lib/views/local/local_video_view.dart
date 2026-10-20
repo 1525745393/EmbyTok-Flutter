@@ -33,10 +33,17 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
   final _searchCtrl = TextEditingController();
   String? _browsingFolder; // 正在浏览的文件夹名（null = 全部）
   String? _selectedSourceId; // 选中的文件源 ID（null = 全部）
+  /// 续播位置读取缓存：同一 pathHash 只触发一次异步读，滚动重建不重复读盘、进度条不闪回
+  final Map<String, Future<int?>> _resumeFutureCache = {};
+
+  Future<int?> _resumeFuture(String pathHash) =>
+      _resumeFutureCache.putIfAbsent(
+          pathHash, () => LocalVideoService().readResumeMs(pathHash));
 
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _resumeFutureCache.clear();
     super.dispose();
   }
 
@@ -394,7 +401,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                             height: 3,
                             color: Colors.white24,
                             child: FutureBuilder<int?>(
-                                                  future: LocalVideoService().readResumeMs(item.pathHash),
+                                                  future: _resumeFuture(item.pathHash),
                               builder: (_, snap) {
                                 final ms = snap.data ?? 0;
                                 final total = item.duration.inMilliseconds;
@@ -423,7 +430,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
             const SizedBox(height: 2),
             FutureBuilder<int?>(
-              future: LocalVideoService().readResumeMs(item.pathHash),
+              future: _resumeFuture(item.pathHash),
               builder: (_, snap) {
                 final played = snap.data ?? 0;
                 final remaining = item.duration.inMilliseconds - played;
@@ -787,7 +794,8 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
     }
     String sizeLabel;
     if (totalBytes < 1024 * 1024) {
-      sizeLabel = '${(totalBytes / 1024).toStringAsFixed(1)} MB';
+      // <1MB 时以 KB 展示（totalBytes/1024 得 KB 值，标签须为 KB）
+      sizeLabel = '${(totalBytes / 1024).toStringAsFixed(1)} KB';
     } else if (totalBytes < 1024 * 1024 * 1024) {
       sizeLabel = '${(totalBytes / 1024 / 1024).toStringAsFixed(1)} MB';
     } else {
@@ -2003,7 +2011,10 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
         case 'size':
           r = b.sizeBytes.compareTo(a.sizeBytes);
         case 'resolution':
-          r = b.sizeBytes.compareTo(a.sizeBytes);
+          // 按像素总量（宽×高）排序；元数据缺失宽高时排最后
+          int px(LocalVideoItem e) =>
+              (e.width > 0 && e.height > 0) ? e.width * e.height : -1;
+          r = px(b).compareTo(px(a));
         case 'bitrate':
           int bps(LocalVideoItem e) => e.duration.inSeconds > 0 ? e.sizeBytes ~/ e.duration.inSeconds : 0;
           r = bps(b).compareTo(bps(a));
@@ -2969,6 +2980,24 @@ class _FavActorsSection extends StatelessWidget {
   }
 }
 
+/// 按季/集数字序排序（多季正确序：S01E9 在 S01E10 前）；解析不到季集号的文件排最后
+List<LocalVideoItem> _sortBySeasonEpisode(List<LocalVideoItem> items) {
+  final list = [...items];
+  list.sort((a, b) {
+    final ea = ScrapeService.extractEpisode(a.name);
+    final eb = ScrapeService.extractEpisode(b.name);
+    // 解析不到季集号时用大数排最后
+    final ka = (ea?.season ?? 9999, ea?.episode ?? 9999);
+    final kb = (eb?.season ?? 9999, eb?.episode ?? 9999);
+    final c = ka.$1.compareTo(kb.$1);
+    if (c != 0) return c;
+    final d = ka.$2.compareTo(kb.$2);
+    if (d != 0) return d;
+    return a.name.compareTo(b.name);
+  });
+  return list;
+}
+
 /// 剧集文件夹内页：显示某部剧的所有集
 class _FolderEpisodePage extends ConsumerStatefulWidget {
   const _FolderEpisodePage({required this.folderName, required this.items});
@@ -2981,8 +3010,8 @@ class _FolderEpisodePage extends ConsumerStatefulWidget {
 
 class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
   bool _overviewExpanded = false;
-  /// 每集详情缓存：episodeNumber -> {name, overview, stillPath}
-  final Map<int, Map<String, dynamic>> _epInfo = {};
+  /// 每集详情缓存：'season-episode' -> {name, overview, stillPath}（key 含季号避免多季冲突）
+  final Map<String, Map<String, dynamic>> _epInfo = {};
   bool _loadedEpInfo = false;
 
   @override
@@ -2991,28 +3020,33 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
     _loadEpisodeInfo();
   }
 
+  /// 并发分批拉取每集 TMDB 详情（每批完成后增量更新 UI）
   Future<void> _loadEpisodeInfo() async {
     final state = ref.read(localVideoProvider);
-    final sorted = [...widget.items]..sort((a, b) => a.name.compareTo(b.name));
+    final sorted = _sortBySeasonEpisode(widget.items);
     if (sorted.isEmpty) return;
     final meta = state.scrapedMap[sorted.first.pathHash];
     final tvId = meta?.tvId;
     if (tvId == null || tvId <= 0) return;
-    for (final it in sorted) {
-      final ep = ScrapeService.extractEpisode(it.name);
-      if (ep == null) continue;
-      final details = await TmdbService.getTvEpisodeDetails(tvId, ep.season, ep.episode);
-      if (details.isNotEmpty) {
-        _epInfo[ep.episode] = {
-          'name': details['name'] ?? '',
-          'overview': details['overview'] ?? '',
-          'stillPath': details['still_path'],
-          'airDate': details['air_date'] ?? '',
-          'runtime': details['runtime'],
-        };
-      }
+    const batchSize = 5; // 限制并发，避免打满 TMDB 速率限制
+    for (var i = 0; i < sorted.length; i += batchSize) {
+      final batch = sorted.skip(i).take(batchSize).toList();
+      await Future.wait(batch.map((it) async {
+        final ep = ScrapeService.extractEpisode(it.name);
+        if (ep == null) return;
+        final details = await TmdbService.getTvEpisodeDetails(tvId, ep.season, ep.episode);
+        if (details.isNotEmpty) {
+          _epInfo['${ep.season}-${ep.episode}'] = {
+            'name': details['name'] ?? '',
+            'overview': details['overview'] ?? '',
+            'stillPath': details['still_path'],
+            'airDate': details['air_date'] ?? '',
+            'runtime': details['runtime'],
+          };
+        }
+      }));
+      if (mounted) setState(() => _loadedEpInfo = true);
     }
-    if (mounted) setState(() => _loadedEpInfo = true);
   }
 
   /// 从文件名提取干净的集标题，去掉 SxxEyy、扩展名
@@ -3047,13 +3081,23 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(localVideoProvider);
-    final sorted = [...widget.items]..sort((a, b) => a.name.compareTo(b.name));
+    // 按季/集数字序排序（多季正确序，且与 _loadEpisodeInfo 的遍历顺序一致）
+    final sorted = _sortBySeasonEpisode(widget.items);
     if (sorted.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: Text(widget.folderName)),
         body: const Center(child: Text('没有视频')),
       );
     }
+    // 按季统计：单季显示"第 X 季"，多季显示"N 季"
+    final seasonCounts = <int, int>{};
+    for (final it in sorted) {
+      final s = ScrapeService.extractEpisode(it.name)?.season ?? 1;
+      seasonCounts[s] = (seasonCounts[s] ?? 0) + 1;
+    }
+    final seasonLabel = seasonCounts.length > 1
+        ? '${seasonCounts.length} 季 · ${sorted.length} 集'
+        : '第 ${seasonCounts.keys.first} 季 · ${sorted.length} 集';
     final first = sorted.first;
     final meta = state.scrapedMap[first.pathHash];
     final cast = meta?.cast ?? [];
@@ -3289,7 +3333,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('第 1 季 · ${sorted.length} 集', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(seasonLabel, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 TextButton(
                   onPressed: () => Navigator.push(
                     context,
@@ -3322,7 +3366,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
             itemBuilder: (_, i) {
               final it = sorted[i];
               final ep = ScrapeService.extractEpisode(it.name);
-              final info = ep != null ? _epInfo[ep.episode] : null;
+              final info = ep != null ? _epInfo['${ep.season}-${ep.episode}'] : null;
               final stillPath = info?['stillPath'] as String?;
               final epName = (info?['name'] as String?)?.isNotEmpty == true ? info!['name'] as String : _episodeTitle(it.name);
               final airDate = info?['airDate'] as String?;
@@ -3450,12 +3494,13 @@ class _AllEpisodesPage extends StatelessWidget {
   const _AllEpisodesPage({required this.items, required this.meta, required this.epInfo, required this.episodeTitle});
   final List<LocalVideoItem> items;
   final ScrapedMedia? meta;
-  final Map<int, Map<String, dynamic>> epInfo;
+  final Map<String, Map<String, dynamic>> epInfo;
   final String Function(String) episodeTitle;
 
   @override
   Widget build(BuildContext context) {
-    final sorted = [...items]..sort((a, b) => a.name.compareTo(b.name));
+    // 与剧集页保持一致：按季/集数字序排序
+    final sorted = _sortBySeasonEpisode(items);
     return Scaffold(
       appBar: AppBar(title: Text('全部剧集 · ${sorted.length} 集')),
       body: ListView.builder(
@@ -3464,7 +3509,7 @@ class _AllEpisodesPage extends StatelessWidget {
         itemBuilder: (_, i) {
           final it = sorted[i];
           final ep = ScrapeService.extractEpisode(it.name);
-          final info = ep != null ? epInfo[ep.episode] : null;
+          final info = ep != null ? epInfo['${ep.season}-${ep.episode}'] : null;
           final stillPath = info?['stillPath'] as String?;
           final epName = (info?['name'] as String?)?.isNotEmpty == true ? info!['name'] as String : episodeTitle(it.name);
           final airDate = info?['airDate'] as String?;
