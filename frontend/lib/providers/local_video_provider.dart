@@ -239,7 +239,30 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
     }
   }
 
-  Future<void> refresh() async {
+  Future<void>? _inflightRefresh;
+  bool _refreshQueued = false;
+
+  /// 全量刷新（合并去重）：已有刷新进行中时标记"尾刷"，完成后若期间又有新请求
+  /// 立即再刷一次——连续操作（如快速切换开关）不会产生重叠全量扫描，
+  /// 且总能拿到最新源配置，不丢最后一次变更。
+  Future<void> refresh() {
+    final inflight = _inflightRefresh;
+    if (inflight != null) {
+      _refreshQueued = true;
+      return inflight;
+    }
+    final f = _doRefresh().whenComplete(() {
+      _inflightRefresh = null;
+      if (_refreshQueued) {
+        _refreshQueued = false;
+        unawaited(refresh());
+      }
+    });
+    _inflightRefresh = f;
+    return f;
+  }
+
+  Future<void> _doRefresh() async {
     state = state.copyWith(loading: true, error: null);
     try {
       final svc = _ref.read(localVideoServiceProvider);

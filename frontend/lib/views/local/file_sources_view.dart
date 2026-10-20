@@ -110,8 +110,10 @@ class FileSourcesView extends ConsumerWidget {
                 children: [
                   Switch(
                     value: s.enabled,
-                    onChanged: (_) {
-                      ref.read(fileSourcesProvider.notifier).toggleEnabled(s.id);
+                    onChanged: (_) async {
+                      // 先等配置持久化完成再刷新：scan 直读 SharedPreferences，
+                      // 不等会导致刷新读到旧 enabled 配置，禁用/启用偶发不生效
+                      await ref.read(fileSourcesProvider.notifier).toggleEnabled(s.id);
                       ref.read(localVideoProvider.notifier).refresh();
                     },
                   ),
@@ -120,7 +122,8 @@ class FileSourcesView extends ConsumerWidget {
                       onSelected: (v) async {
                         if (v == 'edit') {
                           if (s.type == FileSourceType.localDir) {
-                            // 重新选目录
+                            // 更换主目录：新目录替换旧主目录（其余挂载目录保留），
+                            // 与"添加文件夹到此媒体库"的追加语义区分
                             final path = await Navigator.push<String>(
                               context,
                               MaterialPageRoute<String>(builder: (_) => LocalDirectoryBrowserView(
@@ -130,14 +133,16 @@ class FileSourcesView extends ConsumerWidget {
                               ),
                             );
                             if (path != null) {
-                              // 同步更新 path 和 paths（多文件夹）
+                              // 同步更新 path 和 paths（多文件夹）：移除旧主目录，加入新主目录
                               final paths = <String>[];
                               final raw = s.config['paths'];
                               if (raw != null && raw.isNotEmpty) {
                                 paths.addAll(raw.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty));
                               }
+                              final old = s.config['path'];
+                              if (old != null && old.isNotEmpty) paths.remove(old);
                               if (!paths.contains(path)) paths.add(path);
-                              ref.read(fileSourcesProvider.notifier).update(
+                              await ref.read(fileSourcesProvider.notifier).update(
                                     s.copyWith(config: {
                                       ...s.config,
                                       'path': path,
@@ -189,7 +194,7 @@ class FileSourcesView extends ConsumerWidget {
                             ),
                           );
                           if (newName != null && newName.isNotEmpty) {
-                            ref.read(fileSourcesProvider.notifier).update(
+                            await ref.read(fileSourcesProvider.notifier).update(
                                   s.copyWith(name: newName),
                                 );
                           }
@@ -211,7 +216,8 @@ class FileSourcesView extends ConsumerWidget {
                               paths.add(old);
                             }
                             if (!paths.contains(path)) paths.add(path);
-                            ref.read(fileSourcesProvider.notifier).update(
+                            // 先等配置持久化完成再重扫，避免 scan 读到旧 paths
+                            await ref.read(fileSourcesProvider.notifier).update(
                                   s.copyWith(config: {...s.config, 'paths': paths.join(',')}),
                                 );
                             // 自动重扫媒体库
@@ -233,7 +239,8 @@ class FileSourcesView extends ConsumerWidget {
                           if (!context.mounted) return;
                           final picked = await _showMediaTypeDialog(context);
                           if (picked == null || !context.mounted) return;
-                          ref.read(fileSourcesProvider.notifier).update(
+                          // 先等配置持久化完成再重扫，避免 scan 读到旧 mediaType
+                          await ref.read(fileSourcesProvider.notifier).update(
                                 s.copyWith(config: {...s.config, 'mediaType': picked}),
                               );
                           if (context.mounted) {
@@ -336,16 +343,20 @@ class FileSourcesView extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () async {
-              // 清理该源下视频的刮削缓存
+              // 清理该源下视频的刮削缓存（分批并发，千级媒体库不串行阻塞）
               try {
                 final videos = ref.read(localVideoProvider).items;
-                for (final v in videos) {
-                  if (v.sourceId == s.id) {
+                final targets = videos.where((v) => v.sourceId == s.id).toList();
+                const batchSize = 16;
+                for (var i = 0; i < targets.length; i += batchSize) {
+                  final batch = targets.skip(i).take(batchSize).toList();
+                  await Future.wait(batch.map((v) async {
                     try { await ScrapeMediaStore.delete(v); } catch (e) { debugPrint('删除元数据失败 ${v.name}: $e'); }
-                  }
+                  }));
                 }
               } catch (e) { debugPrint('清理源元数据失败: $e'); }
-              ref.read(fileSourcesProvider.notifier).remove(s.id);
+              // 先等源移除持久化完成再重扫，避免 scan 读到已删源
+              await ref.read(fileSourcesProvider.notifier).remove(s.id);
               ref.read(localVideoProvider.notifier).refresh();
               if (context.mounted) Navigator.pop(context);
             },
@@ -450,7 +461,8 @@ class FileSourcesView extends ConsumerWidget {
                 final defaultName = path.split('/').last;
                 final name = await _showNameDialog(context, defaultName);
                 if (name == null || !context.mounted) return;
-                ref.read(fileSourcesProvider.notifier).add(FileSource(
+                // 先等新源持久化完成再全量重扫，避免 scan 读不到新源
+                await ref.read(fileSourcesProvider.notifier).add(FileSource(
                       id: DateTime.now().millisecondsSinceEpoch.toString(),
                       type: FileSourceType.localDir,
                       name: name.trim().isEmpty ? (defaultName.isEmpty ? '手机文件夹' : defaultName) : name.trim(),
