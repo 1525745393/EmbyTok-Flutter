@@ -273,9 +273,19 @@ class LocalVideoService {
   // ==================== 续播位置 ====================
 
   /// 读本地视频续播位置（毫秒）；未记录返回 null
+  /// 兼容旧版 key（`local_resume_local_<pathHash>`，早期播放器写带 local_ 前缀的键），
+  /// 读到旧键数据时顺手迁移到统一 key（pathHash 为基准）。
   Future<int?> readResumeMs(String pathHash) async {
     final sp = await SharedPreferences.getInstance();
-    return sp.getInt(_resumePrefix + pathHash);
+    final v = sp.getInt(_resumePrefix + pathHash);
+    if (v != null) return v;
+    final legacy = sp.getInt('${_resumePrefix}local_$pathHash');
+    if (legacy != null) {
+      await sp.setInt(_resumePrefix + pathHash, legacy);
+      await sp.remove('${_resumePrefix}local_$pathHash');
+      return legacy;
+    }
+    return null;
   }
 
   /// 写本地视频续播位置（毫秒），同时记录最近播放时间戳
@@ -352,13 +362,16 @@ class LocalVideoService {
       await ScrapeMediaStore.rename(item.path, newPath);
     } catch (_) {}
     // 迁移中央缓存：旧 pathHash 的数据搬到新 pathHash
+    // 新键必须与扫描时的 pathHash 一致：App 目录文件 = app_<md5(path)>，localDir = localdir:<path>
     try {
       final sp = await SharedPreferences.getInstance();
       const prefix = 'scrape_';
       final oldKey = '$prefix${item.pathHash}';
       final raw = sp.getString(oldKey);
       if (raw != null) {
-        final newPathHash = 'localdir:$newPath';
+        final newPathHash = item.isAppDirFile
+            ? 'app_${md5.convert(utf8.encode(newPath)).toString()}'
+            : 'localdir:$newPath';
         await sp.setString('$prefix$newPathHash', raw);
         await sp.remove(oldKey);
       }
@@ -442,18 +455,19 @@ class LocalVideoService {
 
   /// 撤销指定重命名条目：恢复文件+旁置文件+缓存
   Future<void> undoRenameEntry(String oldPath, String newPath) async {
-    // 1. 恢复主文件/文件夹
+    // 1. 恢复主文件/文件夹（先判定类型：rename 后 newPath 即不存在，无法再判）
     final f = File(newPath);
     final d = Directory(newPath);
-    if (await f.exists()) {
+    final wasFile = await f.exists();
+    if (wasFile) {
       await f.rename(oldPath);
     } else if (await d.exists()) {
       await d.rename(oldPath);
     } else {
       throw Exception('文件已不存在，无法撤销');
     }
-    // 2. 恢复旁置 .nfo/海报/剧照（文件夹重命名无旁置文件，跳过）
-    if (await f.exists()) {
+    // 2. 恢复旁置 .nfo/海报/剧照（仅文件重命名存在旁置文件，文件夹重命名跳过）
+    if (wasFile) {
       try {
         final oldBase = oldPath.substring(0, oldPath.lastIndexOf('.'));
         final newBase = newPath.substring(0, newPath.lastIndexOf('.'));

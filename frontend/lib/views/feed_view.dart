@@ -509,14 +509,18 @@ class _FeedViewState extends ConsumerState<FeedView>
       scrollDirection: Axis.vertical,
       itemCount: mediaItems.length,
       onPageChanged: (i) async {
-        // 离开当前本地页时保存播放位置
+        // 离开当前本地页时保存播放位置（key 以本地 pathHash 为基准，
+        // 同时写最近播放时间戳供首页"播放记录"区块使用）
         try {
           final ctrl = ref.read(currentVideoControllerProvider);
           if (ctrl != null && ctrl.value.isInitialized) {
             final prefs = await SharedPreferences.getInstance();
+            final hash = items[_currentIndex].pathHash;
             await prefs.setInt(
-                'local_resume_${mediaItems[_currentIndex].id}',
+                'local_resume_$hash',
                 ctrl.value.position.inMilliseconds);
+            await prefs.setInt('local_resume_time_$hash',
+                DateTime.now().millisecondsSinceEpoch);
           }
         } catch (_) {}
         setState(() {

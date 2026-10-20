@@ -93,15 +93,22 @@ class LocalVideoItem {
   /// 媒体类型（来自文件源配置）：movie/tv/short，null=自动
   final String? mediaType;
 
-  /// 复制并覆盖字段（用于扫描时回填 sourceId / mediaType）
-  LocalVideoItem copyWith({String? sourceId, String? mediaType}) => LocalVideoItem(
+  /// 复制并覆盖字段（用于扫描时回填 sourceId / mediaType，播放后回填时长/分辨率）
+  LocalVideoItem copyWith({
+    String? sourceId,
+    String? mediaType,
+    Duration? duration,
+    int? width,
+    int? height,
+  }) =>
+      LocalVideoItem(
         id: id,
         name: name,
         path: path,
         sizeBytes: sizeBytes,
-        duration: duration,
-        width: width,
-        height: height,
+        duration: duration ?? this.duration,
+        width: width ?? this.width,
+        height: height ?? this.height,
         mimeType: mimeType,
         modifiedAt: modifiedAt,
         isAppDirFile: isAppDirFile,

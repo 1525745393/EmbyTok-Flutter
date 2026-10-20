@@ -255,128 +255,134 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
       // 所有可空字段都在 .nfo 缺失时回退中央缓存：
       // 旧 .nfo 可能没有 embytok_* 标签、<season>/<episode>、单集简介等，
       // 直接覆盖会让电视剧单集详情页退化成整剧详情页。
-      for (final it in items) {
-        if (it.path.isNotEmpty) {
-          final nfo = await ScrapeMediaStore.loadSibling(it.path);
-          if (nfo != null) {
-            final prev = cached[it.pathHash];
-            // 演员合并：.nfo 有演员名但可能缺 id/profilePath（旧格式），
-            // 按名字匹配中央缓存补充 id 和头像路径。
-            final mergedCast = <Map<String, String>>[];
-            final prevCastByName = <String, Map<String, String>>{};
-            if (prev?.cast != null) {
-              for (final c in prev!.cast) {
-                final name = c['name'] ?? '';
-                if (name.isNotEmpty) prevCastByName[name] = c;
-              }
-            }
-            for (final nc in nfo.cast) {
-              final name = nc['name'] ?? '';
-              final match = prevCastByName[name];
-              mergedCast.add({
-                'name': name,
-                'role': nc['role'] ?? match?['role'] ?? '',
-                if (nc['id'] != null && nc['id']!.isNotEmpty)
-                  'id': nc['id']!
-                else if (match?['id'] != null && match!['id']!.isNotEmpty)
-                  'id': match['id']!,
-                if (nc['profilePath'] != null && nc['profilePath']!.isNotEmpty)
-                  'profilePath': nc['profilePath']!
-                else if (match?['profilePath'] != null && match!['profilePath']!.isNotEmpty)
-                  'profilePath': match['profilePath']!,
-              });
-            }
-            // .nfo 没有演员但中央有，用中央的
-            if (mergedCast.isEmpty && prev?.cast != null) {
-              mergedCast.addAll(prev!.cast);
-            }
-            final merged = ScrapedMedia(
-              tmdbId: nfo.tmdbId,
-              type: nfo.type,
-              title: nfo.title,
-              year: nfo.year ?? prev?.year,
-              posterPath: nfo.posterPath ?? prev?.posterPath,
-              backdropPath: nfo.backdropPath ?? prev?.backdropPath,
-              overview: nfo.overview ?? prev?.overview,
-              rating: nfo.rating ?? prev?.rating,
-              genres: nfo.genres.isNotEmpty ? nfo.genres : (prev?.genres ?? const []),
-              cast: mergedCast,
-              directors: nfo.directors.isNotEmpty ? nfo.directors : (prev?.directors ?? const []),
-              studios: nfo.studios.isNotEmpty ? nfo.studios : (prev?.studios ?? const []),
-              imdbId: nfo.imdbId ?? prev?.imdbId,
-              stillPath: nfo.stillPath ?? prev?.stillPath,
-              episodeTitle: nfo.episodeTitle ?? prev?.episodeTitle,
-              season: nfo.season ?? prev?.season,
-              episode: nfo.episode ?? prev?.episode,
-              tvId: nfo.tvId ?? prev?.tvId,
-              certification: nfo.certification ?? prev?.certification,
-              lowConfidence: nfo.lowConfidence,
-              scrapedAt: nfo.scrapedAt,
-            );
-            cached[it.pathHash] = merged;
-            // 旧 .nfo 补全：把合并后的数据写回 .nfo（一次性迁移）
-            unawaited(ScrapeMediaStore.backfillSibling(it.path, merged));
-            // 补下载海报/背景/剧照到视频旁（旧视频清了 App 数据后沙箱图丢失）
-            unawaited(ScrapeMediaStore.backfillImages(it.path, merged));
-            // 补下载演员头像到本地（旧视频刮削时没下载，合并后有了 id/profilePath）
-            if (merged.cast.isNotEmpty) {
-              unawaited(ScrapeMediaStore.backfillCastAvatars(it.path, merged.cast));
-            } else if (merged.tvId != null) {
-              // 单集无演员数据：从 TMDB 拉整剧演员
-              unawaited(() async {
-                final showCast = await ScrapeService.fetchShowCast(merged.tvId!);
-                if (showCast.isNotEmpty) {
-                  cached[it.pathHash] = ScrapedMedia(
-                    tmdbId: merged.tmdbId,
-                    type: merged.type,
-                    title: merged.title,
-                    year: merged.year,
-                    posterPath: merged.posterPath,
-                    backdropPath: merged.backdropPath,
-                    overview: merged.overview,
-                    rating: merged.rating,
-                    genres: merged.genres,
-                    cast: showCast,
-                    directors: merged.directors,
-                    studios: merged.studios,
-                    imdbId: merged.imdbId,
-                    stillPath: merged.stillPath,
-                    episodeTitle: merged.episodeTitle,
-                    season: merged.season,
-                    episode: merged.episode,
-                    tvId: merged.tvId,
-                    certification: merged.certification,
-                    lowConfidence: merged.lowConfidence,
-                    scrapedAt: merged.scrapedAt,
-                  );
-                  state = state.copyWith(scrapedMap: Map.unmodifiable(cached));
-                  unawaited(ScrapeMediaStore.backfillCastAvatars(it.path, showCast));
-                }
-              }());
-            }
-            // 检测到 genre 全英文：后台重新拉取中文元数据
-            if (ScrapeService.needsChineseRefetch(merged)) {
-              unawaited(() async {
-                final updated = await ScrapeService.refetchChinese(merged);
-                if (updated != null) {
-                  cached[it.pathHash] = updated;
-                  state = state.copyWith(scrapedMap: Map.unmodifiable(cached));
-                  unawaited(ScrapeMediaStore.backfillSibling(it.path, updated));
-                }
-              }());
-            }
-          } else {
-            // 没有 .nfo 但中央缓存有数据：用中央数据创建 .nfo 并补下载图片
-            final central = cached[it.pathHash];
-            if (central != null) {
-              unawaited(ScrapeMediaStore.backfillSibling(it.path, central));
-              unawaited(ScrapeMediaStore.backfillImages(it.path, central));
-              if (central.cast.isNotEmpty) {
-                unawaited(ScrapeMediaStore.backfillCastAvatars(it.path, central.cast));
-              }
+      // 逐项读取 .nfo 并合并元数据：分批并发（每批 16），避免大媒体库全量刷新
+      // 串行读盘阻塞主路径；每项内部的后台回填仍为 unawaited，不阻塞批次。
+      final pathItems = items.where((it) => it.path.isNotEmpty).toList();
+      Future<void> mergeNfo(LocalVideoItem it) async {
+        final nfo = await ScrapeMediaStore.loadSibling(it.path);
+        if (nfo == null) {
+          // 没有 .nfo 但中央缓存有数据：用中央数据创建 .nfo 并补下载图片
+          final central = cached[it.pathHash];
+          if (central != null) {
+            unawaited(ScrapeMediaStore.backfillSibling(it.path, central));
+            unawaited(ScrapeMediaStore.backfillImages(it.path, central));
+            if (central.cast.isNotEmpty) {
+              unawaited(ScrapeMediaStore.backfillCastAvatars(it.path, central.cast));
             }
           }
+          return;
         }
+        final prev = cached[it.pathHash];
+        // 演员合并：.nfo 有演员名但可能缺 id/profilePath（旧格式），
+        // 按名字匹配中央缓存补充 id 和头像路径。
+        final mergedCast = <Map<String, String>>[];
+        final prevCastByName = <String, Map<String, String>>{};
+        if (prev?.cast != null) {
+          for (final c in prev!.cast) {
+            final name = c['name'] ?? '';
+            if (name.isNotEmpty) prevCastByName[name] = c;
+          }
+        }
+        for (final nc in nfo.cast) {
+          final name = nc['name'] ?? '';
+          final match = prevCastByName[name];
+          mergedCast.add({
+            'name': name,
+            'role': nc['role'] ?? match?['role'] ?? '',
+            if (nc['id'] != null && nc['id']!.isNotEmpty)
+              'id': nc['id']!
+            else if (match?['id'] != null && match!['id']!.isNotEmpty)
+              'id': match['id']!,
+            if (nc['profilePath'] != null && nc['profilePath']!.isNotEmpty)
+              'profilePath': nc['profilePath']!
+            else if (match?['profilePath'] != null && match!['profilePath']!.isNotEmpty)
+              'profilePath': match['profilePath']!,
+          });
+        }
+        // .nfo 没有演员但中央有，用中央的
+        if (mergedCast.isEmpty && prev?.cast != null) {
+          mergedCast.addAll(prev!.cast);
+        }
+        final merged = ScrapedMedia(
+          tmdbId: nfo.tmdbId,
+          type: nfo.type,
+          title: nfo.title,
+          year: nfo.year ?? prev?.year,
+          posterPath: nfo.posterPath ?? prev?.posterPath,
+          backdropPath: nfo.backdropPath ?? prev?.backdropPath,
+          overview: nfo.overview ?? prev?.overview,
+          rating: nfo.rating ?? prev?.rating,
+          genres: nfo.genres.isNotEmpty ? nfo.genres : (prev?.genres ?? const []),
+          cast: mergedCast,
+          directors: nfo.directors.isNotEmpty ? nfo.directors : (prev?.directors ?? const []),
+          studios: nfo.studios.isNotEmpty ? nfo.studios : (prev?.studios ?? const []),
+          imdbId: nfo.imdbId ?? prev?.imdbId,
+          stillPath: nfo.stillPath ?? prev?.stillPath,
+          episodeTitle: nfo.episodeTitle ?? prev?.episodeTitle,
+          season: nfo.season ?? prev?.season,
+          episode: nfo.episode ?? prev?.episode,
+          tvId: nfo.tvId ?? prev?.tvId,
+          certification: nfo.certification ?? prev?.certification,
+          lowConfidence: nfo.lowConfidence,
+          scrapedAt: nfo.scrapedAt,
+        );
+        cached[it.pathHash] = merged;
+        // 旧 .nfo 补全：把合并后的数据写回 .nfo（一次性迁移）
+        unawaited(ScrapeMediaStore.backfillSibling(it.path, merged));
+        // 补下载海报/背景/剧照到视频旁（旧视频清了 App 数据后沙箱图丢失）
+        unawaited(ScrapeMediaStore.backfillImages(it.path, merged));
+        // 补下载演员头像到本地（旧视频刮削时没下载，合并后有了 id/profilePath）
+        if (merged.cast.isNotEmpty) {
+          unawaited(ScrapeMediaStore.backfillCastAvatars(it.path, merged.cast));
+        } else if (merged.tvId != null) {
+          // 单集无演员数据：从 TMDB 拉整剧演员
+          unawaited(() async {
+            final showCast = await ScrapeService.fetchShowCast(merged.tvId!);
+            if (showCast.isNotEmpty) {
+              cached[it.pathHash] = ScrapedMedia(
+                tmdbId: merged.tmdbId,
+                type: merged.type,
+                title: merged.title,
+                year: merged.year,
+                posterPath: merged.posterPath,
+                backdropPath: merged.backdropPath,
+                overview: merged.overview,
+                rating: merged.rating,
+                genres: merged.genres,
+                cast: showCast,
+                directors: merged.directors,
+                studios: merged.studios,
+                imdbId: merged.imdbId,
+                stillPath: merged.stillPath,
+                episodeTitle: merged.episodeTitle,
+                season: merged.season,
+                episode: merged.episode,
+                tvId: merged.tvId,
+                certification: merged.certification,
+                lowConfidence: merged.lowConfidence,
+                scrapedAt: merged.scrapedAt,
+              );
+              state = state.copyWith(scrapedMap: Map.unmodifiable(cached));
+              unawaited(ScrapeMediaStore.backfillCastAvatars(it.path, showCast));
+            }
+          }());
+        }
+        // 检测到 genre 全英文：后台重新拉取中文元数据
+        if (ScrapeService.needsChineseRefetch(merged)) {
+          unawaited(() async {
+            final updated = await ScrapeService.refetchChinese(merged);
+            if (updated != null) {
+              cached[it.pathHash] = updated;
+              state = state.copyWith(scrapedMap: Map.unmodifiable(cached));
+              unawaited(ScrapeMediaStore.backfillSibling(it.path, updated));
+            }
+          }());
+        }
+      }
+      for (var start = 0; start < pathItems.length; start += 16) {
+        final end =
+            start + 16 > pathItems.length ? pathItems.length : start + 16;
+        await Future.wait(pathItems.sublist(start, end).map(mergeNfo));
       }
       state = state.copyWith(
           items: items,
@@ -580,6 +586,32 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
     await sp.setStringList(
       'local_video_cache_v1',
       items.map((e) => jsonEncode(e.toJson())).toList(),
+    );
+  }
+
+  /// 播放后回填真实时长/分辨率（localDir/App 目录扫描时未取元数据），
+  /// 更新内存状态并持久化到缓存；值未变化时直接返回避免无谓写盘。
+  Future<void> updateItemMeta(
+    String pathHash, {
+    Duration? duration,
+    int? width,
+    int? height,
+  }) async {
+    final items = state.items;
+    final idx = items.indexWhere((e) => e.pathHash == pathHash);
+    if (idx < 0) return;
+    final cur = items[idx];
+    final nd = duration ?? cur.duration;
+    final nw = width ?? cur.width;
+    final nh = height ?? cur.height;
+    if (nd == cur.duration && nw == cur.width && nh == cur.height) return;
+    final updated = [...items];
+    updated[idx] = cur.copyWith(duration: nd, width: nw, height: nh);
+    state = state.copyWith(items: updated);
+    final sp = await SharedPreferences.getInstance();
+    await sp.setString(
+      'local_video_cache_v1',
+      jsonEncode(updated.map((e) => e.toJson()).toList()),
     );
   }
   void setSort(LocalVideoSort s) => state = state.copyWith(sort: s);

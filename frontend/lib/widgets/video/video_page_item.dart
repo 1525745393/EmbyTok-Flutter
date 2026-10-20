@@ -153,6 +153,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   bool _hasStoppedReported = false;
   bool _providerCleaned = false;
   bool _statsRecorded = false;
+  // 本地文件：是否已把真实时长/分辨率回写媒体库（避免每帧重复回写）
+  bool _localMetaWritten = false;
 
   late final AnimationController _discRotationCtrl;
   late final Animation<double> _discRotation;
@@ -497,7 +499,14 @@ void _resetInfoHideTimer() {
     if (widget.item.isLocalFile) {
       try {
         final prefs = await SharedPreferences.getInstance();
-        final saved = prefs.getInt('local_resume_${widget.item.id}') ?? 0;
+        // 续播 key 以本地 pathHash 为基准（MediaItem.id = 'local_<pathHash>'，反解去前缀；
+        // 旧版本写入过带 local_ 前缀的 key，兜底读取兼容）
+        final localPathHash = widget.item.id.startsWith('local_')
+            ? widget.item.id.substring('local_'.length)
+            : widget.item.id;
+        final saved = prefs.getInt('local_resume_$localPathHash') ??
+            prefs.getInt('local_resume_${widget.item.id}') ??
+            0;
         if (saved > 5000 && controller != null && controller.value.isInitialized) {
           await controller.seekTo(Duration(milliseconds: saved));
         }
@@ -597,6 +606,25 @@ void _resetInfoHideTimer() {
       _lastPositionSecond = posSec;
       ref.read(currentPositionProvider.notifier).state =
           controller.value.position;
+    }
+
+    // 本地文件源：初始化完成后回填真实时长/分辨率到媒体库
+    // （localDir/App 目录扫描时未取元数据，详情页/排序/进度条需要真实值），
+    // 仅在初始化且时长可用时写一次，避免每帧重复回写。
+    if (widget.item.isLocalFile && !_localMetaWritten) {
+      final v = controller.value;
+      if (v.isInitialized && v.duration > Duration.zero) {
+        _localMetaWritten = true;
+        final pathHash = widget.item.id.startsWith('local_')
+            ? widget.item.id.substring('local_'.length)
+            : widget.item.id;
+        ref.read(localVideoProvider.notifier).updateItemMeta(
+              pathHash,
+              duration: v.duration,
+              width: v.size.width.round(),
+              height: v.size.height.round(),
+            );
+      }
     }
 
     if (!_hasNotifiedEnded) {
