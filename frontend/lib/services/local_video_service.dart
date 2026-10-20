@@ -10,7 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/local_video_item.dart';
 import 'local_dir_scanner.dart';
-import 'scrape_service.dart' show ScrapedMedia;
+import 'scrape_service.dart' show ScrapedMedia, ScrapeService;
 import 'scrape_media_store.dart';
 
 class LocalVideoService {
@@ -520,15 +520,13 @@ class LocalVideoService {
       if (s.season != null && s.episode != null) {
         se = 'S${s.season!.toString().padLeft(2, '0')}E${s.episode!.toString().padLeft(2, '0')}';
       } else {
-        final epMatch = RegExp(
-          r'(?:[Ss](\d{1,2})[._ -]?[Ee](\d{1,2}))|(?:[Ss]eason\s*(\d{1,2})\s*[Ee]pisode\s*(\d{1,2}))|(?:[Ee][Pp]?\s*(\d{1,2}))|(?:第\s*(\d{1,2})\s*集)',
-          caseSensitive: false,
-        ).firstMatch(item.name);
+        // 与 ScrapeService.episodeRegex 保持同一套解析（支持 EP01/第X集 等变体）
+        final epMatch = ScrapeService.episodeRegex.firstMatch(item.name);
         if (epMatch != null) {
-          final s = epMatch.group(1) ?? epMatch.group(3);
+          final sNum = epMatch.group(1) ?? epMatch.group(3);
           final e = epMatch.group(2) ?? epMatch.group(4) ?? epMatch.group(5) ?? epMatch.group(6);
           if (e != null) {
-            se = 'S${(s ?? '1').padLeft(2, '0')}E${e.padLeft(2, '0')}';
+            se = 'S${(sNum ?? '1').padLeft(2, '0')}E${e.padLeft(2, '0')}';
           }
         }
       }

@@ -389,10 +389,10 @@ class ScrapeService {
       final seg = segments[i];
       final cleaned = _cleanNoise(seg.replaceAll(RegExp(r'[.\[\]_]'), ' '));
       if (cleaned.isEmpty) { i--; continue; }
-      // 是季文件夹吗？
-      if (RegExp(r'^[Ss]eason\s*\d+').hasMatch(seg) ||
+      // 是季文件夹吗？（兼容 Season.1 / Season 1 / S1 / 第1季 等变体，避免被误当剧名）
+      if (RegExp(r'^[Ss]eason[.\s_-]*\d+', caseSensitive: false).hasMatch(seg) ||
           RegExp(r'^第[一二三四五六七八九十\d]+季').hasMatch(seg) ||
-          RegExp(r'^[Ss]\d{1,2}$').hasMatch(seg)) {
+          RegExp(r'^[Ss]\d{1,2}$', caseSensitive: false).hasMatch(seg)) {
         i--;
         continue;
       }
@@ -416,11 +416,25 @@ class ScrapeService {
     return _fromTvDetails(details, first, parsed, tvId);
   }
 
-  /// 从文件名提取 SxxExx
+  /// 统一的季集号解析正则（文件管理页 _parseSeasonEpisode / 刮削 / 按刮削重命名共用）
+  /// 支持：S01E01 / S01.E01 / Season 1 Episode 1 / E01 / EP01 / 第1集（默认季1）
+  static final RegExp episodeRegex = RegExp(
+    r'(?:[Ss](\d{1,2})[._ -]?[Ee](\d{1,2}))|(?:[Ss]eason\s*(\d{1,2})\s*[Ee]pisode\s*(\d{1,2}))|(?:[Ee][Pp]?\s*(\d{1,2}))|(?:第\s*(\d{1,2})\s*集)',
+    caseSensitive: false,
+  );
+
+  /// 从文件名提取季集号：优先匹配统一正则，其次纯数字编号（01.02.03）作集号
+  /// 纯数字兜底要求前后为分隔符，避免误匹配 X264/1080P 等编码标记
   static ({int season, int episode})? extractEpisode(String filename) {
-    final m = RegExp(r'[Ss](\d{1,2})[._ -]?[Ee](\d{1,2})').firstMatch(filename);
+    final m = episodeRegex.firstMatch(filename);
     if (m != null) {
-      return (season: int.tryParse(m.group(1)!) ?? 1, episode: int.tryParse(m.group(2)!) ?? 1);
+      // SxxExx: group(1)=season, group(2)=episode；Season X Episode Y: group(3)/(4)
+      // E01/EP01: group(5)=episode；第Y集: group(6)=episode，season 默认 1
+      final s = m.group(1) ?? m.group(3);
+      final e = m.group(2) ?? m.group(4) ?? m.group(5) ?? m.group(6);
+      if (e != null) {
+        return (season: s != null ? int.tryParse(s) ?? 1 : 1, episode: int.tryParse(e) ?? 1);
+      }
     }
     final num = RegExp(r'(?:^|[.\s_-])(\d{1,3})(?:[.\s_-]|$)').firstMatch(filename);
     if (num != null) {

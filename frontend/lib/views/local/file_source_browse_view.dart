@@ -32,12 +32,9 @@ class FileSourceBrowseView extends ConsumerStatefulWidget {
 
 class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   /// 匹配集号：S01E01 / S01.E01 / Season 1 Episode 1 / Episode 01 / E01 / EP01 / 第1集（默认季1）
-  static final _epRegex = RegExp(
-    r'(?:[Ss](\d{1,2})[._ -]?[Ee](\d{1,2}))|(?:[Ss]eason\s*(\d{1,2})\s*[Ee]pisode\s*(\d{1,2}))|(?:[Ee][Pp]?\s*(\d{1,2}))|(?:第\s*(\d{1,2})\s*集)',
-    caseSensitive: false,
-  );
+  /// 统一复用 ScrapeService.episodeRegex，避免多套解析规则产生不一致
   // 预编译常用正则，避免在循环中重复编译
-  static final _seasonDirRegex = RegExp(r'[\/\\][Ss]eason\s*(\d+)$', caseSensitive: false);
+  static final _seasonDirRegex = RegExp(r'[\/\\](?:[Ss]eason[.\s_-]*\d+|[Ss]\d{1,2}|第[一二三四五六七八九十\d]+季)$', caseSensitive: false);
   static final _sanitizeRegex = RegExp(r'[\\/:*?"<>|]');
   static final _yearBracketRegex = RegExp(r'\[(\d{4})\]');
   static final _yearParenRegex = RegExp(r'\s*\(\d{4}\)\s*');
@@ -48,12 +45,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
 
   /// 从文件名提取季集号，返回 (season, episode) 或 null
   static (int, int)? _parseSeasonEpisode(String name) {
-    final m = _epRegex.firstMatch(name);
+    final m = ScrapeService.episodeRegex.firstMatch(name);
     if (m == null) return null;
-    // SxxExx: group(1)=season, group(2)=episode
-    // Season X Episode Y: group(3)=season, group(4)=episode
-    // E01/EP01: group(5)=episode, season 默认 1
-    // 第Y集: group(6)=episode, season 默认 1
     final s = m.group(1) ?? m.group(3);
     final e = m.group(2) ?? m.group(4) ?? m.group(5) ?? m.group(6);
     if (e == null) return null;
@@ -830,14 +823,18 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           final newParent = parent.substring(0, parent.lastIndexOf('/') + 1) + safeSeries;
           if (!await Directory(newParent).exists()) {
             await Directory(parent).rename(newParent);
+            // 目录改名也入重命名历史，保证撤销整理可恢复目录结构
+            await LocalVideoService().recordRename(parent, newParent);
           }
           parent = newParent;
         }
         final seasonDir = Directory('$parent/Season ${season.toString().padLeft(2, '0')}');
         if (!await seasonDir.exists()) await seasonDir.create(recursive: true);
+        // 父目录可能已被改名，必须用改名后的当前路径定位原文件
+        final curPath = '$parent/${item.path.substring(item.path.lastIndexOf('/') + 1)}';
         // item.name 不含扩展名，需从原 path 拼回
-        final dot = item.path.lastIndexOf('.');
-        final ext = dot > 0 ? item.path.substring(dot) : '';
+        final dot = curPath.lastIndexOf('.');
+        final ext = dot > 0 ? curPath.substring(dot) : '';
         // TMDB 标准格式：剧名 - S01E01.ext
         final seStr = 'S${season.toString().padLeft(2, '0')}E${ep.$2.toString().padLeft(2, '0')}';
         final newPath = '$parent/Season ${season.toString().padLeft(2, '0')}/$safeSeries - $seStr$ext';
@@ -846,14 +843,15 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           dupFiles.add(item.name);
           continue;
         }
-        await File(item.path).rename(newPath);
-        await LocalVideoService().recordRename(item.path, newPath);
+        await File(curPath).rename(newPath);
+        await LocalVideoService().recordRename(curPath, newPath);
+        // 中央缓存键基于整理前旧路径（扫描时生成），须从 item.path 迁移到 newPath
         await LocalVideoService().migrateCachePath(item.path, newPath);
         // 双轨落盘：同步重命名旁置文件并清理沙箱旧元数据
         try {
-          await ScrapeMediaStore.rename(item.path, newPath);
+          await ScrapeMediaStore.rename(curPath, newPath);
           // 同步移动 .actors/ 目录
-          final oldActorsDir = Directory('${item.path.substring(0, dot)}/.actors');
+          final oldActorsDir = Directory('${curPath.substring(0, dot)}/.actors');
           if (await oldActorsDir.exists()) {
             final newActorsDir = Directory('${newPath.substring(0, newPath.lastIndexOf('.'))}/.actors');
             if (!await newActorsDir.parent.exists()) await newActorsDir.parent.create(recursive: true);
@@ -865,16 +863,22 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         fail++;
       }
     }
-    // 清理整理后空的旧文件夹
+    // 清理整理后空的旧文件夹（自底向上最多 2 层，限定在源目录内）
     try {
       final cleanedDirs = <String>{};
       for (final item in eps) {
-        final parent = item.path.substring(0, item.path.lastIndexOf('/'));
-        if (parent.isEmpty || cleanedDirs.contains(parent)) continue;
-        final dir = Directory(parent);
-        if (await dir.exists() && (await dir.list().isEmpty)) {
-          await dir.delete();
-          cleanedDirs.add(parent);
+        var parent = item.path.substring(0, item.path.lastIndexOf('/'));
+        for (var depth = 0; depth < 2 && parent.isNotEmpty; depth++) {
+          if (cleanedDirs.contains(parent)) break;
+          final dir = Directory(parent);
+          if (await dir.exists() && (await dir.list().isEmpty)) {
+            await dir.delete();
+            cleanedDirs.add(parent);
+          } else {
+            break;
+          }
+          final slash = parent.lastIndexOf('/');
+          parent = slash > 0 ? parent.substring(0, slash) : '';
         }
       }
     } catch (_) {}
@@ -928,6 +932,14 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       ),
     );
     if (newName == null || newName.isEmpty || newName == oldName) return;
+    // 过滤非法文件名字符（与 _sanitizeRegex 保持一致），并拒绝含路径分隔符的输入，防止路径穿越
+    final cleanName = newName.replaceAll(_sanitizeRegex, '').trim();
+    if (cleanName.isEmpty || cleanName.contains('/') || cleanName.contains('\\')) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('文件夹名含非法字符，已过滤后为空')));
+      }
+      return;
+    }
     if (dirPath.isEmpty || dirPath.lastIndexOf('/') < 0) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('无法定位文件夹路径')));
@@ -935,10 +947,10 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       return;
     }
     try {
-      final newPath = '${dirPath.substring(0, dirPath.lastIndexOf('/'))}/$newName';
+      final newPath = '${dirPath.substring(0, dirPath.lastIndexOf('/'))}/$cleanName';
       if (await Directory(newPath).exists()) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('文件夹 "$newName" 已存在')));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('文件夹 "$cleanName" 已存在')));
         }
         return;
       }
