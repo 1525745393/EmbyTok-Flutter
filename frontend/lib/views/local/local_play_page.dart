@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/local_video_item.dart';
 import '../../providers/local_video_provider.dart';
+import '../../providers/video_playback_controller.dart';
 import '../../utils/local_video_adapter.dart';
 import '../../utils/safe_unawaited.dart';
 import '../../widgets/video/video_page_item.dart';
