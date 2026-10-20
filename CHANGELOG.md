@@ -1,3 +1,10 @@
+## [2.401.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.3...v2.401.4) (2026-10-20)
+
+
+### Bug Fixes
+
+* **文件管理:** 整理/重命名链路 6 项修复 ([9daf70d](https://github.com/1525745393/EmbyTok-Flutter/commit/9daf70dacc07dcdb5d21625c110e506746ad64f1))
+
 ## [2.401.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.2...v2.401.3) (2026-10-20)
 
 
