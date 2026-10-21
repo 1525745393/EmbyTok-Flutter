@@ -1,3 +1,10 @@
+## [2.401.10](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.9...v2.401.10) (2026-10-21)
+
+
+### Bug Fixes
+
+* **本地媒体库状态层:** 审查 2 项修复（1 P2 + 1 P3） ([493a7d1](https://github.com/1525745393/EmbyTok-Flutter/commit/493a7d1db826a8f907b95155b4af65df2f1a13bb))
+
 ## [2.401.9](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.8...v2.401.9) (2026-10-21)
 
 
