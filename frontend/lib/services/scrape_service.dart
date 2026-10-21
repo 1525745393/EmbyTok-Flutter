@@ -206,14 +206,29 @@ class ScrapeService {
     return !hasChinese;
   }
 
+  /// 从 TMDB details 提取 cast 列表（{name, role, id, profilePath}）；无 credits 时返回空
+  static List<Map<String, String>> _castFromDetails(Map<String, dynamic> d) {
+    return ((d['credits']?['cast'] as List?) ?? [])
+        .take(10)
+        .map<Map<String, String>>((c) => {
+              'id': (c['id'] as num?)?.toString() ?? '',
+              'name': c['name'] as String? ?? '',
+              'role': c['character'] as String? ?? '',
+              'profilePath': c['profile_path'] as String? ?? '',
+            })
+        .toList();
+  }
+
   /// 重新从 TMDB 拉取中文元数据（genre/overview/title 等）。
   /// 返回更新后的 ScrapedMedia，保留 episode/still 等单集字段。
+  /// cast 一并重取：早期英文响应缓存的角色名（character）随中文重取同步更新。
   static Future<ScrapedMedia?> refetchChinese(ScrapedMedia m) async {
     try {
       if (m.type == 'tv' && m.tvId != null) {
         final details = await TmdbService.getTvDetails(m.tvId!);
         if (details.isEmpty) return null;
         _tvDetailsCache[m.tvId!] = details;
+        final refreshedCast = _castFromDetails(details);
         return ScrapedMedia(
           tmdbId: m.tmdbId,
           type: 'tv',
@@ -224,7 +239,7 @@ class ScrapeService {
           overview: details['overview'] as String? ?? m.overview,
           rating: (details['vote_average'] as num?)?.toDouble() ?? m.rating,
           genres: (details['genres'] as List?)?.map((g) => g['name'] as String).toList() ?? m.genres,
-          cast: m.cast,
+          cast: refreshedCast.isNotEmpty ? refreshedCast : m.cast,
           directors: m.directors,
           studios: m.studios,
           imdbId: m.imdbId,
@@ -240,6 +255,7 @@ class ScrapeService {
       } else if (m.type == 'movie' && m.tmdbId > 0) {
         final details = await TmdbService.getMovieDetails(m.tmdbId);
         if (details.isEmpty) return null;
+        final refreshedCast = _castFromDetails(details);
         return ScrapedMedia(
           tmdbId: m.tmdbId,
           type: 'movie',
@@ -250,7 +266,7 @@ class ScrapeService {
           overview: details['overview'] as String? ?? m.overview,
           rating: (details['vote_average'] as num?)?.toDouble() ?? m.rating,
           genres: (details['genres'] as List?)?.map((g) => g['name'] as String).toList() ?? m.genres,
-          cast: m.cast,
+          cast: refreshedCast.isNotEmpty ? refreshedCast : m.cast,
           directors: m.directors,
           studios: m.studios,
           imdbId: m.imdbId,
@@ -417,9 +433,9 @@ class ScrapeService {
   }
 
   /// 统一的季集号解析正则（文件管理页 _parseSeasonEpisode / 刮削 / 按刮削重命名共用）
-  /// 支持：S01E01 / S01.E01 / Season 1 Episode 1 / E01 / EP01 / 第1集（默认季1）
+  /// 支持：S01E01 / S01.E01 / Season 1 Episode 1 / E01 / EP01 / 第1集 / 第一集（默认季1）
   static final RegExp episodeRegex = RegExp(
-    r'(?:[Ss](\d{1,2})[._ -]?[Ee](\d{1,2}))|(?:[Ss]eason\s*(\d{1,2})\s*[Ee]pisode\s*(\d{1,2}))|(?:[Ee][Pp]?\s*(\d{1,2}))|(?:第\s*(\d{1,2})\s*集)',
+    r'(?:[Ss](\d{1,2})[._ -]?[Ee](\d{1,2}))|(?:[Ss]eason\s*(\d{1,2})\s*[Ee]pisode\s*(\d{1,2}))|(?:[Ee][Pp]?\s*(\d{1,2}))|(?:第\s*(\d{1,2})\s*集)|(?:第([一二三四五六七八九十\d]+)集)',
     caseSensitive: false,
   );
 
@@ -429,11 +445,12 @@ class ScrapeService {
     final m = episodeRegex.firstMatch(filename);
     if (m != null) {
       // SxxExx: group(1)=season, group(2)=episode；Season X Episode Y: group(3)/(4)
-      // E01/EP01: group(5)=episode；第Y集: group(6)=episode，season 默认 1
+      // E01/EP01: group(5)=episode；第Y集(阿拉伯): group(6)；第Y集(中文): group(7)，season 默认 1
       final s = m.group(1) ?? m.group(3);
-      final e = m.group(2) ?? m.group(4) ?? m.group(5) ?? m.group(6);
+      final e = m.group(2) ?? m.group(4) ?? m.group(5) ?? m.group(6) ?? m.group(7);
       if (e != null) {
-        return (season: s != null ? int.tryParse(s) ?? 1 : 1, episode: int.tryParse(e) ?? 1);
+        // _cnToInt 兼容阿拉伯与中文数字（一~十）
+        return (season: s != null ? int.tryParse(s) ?? 1 : 1, episode: _cnToInt(e));
       }
     }
     final num = RegExp(r'(?:^|[.\s_-])(\d{1,3})(?:[.\s_-]|$)').firstMatch(filename);
@@ -457,6 +474,10 @@ class ScrapeService {
       rating: base.rating,
       genres: base.genres,
       cast: base.cast,
+      directors: base.directors,
+      studios: base.studios,
+      imdbId: base.imdbId,
+      certification: base.certification,
       season: season,
       episode: episode,
       tvId: base.tvId,
@@ -675,15 +696,7 @@ class ScrapeService {
       overview: d['overview'] as String?,
       rating: (d['vote_average'] as num?)?.toDouble(),
       genres: (d['genres'] as List?)?.map((g) => g['name'] as String).toList() ?? const [],
-      cast: ((d['credits']?['cast'] as List?) ?? [])
-          .take(10)
-          .map((c) => {
-                'id': (c['id'] as num?)?.toString() ?? '',
-                'name': c['name'] as String? ?? '',
-                'role': c['character'] as String? ?? '',
-                'profilePath': c['profile_path'] as String? ?? '',
-              })
-          .toList(),
+      cast: _castFromDetails(d),
       directors: ((d['credits']?['crew'] as List?) ?? [])
           .where((c) => c['job'] == 'Director')
           .map((c) => c['name'] as String)
@@ -751,15 +764,7 @@ class ScrapeService {
       overview: d['overview'] as String?,
       rating: (d['vote_average'] as num?)?.toDouble(),
       genres: (d['genres'] as List?)?.map((g) => g['name'] as String).toList() ?? const [],
-      cast: ((d['credits']?['cast'] as List?) ?? [])
-          .take(10)
-          .map((c) => {
-                'id': (c['id'] as num?)?.toString() ?? '',
-                'name': c['name'] as String? ?? '',
-                'role': c['character'] as String? ?? '',
-                'profilePath': c['profile_path'] as String? ?? '',
-              })
-          .toList(),
+      cast: _castFromDetails(d),
       directors: ((d['credits']?['crew'] as List?) ?? [])
           .where((c) => c['job'] == 'Director' || c['job'] == 'Executive Producer')
           .map((c) => c['name'] as String)
@@ -789,7 +794,11 @@ class ScrapeService {
     return null;
   }
 
+  /// 刮削缓存的内存镜像：同状态周期内复用，避免页面多次进入/操作反复全量 JSON decode
+  static Map<String, ScrapedMedia>? _cache;
+
   static Future<Map<String, ScrapedMedia>> loadCache() async {
+    if (_cache != null) return Map.of(_cache!); // 浅拷贝，防调用方污染共享实例
     final sp = await SharedPreferences.getInstance();
     final result = <String, ScrapedMedia>{};
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -812,15 +821,18 @@ class ScrapeService {
         result[key.substring(_prefix.length)] = media;
       } catch (e) { AppLogger.warn('刮削缓存解析失败', data: {'key': key, 'error': e.toString()}); }
     }
-    return result;
+    _cache = result;
+    return Map.of(result);
   }
 
   static Future<void> saveCache(String pathHash, ScrapedMedia media) async {
+    _cache?[pathHash] = media; // 同步内存镜像，下次 loadCache 不再读盘
     final sp = await SharedPreferences.getInstance();
     await sp.setString(_prefix + pathHash, jsonEncode(media.toJson()));
   }
 
   static Future<void> clearCache() async {
+    _cache = null; // 内存镜像失效
     final sp = await SharedPreferences.getInstance();
     for (final key in sp.getKeys().where((k) => k.startsWith(_prefix))) {
       await sp.remove(key);
