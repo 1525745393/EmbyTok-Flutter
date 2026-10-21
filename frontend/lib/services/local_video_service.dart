@@ -68,25 +68,31 @@ class LocalVideoService {
       hasAll: true,
     );
     for (final path in paths) {
-      // 每个路径最多取 500 条避免一次拉太多
-      final assets = await path.getAssetListRange(start: 0, end: 500);
-      for (final a in assets) {
-        // AssetEntity.duration 单位是秒；fileSize 是异步 Future<int>
-        final fileSize = await a.fileSize;
-        result.add(LocalVideoItem(
-          id: a.id,
-          name: a.title ?? a.id,
-          path: '', // 延迟到需要时再取 file.path
-          relativePath: a.relativePath,
-          sizeBytes: fileSize,
-          duration: Duration(seconds: a.duration),
-          width: a.width,
-          height: a.height,
-          mimeType: 'video/*',
-          modifiedAt: a.modifiedDateTime,
-          isAppDirFile: false,
-          assetId: a.id,
-        ));
+      // 每个路径分页取（photo_manager 每页上限 500），避免一次拉太多或漏掉 500+ 的视频
+      var offset = 0;
+      while (true) {
+        final assets = await path.getAssetListRange(start: offset, end: offset + 500);
+        if (assets.isEmpty) break;
+        for (final a in assets) {
+          // AssetEntity.duration 单位是秒；fileSize 是异步 Future<int>
+          final fileSize = await a.fileSize;
+          result.add(LocalVideoItem(
+            id: a.id,
+            name: a.title ?? a.id,
+            path: '', // 延迟到需要时再取 file.path
+            relativePath: a.relativePath,
+            sizeBytes: fileSize,
+            duration: Duration(seconds: a.duration),
+            width: a.width,
+            height: a.height,
+            mimeType: 'video/*',
+            modifiedAt: a.modifiedDateTime,
+            isAppDirFile: false,
+            assetId: a.id,
+          ));
+        }
+        offset += assets.length;
+        if (assets.length < 500) break;
       }
     }
     return result;
@@ -341,6 +347,33 @@ class LocalVideoService {
     }
   }
 
+  /// 迁移单个 pathHash 下的本地状态键（刮削缓存/续播位置/续播时间/收藏）到新 pathHash
+  /// 各键按原始存储类型读迁（scrape_ 为 String、resume/time 为 int、favorite 为 bool），
+  /// 跨类型 get 会返回 null；重命名/撤销后用户续播与收藏不丢失
+  static Future<void> _migrateStateByHash(
+      SharedPreferences sp, String oldHash, String newHash) async {
+    final scrape = sp.getString('scrape_$oldHash');
+    if (scrape != null) {
+      await sp.setString('scrape_$newHash', scrape);
+      await sp.remove('scrape_$oldHash');
+    }
+    final resume = sp.getInt('$_resumePrefix$oldHash');
+    if (resume != null) {
+      await sp.setInt('$_resumePrefix$newHash', resume);
+      await sp.remove('$_resumePrefix$oldHash');
+    }
+    final resumeTime = sp.getInt('${_resumePrefix}time_$oldHash');
+    if (resumeTime != null) {
+      await sp.setInt('${_resumePrefix}time_$newHash', resumeTime);
+      await sp.remove('${_resumePrefix}time_$oldHash');
+    }
+    final fav = sp.getBool('$_favoritePrefix$oldHash');
+    if (fav != null) {
+      await sp.setBool('$_favoritePrefix$newHash', fav);
+      await sp.remove('$_favoritePrefix$oldHash');
+    }
+  }
+
   /// 重命名本地文件（photo_manager 资产不支持；localDir/App 目录真实文件可重命名）
   /// 返回新的路径；失败抛异常
   Future<String> renameFile(LocalVideoItem item, String newName) async {
@@ -361,20 +394,15 @@ class LocalVideoService {
     try {
       await ScrapeMediaStore.rename(item.path, newPath, pathHash: item.pathHash);
     } catch (_) {}
-    // 迁移中央缓存：旧 pathHash 的数据搬到新 pathHash
+    // 迁移本地状态：旧 pathHash → 新 pathHash
+    // 覆盖刮削缓存、续播位置、续播时间戳、收藏（重命名后用户状态不丢，也不残留脏键）
     // 新键必须与扫描时的 pathHash 一致：App 目录文件 = app_<md5(path)>，localDir = localdir:<path>
     try {
       final sp = await SharedPreferences.getInstance();
-      const prefix = 'scrape_';
-      final oldKey = '$prefix${item.pathHash}';
-      final raw = sp.getString(oldKey);
-      if (raw != null) {
-        final newPathHash = item.isAppDirFile
-            ? 'app_${md5.convert(utf8.encode(newPath)).toString()}'
-            : 'localdir:$newPath';
-        await sp.setString('$prefix$newPathHash', raw);
-        await sp.remove(oldKey);
-      }
+      final newPathHash = item.isAppDirFile
+          ? 'app_${md5.convert(utf8.encode(newPath)).toString()}'
+          : 'localdir:$newPath';
+      await _migrateStateByHash(sp, item.pathHash, newPathHash);
     } catch (_) {}
     return newPath;
   }
@@ -407,19 +435,53 @@ class LocalVideoService {
     await _recordRename(oldPath, newPath);
   }
 
-  /// 文件夹重命名后，批量迁移内部所有文件的缓存 pathHash
+  /// 文件夹重命名后，批量迁移内部所有文件的缓存与本地状态
+  /// 覆盖刮削缓存（scrape_localdir:）与续播/续播时间/收藏（local_*_localdir:），
+  /// 按各键原始存储类型读迁（String/int/bool），避免跨类型读取返回 null
   Future<void> migrateFolderCache(String oldDir, String newDir) async {
     try {
       final sp = await SharedPreferences.getInstance();
-      const prefix = 'scrape_localdir:';
-      final oldPrefix = '$prefix$oldDir/';
-      final keys = sp.getKeys().where((k) => k.startsWith(oldPrefix)).toList();
+      final oldDirPrefix = 'localdir:$oldDir/';
+      final newDirPrefix = 'localdir:$newDir/';
+      final keys = sp.getKeys().toList();
       for (final key in keys) {
-        final raw = sp.getString(key);
-        if (raw == null) continue;
-        final newKey = key.replaceFirst(oldPrefix, '$prefix$newDir/');
-        await sp.setString(newKey, raw);
-        await sp.remove(key);
+        // 顺序判断：续播时间戳前缀（local_resume_time_）必须先于续播前缀（local_resume_）
+        if (key.startsWith('${_resumePrefix}time_$oldDirPrefix')) {
+          final v = sp.getInt(key);
+          if (v != null) {
+            await sp.setInt(
+                key.replaceFirst('${_resumePrefix}time_$oldDirPrefix',
+                    '${_resumePrefix}time_$newDirPrefix'),
+                v);
+            await sp.remove(key);
+          }
+        } else if (key.startsWith('$_resumePrefix$oldDirPrefix')) {
+          final v = sp.getInt(key);
+          if (v != null) {
+            await sp.setInt(
+                key.replaceFirst(
+                    '$_resumePrefix$oldDirPrefix', '$_resumePrefix$newDirPrefix'),
+                v);
+            await sp.remove(key);
+          }
+        } else if (key.startsWith('$_favoritePrefix$oldDirPrefix')) {
+          final v = sp.getBool(key);
+          if (v != null) {
+            await sp.setBool(
+                key.replaceFirst('$_favoritePrefix$oldDirPrefix',
+                    '$_favoritePrefix$newDirPrefix'),
+                v);
+            await sp.remove(key);
+          }
+        } else if (key.startsWith('scrape_$oldDirPrefix')) {
+          final raw = sp.getString(key);
+          if (raw != null) {
+            await sp.setString(
+                key.replaceFirst('scrape_$oldDirPrefix', 'scrape_$newDirPrefix'),
+                raw);
+            await sp.remove(key);
+          }
+        }
       }
     } catch (_) {}
   }
@@ -479,19 +541,18 @@ class LocalVideoService {
         }
       } catch (_) {}
     }
-    // 3. 迁移缓存：newPathHash → oldPathHash
+    // 3. 迁移缓存与本地状态：newPathHash → oldPathHash
     //    目录重命名时内部所有文件的缓存也要反向迁移
+    //    单文件覆盖 App 目录（app_<md5>）与 localDir（localdir:<path>）两种键族，
+    //    避免硬编码前缀导致 App 目录文件撤销后刮削缓存丢失
     try {
       await migrateFolderCache(newPath, oldPath);
       final sp = await SharedPreferences.getInstance();
-      const prefix = 'scrape_localdir:';
-      final oldKey = '$prefix$oldPath';
-      final newKey = '$prefix$newPath';
-      final raw = sp.getString(newKey);
-      if (raw != null) {
-        await sp.setString(oldKey, raw);
-        await sp.remove(newKey);
-      }
+      await _migrateStateByHash(
+          sp,
+          'app_${md5.convert(utf8.encode(newPath)).toString()}',
+          'app_${md5.convert(utf8.encode(oldPath)).toString()}');
+      await _migrateStateByHash(sp, 'localdir:$newPath', 'localdir:$oldPath');
     } catch (_) {}
     // 4. 清理整理时创建的空目录（从newPath父目录向上最多删3层）
     try {
