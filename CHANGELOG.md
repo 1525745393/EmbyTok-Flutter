@@ -1,3 +1,10 @@
+## [2.401.9](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.8...v2.401.9) (2026-10-21)
+
+
+### Bug Fixes
+
+* **刮削落盘:** 审查 5 项修复（1 P2 + 4 P3） ([608a831](https://github.com/1525745393/EmbyTok-Flutter/commit/608a8311bbb2e9a403794c54a110ef740ae0dc71))
+
 ## [2.401.8](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.7...v2.401.8) (2026-10-21)
 
 
