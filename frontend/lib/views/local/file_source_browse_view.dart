@@ -849,7 +849,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         await LocalVideoService().migrateCachePath(item.path, newPath);
         // 双轨落盘：同步重命名旁置文件并清理沙箱旧元数据
         try {
-          await ScrapeMediaStore.rename(curPath, newPath);
+          await ScrapeMediaStore.rename(curPath, newPath, pathHash: item.pathHash);
           // 同步移动 .actors/ 目录
           final oldActorsDir = Directory('${curPath.substring(0, dot)}/.actors');
           if (await oldActorsDir.exists()) {
@@ -1409,7 +1409,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         await LocalVideoService().migrateCachePath(item.path, newPath);
         // 双轨落盘：同步重命名旁置文件并清理沙箱旧元数据
         try {
-          await ScrapeMediaStore.rename(item.path, newPath);
+          await ScrapeMediaStore.rename(item.path, newPath, pathHash: item.pathHash);
           // 同步移动 .actors/ 目录
           final oldActorsDir = Directory('${item.path.substring(0, dot)}/.actors');
           if (await oldActorsDir.exists()) {

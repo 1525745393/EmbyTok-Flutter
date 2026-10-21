@@ -103,8 +103,13 @@ class ScrapeMediaStore {
     // 2b) 电视剧：额外写 show 级别元数据到剧集根目录
     if (media.type == 'tv' && base != null) {
       try {
-        final episodeDir = File(base).parent; // Season 目录
-        final showDir = episodeDir.parent;     // 剧集根目录
+        final episodeDir = File(base).parent; // 视频所在目录
+        // 剧集根目录：仅当所在目录是季目录（Season X/S01/第X季）时上提一级；
+        // 单层结构（剧名目录下直接放剧集文件）则以所在目录为剧集根，
+        // 避免 tvshow.nfo/poster.jpg 写到错误的上级目录
+        final isSeasonDir = ScrapeService.isSeasonDirName(
+            episodeDir.path.split('/').where((s) => s.isNotEmpty).last);
+        final showDir = isSeasonDir ? episodeDir.parent : episodeDir;
         // tvshow.nfo（show 级别，非 episodedetails）
         final showNfo = File('${showDir.path}/tvshow.nfo');
         if (!await showNfo.exists()) {
@@ -221,34 +226,36 @@ class ScrapeMediaStore {
     } catch (e) {
       AppLogger.warn('图片下载阶段异常（不影响元数据落盘）', data: {'error': e.toString()});
     }
+    // 中央元数据已变更，失效内存镜像
+    _invalidateCentralCache();
   }
 
-  /// 补下载海报/背景/剧照：本地没有但有 CDN path 时，后台下载到视频旁和沙箱。
+  /// 补下载海报/背景/剧照：本地没有但有 CDN path 时，后台下载到中央沙箱和视频旁。
   /// 用于旧视频（清了 App 数据，沙箱图没了，视频旁也没写过）。
-  static Future<void> backfillImages(String videoPath, ScrapedMedia media) async {
+  static Future<void> backfillImages(
+      String videoPath, String pathHash, ScrapedMedia media) async {
     try {
       final base = videoPath.substring(0, videoPath.length - _extOf(videoPath).length);
-      // 海报
-      if (media.posterPath != null && media.posterPath!.isNotEmpty) {
-        final sibling = File('$base-poster.jpg');
-        if (!await sibling.exists() || await sibling.length() == 0) {
-          await _downloadImage(TmdbService.posterUrl(media.posterPath!, size: 'w500'), sibling.path);
+      // 先下中央沙箱（作为权威副本，供展示兜底/强制覆盖），再复制到视频旁
+      Future<void> dl(String? tmdbPath, String Function() url, String centralSubDir,
+          String siblingSuffix) async {
+        if (tmdbPath == null || tmdbPath.isEmpty) return;
+        final dir = await _subDir(centralSubDir);
+        final centralPath = _join(dir.path, '${_safeName(pathHash)}.jpg');
+        await _downloadImage(url(), centralPath);
+        if (await File(centralPath).exists()) {
+          final bytes = await File(centralPath).readAsBytes();
+          final sibling = File('$base$siblingSuffix');
+          if (!await sibling.exists() || await sibling.length() == 0) {
+            await sibling.writeAsBytes(bytes);
+          }
         }
       }
-      // 背景
-      if (media.backdropPath != null && media.backdropPath!.isNotEmpty) {
-        final sibling = File('$base-backdrop.jpg');
-        if (!await sibling.exists() || await sibling.length() == 0) {
-          await _downloadImage(TmdbService.backdropUrl(media.backdropPath!), sibling.path);
-        }
-      }
-      // 单集剧照
-      if (media.stillPath != null && media.stillPath!.isNotEmpty) {
-        final sibling = File('$base-still.jpg');
-        if (!await sibling.exists() || await sibling.length() == 0) {
-          await _downloadImage(TmdbService.posterUrl(media.stillPath!, size: 'w300'), sibling.path);
-        }
-      }
+      await Future.wait([
+        dl(media.posterPath, () => TmdbService.posterUrl(media.posterPath!, size: 'w500'), 'posters', '-poster.jpg'),
+        dl(media.backdropPath, () => TmdbService.backdropUrl(media.backdropPath!), 'backdrops', '-backdrop.jpg'),
+        dl(media.stillPath, () => TmdbService.posterUrl(media.stillPath!, size: 'w300'), 'stills', '-still.jpg'),
+      ]);
     } catch (_) {}
   }
 
@@ -364,6 +371,7 @@ class ScrapeMediaStore {
   }
 
   // ---- 删除 / 重命名 ----
+  /// 删除：清视频旁四种旁置文件 + 中央目录缓存，并移除 SharedPreferences 刮削键
   static Future<void> delete(LocalVideoItem item) async {
     try {
       final base = _siblingBase(item);
@@ -382,12 +390,18 @@ class ScrapeMediaStore {
       }
       final mf = File(_join(metaDir.path, '${_safeName(item.pathHash)}.json'));
       if (await mf.exists()) await mf.delete();
+      // SharedPreferences 旧键族（batch 1 迁移路径）同步删除，避免删除后 loadCache 残留孤儿
+      await ScrapeService.removeCacheEntry(item.pathHash);
+      _invalidateCentralCache();
     } catch (e) {
       AppLogger.warn('ScrapeMediaStore.delete 失败', data: {'error': e.toString()});
     }
   }
 
-  static Future<void> rename(String oldPath, String newPath) async {
+  /// 重命名：平移视频旁四种旁置文件；清理旧路径的中央/SP 缓存孤儿。
+  /// [pathHash] 为旧路径对应的缓存键（localDir=`localdir:`，App 目录=`app_<md5>`）；
+  /// 未传时按 localdir 前缀兜底（历史调用场景）。
+  static Future<void> rename(String oldPath, String newPath, {String? pathHash}) async {
     try {
       final oldBase = oldPath.substring(0, oldPath.length - _extOf(oldPath).length);
       final newBase = newPath.substring(0, newPath.length - _extOf(newPath).length);
@@ -395,8 +409,8 @@ class ScrapeMediaStore {
         final oldF = File('$oldBase$s');
         if (await oldF.exists()) await oldF.rename('$newBase$s');
       }
-      // 清理中央目录里旧路径的孤儿元数据（pathHash = localdir: + 真实路径）
-      final oldPathHash = 'localdir:$oldPath';
+      // 清理中央目录里旧路径的孤儿元数据；pathHash 显式传值时按实际键族构造
+      final oldPathHash = pathHash ?? 'localdir:$oldPath';
       final oldSafe = _safeName(oldPathHash);
       for (final sub in ['metadata', 'posters', 'backdrops', 'stills']) {
         final dir = await _subDir(sub);
@@ -404,6 +418,9 @@ class ScrapeMediaStore {
         final f = File(_join(dir.path, '$oldSafe$ext'));
         if (await f.exists()) await f.delete();
       }
+      // SP 旧键族同步移除
+      await ScrapeService.removeCacheEntry(oldPathHash);
+      _invalidateCentralCache();
     } catch (e) {
       AppLogger.warn('ScrapeMediaStore.rename 失败', data: {'error': e.toString()});
     }
@@ -546,7 +563,14 @@ class ScrapeMediaStore {
   }
 
   // ---- 加载 ----
+  /// 中央元数据内存镜像：同一状态周期内复用，避免每次 refresh 全量读盘 decode 千级 json
+  static Map<String, ScrapedMedia>? _centralCache;
+
+  /// 中央元数据变更后失效内存镜像（save/delete/rename/migrate 调用）
+  static void _invalidateCentralCache() => _centralCache = null;
+
   static Future<Map<String, ScrapedMedia>> loadCentralAll() async {
+    if (_centralCache != null) return Map.of(_centralCache!); // 浅拷贝，防调用方污染共享实例
     final out = <String, ScrapedMedia>{};
     try {
       final dir = await _subDir('metadata');
@@ -562,7 +586,8 @@ class ScrapeMediaStore {
         } catch (err) { AppLogger.warn('元数据文件解析失败', data: {'file': e.path, 'error': err.toString()}); }
       }
     } catch (err) { AppLogger.warn('加载中央元数据失败', data: {'error': err.toString()}); }
-    return out;
+    _centralCache = out;
+    return Map.of(out);
   }
 
   static Future<ScrapedMedia?> loadSibling(String videoPath) async {
@@ -762,6 +787,8 @@ class ScrapeMediaStore {
         await Future.wait(futures);
       }
       await sp.setBool(_migratedFlag, true);
+      // 中央元数据已写入，失效内存镜像
+      _invalidateCentralCache();
     } catch (e) {
       debugPrint('migrateFromPrefs: $e');
     }

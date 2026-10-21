@@ -393,6 +393,17 @@ class ScrapeService {
         .trim();
   }
 
+  /// 目录名是否为季文件夹（Season 1 / Season.1 / S01 / 第1季 / 第一季 等变体）
+  /// 供剧名提取与刮削落盘复用，避免各组件维护多套季目录正则
+  static bool isSeasonDirName(String dirName) {
+    if (dirName.isEmpty) return false;
+    final seg = dirName;
+    if (RegExp(r'^[Ss]eason[.\s_-]*\d+', caseSensitive: false).hasMatch(seg)) return true;
+    if (RegExp(r'^第[一二三四五六七八九十\d]+季').hasMatch(seg)) return true;
+    if (RegExp(r'^[Ss]\d{1,2}$', caseSensitive: false).hasMatch(seg)) return true;
+    return false;
+  }
+
   /// 从完整父目录路径提取剧名文件夹名
   /// 若直接父目录是 "Season X"/"第X季"，则向上取一级作为剧名
   static String? extractSeriesName(String? parentPath) {
@@ -406,9 +417,7 @@ class ScrapeService {
       final cleaned = _cleanNoise(seg.replaceAll(RegExp(r'[.\[\]_]'), ' '));
       if (cleaned.isEmpty) { i--; continue; }
       // 是季文件夹吗？（兼容 Season.1 / Season 1 / S1 / 第1季 等变体，避免被误当剧名）
-      if (RegExp(r'^[Ss]eason[.\s_-]*\d+', caseSensitive: false).hasMatch(seg) ||
-          RegExp(r'^第[一二三四五六七八九十\d]+季').hasMatch(seg) ||
-          RegExp(r'^[Ss]\d{1,2}$', caseSensitive: false).hasMatch(seg)) {
+      if (isSeasonDirName(seg)) {
         i--;
         continue;
       }
@@ -829,6 +838,13 @@ class ScrapeService {
     _cache?[pathHash] = media; // 同步内存镜像，下次 loadCache 不再读盘
     final sp = await SharedPreferences.getInstance();
     await sp.setString(_prefix + pathHash, jsonEncode(media.toJson()));
+  }
+
+  /// 删除单个刮削缓存条目（内存镜像 + SharedPreferences），供 ScrapeMediaStore 删视频/重命名时清理孤儿键
+  static Future<void> removeCacheEntry(String pathHash) async {
+    _cache?.remove(pathHash);
+    final sp = await SharedPreferences.getInstance();
+    await sp.remove(_prefix + pathHash);
   }
 
   static Future<void> clearCache() async {

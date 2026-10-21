@@ -357,9 +357,9 @@ class LocalVideoService {
     await oldFile.rename(newPath);
     // P2#10 记录重命名历史用于撤销
     await _recordRename(item.path, newPath);
-    // 双轨落盘：同步重命名视频旁刮削文件
+    // 双轨落盘：同步重命名视频旁刮削文件（传 pathHash 按实际键族清理旧缓存孤儿）
     try {
-      await ScrapeMediaStore.rename(item.path, newPath);
+      await ScrapeMediaStore.rename(item.path, newPath, pathHash: item.pathHash);
     } catch (_) {}
     // 迁移中央缓存：旧 pathHash 的数据搬到新 pathHash
     // 新键必须与扫描时的 pathHash 一致：App 目录文件 = app_<md5(path)>，localDir = localdir:<path>
