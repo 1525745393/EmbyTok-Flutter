@@ -410,8 +410,9 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                                 var sharePath = widget.item.path;
                                 if (sharePath.isEmpty && widget.item.assetId != null) {
                                   try {
+                                    // fromId 可能返回 null（资产已被删除等），需判空后再访问 file
                                     final entity = await AssetEntity.fromId(widget.item.assetId!);
-                                    final file = await entity.file;
+                                    final file = await entity?.file;
                                     sharePath = file?.path ?? '';
                                   } catch (_) {
                                     sharePath = '';
