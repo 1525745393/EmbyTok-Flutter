@@ -1,3 +1,10 @@
+## [2.401.11](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.10...v2.401.11) (2026-10-21)
+
+
+### Bug Fixes
+
+* **本地视频服务:** 审查 3 项修复（2 P2 + 1 P3） ([6c4a825](https://github.com/1525745393/EmbyTok-Flutter/commit/6c4a825ee7487ef007ea6ba82019608811e90e0b))
+
 ## [2.401.10](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.9...v2.401.10) (2026-10-21)
 
 
