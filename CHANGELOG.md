@@ -1,3 +1,11 @@
+## [2.401.13](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.12...v2.401.13) (2026-10-21)
+
+
+### Bug Fixes
+
+* **本地详情页:** 修复分享取路径编译错误（photo_manager fromId 返回可空实体，补判空） ([81881e0](https://github.com/1525745393/EmbyTok-Flutter/commit/81881e0a4694ca5b6175e12156268b8a83ba0c3a))
+* **本地详情页:** 审查 3 项修复（1 P2 + 2 P3） ([0a4be7b](https://github.com/1525745393/EmbyTok-Flutter/commit/0a4be7b7db4e846583d50e37088cbc37e1e348a6))
+
 ## [2.401.12](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.11...v2.401.12) (2026-10-21)
 
 
