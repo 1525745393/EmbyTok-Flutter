@@ -52,7 +52,8 @@ class TmdbService {
     if (!isConfigured) return null;
     try {
       final r = await http
-          .get(Uri.parse('$_base/person/$personId?api_key=$_apiKey&language=zh-CN'));
+          .get(Uri.parse('$_base/person/$personId?api_key=$_apiKey&language=zh-CN'))
+          .timeout(const Duration(seconds: 8));
       if (r.statusCode == 200) return jsonDecode(r.body) as Map<String, dynamic>;
     } catch (_) {}
     return null;
@@ -63,7 +64,8 @@ class TmdbService {
     if (!isConfigured) return null;
     try {
       final r = await http
-          .get(Uri.parse('$_base/person/$personId/combined_credits?api_key=$_apiKey&language=zh-CN'));
+          .get(Uri.parse('$_base/person/$personId/combined_credits?api_key=$_apiKey&language=zh-CN'))
+          .timeout(const Duration(seconds: 8));
       if (r.statusCode == 200) return jsonDecode(r.body) as Map<String, dynamic>;
     } catch (_) {}
     return null;
@@ -429,37 +431,51 @@ class TmdbService {
     }
   }
 
-  /// 影片评论（reviews）
+  /// 影片评论（reviews，按 total_pages 分页聚合，上限 3 页防滥用）
   static Future<List<Map<String, dynamic>>> getMovieReviews(int movieId) async {
     if (!isConfigured) return [];
-    try {
-      final r = await http
-          .get(Uri.parse('$_base/movie/$movieId/reviews?api_key=$_apiKey&language=zh-CN'))
-          .timeout(const Duration(seconds: 6));
-      if (r.statusCode != 200) return [];
-      final data = jsonDecode(r.body);
-      return (data['results'] as List? ?? [])
-          .map((m) => m as Map<String, dynamic>)
-          .toList();
-    } catch (_) {
-      return [];
+    final reviews = <Map<String, dynamic>>[];
+    var page = 1;
+    while (true) {
+      try {
+        final r = await http
+            .get(Uri.parse('$_base/movie/$movieId/reviews?api_key=$_apiKey&language=zh-CN&page=$page'))
+            .timeout(const Duration(seconds: 6));
+        if (r.statusCode != 200) break;
+        final data = jsonDecode(r.body);
+        reviews.addAll((data['results'] as List? ?? [])
+            .map((m) => m as Map<String, dynamic>));
+        final totalPages = (data['total_pages'] as num?)?.toInt() ?? 1;
+        if (page >= totalPages || page >= 3) break;
+        page++;
+      } catch (_) {
+        break; // 单页失败保留已聚合结果
+      }
     }
+    return reviews;
   }
 
-  /// 剧集评论
+  /// 剧集评论（reviews，按 total_pages 分页聚合，上限 3 页防滥用）
   static Future<List<Map<String, dynamic>>> getTvReviews(int tvId) async {
     if (!isConfigured) return [];
-    try {
-      final r = await http
-          .get(Uri.parse('$_base/tv/$tvId/reviews?api_key=$_apiKey&language=zh-CN'))
-          .timeout(const Duration(seconds: 6));
-      if (r.statusCode != 200) return [];
-      final data = jsonDecode(r.body);
-      return (data['results'] as List? ?? [])
-          .map((m) => m as Map<String, dynamic>)
-          .toList();
-    } catch (_) {
-      return [];
+    final reviews = <Map<String, dynamic>>[];
+    var page = 1;
+    while (true) {
+      try {
+        final r = await http
+            .get(Uri.parse('$_base/tv/$tvId/reviews?api_key=$_apiKey&language=zh-CN&page=$page'))
+            .timeout(const Duration(seconds: 6));
+        if (r.statusCode != 200) break;
+        final data = jsonDecode(r.body);
+        reviews.addAll((data['results'] as List? ?? [])
+            .map((m) => m as Map<String, dynamic>));
+        final totalPages = (data['total_pages'] as num?)?.toInt() ?? 1;
+        if (page >= totalPages || page >= 3) break;
+        page++;
+      } catch (_) {
+        break; // 单页失败保留已聚合结果
+      }
     }
+    return reviews;
   }
 }
