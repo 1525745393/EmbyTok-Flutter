@@ -606,9 +606,11 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
       ..removeWhere((it) => it.pathHash == pathHash);
     state = state.copyWith(items: items);
     final sp = await SharedPreferences.getInstance();
-    await sp.setStringList(
+    // 必须与 LocalVideoService 缓存格式一致（String JSON 数组）：
+    // setStringList 会改变键类型，loadCache 的 getString 将返回 null 导致列表读空
+    await sp.setString(
       'local_video_cache_v1',
-      items.map((e) => jsonEncode(e.toJson())).toList(),
+      jsonEncode(items.map((e) => e.toJson()).toList()),
     );
   }
 
@@ -683,24 +685,38 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
     state = state.copyWith(selected: s);
   }
 
-  /// 删除指定 id 的视频
+  /// 删除指定 id 的视频（分批并发删除，避免批量多选删除逐项串行卡顿）
   Future<int> deleteByIds(Set<String> ids) async {
     final svc = _ref.read(localVideoServiceProvider);
-    var ok = 0;
+    final targets = <LocalVideoItem>[];
     for (final id in ids) {
       final item = state.items.where((e) => e.id == id).firstOrNull;
-      if (item == null) continue;
-      if (await svc.delete(item)) {
-        ok++;
-        await ScrapeMediaStore.delete(item);
-        // 同时清理 prefs 旧缓存
-        final sp = await SharedPreferences.getInstance();
-        await sp.remove('scrape_${item.pathHash}');
-      }
+      if (item != null) targets.add(item);
+    }
+    var ok = 0;
+    // 仅移除真正删除成功的项（用户取消系统确认弹窗的不应从列表消失）
+    final deletedIds = <String>{};
+    const batchSize = 8;
+    for (var start = 0; start < targets.length; start += batchSize) {
+      final end = start + batchSize > targets.length ? targets.length : start + batchSize;
+      await Future.wait(targets.sublist(start, end).map((item) async {
+        try {
+          if (await svc.delete(item)) {
+            ok++;
+            deletedIds.add(item.id);
+            await ScrapeMediaStore.delete(item);
+            // 同时清理 prefs 旧缓存
+            final sp = await SharedPreferences.getInstance();
+            await sp.remove('scrape_${item.pathHash}');
+          }
+        } catch (_) {
+          // 单项失败不阻塞同批其他项
+        }
+      }));
     }
     if (ok > 0) {
       state = state.copyWith(
-        items: state.items.where((e) => !ids.contains(e.id)).toList(),
+        items: state.items.where((e) => !deletedIds.contains(e.id)).toList(),
         selected: {},
         selecting: false,
       );
