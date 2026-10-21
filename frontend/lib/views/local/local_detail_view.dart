@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:photo_manager/photo_manager.dart';
 import '../../providers/local_video_provider.dart';
 import '../../models/local_video_item.dart';
 import '../../services/local_video_service.dart';
@@ -28,8 +29,11 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
   late final Future<int?> _resumeFuture =
       LocalVideoService().readResumeMs(widget.item.pathHash);
 
-  /// 评论 future（P3）：缓存于 State，避免每次 build 重复请求 TMDB；刷新时重建
+  /// 评论 future（P3）：缓存于 State，避免每次 build 重复请求 TMDB；刷新/换片时重建
   Future<List<Map<String, dynamic>>>? _reviewsFuture;
+
+  /// 相关推荐 future：缓存于 State，避免每次 build 重复请求 TMDB；换片时重建
+  Future<List<Map<String, dynamic>>>? _recsFuture;
 
   @override
   Widget build(BuildContext context) {
@@ -253,6 +257,11 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                           cached[widget.item.pathHash] = newResult;
                           ref.read(localVideoProvider.notifier).updateScrapedMap(cached);
                           if (context.mounted) {
+                            // 重刮换片后重置评论/推荐 future，随新 tmdbId 重新加载
+                            setState(() {
+                              _reviewsFuture = null;
+                              _recsFuture = null;
+                            });
                             messenger.showSnackBar(const SnackBar(content: Text('已保存选中的图片')));
                           }
                         } else {
@@ -262,6 +271,11 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                           cached[widget.item.pathHash] = result;
                           ref.read(localVideoProvider.notifier).updateScrapedMap(cached);
                           if (context.mounted) {
+                            // 换片后评论/推荐随新 tmdbId 重新加载
+                            setState(() {
+                              _reviewsFuture = null;
+                              _recsFuture = null;
+                            });
                             messenger.showSnackBar(const SnackBar(content: Text('已保留旧图片')));
                           }
                         }
@@ -273,6 +287,11 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                         cached[widget.item.pathHash] = result;
                         ref.read(localVideoProvider.notifier).updateScrapedMap(cached);
                         if (context.mounted) {
+                          // 换片后评论/推荐随新 tmdbId 重新加载
+                          setState(() {
+                            _reviewsFuture = null;
+                            _recsFuture = null;
+                          });
                           messenger.showSnackBar(const SnackBar(content: Text('刮削完成')));
                         }
                       }
@@ -385,7 +404,27 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                               tooltip: isFav ? '取消收藏' : '收藏',
                             ),
                             IconButton(
-                              onPressed: () => SharePlus.instance.share(ShareParams(files: [XFile(widget.item.path)], subject: widget.item.name)),
+                              // 系统媒体库 item path 为空：经 assetId 延迟取真实路径再分享
+                              onPressed: () async {
+                                final messenger = ScaffoldMessenger.of(context);
+                                var sharePath = widget.item.path;
+                                if (sharePath.isEmpty && widget.item.assetId != null) {
+                                  try {
+                                    final entity = await AssetEntity.fromId(widget.item.assetId!);
+                                    final file = await entity.file;
+                                    sharePath = file?.path ?? '';
+                                  } catch (_) {
+                                    sharePath = '';
+                                  }
+                                }
+                                if (sharePath.isEmpty) {
+                                  messenger.showSnackBar(const SnackBar(content: Text('该文件暂不支持分享')));
+                                  return;
+                                }
+                                await SharePlus.instance.share(
+                                  ShareParams(files: [XFile(sharePath)], subject: widget.item.name),
+                                );
+                              },
                               icon: const Icon(Icons.share, color: Colors.white),
                               tooltip: '分享',
                             ),
@@ -625,7 +664,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                     SizedBox(
                       height: 180,
                       child: FutureBuilder<List<Map<String, dynamic>>>(
-                        future: scraped.type == 'tv'
+                        future: _recsFuture ??= scraped.type == 'tv'
                             ? TmdbService.getTvRecommendations(scraped.tvId ?? scraped.tmdbId)
                             : TmdbService.getRecommendations(scraped.tmdbId),
                         builder: (_, snap) {
