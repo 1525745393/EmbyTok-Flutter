@@ -2490,7 +2490,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
             if (it.duration.inMinutes > 0) '${it.duration.inMinutes}分钟',
           ].join(' · '), style: const TextStyle(fontSize: 12)),
           onTap: () => _openPlayer(items, i),
-          onLongPress: () => _showCardMenu(context, ref, it, s),
+          onLongPress: () => _showCardMenu(context, ref, it, s, onPlay: () => _openPlayer(items, i)),
         );
       },
     );
@@ -2562,7 +2562,7 @@ class _GridPosterCard extends ConsumerWidget {
         MaterialPageRoute<Widget>(builder: (_) => LocalDetailPage(item: item, onPlay: onPlay),
         ),
       ),
-      onLongPress: () => _showCardMenu(context, ref, item, s),
+      onLongPress: () => _showCardMenu(context, ref, item, s, onPlay: onPlay),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2593,7 +2593,8 @@ class _GridPosterCard extends ConsumerWidget {
   }
 }
 
-void _showCardMenu(BuildContext context, WidgetRef ref, LocalVideoItem item, ScrapedMedia? s) {
+void _showCardMenu(BuildContext context, WidgetRef ref, LocalVideoItem item, ScrapedMedia? s,
+    {VoidCallback? onPlay}) {
   showModalBottomSheet(
     context: context,
     builder: (_) => SafeArea(
@@ -2605,7 +2606,8 @@ void _showCardMenu(BuildContext context, WidgetRef ref, LocalVideoItem item, Scr
             title: const Text('详情'),
             onTap: () {
               Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => LocalDetailPage(item: item)));
+              // 透传播放回调，详情页"立即播放/继续观看"才能正常拉起播放器
+              Navigator.push(context, MaterialPageRoute(builder: (_) => LocalDetailPage(item: item, onPlay: onPlay)));
             },
           ),
           ListTile(
@@ -2647,7 +2649,7 @@ class _BackdropCard extends ConsumerWidget {
         MaterialPageRoute<Widget>(builder: (_) => LocalDetailPage(item: item, onPlay: onPlay),
         ),
       ),
-      onLongPress: () => _showCardMenu(context, ref, item, s),
+      onLongPress: () => _showCardMenu(context, ref, item, s, onPlay: onPlay),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

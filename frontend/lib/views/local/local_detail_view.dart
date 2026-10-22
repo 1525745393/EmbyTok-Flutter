@@ -296,8 +296,11 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                         }
                       }
                     } else {
+                      // 系统媒体库 path 为空，用 assetId/文件名兜底，失败历史可定位
                       await ScrapeMediaStore.recordHistory(
-                        videoPath: widget.item.path,
+                        videoPath: widget.item.path.isEmpty
+                            ? (widget.item.assetId ?? widget.item.name)
+                            : widget.item.path,
                         status: 'failed',
                         matchedTitle: widget.item.name,
                         error: '未找到匹配结果',
@@ -306,7 +309,9 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                     }
                   } catch (e) {
                     await ScrapeMediaStore.recordHistory(
-                      videoPath: widget.item.path,
+                      videoPath: widget.item.path.isEmpty
+                          ? (widget.item.assetId ?? widget.item.name)
+                          : widget.item.path,
                       status: 'failed',
                       matchedTitle: widget.item.name,
                       error: e.toString(),
@@ -447,8 +452,9 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                                   ),
                                 );
                                 if (ok == true) {
-                                  await ref.read(localVideoProvider.notifier).deleteByIds({widget.item.id});
-                                  if (context.mounted) Navigator.pop(context);
+                                  // 仅真正删除成功才返回列表；用户取消系统删除确认时不跳页
+                                  final deleted = await ref.read(localVideoProvider.notifier).deleteByIds({widget.item.id});
+                                  if (context.mounted && deleted > 0) Navigator.pop(context);
                                 }
                               },
                               icon: const Icon(Icons.delete_outline, color: Colors.white),
@@ -474,9 +480,13 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 海报（点击放大，本地文件优先）
+                        // 海报（点击放大，本地 .nfo 旁原图优先，无本地回退 CDN）
                         GestureDetector(
-                          onTap: () => _openImageViewer(context, TmdbService.posterUrl(scraped!.posterPath!)),
+                          onTap: () => _openImageViewer(
+                            context,
+                            TmdbService.posterUrl(scraped!.posterPath!),
+                            localFile: ScrapeMediaStore.posterFile(widget.item),
+                          ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: SizedBox(
@@ -491,7 +501,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        // 缩略图（点击放大）：电视剧优先单集剧照，电影用 backdrop，均本地文件优先
+                        // 缩略图（点击放大，本地原图优先）：电视剧优先单集剧照，电影用 backdrop
                         Expanded(
                           child: Builder(builder: (_) {
                             final isTvStill = scraped!.type == 'tv' &&
@@ -504,7 +514,13 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                                     : null);
                             return GestureDetector(
                               onTap: cdnUrl != null
-                                  ? () => _openImageViewer(context, cdnUrl)
+                                  ? () => _openImageViewer(
+                                        context,
+                                        cdnUrl,
+                                        localFile: isTvStill
+                                            ? ScrapeMediaStore.stillFile(widget.item)
+                                            : ScrapeMediaStore.backdropFile(widget.item),
+                                      )
                                   : null,
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
@@ -894,8 +910,8 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
     await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   }
 
-  /// 全屏查看图片（点击海报/缩略图放大）
-  void _openImageViewer(BuildContext context, String url) {
+  /// 全屏查看图片（点击海报/缩略图放大）：本地 .nfo 旁原图优先（更高清），无本地回退 CDN
+  void _openImageViewer(BuildContext context, String url, {Future<File?>? localFile}) {
     Navigator.push(
       context,
       MaterialPageRoute<Widget>(builder: (_) => Scaffold(
@@ -903,7 +919,14 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
           appBar: AppBar(backgroundColor: Colors.transparent, iconTheme: const IconThemeData(color: Colors.white)),
           body: Center(
             child: InteractiveViewer(
-              child: CachedNetworkImage(imageUrl: url, fit: BoxFit.contain),
+              child: localFile != null
+                  ? FutureBuilder<File?>(
+                      future: localFile,
+                      builder: (_, snap) => snap.data != null
+                          ? Image.file(snap.data!, fit: BoxFit.contain)
+                          : CachedNetworkImage(imageUrl: url, fit: BoxFit.contain),
+                    )
+                  : CachedNetworkImage(imageUrl: url, fit: BoxFit.contain),
             ),
           ),
         ),
