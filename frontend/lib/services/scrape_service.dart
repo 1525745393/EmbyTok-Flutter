@@ -303,11 +303,17 @@ class ScrapeService {
       title = _cleanNoise(title);
       // 剥离剧名末尾的"第X季"（如"庆余年第二季"→"庆余年"）
       title = title.replaceAll(RegExp(r'第[一二三四五六七八九十\d]+季$'), '').trim();
-      // 提取年份
+      // 提取年份（未来年份视为片名一部分，如 Blade Runner 2049，不剥离）
       int? tvYear;
+      final nowYear = DateTime.now().year;
       final yMatch = RegExp(r'(19|20)\d{2}').firstMatch(title);
-      if (yMatch != null) tvYear = int.tryParse(yMatch.group(0)!);
-      title = title.replaceAll(RegExp(r'\(?\s*(19|20)\d{2}\s*\)?'), '').trim();
+      if (yMatch != null) {
+        final y = int.tryParse(yMatch.group(0)!);
+        if (y != null && y <= nowYear) {
+          tvYear = y;
+          title = title.replaceAll(RegExp(r'\(?\s*(19|20)\d{2}\s*\)?'), '').trim();
+        }
+      }
       return ParsedName(
           type: 'tv', title: title, year: tvYear, season: season, episode: episode);
     }
@@ -348,13 +354,24 @@ class ScrapeService {
     }
 
     // 电影：提取年份（支持 "片名 2008" 和 "片名 (2008)" 两种格式）
+    // 防御误判：未来年份（如 Blade Runner 2049）与"片名即年份"（如 2012）不剥离、不带 year 搜索
+    final nowYear = DateTime.now().year;
     final yearMatch =
         RegExp(r'(?<=^|\s|\()(19|20)\d{2}(?=\s|\)|$)').firstMatch(name);
     int? year;
     String title;
     if (yearMatch != null) {
       year = int.tryParse(yearMatch.group(0)!);
-      title = name.substring(0, yearMatch.start).trim();
+      if (year != null && year > nowYear) {
+        year = null;
+        title = name;
+      } else if (yearMatch.start == 0) {
+        // 片名即年份（如 2012）：不剥离，避免标题为空导致刮削短路
+        year = null;
+        title = name;
+      } else {
+        title = name.substring(0, yearMatch.start).trim();
+      }
     } else {
       title = name;
     }
@@ -362,7 +379,7 @@ class ScrapeService {
     return ParsedName(type: 'movie', title: title, year: year);
   }
 
-  /// 中文数字转 int（支持 一~十 和阿拉伯数字）
+  /// 中文数字转 int（支持 一~十、十X、X十、X十Y（如二十一）和阿拉伯数字）
   static int _cnToInt(String s) {
     final n = int.tryParse(s);
     if (n != null) return n;
@@ -370,6 +387,10 @@ class ScrapeService {
     if (s.length == 1) return map[s] ?? 1;
     if (s.startsWith('十')) return 10 + (map[s.substring(1)] ?? 0);
     if (s.endsWith('十')) return (map[s.substring(0, 1)] ?? 1) * 10;
+    // 几十几（如二十一、三十五）：十位×10 + 个位
+    if (s.length >= 2 && s[s.length - 2] == '十') {
+      return (map[s.substring(0, s.length - 2)] ?? 1) * 10 + (map[s[s.length - 1]] ?? 0);
+    }
     return 1;
   }
 
