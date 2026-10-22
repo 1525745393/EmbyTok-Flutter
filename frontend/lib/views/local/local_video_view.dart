@@ -1232,11 +1232,13 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
   Future<void> _batchRescrape(LocalVideoState state, LocalVideoNotifier notifier) async {
     final ids = state.selected.toList();
     final items = state.items.where((e) => ids.contains(e.id)).toList();
+    // 清空刮削缓存（而非写入空占位），避免刮削失败后残留空数据导致标题空白且不再自动刮削
     for (final it in items) {
-      // 清除缓存后重刮
-      await ScrapeService.saveCache(it.pathHash, const ScrapedMedia(tmdbId: 0, type: '', title: '', scrapedAt: 0));
+      await ScrapeService.removeCacheEntry(it.pathHash);
     }
     notifier.exitSelecting();
+    // 先刷新让 scrapedMap 移除这些条目，scrapeMissing 按 containsKey 判断才会重新刮
+    await notifier.refresh();
     notifier.scrapeMissing();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1389,13 +1391,16 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
   void _playVideo(LocalVideoItem item) {
     final list = ref.read(localVideoProvider).filtered;
     final idx = list.indexWhere((e) => e.id == item.id);
-    Navigator.of(context).push(
-      MaterialPageRoute<Widget>(builder: (_) => LocalPlayPage(
-          items: list,
-          initialIndex: idx < 0 ? 0 : idx,
-        ),
-      ),
-    );
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute<Widget>(builder: (_) => LocalPlayPage(
+              items: list,
+              initialIndex: idx < 0 ? 0 : idx,
+            ),
+          ),
+        )
+        // 播放返回后清除续播进度缓存，下次重建重新读盘，进度条/剩余时间不显示旧值
+        .then((_) => _resumeFutureCache.clear());
   }
 }
 
@@ -1995,29 +2000,29 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
           r = (state.scrapedMap[a.pathHash]?.title ?? a.name).compareTo(state.scrapedMap[b.pathHash]?.title ?? b.name);
         case 'time':
         case 'playDate':
-          r = b.modifiedAt.compareTo(a.modifiedAt);
         case 'added':
         case 'lastAdded':
-          r = b.modifiedAt.compareTo(a.modifiedAt);
+          // 自然升序（旧在前）；方向由 _sortAscending 统一翻转，保证箭头与结果一致
+          r = a.modifiedAt.compareTo(b.modifiedAt);
         case 'year':
-          r = gY(b.pathHash).compareTo(gY(a.pathHash));
+          r = gY(a.pathHash).compareTo(gY(b.pathHash));
         case 'rating':
         case 'criticRating':
-          r = gR(b.pathHash).compareTo(gR(a.pathHash));
+          r = gR(a.pathHash).compareTo(gR(b.pathHash));
         case 'certification':
           r = (state.scrapedMap[a.pathHash]?.certification ?? '').compareTo(state.scrapedMap[b.pathHash]?.certification ?? '');
         case 'duration':
-          r = b.duration.inSeconds.compareTo(a.duration.inSeconds);
+          r = a.duration.inSeconds.compareTo(b.duration.inSeconds);
         case 'size':
-          r = b.sizeBytes.compareTo(a.sizeBytes);
+          r = a.sizeBytes.compareTo(b.sizeBytes);
         case 'resolution':
           // 按像素总量（宽×高）排序；元数据缺失宽高时排最后
           int px(LocalVideoItem e) =>
               (e.width > 0 && e.height > 0) ? e.width * e.height : -1;
-          r = px(b).compareTo(px(a));
+          r = px(a).compareTo(px(b));
         case 'bitrate':
           int bps(LocalVideoItem e) => e.duration.inSeconds > 0 ? e.sizeBytes ~/ e.duration.inSeconds : 0;
-          r = bps(b).compareTo(bps(a));
+          r = bps(a).compareTo(bps(b));
         default:
           r = 0;
       }
@@ -3066,6 +3071,25 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
     return Container(color: Colors.grey[800]);
   }
 
+  /// 分享单集：系统媒体库 item 的 path 为空，经 AssetEntity.fromId 取真实路径（与详情页分享一致）
+  Future<void> _shareItem(LocalVideoItem item) async {
+    var path = item.path;
+    if (path.isEmpty && item.assetId != null) {
+      try {
+        final entity = await AssetEntity.fromId(item.assetId!);
+        final file = await entity?.file;
+        if (file != null) path = file.path;
+      } catch (_) {}
+    }
+    if (path.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('该文件暂不支持分享')));
+      }
+      return;
+    }
+    await SharePlus.instance.share(ShareParams(files: [XFile(path)], subject: item.name));
+  }
+
   void _openImageViewer(String url) {
     Navigator.push(
       context,
@@ -3153,10 +3177,14 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('正在重新刮削…')));
                     final result = await ScrapeService.scrapeTvSeries(widget.folderName);
                     if (result != null) {
-                      // 整剧所有集共享系列元数据
+                      // 整剧所有集共享系列元数据；scrapeTvSeries 结果不含季集号，
+                      // 逐集按文件名解析保留 SxxExx，避免覆盖缓存后角标/缺集检测失效
                       final cached = Map<String, ScrapedMedia>.from(ref.read(localVideoProvider).scrapedMap);
                       for (final it in sorted) {
-                        cached[it.pathHash] = result;
+                        final ep = ScrapeService.extractEpisode(it.name);
+                        cached[it.pathHash] = ep != null
+                            ? ScrapeService.applyEpisodeInfo(result, ep.season, ep.episode)
+                            : result;
                       }
                       ref.read(localVideoProvider.notifier).updateScrapedMap(cached);
                       if (!context.mounted) return;
@@ -3214,7 +3242,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                           icon: Icon(allFaved ? Icons.favorite : Icons.favorite_border, color: allFaved ? Colors.pink : Colors.white),
                         ),
                         IconButton(
-                          onPressed: () => SharePlus.instance.share(ShareParams(files: [XFile(first.path)], subject: first.name)),
+                          onPressed: () => _shareItem(first),
                           icon: const Icon(Icons.share, color: Colors.white),
                         ),
                         IconButton(
