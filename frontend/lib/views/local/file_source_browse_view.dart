@@ -126,7 +126,10 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         // 更新扫描状态到 provider
         ref.read(fileSourcesProvider.notifier).updateScanStatus(
               widget.source.id,
-              items.isEmpty ? FileSourceStatus.failed : FileSourceStatus.connected,
+              // SMB 已通过连通性测试，空列表仅表示目录无视频，不判连接失败
+              (items.isEmpty && widget.source.type != FileSourceType.smb)
+                  ? FileSourceStatus.failed
+                  : FileSourceStatus.connected,
               videoCount: items.length,
             );
         final cache = await ScrapeService.loadCache();
@@ -190,13 +193,23 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       _scrapedCount = 0;
     });
     ScrapeMediaStore.isScraping.value = true;
+    // 仅刮削未刮削的文件：全量重刮会覆盖用户手动匹配/选图的元数据
+    final todo = _items.where((it) => !_scraped.containsKey(it.pathHash)).toList();
+    if (todo.isEmpty) {
+      ScrapeMediaStore.isScraping.value = false;
+      if (mounted) {
+        setState(() => _scraping = false);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('全部已刮削，无需重复刮削')));
+      }
+      return;
+    }
     // 并发限流 4，串行避免 TMDB 限速
     const concurrency = 4;
     final sessionId = DateTime.now().millisecondsSinceEpoch.toString();
     var i = 0;
     var success = 0;
-    while (i < _items.length) {
-      final batch = _items.skip(i).take(concurrency).toList();
+    while (i < todo.length) {
+      final batch = todo.skip(i).take(concurrency).toList();
       await Future.wait(batch.map((item) async {
         try {
           final pathHash = item.pathHash;
@@ -229,7 +242,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         ScrapeMediaStore.isScraping.value = false;
         return;
       }
-      setState(() => _scrapedCount = i > _items.length ? _items.length : i);
+      setState(() => _scrapedCount = i > todo.length ? todo.length : i);
     }
     ScrapeMediaStore.isScraping.value = false;
     if (mounted) {
@@ -242,7 +255,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       // 刷新全局 provider，让媒体库主页实时显示新刮削的元数据
       ref.read(localVideoProvider.notifier).refresh();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('刮削完成：成功 $success / 共 ${_items.length} 个视频')),
+        SnackBar(content: Text('刮削完成：成功 $success / 共 ${todo.length} 个未刮削视频')),
       );
     }
   }
@@ -1639,6 +1652,12 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     for (final item in _items.where((i) => _selected.contains(i.pathHash))) {
       try {
         await LocalVideoService().delete(item);
+        // 同步清理刮削旁置文件（.nfo/海报/.actors）与 prefs 缓存，避免孤儿文件残留
+        try {
+          await ScrapeMediaStore.delete(item);
+          final sp = await SharedPreferences.getInstance();
+          await sp.remove('scrape_${item.pathHash}');
+        } catch (_) {}
         ok++;
       } catch (_) {
         fail++;
