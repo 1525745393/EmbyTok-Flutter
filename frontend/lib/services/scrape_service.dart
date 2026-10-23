@@ -353,8 +353,23 @@ class ScrapeService {
       return ParsedName(type: 'tv', title: title, season: 1, episode: episode);
     }
 
+    // 剧集：EP01 / EP1 / 第1集 / 第一集（无季信息，默认季 1；与 episodeRegex 同套解析）
+    // 剧名留空由调用方用父目录剧名兜底，避免此类命名被误判为电影或刮削短路
+    final epOnlyMatch = RegExp(
+      r'(?:[Ee][Pp]?\s*(\d{1,2}))|(?:第\s*(\d{1,2})\s*集)|(?:第([一二三四五六七八九十\d]+)集)',
+      caseSensitive: false,
+    ).firstMatch(name);
+    if (epOnlyMatch != null) {
+      final episode =
+          _cnToInt(epOnlyMatch.group(1) ?? epOnlyMatch.group(2) ?? epOnlyMatch.group(3)!);
+      var title = name.substring(0, epOnlyMatch.start).trim();
+      title = _cleanNoise(title);
+      return ParsedName(type: 'tv', title: title, season: 1, episode: episode);
+    }
+
     // 电影：提取年份（支持 "片名 2008" 和 "片名 (2008)" 两种格式）
-    // 防御误判：未来年份（如 Blade Runner 2049）与"片名即年份"（如 2012）不剥离、不带 year 搜索
+    // 防御误判：未来年份（如 Blade Runner 2049）不剥离；年份在开头的文件名
+    // （如 "2023 荒岛求生"）先剥离提取，仅剥离后为空（片名即年份，如 2012）才保留原名
     final nowYear = DateTime.now().year;
     final yearMatch =
         RegExp(r'(?<=^|\s|\()(19|20)\d{2}(?=\s|\)|$)').firstMatch(name);
@@ -366,9 +381,15 @@ class ScrapeService {
         year = null;
         title = name;
       } else if (yearMatch.start == 0) {
-        // 片名即年份（如 2012）：不剥离，避免标题为空导致刮削短路
-        year = null;
-        title = name;
+        // 剥离开头的年份；剥离后标题为空说明片名即年份（如 2012），保留原名不提取
+        final stripped = name.replaceAll(RegExp(r'^\s*(19|20)\d{2}\s*'), '').trim();
+        if (stripped.isEmpty) {
+          year = null;
+          title = name;
+        } else {
+          year = int.tryParse(yearMatch.group(0)!);
+          title = stripped;
+        }
       } else {
         title = name.substring(0, yearMatch.start).trim();
       }
