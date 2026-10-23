@@ -1,3 +1,10 @@
+## [2.401.18](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.17...v2.401.18) (2026-10-23)
+
+
+### Bug Fixes
+
+* **刮削存储层:** 审查 2 项修复（1 P2 + 1 P3） ([11034b5](https://github.com/1525745393/EmbyTok-Flutter/commit/11034b5bb5a4797b035447c4cccc0d92458e3ec4))
+
 ## [2.401.17](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.16...v2.401.17) (2026-10-22)
 
 
