@@ -115,23 +115,8 @@ class ScrapeMediaStore {
         if (!await showNfo.exists()) {
           await showNfo.writeAsString(_buildShowNfo(media));
         }
-        // poster.jpg / fanart.jpg 写到剧集根目录
-        if (media.posterPath != null && media.posterPath!.isNotEmpty) {
-          final centralDir = await _subDir('posters');
-          final centralPoster = File(_join(centralDir.path, '${_safeName(item.pathHash)}.jpg'));
-          if (await centralPoster.exists()) {
-            final dst = File('${showDir.path}/poster.jpg');
-            if (!await dst.exists()) await dst.writeAsBytes(await centralPoster.readAsBytes());
-          }
-        }
-        if (media.backdropPath != null && media.backdropPath!.isNotEmpty) {
-          final centralDir = await _subDir('backdrops');
-          final centralBackdrop = File(_join(centralDir.path, '${_safeName(item.pathHash)}.jpg'));
-          if (await centralBackdrop.exists()) {
-            final dst = File('${showDir.path}/fanart.jpg');
-            if (!await dst.exists()) await dst.writeAsBytes(await centralBackdrop.readAsBytes());
-          }
-        }
+        // poster.jpg/fanart.jpg 需等中央图片下载完成后写入剧集根目录（见下载段末尾 2c），
+        // 否则首次刮削时图尚未下载，剧集根会缺海报/背景
       } catch (e) {
         AppLogger.warn('写 show 级别元数据失败', data: {'error': e.toString()});
       }
@@ -223,6 +208,41 @@ class ScrapeMediaStore {
     }
 
     await Future.wait(jobs);
+
+    // 2c) 电视剧：图片下载完成后，将海报/背景复制到剧集根目录。
+    // 必须等下载完成：首次刮削时中央目录图此时才存在，否则剧集根缺 poster/fanart
+    if (media.type == 'tv' && base != null) {
+      try {
+        final episodeDir = File(base).parent;
+        final isSeasonDir = ScrapeService.isSeasonDirName(
+            episodeDir.path.split('/').where((s) => s.isNotEmpty).last);
+        final showDir = isSeasonDir ? episodeDir.parent : episodeDir;
+        if (media.posterPath != null && media.posterPath!.isNotEmpty) {
+          final centralDir = await _subDir('posters');
+          final centralPoster = File(
+              _join(centralDir.path, '${_safeName(item.pathHash)}.jpg'));
+          if (await centralPoster.exists()) {
+            final dst = File('${showDir.path}/poster.jpg');
+            if (!await dst.exists()) {
+              await dst.writeAsBytes(await centralPoster.readAsBytes());
+            }
+          }
+        }
+        if (media.backdropPath != null && media.backdropPath!.isNotEmpty) {
+          final centralDir = await _subDir('backdrops');
+          final centralBackdrop = File(
+              _join(centralDir.path, '${_safeName(item.pathHash)}.jpg'));
+          if (await centralBackdrop.exists()) {
+            final dst = File('${showDir.path}/fanart.jpg');
+            if (!await dst.exists()) {
+              await dst.writeAsBytes(await centralBackdrop.readAsBytes());
+            }
+          }
+        }
+      } catch (e) {
+        AppLogger.warn('写 show 级别图片失败', data: {'error': e.toString()});
+      }
+    }
     } catch (e) {
       AppLogger.warn('图片下载阶段异常（不影响元数据落盘）', data: {'error': e.toString()});
     }
@@ -429,6 +449,9 @@ class ScrapeMediaStore {
   static Future<void> clearCentral() async {
     final root = await _centralRoot();
     if (await root.exists()) await root.delete(recursive: true);
+    // 中央目录已删，必须失效内存镜像；否则下次 loadCentralAll 返回旧数据，
+    // 设置页清除缓存后元数据会被"自动救回"并触发重新下载（与 clearCache 对称）
+    _invalidateCentralCache();
   }
 
   // ---- 刮削历史记录 ----
