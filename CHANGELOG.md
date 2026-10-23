@@ -1,3 +1,10 @@
+## [2.401.22](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.21...v2.401.22) (2026-10-23)
+
+
+### Bug Fixes
+
+* **TMDB服务:** 审查 2 项修复（P3×2） ([30b748c](https://github.com/1525745393/EmbyTok-Flutter/commit/30b748c86155bf636be6dd6523f619c41362eb23))
+
 ## [2.401.21](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.20...v2.401.21) (2026-10-23)
 
 
