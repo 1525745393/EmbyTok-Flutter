@@ -454,6 +454,47 @@ class ScrapeMediaStore {
     _invalidateCentralCache();
   }
 
+  /// 文件夹重命名后迁移中央沙箱：目录内每个视频的 pathHash 由
+  /// localdir:<oldDir>/<rel> 变为 localdir:<newDir>/<rel>，md5 文件名随之变化。
+  /// 将中央 metadata/posters/backdrops/stills 旧名文件平移/删除到新名，
+  /// 避免与 ScrapeMediaStore.rename（单文件）语义不一致的孤儿残留。
+  static Future<void> migrateDir(String oldDir, String newDir) async {
+    if (oldDir == newDir || oldDir.isEmpty || newDir.isEmpty) return;
+    try {
+      const videoExt = {
+        '.mp4', '.mkv', '.avi', '.mov', '.webm', '.flv', '.ts', '.m2ts',
+        '.3gp', '.wmv', '.m4v',
+      };
+      final dir = Directory(newDir);
+      if (!await dir.exists()) return;
+      await for (final e in dir.list(recursive: true)) {
+        if (e is! File) continue;
+        final lower = e.path.toLowerCase();
+        if (!videoExt.any(lower.endsWith)) continue;
+        final rel = e.path.substring(newDir.length).replaceFirst(RegExp(r'^/+'), '');
+        final oldHash = 'localdir:$oldDir/$rel';
+        final newHash = 'localdir:$newDir/$rel';
+        final oldSafe = _safeName(oldHash);
+        final newSafe = _safeName(newHash);
+        for (final sub in ['metadata', 'posters', 'backdrops', 'stills']) {
+          final subDir = await _subDir(sub);
+          final ext = sub == 'metadata' ? '.json' : '.jpg';
+          final oldF = File(_join(subDir.path, '$oldSafe$ext'));
+          final newF = File(_join(subDir.path, '$newSafe$ext'));
+          if (!await oldF.exists()) continue;
+          if (await newF.exists()) {
+            await oldF.delete(); // 目标已存在则删除旧孤儿
+          } else {
+            await oldF.rename(newF.path);
+          }
+        }
+      }
+      _invalidateCentralCache();
+    } catch (e) {
+      AppLogger.warn('迁移中央目录失败', data: {'oldDir': oldDir, 'error': e.toString()});
+    }
+  }
+
   // ---- 刮削历史记录 ----
   static const _historyFile = 'scrape_history.json';
   static const _maxHistory = 500;

@@ -489,6 +489,9 @@ class LocalVideoService {
           }
         }
       }
+      // 中央沙箱同步迁移：pathHash 以 localdir:<绝对路径> 命名，目录改名后
+      // md5 文件名变化，平移旧名文件到新名，避免中央元数据/图片孤儿残留
+      await ScrapeMediaStore.migrateDir(oldDir, newDir);
     } catch (_) {}
   }
 

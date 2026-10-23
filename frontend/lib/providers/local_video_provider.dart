@@ -349,7 +349,9 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
           // .nfo 不写 lowConfidence 标签，解析恒为 false；
           // 回退中央缓存，避免低置信匹配标记在每次 refresh 后被覆盖丢失
           lowConfidence: nfo.lowConfidence || (prev?.lowConfidence ?? false),
-          scrapedAt: nfo.scrapedAt,
+          // .nfo 无时间字段（_parseXmlNfo 恒为解析时刻），优先中央缓存真实刮削时间，
+          // 避免详情页"加入时间"每次刷新漂移成"刚刚"
+          scrapedAt: prev?.scrapedAt ?? nfo.scrapedAt,
         );
         cached[it.pathHash] = merged;
         // 旧 .nfo 补全：把合并后的数据写回 .nfo（一次性迁移）
