@@ -73,9 +73,12 @@ class LocalVideoService {
       while (true) {
         final assets = await path.getAssetListRange(start: offset, end: offset + 500);
         if (assets.isEmpty) break;
-        for (final a in assets) {
-          // AssetEntity.duration 单位是秒；fileSize 是异步 Future<int>
-          final fileSize = await a.fileSize;
+        // fileSize 是平台通道异步调用，同页 500 条并行取，避免全量刷新被串行拖慢
+        final sizes = await Future.wait(assets.map((a) => a.fileSize));
+        for (var i = 0; i < assets.length; i++) {
+          final a = assets[i];
+          // AssetEntity.duration 单位是秒
+          final fileSize = sizes[i];
           result.add(LocalVideoItem(
             id: a.id,
             name: a.title ?? a.id,
@@ -101,6 +104,8 @@ class LocalVideoService {
   /// 扫描 App 专属目录（递归常见视频扩展名）
   Future<List<LocalVideoItem>> _scanAppDir() async {
     final result = <LocalVideoItem>[];
+    // 同目录的 N 个视频文件共享一次目录列出，避免对每个文件重复 listSync 阻塞主线程
+    final dirCache = <String, List<FileSystemEntity>>{};
     try {
       final dirs = <Directory?>[
         await getApplicationDocumentsDirectory(),
@@ -122,7 +127,8 @@ class LocalVideoService {
             final dirName = entity.parent.path;
             final baseName = entity.path.split('/').last.replaceAll(ext, '');
             try {
-              final dirEntities = Directory(dirName).listSync();
+              final dirEntities =
+                  dirCache.putIfAbsent(dirName, () => Directory(dirName).listSync());
               for (final e in dirEntities) {
                 if (e is! File) continue;
                 final se = _ext(e.path);
