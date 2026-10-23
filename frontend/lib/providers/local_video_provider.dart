@@ -346,7 +346,9 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
           episode: nfo.episode ?? prev?.episode,
           tvId: nfo.tvId ?? prev?.tvId,
           certification: nfo.certification ?? prev?.certification,
-          lowConfidence: nfo.lowConfidence,
+          // .nfo 不写 lowConfidence 标签，解析恒为 false；
+          // 回退中央缓存，避免低置信匹配标记在每次 refresh 后被覆盖丢失
+          lowConfidence: nfo.lowConfidence || (prev?.lowConfidence ?? false),
           scrapedAt: nfo.scrapedAt,
         );
         cached[it.pathHash] = merged;
@@ -602,6 +604,8 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
 
   /// 从本地列表移除指定 pathHash 的视频（不删文件，仅清缓存记录）
   Future<void> removeByPathHash(String pathHash) async {
+    final removed =
+        state.items.where((it) => it.pathHash == pathHash).firstOrNull;
     final items = List.of(state.items)
       ..removeWhere((it) => it.pathHash == pathHash);
     state = state.copyWith(items: items);
@@ -612,6 +616,14 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
       'local_video_cache_v1',
       jsonEncode(items.map((e) => e.toJson()).toList()),
     );
+    // 同步清理刮削旁置文件与缓存（与 deleteByIds 三步一致），
+    // 否则下次 refresh 扫描重扫磁盘时文件带旧刮削数据回归、旁置 .nfo 成孤儿
+    if (removed != null) {
+      try {
+        await ScrapeMediaStore.delete(removed);
+        await sp.remove('scrape_${removed.pathHash}');
+      } catch (_) {}
+    }
   }
 
   /// 播放后回填真实时长/分辨率（localDir/App 目录扫描时未取元数据），
