@@ -157,18 +157,23 @@ class TmdbService {
     try {
       final encoded = Uri.encodeQueryComponent(query);
       List<Map<String, dynamic>> results;
+      // 第一次：带年份精确过滤；异常时静默降级到不带年份兜底搜索
       if (year != null) {
-        final yp = '&year=$year';
-        final r = await http
-            .get(Uri.parse(
-                '$_base/search/movie?api_key=$_apiKey&query=$encoded$yp&language=$language&include_adult=false'))
-            .timeout(const Duration(seconds: 6));
-        if (r.statusCode == 200) {
-          final data = jsonDecode(r.body);
-          results = (data['results'] as List? ?? [])
-              .map((m) => m as Map<String, dynamic>)
-              .toList();
-          if (results.isNotEmpty) return results;
+        try {
+          final yp = '&year=$year';
+          final r = await http
+              .get(Uri.parse(
+                  '$_base/search/movie?api_key=$_apiKey&query=$encoded$yp&language=$language&include_adult=false'))
+              .timeout(const Duration(seconds: 6));
+          if (r.statusCode == 200) {
+            final data = jsonDecode(r.body);
+            results = (data['results'] as List? ?? [])
+                .map((m) => m as Map<String, dynamic>)
+                .toList();
+            if (results.isNotEmpty) return results;
+          }
+        } catch (_) {
+          // 网络异常/超时：继续不带年份重试，避免单次抖动导致整次刮削失败
         }
       }
       final r = await http
@@ -240,12 +245,13 @@ class TmdbService {
     }
   }
 
-  /// 获取影片演职员（导演+演员）
+  /// 获取影片演职员（导演+演员；带 zh-CN，角色名与 getMovieDetails 一致为中文）
   static Future<Map<String, dynamic>> getMovieCredits(int movieId) async {
     if (!isConfigured) return {};
     try {
       final r = await http
-          .get(Uri.parse('$_base/movie/$movieId/credits?api_key=$_apiKey'))
+          .get(Uri.parse(
+              '$_base/movie/$movieId/credits?api_key=$_apiKey&language=zh-CN'))
           .timeout(const Duration(seconds: 6));
       if (r.statusCode != 200) return {};
       return jsonDecode(r.body) as Map<String, dynamic>;
@@ -299,19 +305,23 @@ class TmdbService {
     try {
       final encoded = Uri.encodeQueryComponent(query);
       List<Map<String, dynamic>> results;
-      // 第一次：带年份精确过滤
+      // 第一次：带年份精确过滤；异常时静默降级到不带年份兜底搜索
       if (year != null) {
-        final yp = '&first_air_date_year=$year';
-        final r = await http
-            .get(Uri.parse(
-                '$_base/search/tv?api_key=$_apiKey&query=$encoded$yp&language=zh-CN'))
-            .timeout(const Duration(seconds: 6));
-        if (r.statusCode == 200) {
-          final data = jsonDecode(r.body);
-          results = (data['results'] as List? ?? [])
-              .map((m) => m as Map<String, dynamic>)
-              .toList();
-          if (results.isNotEmpty) return results;
+        try {
+          final yp = '&first_air_date_year=$year';
+          final r = await http
+              .get(Uri.parse(
+                  '$_base/search/tv?api_key=$_apiKey&query=$encoded$yp&language=zh-CN'))
+              .timeout(const Duration(seconds: 6));
+          if (r.statusCode == 200) {
+            final data = jsonDecode(r.body);
+            results = (data['results'] as List? ?? [])
+                .map((m) => m as Map<String, dynamic>)
+                .toList();
+            if (results.isNotEmpty) return results;
+          }
+        } catch (_) {
+          // 网络异常/超时：继续不带年份重试，避免单次抖动导致整次刮削失败
         }
       }
       // 第二次：去掉年份重试（避免首播日期不精确导致漏搜）
