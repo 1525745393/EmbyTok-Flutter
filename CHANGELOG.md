@@ -1,3 +1,10 @@
+## [2.401.21](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.20...v2.401.21) (2026-10-23)
+
+
+### Bug Fixes
+
+* **刮削服务:** 审查 2 项修复（P3×2 文件名解析） ([f4e6cc8](https://github.com/1525745393/EmbyTok-Flutter/commit/f4e6cc8657512cf9d89202c3dec6733eb7aa4afd))
+
 ## [2.401.20](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.19...v2.401.20) (2026-10-23)
 
 
