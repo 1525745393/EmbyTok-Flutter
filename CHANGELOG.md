@@ -1,3 +1,10 @@
+## [2.401.24](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.23...v2.401.24) (2026-10-24)
+
+
+### Bug Fixes
+
+* **设置页:** 恢复 logger import（settings_builders_extra part 文件依赖 AppLogger） ([e6f82ab](https://github.com/1525745393/EmbyTok-Flutter/commit/e6f82abf6db32b82e599e4571bf71db7c875b527))
+
 ## [2.401.23](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.22...v2.401.23) (2026-10-23)
 
 
