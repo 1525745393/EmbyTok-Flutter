@@ -228,16 +228,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthState();
   }
 
-  /// 进入演示模式：注入 mock 登录状态（替代外部直接 .state = 赋值）
-  void enterDemoMode() {
-    state = const AuthState(
-      isAuthenticated: true,
-      user: User(id: 'demo_user', name: '演示用户', accessToken: 'demo_token'),
-      embyServerUrl: 'https://demo.emby.local',
-      token: 'demo_token',
-    );
-  }
-
   /// 进入本地媒体库模式：注入 mock 登录状态
   void enterLocalMode() {
     state = const AuthState(

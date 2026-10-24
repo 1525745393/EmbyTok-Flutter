@@ -13,7 +13,6 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/app_error.dart';
-import '../providers/demo_mode_provider.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
 import '../utils/formatters.dart';
@@ -46,8 +45,6 @@ class ApiClient {
     }
     _setupInterceptors();
   }
-  /// 演示模式开关：激活时拦截器返回 mock 数据，不发送真实请求
-  static bool demoMode = false;
   final Dio _dio;
   String? _token;
 
@@ -135,18 +132,6 @@ class ApiClient {
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           options.extra['_startTime'] = DateTime.now().millisecondsSinceEpoch;
-          // 演示模式：返回 mock 数据（支持异步 TMDB API 调用）
-          if (demoMode) {
-            final mock = await DemoMockData.handleRequest(
-                options.path, options.queryParameters);
-            if (mock != null) {
-              return handler.resolve(Response(
-                requestOptions: options,
-                statusCode: 200,
-                data: mock,
-              ));
-            }
-          }
           final token = _token;
           if (token != null && token.isNotEmpty) {
             // 已登录：将 Token 内嵌到 X-Emby-Authorization（Emby 规范要求）

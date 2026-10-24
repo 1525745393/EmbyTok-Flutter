@@ -71,38 +71,6 @@ class TmdbService {
     return null;
   }
 
-  /// 获取 Trending 电影（演示模式用）
-  static Future<List<Map<String, dynamic>>> getTrendingMovies() async {
-    if (!isConfigured) return [];
-    try {
-      final r = await http
-          .get(Uri.parse('$_base/trending/movie/week?api_key=$_apiKey'))
-          .timeout(const Duration(seconds: 8));
-      if (r.statusCode != 200) return [];
-      final data = jsonDecode(r.body);
-      final results = data['results'] as List? ?? [];
-      return results.map((m) => m as Map<String, dynamic>).toList();
-    } catch (_) {
-      return [];
-    }
-  }
-
-  /// 获取 Trending 剧集
-  static Future<List<Map<String, dynamic>>> getTrendingTv() async {
-    if (!isConfigured) return [];
-    try {
-      final r = await http
-          .get(Uri.parse('$_base/trending/tv/week?api_key=$_apiKey'))
-          .timeout(const Duration(seconds: 8));
-      if (r.statusCode != 200) return [];
-      final data = jsonDecode(r.body);
-      final results = data['results'] as List? ?? [];
-      return results.map((m) => m as Map<String, dynamic>).toList();
-    } catch (_) {
-      return [];
-    }
-  }
-
   /// 获取类型映射 (genre_id → 类型名)
   static Future<Map<int, String>> getGenres() async {
     if (!isConfigured) return {};
@@ -131,22 +99,6 @@ class TmdbService {
       return results;
     } catch (_) {
       return {};
-    }
-  }
-
-  /// 获取热门演员（用于演示模式演员列表）
-  static Future<List<Map<String, dynamic>>> getPopularPeople() async {
-    if (!isConfigured) return [];
-    try {
-      final r = await http
-          .get(Uri.parse('$_base/person/popular?api_key=$_apiKey'))
-          .timeout(const Duration(seconds: 8));
-      if (r.statusCode != 200) return [];
-      final data = jsonDecode(r.body);
-      final results = data['results'] as List? ?? [];
-      return results.map((m) => m as Map<String, dynamic>).toList();
-    } catch (_) {
-      return [];
     }
   }
 
@@ -191,24 +143,6 @@ class TmdbService {
     }
   }
 
-  /// 按类型发现影片
-  static Future<List<Map<String, dynamic>>> discoverByGenre(
-      int genreId) async {
-    if (!isConfigured) return [];
-    try {
-      final r = await http
-          .get(Uri.parse(
-              '$_base/discover/movie?api_key=$_apiKey&with_genres=$genreId&sort_by=popularity.desc'))
-          .timeout(const Duration(seconds: 6));
-      if (r.statusCode != 200) return [];
-      final data = jsonDecode(r.body);
-      final results = data['results'] as List? ?? [];
-      return results.map((m) => m as Map<String, dynamic>).toList();
-    } catch (_) {
-      return [];
-    }
-  }
-
   /// 获取影片推荐
   static Future<List<Map<String, dynamic>>> getRecommendations(
       int movieId) async {
@@ -235,39 +169,6 @@ class TmdbService {
       final r = await http
           .get(Uri.parse(
               '$_base/tv/$tvId/recommendations?api_key=$_apiKey&language=zh-CN'))
-          .timeout(const Duration(seconds: 6));
-      if (r.statusCode != 200) return [];
-      final data = jsonDecode(r.body);
-      final results = data['results'] as List? ?? [];
-      return results.map((m) => m as Map<String, dynamic>).toList();
-    } catch (_) {
-      return [];
-    }
-  }
-
-  /// 获取影片演职员（导演+演员；带 zh-CN，角色名与 getMovieDetails 一致为中文）
-  static Future<Map<String, dynamic>> getMovieCredits(int movieId) async {
-    if (!isConfigured) return {};
-    try {
-      final r = await http
-          .get(Uri.parse(
-              '$_base/movie/$movieId/credits?api_key=$_apiKey&language=zh-CN'))
-          .timeout(const Duration(seconds: 6));
-      if (r.statusCode != 200) return {};
-      return jsonDecode(r.body) as Map<String, dynamic>;
-    } catch (_) {
-      return {};
-    }
-  }
-
-  /// 按分类获取影片列表
-  /// category: popular / top_rated / upcoming / now_playing
-  static Future<List<Map<String, dynamic>>> getMovieList(
-      String category) async {
-    if (!isConfigured) return [];
-    try {
-      final r = await http
-          .get(Uri.parse('$_base/movie/$category?api_key=$_apiKey'))
           .timeout(const Duration(seconds: 6));
       if (r.statusCode != 200) return [];
       final data = jsonDecode(r.body);

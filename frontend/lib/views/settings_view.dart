@@ -19,7 +19,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/models.dart';
 import '../providers/artist_metadata_provider.dart';
-import '../providers/demo_mode_provider.dart';
 import '../providers/player_engine_provider.dart';
 import '../providers/server_registry_provider.dart';
 import '../services/update_check_service.dart';
@@ -38,7 +37,6 @@ import '../utils/constants.dart';
 import '../utils/donate_colors.dart';
 import '../utils/formatters.dart' show formatBytes;
 import '../utils/lanzou_url.dart';
-import '../utils/logger.dart';
 import '../utils/performance_monitor.dart';
 import '../test_mode/test_mode_switch.dart';
 import '../widgets/library_selector.dart';
@@ -301,7 +299,6 @@ class SettingsView extends ConsumerWidget {
               _buildYearReportTile(context, ref),
               _buildNetworkDiagnosticTile(context, ref),
               _buildFeedbackTile(context, ref),
-              if (ref.watch(demoModeProvider)) _buildExitDemoTile(context, ref),
             ],
           ),
           // 家长控制
@@ -682,28 +679,6 @@ class SettingsView extends ConsumerWidget {
         MaterialPageRoute<Widget>(builder: (_) => NetworkDiagnosticPage(serverUrl: serverUrl),
         ),
       ),
-    );
-  }
-
-  // 退出演示模式
-  Widget _buildExitDemoTile(BuildContext context, WidgetRef ref) {
-    return ListTile(
-      leading: const Icon(Icons.exit_to_app, color: Colors.red),
-      title: const Text('退出演示模式'),
-      subtitle: const Text('返回登录页，连接真实服务器'),
-      onTap: () {
-        ApiClient.demoMode = false;
-        // ignore: invalid_use_of_protected_member
-        ref.read(demoModeProvider.notifier).state = false;
-        // 重置 auth state，避免 demo 登录状态残留
-        ref.read(authProvider.notifier).reset();
-        // 清除演示模式缓存的 mock 数据，避免残留
-        try {
-          ref.read(cacheControllerProvider).invalidateAll();
-        } catch (_) {}
-        AppLogger.info('退出演示模式');
-        context.go('/login');
-      },
     );
   }
 
