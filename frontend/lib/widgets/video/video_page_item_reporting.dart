@@ -115,11 +115,20 @@ extension _VideoPlaybackReporting on _VideoPageItemState {
     // 只有当前页才记录，避免预加载页误记录拉低完播率
     if (!widget.isCurrentPage) return;
     final controller = _videoController;
-    if (controller == null) return;
+    // batch 29：MPV/VLC 引擎下 controller 为 null/未初始化，改用
+    // VideoPlayerWidgetState 统一接口取位置/时长（与 _reportPlaybackProgress 同兜底模式）
+    Duration? position;
+    Duration? duration;
+    if (controller != null && controller.value.isInitialized) {
+      position = controller.value.position;
+      duration = controller.value.duration;
+    } else {
+      final state = _videoPlayerKey.currentState;
+      position = state?.currentPosition;
+      duration = state?.totalDuration;
+    }
+    if (position == null || duration == null) return;
     try {
-      if (!controller.value.isInitialized) return;
-      final position = controller.value.position;
-      final duration = controller.value.duration;
       if (duration.inMilliseconds <= 0) return;
       // 使用微秒计算避免毫秒整数除法的精度损失
       final completionRate = position.inMicroseconds / duration.inMicroseconds;

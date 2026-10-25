@@ -18,6 +18,7 @@ class _RightActionButtons extends ConsumerWidget {
     required this.onDeleteTap,
     required this.onShareTap,
     required this.onCommentTap,
+    this.handle,
     this.onSpeedTap,
     this.onSubtitleTap,
     this.onAudioTap,
@@ -26,6 +27,8 @@ class _RightActionButtons extends ConsumerWidget {
   });
   final MediaItem item;
   final VideoPlayerController? controller;
+  // batch 29：MPV/VLC 引擎下 controller 不可用，静音/倍速/章节走统一句柄
+  final PlayerControlHandle? handle;
   final Animation<double> discRotation;
   final String posterUrl;
   final Map<String, String>? posterHeaders;
@@ -217,7 +220,12 @@ class _RightActionButtons extends ConsumerWidget {
                                 context: context,
                                 chapters: chapters,
                                 onSeek: (sec) {
-                                  // TODO: seek to chapter
+                                  // batch 29：统一句柄优先 seek（MPV/VLC 下 controller 不可用），
+                                  // fallback EXO controller
+                                  final target = Duration(
+                                      seconds: sec);
+                                  handle?.seekTo(target);
+                                  controller?.seekTo(target);
                                 },
                               );
                             } else if (context.mounted) {
@@ -254,6 +262,7 @@ class _RightActionButtons extends ConsumerWidget {
                       SizedBox(height: rs(16, 1.5)),
                       SpeedControlButton(
                         controller: controller,
+                        handle: handle,
                         onTap: onSpeedTap ?? () {},
                       ),
                       SizedBox(height: rs(16, 1.5)),
@@ -275,6 +284,7 @@ class _RightActionButtons extends ConsumerWidget {
                       DiscMuteButton(
                         discRotation: discRotation,
                         controller: controller,
+                        handle: handle,
                         posterUrl: posterUrl,
                         httpHeaders: posterHeaders,
                       ),
@@ -304,9 +314,12 @@ class _BottomInfoBar extends StatelessWidget {
     required this.onToggleFullscreen,
     required this.onInfoTap,
     required this.formatDuration,
+    this.handle,
   });
   final MediaItem item;
   final VideoPlayerController? controller;
+  // batch 29：MPV/VLC 引擎下 controller 不可用，进度条走统一句柄
+  final PlayerControlHandle? handle;
   final bool isVisible;
   final bool toolbarVisible;
   final double bottomPadding;
@@ -320,7 +333,9 @@ class _BottomInfoBar extends StatelessWidget {
     double rs(double base, [double maxScale = 1.7]) =>
         responsiveSize(context, base, maxScale);
 
+    // batch 29：进度条可用条件 = EXO controller 已初始化，或统一句柄就绪（MPV/VLC）
     final hasController = controller != null && controller!.value.isInitialized;
+    final hasProgress = hasController || (handle?.isReady ?? false);
 
     return Positioned(
       left: 0,
@@ -502,11 +517,12 @@ class _BottomInfoBar extends StatelessWidget {
                   ),
                 ),
                 // 进度条（不包在 GestureDetector 里，避免点击进度条弹出详情）
-                if (hasController)
+                if (hasProgress)
                   Padding(
                     padding: const EdgeInsets.only(top: _kSpacingLarge),
                     child: SeekableProgressBar(
-                      controller: controller!,
+                      controller: hasController ? controller : null,
+                      handle: handle,
                       formatDuration: formatDuration,
                     ),
                   ),
@@ -530,8 +546,11 @@ class _CenterPlayButtonWrapper extends ConsumerWidget {
     required this.onPlay,
     required this.visible,
     required this.isAutoPlay,
+    this.handle,
   });
   final VideoPlayerController? controller;
+  // batch 29：MPV/VLC 引擎下 controller 不可用，中央按钮按统一句柄就绪判定
+  final PlayerControlHandle? handle;
   final VoidCallback onPlay;
   // 由父组件控制显示状态（非纯净模式下的自动隐藏）
   final bool visible;
@@ -543,7 +562,10 @@ class _CenterPlayButtonWrapper extends ConsumerWidget {
     if (isAutoPlay) return const SizedBox.shrink();
     // 非纯净模式：由 visible 状态控制显示
     if (!visible) return const SizedBox.shrink();
-    if (controller == null || !controller!.value.isInitialized) {
+    final controllerUsable =
+        controller != null && controller!.value.isInitialized;
+    final handleReady = handle?.isReady ?? false;
+    if (!controllerUsable && !handleReady) {
       return const SizedBox.shrink();
     }
     final isPlaying = ref.watch(isPlayingProvider);

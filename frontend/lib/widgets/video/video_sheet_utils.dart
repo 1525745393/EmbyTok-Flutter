@@ -25,11 +25,14 @@ import 'subtitle_selector.dart';
 export 'audio_track_selector.dart' show showAudioTrackSelector;
 
 // ===== 倍速调节面板（BottomSheet + 滑块）=====
+// batch 29：MPV/VLC 引擎下 controller 不可用，改由统一句柄（handle）读当前倍速并应用
 Future<void> showSpeedControlPanel(
   BuildContext context,
-  VideoPlayerController? controller,
-) async {
-  final double currentSpeed = controller?.value.playbackSpeed ?? 1.0;
+  VideoPlayerController? controller, {
+  PlayerControlHandle? handle,
+}) async {
+  final double currentSpeed =
+      handle?.playbackRate ?? controller?.value.playbackSpeed ?? 1.0;
   double selectedSpeed = currentSpeed;
   final scheme = Theme.of(context).colorScheme;
 
@@ -118,7 +121,12 @@ Future<void> showSpeedControlPanel(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      controller?.setPlaybackSpeed(selectedSpeed);
+                      final h = handle;
+                      if (h != null) {
+                        h.setRate(selectedSpeed);
+                      } else {
+                        controller?.setPlaybackSpeed(selectedSpeed);
+                      }
                       WidgetsBinding.instance.addPostFrameCallback((_) {
                         if (context.mounted) {
                           final container = ProviderScope.containerOf(

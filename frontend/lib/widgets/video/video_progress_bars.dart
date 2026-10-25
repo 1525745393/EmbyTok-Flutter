@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../providers/providers.dart';
 import '../../utils/logger.dart';
 
 /// TikTok 风格底部细线进度条
@@ -58,14 +59,19 @@ class _ThinProgressBarState extends State<ThinProgressBar> {
 
 /// 可点击/可拖拽的进度条（用于底部信息栏）
 /// 支持点击跳转和水平拖拽 seek
+///
+/// batch 29：EXO 引擎由 [controller] 驱动；MPV/VLC 引擎下 controller 不可用时
+/// 由 [handle]（统一控制句柄）驱动位置/时长与 seek，样式与交互保持单一实现。
 class SeekableProgressBar extends StatefulWidget {
   const SeekableProgressBar({
     super.key,
     required this.controller,
     required this.formatDuration,
+    this.handle,
   });
-  final VideoPlayerController controller;
+  final VideoPlayerController? controller;
   final String Function(Duration) formatDuration;
+  final PlayerControlHandle? handle;
 
   @override
   State<SeekableProgressBar> createState() => _SeekableProgressBarState();
@@ -75,15 +81,41 @@ class _SeekableProgressBarState extends State<SeekableProgressBar> {
   double _dragProgress = 0.0;
   bool _isDragging = false;
 
+  /// EXO controller 是否可用（已初始化）
+  bool get _controllerUsable =>
+      widget.controller != null && widget.controller!.value.isInitialized;
+
+  /// 当前播放位置（三引擎统一）
+  Duration get _position {
+    final c = widget.controller;
+    if (_controllerUsable) return c!.value.position;
+    return widget.handle?.currentPosition ?? Duration.zero;
+  }
+
+  /// 视频总时长（三引擎统一）
+  Duration get _duration {
+    final c = widget.controller;
+    if (_controllerUsable) return c!.value.duration;
+    return widget.handle?.totalDuration ?? Duration.zero;
+  }
+
   @override
   void initState() {
     super.initState();
-    widget.controller.addListener(_onChanged);
+    if (_controllerUsable) {
+      widget.controller!.addListener(_onChanged);
+    } else {
+      widget.handle?.positionMsListenable?.addListener(_onChanged);
+    }
   }
 
   @override
   void dispose() {
-    widget.controller.removeListener(_onChanged);
+    if (_controllerUsable) {
+      widget.controller!.removeListener(_onChanged);
+    } else {
+      widget.handle?.positionMsListenable?.removeListener(_onChanged);
+    }
     super.dispose();
   }
 
@@ -92,23 +124,24 @@ class _SeekableProgressBarState extends State<SeekableProgressBar> {
     setState(() {});
   }
 
-  /// 计算缓冲进度（0~1）
+  /// 计算缓冲进度（0~1）；MPV/VLC 无 buffered 概念，返回 0
   double _bufferedProgress() {
-    final value = widget.controller.value;
+    if (!_controllerUsable) return 0.0;
+    final value = widget.controller!.value;
     if (value.duration.inMilliseconds <= 0 || value.buffered.isEmpty) return 0.0;
     return (value.buffered.last.end.inMilliseconds / value.duration.inMilliseconds)
         .clamp(0.0, 1.0);
   }
 
-  /// 根据水平点击/拖拽位置计算进度百分比并执行 seek
-  void _seekToPosition(double localDx, double totalWidth) {
-    final duration = widget.controller.value.duration;
-    if (duration.inMilliseconds <= 0) return;
-
-    final progress = (localDx / totalWidth).clamp(0.0, 1.0);
-    final targetMs = (progress * duration.inMilliseconds).toInt();
+  /// 三引擎统一 seek
+  void _seek(Duration target) {
     try {
-      widget.controller.seekTo(Duration(milliseconds: targetMs));
+      final handle = widget.handle;
+      if (handle != null) {
+        handle.seekTo(target);
+        return;
+      }
+      widget.controller?.seekTo(target);
     } catch (e) {
       // controller 可能已被释放（非当前页背景延迟释放），忽略避免闪退
       AppLogger.warn('进度条 seek 失败，controller 可能已释放',
@@ -116,11 +149,21 @@ class _SeekableProgressBarState extends State<SeekableProgressBar> {
     }
   }
 
+  /// 根据水平点击/拖拽位置计算进度百分比并执行 seek
+  void _seekToPosition(double localDx, double totalWidth) {
+    final duration = _duration;
+    if (duration.inMilliseconds <= 0) return;
+
+    final progress = (localDx / totalWidth).clamp(0.0, 1.0);
+    final targetMs = (progress * duration.inMilliseconds).toInt();
+    _seek(Duration(milliseconds: targetMs));
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final duration = widget.controller.value.duration;
-    final position = widget.controller.value.position;
+    final duration = _duration;
+    final position = _position;
     final progress = duration.inMilliseconds > 0
         ? (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0)
         : 0.0;
@@ -154,17 +197,11 @@ class _SeekableProgressBarState extends State<SeekableProgressBar> {
                 // 避免高频调用导致 MediaCodec 崩溃，与 gesture_overlay.dart 设计原则一致
               },
               onHorizontalDragEnd: (_) {
-                final duration = widget.controller.value.duration;
+                final duration = _duration;
                 if (duration.inMilliseconds > 0) {
                   final targetMs =
                       (_dragProgress * duration.inMilliseconds).toInt();
-                  try {
-                    widget.controller.seekTo(Duration(milliseconds: targetMs));
-                  } catch (e) {
-                    // controller 可能已被释放，忽略避免闪退
-                    AppLogger.warn('拖动结束 seek 失败，controller 可能已释放',
-                        data: {'error': e.toString()});
-                  }
+                  _seek(Duration(milliseconds: targetMs));
                 }
                 setState(() => _isDragging = false);
               },

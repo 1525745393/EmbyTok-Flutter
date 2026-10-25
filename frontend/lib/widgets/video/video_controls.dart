@@ -16,6 +16,7 @@ class VideoControls extends ConsumerStatefulWidget {
   const VideoControls({
     super.key,
     required this.controller,
+    this.handle,
     this.subtitleTracks = const <SubtitleTrack>[],
     this.onPrevEpisode,
     this.playbackRates = const <double>[0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0],
@@ -25,7 +26,10 @@ class VideoControls extends ConsumerStatefulWidget {
     this.onSeekEnd,
     this.compact = false,
   });
-  final VideoPlayerController controller;
+  // batch 29：EXO 引擎下 controller 可用；MPV/VLC 引擎下 controller 为 null 或未初始化，
+  // 改由统一控制句柄（handle）驱动播放/暂停/进度/倍速，保证纯净模式控制条三引擎可用。
+  final VideoPlayerController? controller;
+  final PlayerControlHandle? handle;
   // 字幕轨道列表（从 MediaSource.MediaStreams 提取）
   final List<SubtitleTrack> subtitleTracks;
   // 上一集回调（剧集类内容）
@@ -54,18 +58,51 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
   bool _isSeeking = false;
   Duration? _previewPosition;
 
+  /// EXO controller 是否可用（已初始化）
+  bool get _controllerUsable =>
+      widget.controller != null && widget.controller!.value.isInitialized;
+
   @override
   void initState() {
     super.initState();
-    _lastIsPlaying = widget.controller.value.isPlaying;
-    widget.controller.addListener(_onControllerChanged);
+    _lastIsPlaying = _isPlaying;
+    if (_controllerUsable) {
+      widget.controller!.addListener(_onControllerChanged);
+    } else {
+      // MPV/VLC：订阅统一句柄位置流，isPlaying 变化时同步 Provider
+      widget.handle?.positionMsListenable?.addListener(_onControllerChanged);
+    }
   }
 
   @override
   void dispose() {
-    widget.controller.removeListener(_onControllerChanged);
+    if (_controllerUsable) {
+      widget.controller!.removeListener(_onControllerChanged);
+    } else {
+      widget.handle?.positionMsListenable?.removeListener(_onControllerChanged);
+    }
     super.dispose();
   }
+
+  /// 三引擎统一播放状态
+  bool get _isPlaying =>
+      widget.handle?.isPlaying ??
+      (widget.controller?.value.isPlaying ?? false);
+
+  /// 三引擎统一播放位置
+  Duration get _position => widget.handle?.currentPosition ??
+      widget.controller?.value.position ??
+      Duration.zero;
+
+  /// 三引擎统一视频时长
+  Duration get _duration => widget.handle?.totalDuration ??
+      widget.controller?.value.duration ??
+      Duration.zero;
+
+  /// 三引擎统一倍速
+  double get _playbackRate => widget.handle?.playbackRate ??
+      widget.controller?.value.playbackSpeed ??
+      1.0;
 
   // 控制器变化回调：不再调用 setState，依赖 controller.value 的组件
   // （进度条、时间、播放按钮、倍速）通过 ValueListenableBuilder 实现局部重建，
@@ -73,7 +110,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
   void _onControllerChanged() {
     if (!mounted) return;
     // 仅在 isPlaying 实际变化时才同步到 Provider（供中央播放按钮显示/隐藏使用）
-    final isPlaying = widget.controller.value.isPlaying;
+    final isPlaying = _isPlaying;
     if (isPlaying != _lastIsPlaying) {
       _lastIsPlaying = isPlaying;
       ref.read(isPlayingProvider.notifier).state = isPlaying;
@@ -93,24 +130,94 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
     return '$minutes:$seconds';
   }
 
+  /// 进度条 + 时间行（EXO / MPV / VLC 三引擎共用单一布局，拖动逻辑单一）
+  Widget _buildProgressRow({
+    required double progress,
+    required Duration position,
+    required Duration duration,
+    required bool isCompact,
+    required ColorScheme scheme,
+    required void Function(Duration) onSeek,
+  }) {
+    final timeFontSize = isCompact ? 12.0 : 13.0;
+    return Row(
+      children: [
+        Text(
+          _formatDuration(position),
+          style: TextStyle(color: scheme.onSurface, fontSize: timeFontSize),
+        ),
+        SizedBox(width: isCompact ? 6 : 8),
+        Expanded(
+          child: Slider(
+            value: progress.clamp(0.0, 1.0),
+            onChangeStart: (v) {
+              setState(() {
+                _isSeeking = true;
+                _previewPosition = Duration(
+                  milliseconds: (v * duration.inMilliseconds).toInt(),
+                );
+              });
+              widget.onSeekStart?.call();
+              HapticFeedback.selectionClick();
+            },
+            onChanged: (v) {
+              setState(() {
+                _previewPosition = Duration(
+                  milliseconds: (v * duration.inMilliseconds).toInt(),
+                );
+              });
+            },
+            onChangeEnd: (v) {
+              final target = Duration(
+                milliseconds: (v * duration.inMilliseconds).toInt(),
+              );
+              onSeek(target);
+              setState(() {
+                _isSeeking = false;
+                _previewPosition = null;
+              });
+              widget.onSeekEnd?.call();
+              HapticFeedback.lightImpact();
+            },
+            activeColor: scheme.primary,
+            inactiveColor: scheme.onSurfaceVariant,
+          ),
+        ),
+        SizedBox(width: isCompact ? 6 : 8),
+        Text(
+          _formatDuration(duration),
+          style: TextStyle(color: scheme.onSurface, fontSize: timeFontSize),
+        ),
+      ],
+    );
+  }
+
   // 切换播放/暂停
   // try/catch：controller 可能已被 VideoPlayerWidget 释放（背景延迟释放），
   // 对已 dispose 的 controller 调用 play/pause 会抛 PlatformException，
   // 未捕获将导致整个 App 闪退。
   void _togglePlay() {
     try {
-      if (widget.controller.value.isPlaying) {
-        widget.controller.pause();
-      } else {
-        widget.controller.play();
+      final handle = widget.handle;
+      if (handle != null) {
+        if (handle.isPlaying) {
+          handle.pause();
+        } else {
+          handle.play();
+        }
+      } else if (widget.controller != null) {
+        if (widget.controller!.value.isPlaying) {
+          widget.controller!.pause();
+        } else {
+          widget.controller!.play();
+        }
       }
     } catch (e) {
       AppLogger.warn('控制条播放/暂停失败，controller 可能已释放',
           data: {'error': e.toString()});
       return;
     }
-    ref.read(isPlayingProvider.notifier).state =
-        widget.controller.value.isPlaying;
+    ref.read(isPlayingProvider.notifier).state = _isPlaying;
   }
 
   // 弹出倍速选择菜单（替代原先循环切换）
@@ -133,7 +240,12 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
     );
     if (rate != null) {
       if (!mounted) return;
-      widget.controller.setPlaybackSpeed(rate);
+      final handle = widget.handle;
+      if (handle != null) {
+        handle.setRate(rate);
+      } else {
+        widget.controller?.setPlaybackSpeed(rate);
+      }
       // 同步更新 playbackRateProvider，保持三种倍速方式状态一致
       ref.read(playbackRateProvider.notifier).state = rate;
     }
@@ -208,100 +320,116 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
     final isCompact = widget.compact;
 
     // 进度条 + 时间 组件（供两种模式共用）
-    final progressRow = ValueListenableBuilder<VideoPlayerValue>(
-      valueListenable: controller,
-      builder: (context, value, child) {
-        final position =
-            _isSeeking ? (_previewPosition ?? value.position) : value.position;
-        final duration = value.duration;
-        final progress = duration.inMilliseconds > 0
-            ? position.inMilliseconds / duration.inMilliseconds
-            : 0.0;
-        final timeFontSize = isCompact ? 12.0 : 13.0;
-        return Row(
-          children: [
-            Text(
-              _formatDuration(position),
-              style: TextStyle(color: scheme.onSurface, fontSize: timeFontSize),
-            ),
-            SizedBox(width: isCompact ? 6 : 8),
-            Expanded(
-              child: Slider(
-                value: progress.clamp(0.0, 1.0),
-                onChangeStart: (v) {
-                  setState(() {
-                    _isSeeking = true;
-                    _previewPosition = Duration(
-                      milliseconds: (v * duration.inMilliseconds).toInt(),
-                    );
-                  });
-                  widget.onSeekStart?.call();
-                  HapticFeedback.selectionClick();
-                },
-                onChanged: (v) {
-                  setState(() {
-                    _previewPosition = Duration(
-                      milliseconds: (v * duration.inMilliseconds).toInt(),
-                    );
-                  });
-                },
-                onChangeEnd: (v) {
-                  final target = Duration(
-                    milliseconds: (v * duration.inMilliseconds).toInt(),
-                  );
-                  controller.seekTo(target);
-                  setState(() {
-                    _isSeeking = false;
-                    _previewPosition = null;
-                  });
-                  widget.onSeekEnd?.call();
-                  HapticFeedback.lightImpact();
-                },
-                activeColor: scheme.primary,
-                inactiveColor: scheme.onSurfaceVariant,
-              ),
-            ),
-            SizedBox(width: isCompact ? 6 : 8),
-            Text(
-              _formatDuration(duration),
-              style: TextStyle(color: scheme.onSurface, fontSize: timeFontSize),
-            ),
-          ],
-        );
-      },
-    );
+    // batch 29：EXO 引擎由 controller 驱动（ValueListenableBuilder<VideoPlayerValue>）；
+    // MPV/VLC 引擎由统一句柄位置流驱动（ValueListenableBuilder<int>），共用同一 Slider/时间布局。
+    final progressRow = _controllerUsable
+        ? ValueListenableBuilder<VideoPlayerValue>(
+            valueListenable: controller!,
+            builder: (context, value, child) {
+              final position = _isSeeking
+                  ? (_previewPosition ?? value.position)
+                  : value.position;
+              final duration = value.duration;
+              final progress = duration.inMilliseconds > 0
+                  ? position.inMilliseconds / duration.inMilliseconds
+                  : 0.0;
+              return _buildProgressRow(
+                progress: progress,
+                position: position,
+                duration: duration,
+                isCompact: isCompact,
+                scheme: scheme,
+                onSeek: controller!.seekTo,
+              );
+            },
+          )
+        : ValueListenableBuilder<int>(
+            valueListenable: widget.handle?.positionMsListenable ??
+                const _AlwaysZeroNotifier(),
+            builder: (context, ms, child) {
+              final position = _isSeeking
+                  ? (_previewPosition ?? Duration(milliseconds: ms))
+                  : Duration(milliseconds: ms);
+              final duration = _duration;
+              final progress = duration.inMilliseconds > 0
+                  ? position.inMilliseconds / duration.inMilliseconds
+                  : 0.0;
+              return _buildProgressRow(
+                progress: progress,
+                position: position,
+                duration: duration,
+                isCompact: isCompact,
+                scheme: scheme,
+                onSeek: (target) => widget.handle?.seekTo(target),
+              );
+            },
+          );
 
     // 播放/暂停按钮
-    final playButton = ValueListenableBuilder<VideoPlayerValue>(
-      valueListenable: controller,
-      builder: (context, value, child) {
-        return IconButton(
-          icon: Icon(
-            value.isPlaying ? Icons.pause : Icons.play_arrow,
-            color: scheme.onSurface,
-            size: isCompact ? 24 : 28,
-          ),
-          onPressed: _togglePlay,
-        );
-      },
-    );
+    // batch 29：EXO 由 controller 驱动；MPV/VLC 由句柄位置流驱动（isPlaying 变化经
+    // _onControllerChanged 同步 isPlayingProvider，按钮图标随位置流刷新）。
+    final playButton = _controllerUsable
+        ? ValueListenableBuilder<VideoPlayerValue>(
+            valueListenable: controller!,
+            builder: (context, value, child) {
+              return IconButton(
+                icon: Icon(
+                  value.isPlaying ? Icons.pause : Icons.play_arrow,
+                  color: scheme.onSurface,
+                  size: isCompact ? 24 : 28,
+                ),
+                onPressed: _togglePlay,
+              );
+            },
+          )
+        : ValueListenableBuilder<int>(
+            valueListenable: widget.handle?.positionMsListenable ??
+                const _AlwaysZeroNotifier(),
+            builder: (context, ms, child) {
+              return IconButton(
+                icon: Icon(
+                  _isPlaying ? Icons.pause : Icons.play_arrow,
+                  color: scheme.onSurface,
+                  size: isCompact ? 24 : 28,
+                ),
+                onPressed: _togglePlay,
+              );
+            },
+          );
 
     // 倍速按钮
-    final speedButton = ValueListenableBuilder<VideoPlayerValue>(
-      valueListenable: controller,
-      builder: (context, value, child) {
-        return TextButton(
-          onPressed: _showRateMenu,
-          child: Text(
-            '${value.playbackSpeed.toStringAsFixed(1)}x',
-            style: TextStyle(
-              color: scheme.onSurface,
-              fontSize: isCompact ? 12 : 14,
-            ),
-          ),
-        );
-      },
-    );
+    final speedButton = _controllerUsable
+        ? ValueListenableBuilder<VideoPlayerValue>(
+            valueListenable: controller!,
+            builder: (context, value, child) {
+              return TextButton(
+                onPressed: _showRateMenu,
+                child: Text(
+                  '${value.playbackSpeed.toStringAsFixed(1)}x',
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontSize: isCompact ? 12 : 14,
+                  ),
+                ),
+              );
+            },
+          )
+        : ValueListenableBuilder<int>(
+            valueListenable: widget.handle?.positionMsListenable ??
+                const _AlwaysZeroNotifier(),
+            builder: (context, ms, child) {
+              return TextButton(
+                onPressed: _showRateMenu,
+                child: Text(
+                  '${_playbackRate.toStringAsFixed(1)}x',
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontSize: isCompact ? 12 : 14,
+                  ),
+                ),
+              );
+            },
+          );
 
     // 全屏按钮
     final fullscreenButton = widget.onToggleFullscreen != null
@@ -427,4 +555,9 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
       ),
     );
   }
+}
+
+/// 恒零位置流：handle 或 controller 均不可用时的占位（进度条显示 0，不触发构建错误）
+class _AlwaysZeroNotifier extends ValueNotifier<int> {
+  _AlwaysZeroNotifier() : super(0);
 }

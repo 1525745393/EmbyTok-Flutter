@@ -779,25 +779,32 @@ void _resetInfoHideTimer() {
   }
 
   void _togglePlay() {
+    // batch 29：统一控制句柄优先（MPV/VLC 引擎下 EXO controller 为 null/未初始化），
+    // fallback EXO controller；与手势层/全屏页控制链路一致。
+    final handle = ref.read(currentPlayerControlProvider);
     final controller = _videoController;
-    if (controller == null) return;
     try {
-      if (controller.value.isPlaying) {
-        controller.pause();
-        ref.read(isPlayingProvider.notifier).state = false;
-        // 暂停时显示▶播放图标，不自动隐藏（用户需要点击恢复播放）
-        if (!ref.read(isAutoPlayProvider)) {
-          _centerButtonHideTimer?.cancel();
-          if (mounted) setState(() => _centerButtonVisible = true);
+      if (handle != null) {
+        if (handle.isPlaying) {
+          handle.pause();
+        } else {
+          handle.play();
+        }
+      } else if (controller != null) {
+        if (controller.value.isPlaying) {
+          controller.pause();
+        } else {
+          controller.play();
         }
       } else {
-        controller.play();
-        ref.read(isPlayingProvider.notifier).state = true;
-        // 播放时立即隐藏中央按钮（不显示⏸）
-        if (!ref.read(isAutoPlayProvider)) {
-          _centerButtonHideTimer?.cancel();
-          if (mounted) setState(() => _centerButtonVisible = false);
-        }
+        return;
+      }
+      final isPlaying = handle?.isPlaying ?? controller?.value.isPlaying ?? false;
+      ref.read(isPlayingProvider.notifier).state = isPlaying;
+      // 暂停时显示▶播放图标，不自动隐藏（用户需要点击恢复播放）
+      if (!ref.read(isAutoPlayProvider)) {
+        _centerButtonHideTimer?.cancel();
+        if (mounted) setState(() => _centerButtonVisible = !isPlaying);
       }
     } catch (e) {
       AppLogger.warn('播放/暂停操作失败，controller 可能已释放',
@@ -894,6 +901,11 @@ Widget _buildPage(BuildContext context) {
     final authState = ref.watch(authProvider);
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
+    // batch 29：统一控制句柄（MPV/VLC 引擎下 EXO controller 不可用，feed 页控制走 handle）
+    final controlHandle = ref.watch(currentPlayerControlProvider);
+    final controlUsable = (_videoController != null &&
+            _videoController!.value.isInitialized) ||
+        (controlHandle?.isReady ?? false);
     // 使用 select 仅监听当前 item 的就绪状态，避免其他 item 就绪状态变化时触发重建
     final isReady =
         ref.watch(videoReadyProvider.select((s) => s.contains(widget.item.id)));
@@ -1078,6 +1090,7 @@ Widget _buildPage(BuildContext context) {
           // 纯净模式：不显示（由 VideoControls 控制条操作）
           _CenterPlayButtonWrapper(
             controller: _videoController,
+            handle: controlHandle,
             onPlay: _togglePlay,
             visible: _centerButtonVisible,
             isAutoPlay: isAutoPlay,
@@ -1102,9 +1115,8 @@ Widget _buildPage(BuildContext context) {
             ),
 
           // 控制层（VideoControls）：仅在无信息栏时显示（全屏 / 纯净模式），非全屏非纯净模式下信息栏已有进度条替代
-          if (_videoController != null &&
-              _videoController!.value.isInitialized &&
-              (isAutoPlay))
+          // batch 29：显示条件放宽为 controller 可用或统一句柄就绪（MPV/VLC 纯净模式控制条可用）
+          if (controlUsable && isAutoPlay)
             Positioned(
               left: 0,
               right: 0,
@@ -1115,7 +1127,8 @@ Widget _buildPage(BuildContext context) {
                 child: IgnorePointer(
                   ignoring: !_controlsVisible,
                   child: VideoControls(
-                    controller: _videoController!,
+                    controller: _videoController,
+                    handle: controlHandle,
                     subtitleTracks: widget.item.subtitleTracks,
                     onPrevEpisode: widget.onPrevEpisode,
                     onToggleFullscreen: _openFullscreenPage,
@@ -1144,6 +1157,7 @@ Widget _buildPage(BuildContext context) {
           _BottomInfoBar(
             item: widget.item,
             controller: _videoController,
+            handle: controlHandle,
             isVisible: _isInfoVisible,
             toolbarVisible: toolbarVisible,
             bottomPadding: bottomPadding,
@@ -1158,6 +1172,7 @@ Widget _buildPage(BuildContext context) {
           _RightActionButtons(
             item: widget.item,
             controller: _videoController,
+            handle: controlHandle,
             discRotation: _discRotation,
             posterUrl: posterUrl,
             posterHeaders: posterHeaders,
@@ -1177,8 +1192,11 @@ Widget _buildPage(BuildContext context) {
               year: widget.item.year,
               isTv: widget.item.type == 'Series' || widget.item.type == 'Episode',
             ),
-            onSpeedTap: () =>
-                sheet_utils.showSpeedControlPanel(context, _videoController),
+            onSpeedTap: () => sheet_utils.showSpeedControlPanel(
+              context,
+              _videoController,
+              handle: ref.read(currentPlayerControlProvider),
+            ),
             onSubtitleTap: () => sheet_utils.showSubtitleSelector(
                 context, widget.item.subtitleTracks),
             onAudioTap: () => sheet_utils.showAudioTrackSelector(
@@ -1187,7 +1205,11 @@ Widget _buildPage(BuildContext context) {
               context: context,
               chapters: widget.item.chapters ?? [],
               onSeek: (seconds) {
-                _videoController?.seekTo(Duration(milliseconds: (seconds * 1000).round()));
+                // batch 29：统一句柄优先，MPV/VLC 在线分支章节点击可跳转
+                final target = Duration(
+                    milliseconds: (seconds * 1000).round());
+                ref.read(currentPlayerControlProvider)?.seekTo(target);
+                _videoController?.seekTo(target);
               },
             ),
             onWatchlistTap: () async {

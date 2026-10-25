@@ -337,14 +337,19 @@ class SpeedControlButton extends StatelessWidget {
     super.key,
     required this.controller,
     required this.onTap,
+    this.handle,
   });
   final VideoPlayerController? controller;
   final VoidCallback onTap;
+  // batch 29：MPV/VLC 引擎下 controller 不可用，倍速显示值回退统一句柄
+  final PlayerControlHandle? handle;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final currentSpeed = controller?.value.playbackSpeed ?? 1.0;
+    final currentSpeed = handle?.playbackRate ??
+        controller?.value.playbackSpeed ??
+        1.0;
     double rs(double base, [double max = 1.7]) =>
         responsiveSize(context, base, max);
     return GestureDetector(
@@ -447,11 +452,14 @@ class DiscMuteButton extends ConsumerWidget {
     super.key,
     required this.discRotation,
     this.controller,
+    this.handle,
     required this.posterUrl,
     this.httpHeaders,
   });
   final Animation<double> discRotation;
   final VideoPlayerController? controller;
+  // batch 29：MPV/VLC 引擎下 controller 不可用，静音走统一句柄
+  final PlayerControlHandle? handle;
   final String posterUrl;
   final Map<String, String>? httpHeaders;
 
@@ -464,7 +472,13 @@ class DiscMuteButton extends ConsumerWidget {
     return GestureDetector(
       onTap: () {
         ref.read(isMutedProvider.notifier).toggle();
-        controller?.setVolume(isMuted ? 1.0 : 0.0);
+        final targetVolume = isMuted ? 1.0 : 0.0;
+        final handle = this.handle;
+        if (handle != null) {
+          handle.setVolume(targetVolume);
+        } else {
+          controller?.setVolume(targetVolume);
+        }
       },
       child: RotationTransition(
         turns: discRotation,
