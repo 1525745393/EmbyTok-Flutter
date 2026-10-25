@@ -39,7 +39,11 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
         if (didPop) return;
         // 在媒体库内容页时，返回键先回到媒体库列表
         if (_selectedLibrary != null) {
-          setState(() => _selectedLibrary = null);
+          // batch31-F3 系统返回键与 AppBar 返回按钮行为一致，一并重置子 Tab
+          setState(() {
+            _selectedLibrary = null;
+            _currentLibraryTab = 0;
+          });
         }
       },
       child: SafeArea(
@@ -96,7 +100,11 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
                   final lib = libraries[index];
                   return _LibraryCard(
                     library: lib,
-                    onTap: () => setState(() => _selectedLibrary = lib),
+                    // batch31-F3 切库时重置子 Tab，避免残留上一个库的 Tab
+                    onTap: () => setState(() {
+                      _selectedLibrary = lib;
+                      _currentLibraryTab = 0;
+                    }),
                   );
                 },
               ),
@@ -441,6 +449,10 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   bool _folderLoading = false;
   String? _folderError;
   int _folderRequestId = 0;
+  // batch31-F2 文件夹分页（对标 _loadItems 分页模式）
+  int _folderStartIndex = 0;
+  static const int _folderLimit = 100;
+  bool _folderHasMore = true;
 
   @override
   void initState() {
@@ -462,6 +474,15 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   }
 
   void _onScroll() {
+    // batch31-F2 文件夹 Tab 滚动加载更多
+    if (widget.tab == 4) {
+      if (!_folderHasMore || _folderLoading || _folderError != null) return;
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 500) {
+        _loadFolder(loadMore: true);
+      }
+      return;
+    }
     if (!_hasMore || _isLoading || _error != null) return;
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 500) {
@@ -469,18 +490,59 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
     }
   }
 
-  /// 播放当前库全部影片（顺序）
-  void _playAll() {
-    if (_items.isEmpty) return;
-    ref.read(playbackListProvider.notifier).setPlaybackList(_items, _items.first.id);
-    context.push('/play/${_items.first.id}', extra: _items.first);
+  /// batch31-F4 拉取当前筛选条件下的完整列表（播放全部需覆盖全库，而非仅已加载分页）
+  Future<List<MediaItem>> _loadAllItems() async {
+    final all = <MediaItem>[..._items];
+    final auth = ref.read(authProvider);
+    final service = ref.read(embytokServiceProvider);
+    final q = _buildQuery();
+    var offset = _startIndex;
+    var more = _hasMore;
+    try {
+      while (more) {
+        final resp = await service.getLibraryItems(
+          widget.library.id,
+          limit: _limit,
+          offset: offset,
+          serverUrl: auth.embyServerUrl,
+          token: auth.token,
+          sortBy: q.sortBy,
+          sortOrder: q.sortOrder,
+          includeItemTypes: q.includeItemTypes,
+          playedFilter: q.playedFilter,
+          resumable: q.resumable,
+          genre: _selectedGenre,
+          year: _selectedYear,
+          minCommunityRating: _minRating > 0 ? _minRating.toDouble() : null,
+          searchTerm: _searchQuery.isEmpty ? null : _searchQuery,
+        );
+        all.addAll(resp.items);
+        offset += resp.items.length;
+        more = resp.items.length >= _limit && offset < resp.total;
+      }
+    } catch (e) {
+      // 补齐失败时退化为已加载项，不阻塞播放
+      AppLogger.error('播放全部：加载完整列表失败，使用已加载项', error: e);
+    }
+    return all;
   }
 
-  /// 随机播放当前库中的一部影片
-  void _playRandom() {
+  /// 播放当前库全部影片（顺序，覆盖全库而非仅已加载分页）
+  Future<void> _playAll() async {
     if (_items.isEmpty) return;
-    final item = _items[Random().nextInt(_items.length)];
-    ref.read(playbackListProvider.notifier).setPlaybackList(_items, item.id);
+    final all = await _loadAllItems();
+    if (all.isEmpty) return;
+    ref.read(playbackListProvider.notifier).setPlaybackList(all, all.first.id);
+    context.push('/play/${all.first.id}', extra: all.first);
+  }
+
+  /// 随机播放当前库中的一部影片（随机范围覆盖全库）
+  Future<void> _playRandom() async {
+    if (_items.isEmpty) return;
+    final all = await _loadAllItems();
+    if (all.isEmpty) return;
+    final item = all[Random().nextInt(all.length)];
+    ref.read(playbackListProvider.notifier).setPlaybackList(all, item.id);
     context.push('/play/${item.id}', extra: item);
   }
 
@@ -712,12 +774,17 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
     return _serverGenres;
   }
 
-  /// 加载文件夹内容
-  Future<void> _loadFolder() async {
+  /// 加载文件夹内容（batch31-F2 支持 offset 分页加载更多）
+  Future<void> _loadFolder({bool loadMore = false}) async {
+    if (_folderLoading && loadMore) return;
     final myRequestId = ++_folderRequestId;
     setState(() {
       _folderLoading = true;
       _folderError = null;
+      if (!loadMore) {
+        _folderStartIndex = 0;
+        _folderHasMore = true;
+      }
     });
     try {
       final auth = ref.read(authProvider);
@@ -726,13 +793,21 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
           _folderPathStack.isEmpty ? widget.library.id : _folderPathStack.last;
       final items = await service.getChildren(
         parentId,
-        limit: 100,
+        limit: _folderLimit,
+        offset: _folderStartIndex,
         serverUrl: auth.embyServerUrl,
         token: auth.token,
       );
       if (!mounted || myRequestId != _folderRequestId) return;
       setState(() {
-        _folderItems = items;
+        if (loadMore) {
+          _folderItems.addAll(items);
+        } else {
+          _folderItems = items;
+        }
+        _folderStartIndex += items.length;
+        // 不满一页即末页（Emby 分页惯例）
+        _folderHasMore = items.length >= _folderLimit;
         _folderLoading = false;
       });
     } catch (e) {
@@ -784,9 +859,43 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
           ),
         Expanded(
           child: ListView.builder(
+            controller: _scrollController,
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-            itemCount: _folderItems.length,
+            itemCount: _folderItems.length + 1,
             itemBuilder: (context, index) {
+              // batch31-F2 文件夹分页 footer：失败重试 / 加载中
+              if (index >= _folderItems.length) {
+                if (_folderError != null) {
+                  return Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Center(
+                      child: TextButton.icon(
+                        onPressed: () {
+                          setState(() => _folderError = null);
+                          _loadFolder(loadMore: true);
+                        },
+                        icon: const Icon(Icons.refresh, size: 16),
+                        label: const Text('加载失败，点击重试'),
+                      ),
+                    ),
+                  );
+                }
+                if (_folderHasMore) {
+                  return Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Center(
+                      child: Text(
+                        '加载中…',
+                        style: TextStyle(
+                          color: scheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              }
               final item = _folderItems[index];
               final isFolder = item.type.toLowerCase() == 'folder' ||
                   item.type.toLowerCase() == 'collectionfolder';
@@ -810,6 +919,43 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
           ),
         ),
       ],
+    );
+  }
+
+  /// batch31-F4 构造当前筛选条件下的 Emby 查询参数（_loadItems / _loadAllItems 共用）
+  ({String? includeItemTypes, String sortBy, String sortOrder, String? playedFilter, bool resumable}) _buildQuery() {
+    final libType = widget.library.type;
+    String? includeItemTypes;
+    if (widget.tab == 2) {
+      // 合集 Tab：只显示 BoxSet
+      includeItemTypes = 'BoxSet';
+    } else if (libType == 'movies') {
+      includeItemTypes = 'Movie';
+    } else if (libType == 'tvshows') {
+      includeItemTypes = 'Series';
+    } else if (libType == 'homevideos' || libType == 'boxsets') {
+      includeItemTypes = 'Movie,Series,Episode,Video';
+    }
+    final sort = _sortOptions[_sortLabel]!;
+    final sortOrder = _sortAscending ? 'Ascending' : 'Descending';
+    String? playedFilter;
+    bool resumable = false;
+    // Tab=1 播放记录：强制显示未看完的
+    if (widget.tab == 1) {
+      resumable = true;
+    } else if (_filterLabel == '续看') {
+      resumable = true;
+    } else if (_filterLabel == '未观看') {
+      playedFilter = 'unplayed';
+    } else if (_filterLabel == '已观看') {
+      playedFilter = 'played';
+    }
+    return (
+      includeItemTypes: includeItemTypes,
+      sortBy: sort.$1,
+      sortOrder: sortOrder,
+      playedFilter: playedFilter,
+      resumable: resumable,
     );
   }
 
@@ -839,43 +985,19 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
 
     try {
       final service = ref.read(embytokServiceProvider);
-      final libType = widget.library.type;
-      String? includeItemTypes;
-      if (widget.tab == 2) {
-        // 合集 Tab：只显示 BoxSet
-        includeItemTypes = 'BoxSet';
-      } else if (libType == 'movies') {
-        includeItemTypes = 'Movie';
-      } else if (libType == 'tvshows') {
-        includeItemTypes = 'Series';
-      } else if (libType == 'homevideos' || libType == 'boxsets') {
-        includeItemTypes = 'Movie,Series,Episode,Video';
-      }
-      final sort = _sortOptions[_sortLabel]!;
-      final sortOrder = _sortAscending ? 'Ascending' : 'Descending';
-      String? playedFilter;
-      bool resumable = false;
-      // Tab=1 播放记录：强制显示未看完的
-      if (widget.tab == 1) {
-        resumable = true;
-      } else if (_filterLabel == '续看') {
-        resumable = true;
-      } else if (_filterLabel == '未观看') {
-        playedFilter = 'unplayed';
-      } else if (_filterLabel == '已观看') {
-        playedFilter = 'played';
-      }
+      // batch31-F4 查询参数构造收敛到 _buildQuery（与 _loadAllItems 共用）
+      final q = _buildQuery();
       final resp = await service.getLibraryItems(
         widget.library.id,
         limit: _limit,
         offset: _startIndex,
         serverUrl: auth.embyServerUrl,
         token: auth.token,
-        sortBy: sort.$1,
-        sortOrder: sortOrder,
-        includeItemTypes: includeItemTypes,
-        playedFilter: playedFilter,
-        resumable: resumable,
+        sortBy: q.sortBy,
+        sortOrder: q.sortOrder,
+        includeItemTypes: q.includeItemTypes,
+        playedFilter: q.playedFilter,
+        resumable: q.resumable,
         genre: _selectedGenre,
         year: _selectedYear,
         minCommunityRating: _minRating > 0 ? _minRating.toDouble() : null,
@@ -930,9 +1052,11 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
       );
     }
     if (_items.isEmpty) {
+      // batch31-F1 评分筛选纳入可清除条件：仅评分筛选命中空结果时也能就地清除
       final hasFilter = _selectedGenre != null ||
           _selectedYear != null ||
           _filterLabel != '全部' ||
+          _minRating > 0 ||
           _searchQuery.isNotEmpty;
       return Center(
         child: Column(
@@ -956,6 +1080,8 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                     _selectedGenre = null;
                     _selectedYear = null;
                     _filterLabel = '全部';
+                    _minRating = 0; // batch31-F1 一并清除评分筛选
+                    _showRatingFilter = false;
                     _searchQuery = '';
                     _searchController.clear();
                   });
