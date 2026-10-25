@@ -48,9 +48,11 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     final m = ScrapeService.episodeRegex.firstMatch(name);
     if (m == null) return null;
     final s = m.group(1) ?? m.group(3);
-    final e = m.group(2) ?? m.group(4) ?? m.group(5) ?? m.group(6);
+    // batch32-F1 对齐 ScrapeService.extractEpisode：补 group(7) 中文数字集号（第X集）
+    final e = m.group(2) ?? m.group(4) ?? m.group(5) ?? m.group(6) ?? m.group(7);
     if (e == null) return null;
-    return (s != null ? int.parse(s) : 1, int.parse(e));
+    // 中文数字（一~十）与阿拉伯数字统一走 cnToInt，避免与刮削链路解析不一致
+    return (s != null ? int.parse(s) : 1, ScrapeService.cnToInt(e));
   }
 
   List<LocalVideoItem> _items = [];
@@ -126,10 +128,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         // 更新扫描状态到 provider
         ref.read(fileSourcesProvider.notifier).updateScanStatus(
               widget.source.id,
-              // SMB 已通过连通性测试，空列表仅表示目录无视频，不判连接失败
-              (items.isEmpty && widget.source.type != FileSourceType.smb)
-                  ? FileSourceStatus.failed
-                  : FileSourceStatus.connected,
+              // batch32-F2 空列表仅表示目录无视频，不判连接失败（连接异常走 catch 分支）
+              FileSourceStatus.connected,
               videoCount: items.length,
             );
         final cache = await ScrapeService.loadCache();
@@ -257,6 +257,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('刮削完成：成功 $success / 共 ${todo.length} 个未刮削视频')),
       );
+      // batch32-F3 重扫本页列表：失败文件可能已被移走，避免残留失效条目
+      _scan();
     }
   }
 
@@ -648,6 +650,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('刮削完成：$done 集共享《${base.title}》元数据')));
     }
+    // batch32-F3 重扫本页列表：与 _scrapeAll 一致，移除失败/变更条目
+    _scan();
   }
 
   /// 一键重命名某部剧的所有集为 "剧名 S01E01.ext"
@@ -1842,16 +1846,27 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         ),
       );
       if (newName != null && newName.isNotEmpty) {
+        // batch32-F4 输入可能带了扩展名：剥离后由 renameFile 统一追加 ext，避免双扩展名（与 batch30 预填去扩展名口径一致）
+        var finalName = newName;
+        if (ext.isNotEmpty && finalName.toLowerCase().endsWith(ext.toLowerCase())) {
+          finalName = finalName.substring(0, finalName.length - ext.length).trim();
+        }
+        if (finalName.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('文件名不能为空')));
+          }
+          return;
+        }
         try {
           final parent = item.path.substring(0, item.path.lastIndexOf('/'));
-          final target = '$parent/$newName$ext';
+          final target = '$parent/$finalName$ext';
           if (await File(target).exists() && target != item.path) {
             if (!mounted) return;
             final overwrite = await showDialog<bool>(
               context: context,
               builder: (_) => AlertDialog(
                 title: const Text('文件已存在'),
-                content: Text('$newName$ext 已存在，是否覆盖？'),
+                content: Text('$finalName$ext 已存在，是否覆盖？'),
                 actions: [
                   TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
                   TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('覆盖')),
@@ -1860,7 +1875,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
             );
             if (overwrite != true) return;
           }
-          await LocalVideoService().renameFile(item, newName);
+          await LocalVideoService().renameFile(item, finalName);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('重命名成功')));
             _scan();

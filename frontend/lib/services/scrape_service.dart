@@ -333,8 +333,8 @@ class ScrapeService {
     final cnMatch = RegExp(r'第([一二三四五六七八九十\d]+)季第([一二三四五六七八九十\d]+)集')
         .firstMatch(name);
     if (cnMatch != null) {
-      final season = _cnToInt(cnMatch.group(1)!);
-      final episode = _cnToInt(cnMatch.group(2)!);
+      final season = cnToInt(cnMatch.group(1)!);
+      final episode = cnToInt(cnMatch.group(2)!);
       var title = name.substring(0, cnMatch.start).trim();
       title = _cleanNoise(title);
       return ParsedName(
@@ -361,7 +361,7 @@ class ScrapeService {
     ).firstMatch(name);
     if (epOnlyMatch != null) {
       final episode =
-          _cnToInt(epOnlyMatch.group(1) ?? epOnlyMatch.group(2) ?? epOnlyMatch.group(3)!);
+          cnToInt(epOnlyMatch.group(1) ?? epOnlyMatch.group(2) ?? epOnlyMatch.group(3)!);
       var title = name.substring(0, epOnlyMatch.start).trim();
       title = _cleanNoise(title);
       return ParsedName(type: 'tv', title: title, season: 1, episode: episode);
@@ -401,7 +401,7 @@ class ScrapeService {
   }
 
   /// 中文数字转 int（支持 一~十、十X、X十、X十Y（如二十一）和阿拉伯数字）
-  static int _cnToInt(String s) {
+  static int cnToInt(String s) {
     final n = int.tryParse(s);
     if (n != null) return n;
     const map = {'一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10};
@@ -500,8 +500,8 @@ class ScrapeService {
       final s = m.group(1) ?? m.group(3);
       final e = m.group(2) ?? m.group(4) ?? m.group(5) ?? m.group(6) ?? m.group(7);
       if (e != null) {
-        // _cnToInt 兼容阿拉伯与中文数字（一~十）
-        return (season: s != null ? int.tryParse(s) ?? 1 : 1, episode: _cnToInt(e));
+        // cnToInt 兼容阿拉伯与中文数字（一~十）
+        return (season: s != null ? int.tryParse(s) ?? 1 : 1, episode: cnToInt(e));
       }
     }
     final num = RegExp(r'(?:^|[.\s_-])(\d{1,3})(?:[.\s_-]|$)').firstMatch(filename);
