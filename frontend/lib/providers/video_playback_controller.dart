@@ -1,5 +1,6 @@
 // 视频播放控制器：当前播放条目、播放位置、倍速、字幕、播放就绪状态
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
