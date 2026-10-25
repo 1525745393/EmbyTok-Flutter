@@ -1,3 +1,10 @@
+## [2.401.28](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.27...v2.401.28) (2026-10-25)
+
+
+### Bug Fixes
+
+* **player:** MPV/VLC 引擎播放完 ended 链路统一修复（连播/续播清零/缓存失效）+三引擎字幕渲染对齐+本地路径非当前页防护 ([1eba24c](https://github.com/1525745393/EmbyTok-Flutter/commit/1eba24cc8430c9bb131f7e1f713653b228a02fc3))
+
 ## [2.401.27](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.26...v2.401.27) (2026-10-25)
 
 
