@@ -1,3 +1,12 @@
+## [2.401.30](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.29...v2.401.30) (2026-10-25)
+
+
+### Bug Fixes
+
+* **player:** batch29 CI 编译修复——_AlwaysZeroNotifier 声明 const 构造、本地章节 onSeek 秒数 double→int ([77a64ff](https://github.com/1525745393/EmbyTok-Flutter/commit/77a64ff41716e4ff70c21f624e46bd4d9d3ef4b2))
+* **player:** batch29 feed 页三引擎播放控制链路修复——MPV/VLC 引擎下非全屏控制失效修复 ([37cbc7a](https://github.com/1525745393/EmbyTok-Flutter/commit/37cbc7a2ad7c9c2c41d2b3b7aca9aa812a7ee260))
+* **player:** batch29 编译修复——_AlwaysZeroNotifier 改回普通构造（ValueNotifier 无 const 构造） ([4fa1476](https://github.com/1525745393/EmbyTok-Flutter/commit/4fa14763e6c4d0836c7ff799bce23f9fff1c61cc))
+
 ## [2.401.29](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.28...v2.401.29) (2026-10-25)
 
 
