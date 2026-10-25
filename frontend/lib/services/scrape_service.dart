@@ -877,9 +877,40 @@ class ScrapeService {
   }
 
   static Future<void> saveCache(String pathHash, ScrapedMedia media) async {
-    _cache?[pathHash] = media; // 同步内存镜像，下次 loadCache 不再读盘
+    // 已有缓存时保留旧 scrapedAt（首次入库/刮削时间）：
+    // 详情页重刮、文件源重刮、整剧重刮均不应把"加入时间"漂移成重刮时刻（batch 24）
+    final prev = _cache?[pathHash];
+    final ScrapedMedia finalMedia;
+    if (prev != null && prev.scrapedAt > 0 && media.scrapedAt != prev.scrapedAt) {
+      finalMedia = ScrapedMedia(
+        tmdbId: media.tmdbId,
+        type: media.type,
+        title: media.title,
+        year: media.year,
+        posterPath: media.posterPath,
+        backdropPath: media.backdropPath,
+        overview: media.overview,
+        rating: media.rating,
+        genres: media.genres,
+        cast: media.cast,
+        directors: media.directors,
+        studios: media.studios,
+        imdbId: media.imdbId,
+        stillPath: media.stillPath,
+        episodeTitle: media.episodeTitle,
+        season: media.season,
+        episode: media.episode,
+        tvId: media.tvId,
+        certification: media.certification,
+        lowConfidence: media.lowConfidence,
+        scrapedAt: prev.scrapedAt,
+      );
+    } else {
+      finalMedia = media;
+    }
+    _cache?[pathHash] = finalMedia; // 同步内存镜像，下次 loadCache 不再读盘
     final sp = await SharedPreferences.getInstance();
-    await sp.setString(_prefix + pathHash, jsonEncode(media.toJson()));
+    await sp.setString(_prefix + pathHash, jsonEncode(finalMedia.toJson()));
   }
 
   /// 删除单个刮削缓存条目（内存镜像 + SharedPreferences），供 ScrapeMediaStore 删视频/重命名时清理孤儿键
