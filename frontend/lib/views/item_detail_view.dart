@@ -1117,8 +1117,11 @@ Future<void> _loadDetail() async {
       if (!mounted) return;
       setState(() {
         _seasons = seasons;
-        // 默认选中第一季（如果有）
-        _selectedSeasonId = seasons.isNotEmpty ? seasons.first.id : null;
+        // batch33-F2 保留当前季选择：下拉刷新/重复加载时仅当无选中季或当前季已不在新列表中才重置到第一季
+        final current = _selectedSeasonId;
+        _selectedSeasonId = (current != null && seasons.any((s) => s.id == current))
+            ? current
+            : (seasons.isNotEmpty ? seasons.first.id : null);
       });
       final seasonId = _selectedSeasonId;
       if (seasonId != null) {
@@ -1147,16 +1150,23 @@ Future<void> _loadDetail() async {
         token: auth.token!,
       );
       if (!mounted) return;
+      // batch33-F1 切季竞态保护：快速切换季时旧请求响应后到，仅当前选中季的响应生效
+      if (_selectedSeasonId != seasonId) return;
       setState(() {
         _episodes = resp.items;
         _loadingEpisodes = false;
       });
     } catch (_) {
       if (mounted) {
+        // batch33-F3 同样按选中季校验后再清空，并提示加载失败，避免"暂无集数"误导
+        if (_selectedSeasonId != seasonId) return;
         setState(() {
           _episodes = const <MediaItem>[];
           _loadingEpisodes = false;
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('剧集加载失败，请稍后重试')),
+        );
       }
     }
   }
