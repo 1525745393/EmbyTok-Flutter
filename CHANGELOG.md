@@ -1,3 +1,10 @@
+## [2.401.32](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.31...v2.401.32) (2026-10-25)
+
+
+### Bug Fixes
+
+* **libraries:** batch31 修复媒体库浏览页4处问题 ([b641747](https://github.com/1525745393/EmbyTok-Flutter/commit/b6417476970079eb32ea9a60c7d63ae16d7c1858))
+
 ## [2.401.31](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.30...v2.401.31) (2026-10-25)
 
 
