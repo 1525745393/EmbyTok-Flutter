@@ -221,9 +221,9 @@ class _RightActionButtons extends ConsumerWidget {
                                 chapters: chapters,
                                 onSeek: (sec) {
                                   // batch 29：统一句柄优先 seek（MPV/VLC 下 controller 不可用），
-                                  // fallback EXO controller
+                                  // fallback EXO controller（章节秒数为 double，需转 int）
                                   final target = Duration(
-                                      seconds: sec);
+                                      seconds: sec.toInt());
                                   handle?.seekTo(target);
                                   controller?.seekTo(target);
                                 },

@@ -345,7 +345,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
           )
         : ValueListenableBuilder<int>(
             valueListenable: widget.handle?.positionMsListenable ??
-                const _AlwaysZeroNotifier(),
+                _AlwaysZeroNotifier(),
             builder: (context, ms, child) {
               final position = _isSeeking
                   ? (_previewPosition ?? Duration(milliseconds: ms))
@@ -384,7 +384,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
           )
         : ValueListenableBuilder<int>(
             valueListenable: widget.handle?.positionMsListenable ??
-                const _AlwaysZeroNotifier(),
+                _AlwaysZeroNotifier(),
             builder: (context, ms, child) {
               return IconButton(
                 icon: Icon(
@@ -416,7 +416,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
           )
         : ValueListenableBuilder<int>(
             valueListenable: widget.handle?.positionMsListenable ??
-                const _AlwaysZeroNotifier(),
+                _AlwaysZeroNotifier(),
             builder: (context, ms, child) {
               return TextButton(
                 onPressed: _showRateMenu,
@@ -559,5 +559,5 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
 
 /// 恒零位置流：handle 或 controller 均不可用时的占位（进度条显示 0，不触发构建错误）
 class _AlwaysZeroNotifier extends ValueNotifier<int> {
-  _AlwaysZeroNotifier() : super(0);
+  const _AlwaysZeroNotifier() : super(0);
 }
