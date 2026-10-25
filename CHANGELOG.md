@@ -1,3 +1,11 @@
+## [2.401.27](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.26...v2.401.27) (2026-10-25)
+
+
+### Bug Fixes
+
+* **local:** autoPlayNextTriggerProvider 经 providers barrel 导入（extra 为 part 文件不可直接 import） ([2d08427](https://github.com/1525745393/EmbyTok-Flutter/commit/2d08427d70d2dda166c4e87b8793d8059f954a6a))
+* **player:** 修复播放结束判定缺失（每帧误触发缓存失效/翻页）+本地连播恢复+播放完续播清零+删除后退出播放页 ([cc3c073](https://github.com/1525745393/EmbyTok-Flutter/commit/cc3c073b25090aea96e8fc5eea01f807b211dd2d))
+
 ## [2.401.26](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.25...v2.401.26) (2026-10-25)
 
 
