@@ -1,3 +1,10 @@
+## [2.401.34](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.33...v2.401.34) (2026-10-25)
+
+
+### Bug Fixes
+
+* **detail:** batch33 修复详情页剧集季切换3处问题 ([8bfc0b4](https://github.com/1525745393/EmbyTok-Flutter/commit/8bfc0b43de548ed27f71729af4f0d54d9eb45727))
+
 ## [2.401.33](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.32...v2.401.33) (2026-10-25)
 
 
