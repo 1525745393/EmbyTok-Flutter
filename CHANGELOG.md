@@ -1,3 +1,10 @@
+## [2.401.25](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.24...v2.401.25) (2026-10-25)
+
+
+### Bug Fixes
+
+* **文件源浏览:** 修复 3 项（年份开头整理跳过/单删残留刮削/重刮后不刷新） ([6f90ac9](https://github.com/1525745393/EmbyTok-Flutter/commit/6f90ac9ceaf183d0f79084ec226bb17dfcbcbce7))
+
 ## [2.401.24](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.23...v2.401.24) (2026-10-24)
 
 
