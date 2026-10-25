@@ -375,14 +375,9 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    // backdrop 或缩略图
+                    // backdrop 或缩略图（本地旁置 backdrop 文件优先，无则 CDN 回退，与详情页一致 batch 25 F2）
                     scraped?.backdropPath != null
-                        ? CachedNetworkImage(
-                            imageUrl: TmdbService.backdropUrl(scraped!.backdropPath!),
-                            fit: BoxFit.cover,
-                            errorWidget: (_, __, ___) =>
-                                _thumbPlaceholder(item),
-                          )
+                        ? LocalBackdropImage(item: item, backdropPath: scraped!.backdropPath)
                         : _thumbPlaceholder(item),
                     // 中间播放按钮
                     const Center(
@@ -1968,6 +1963,8 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
   bool _showSearch = false;
   String _searchQuery = '';
   final _searchCtrl = TextEditingController();
+  /// 续播进度缓存：pathHash -> 毫秒（"续看/已观看"筛选需要区分未完成进度，batch 25 F3）
+  final Map<String, int> _resumeMs = {};
 
   static const _sortOptions = {
     'name': '按名称',
@@ -2034,6 +2031,24 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _loadResumeProgress();
+  }
+
+  /// 异步预读本源所有项的续播进度（SharedPreferences 内存缓存，全量读取开销低）
+  Future<void> _loadResumeProgress() async {
+    final state = ref.read(localVideoProvider);
+    final items = state.items.where((e) => e.sourceId == widget.sourceId).toList();
+    final map = <String, int>{};
+    for (final it in items) {
+      final ms = await LocalVideoService.readResumeMs(it.pathHash);
+      if (ms != null && ms > 0) map[it.pathHash] = ms;
+    }
+    if (mounted) setState(() => _resumeMs.addAll(map));
+  }
+
+  @override
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
@@ -2065,9 +2080,18 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
       final played = state.recentHashes.toSet();
       items = items.where((e) {
         switch (_watchFilter) {
-          case '续看': return played.contains(e.pathHash);
+          // '续看' = 播放过且有未完成续播进度（剩余不足 30s 视为已看完，排除）
+          case '续看':
+            final ms = _resumeMs[e.pathHash];
+            return played.contains(e.pathHash) &&
+                ms != null &&
+                ms < e.duration.inMilliseconds - 30000;
           case '未观看': return !played.contains(e.pathHash);
-          case '已观看': return played.contains(e.pathHash);
+          // '已观看' = 播放过且无未完成续播进度（与 '续看' 互斥，batch 25 F3）
+          case '已观看':
+            final ms = _resumeMs[e.pathHash];
+            return played.contains(e.pathHash) &&
+                !(ms != null && ms < e.duration.inMilliseconds - 30000);
           default: return true;
         }
       }).toList();
@@ -3184,9 +3208,14 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                       final cached = Map<String, ScrapedMedia>.from(ref.read(localVideoProvider).scrapedMap);
                       for (final it in sorted) {
                         final ep = ScrapeService.extractEpisode(it.name);
-                        cached[it.pathHash] = ep != null
+                        final media = ep != null
                             ? ScrapeService.applyEpisodeInfo(result, ep.season, ep.episode)
                             : result;
+                        cached[it.pathHash] = media;
+                        // 整剧重刮必须逐集落盘：仅 updateScrapedMap 只改内存，重启后
+                        // loadCache 从 SP 读回旧数据导致结果丢失（与详情页重刮 saveCache
+                        // 持久化路径一致，batch 25 F1；saveCache 保留旧 scrapedAt）
+                        await ScrapeService.saveCache(it.pathHash, media);
                       }
                       ref.read(localVideoProvider.notifier).updateScrapedMap(cached);
                       if (!context.mounted) return;
