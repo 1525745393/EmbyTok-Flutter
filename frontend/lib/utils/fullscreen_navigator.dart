@@ -58,7 +58,13 @@ class FullscreenNavigator {
   }) async {
     final controller = ref.read(currentVideoControllerProvider);
     // 防御性检查：不仅检查 null，还要检查 controller 是否已 disposed 或有错误
-    if (!isControllerUsableForFullscreen(controller)) return false;
+    if (!isControllerUsableForFullscreen(controller)) {
+      // batch 28：MPV/VLC 引擎下无 EXO controller（currentVideoControllerProvider 为 null），
+      // 但统一控制句柄（currentPlayerControlProvider）已就绪（时长已取得）时仍允许进入全屏，
+      // 全屏页进度/播放状态与 seek/暂停/音量均经该句柄作用到 MPV/VLC 真实播放器。
+      final handle = ref.read(currentPlayerControlProvider);
+      if (handle == null || !handle.isReady) return false;
+    }
 
     // 进入前隐藏工具栏（沉浸感）
     ref.read(toolbarVisibilityProvider.notifier).hide();

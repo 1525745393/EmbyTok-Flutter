@@ -245,6 +245,29 @@ abstract class PlayerControlHandle {
 
   /// 暂停
   void pause();
+
+  // ===== batch 28：三引擎统一状态（MPV/VLC 引擎下 EXO controller 不可用，全屏页状态源）=====
+
+  /// 当前播放位置（EXO / MPV / VLC 统一；未就绪时为零）
+  Duration get currentPosition;
+
+  /// 视频总时长（三引擎统一；未就绪时为零）
+  Duration get totalDuration;
+
+  /// 是否正在播放（三引擎统一）
+  bool get isPlaying;
+
+  /// 当前播放倍速（EXO 实时读取；MPV/VLC 记录最近一次 setRate）
+  double get playbackRate;
+
+  /// 播放器是否已就绪：
+  /// - EXO：controller 已初始化且无错误
+  /// - MPV/VLC：已取得视频时长（时长非零）
+  bool get isReady;
+
+  /// 播放位置变化流（三引擎统一；EXO/MPV/VLC 均写入同一 notifier）。
+  /// 全屏页进度条、弹幕、字幕时间轴订阅此流驱动刷新。
+  ValueListenable<int>? get positionMsListenable;
 }
 
 /// 当前正在渲染的 [VideoPlayerWidgetState] 控制句柄

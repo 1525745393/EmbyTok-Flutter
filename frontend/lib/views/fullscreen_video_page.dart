@@ -95,6 +95,31 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
   @override
   bool get gesturesEnabled => true;
 
+  // ===== batch 28：手势 seek / 音量统一走控制句柄 =====
+  // 对齐 gesture_overlay.dart 的统一通道模式：MPV/VLC 引擎下 EXO controller
+  // 是隐藏实例（其 seek/setVolume 不作用于真实播放器），必须经
+  // currentPlayerControlProvider 作用到当前渲染引擎。
+
+  @override
+  void onSeekTo(Duration target) {
+    final handle = ref.read(currentPlayerControlProvider);
+    if (handle != null) {
+      handle.seekTo(target);
+      return;
+    }
+    _watchedController?.seekTo(target);
+  }
+
+  @override
+  void onSetVolume(double value) {
+    final handle = ref.read(currentPlayerControlProvider);
+    if (handle != null) {
+      handle.setVolume(value);
+      return;
+    }
+    _watchedController?.setVolume(value);
+  }
+
   @override
   void onSingleTap() {
     _toggleControls();
@@ -261,6 +286,16 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
       if (mounted) setState(() {});
     });
 
+    // batch 28：监听统一控制句柄变化（MPV/VLC 引擎下无 EXO controller，
+    // 全屏进度/播放状态改由句柄的 positionMsListenable 流驱动）
+    ref.listen<PlayerControlHandle?>(currentPlayerControlProvider,
+        (prev, next) {
+      _setupControlHandleListener(next);
+      if (mounted) setState(() {});
+    });
+    _setupControlHandleListener(
+        ref.read(currentPlayerControlProvider));
+
     // 监听字幕选择变化，异步加载字幕
     ref.listen<String?>(selectedSubtitleProvider, (previous, next) {
       if (next != previous) {
@@ -388,6 +423,8 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
     _brightnessHideTimer?.cancel();
     _resumePlayTimer?.cancel();
     _watchedController?.removeListener(_onControllerTick);
+    // batch 28：取消统一控制句柄状态流订阅
+    _handlePositionMs?.removeListener(_onHandleStatusTick);
     _bufferingNotifier.dispose();
     _positionMsNotifier.dispose();
     _showBrightnessUINotifier.dispose();
@@ -546,6 +583,8 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
   @override
   Widget build(BuildContext context) {
     final controller = ref.watch(currentVideoControllerProvider);
+    // batch 28：统一控制句柄（MPV/VLC 引擎下无 EXO controller，全屏状态/控制经此生效）
+    final controlHandle = ref.watch(currentPlayerControlProvider);
     final playingItem = ref.watch(playbackStateProvider.select((s) => s.item));
     final items = ref.watch(videoListProvider.select((s) => s.items));
 
@@ -575,9 +614,11 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
       hasError = v.hasError;
       hasValidSize = !v.size.isEmpty;
     } else {
-      isControllerReady = false;
+      // batch 28：MPV/VLC 引擎下无 EXO controller，统一控制句柄就绪即视为可全屏控制；
+      // 无 EXO size 概念（画面由底层 MPV/VLC 播放器渲染），handle 就绪即视为尺寸可用
+      isControllerReady = controlHandle?.isReady ?? false;
       hasError = false;
-      hasValidSize = false;
+      hasValidSize = controlHandle?.isReady ?? false;
     }
 
     final mediaOrientation = MediaQuery.orientationOf(context);
@@ -716,18 +757,15 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
           _buildTopBar(playingItem, isActuallyLandscape),
 
         // 底部控制栏：尺寸有效时才显示，避免画面未就绪时显示控制栏
-        if (_controlsVisible &&
-            isControllerReady &&
-            hasValidSize &&
-            controller != null &&
-            !_isScreenLocked)
+        // batch 28：MPV/VLC 引擎下 controller 为 null，控制走统一句柄，不再要求 EXO controller
+        if (_controlsVisible && isControllerReady && hasValidSize && !_isScreenLocked)
           _buildBottomBar(controller, playingItem, items),
 
         // 设置面板：尺寸有效时才显示，避免画面未就绪时显示设置面板
+        // batch 28：同上，MPV/VLC 引擎下允许打开设置面板（倍速等经统一句柄生效）
         if (_showSettingsPanel &&
             isControllerReady &&
             hasValidSize &&
-            controller != null &&
             !_isScreenLocked)
           _buildSettingsPanel(controller, playingItem),
 
@@ -741,16 +779,20 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
         ValueListenableBuilder<Duration>(
           valueListenable: previewPositionNotifier,
           builder: (context, previewPos, _) {
-            if (!isDragging || dragAxis != 'h' || controller == null) {
+            // batch 28：MPV/VLC 引擎下 controller 为 null，总时长改从统一句柄读取
+            if (!isDragging || dragAxis != 'h') {
               return const SizedBox.shrink();
             }
+            final total = controller?.value.duration ??
+                controlHandle?.totalDuration ??
+                Duration.zero;
             return Positioned(
               top: 48,
               left: 32,
               right: 32,
               child: _SeekPreviewBar(
                 current: previewPos,
-                total: controller.value.duration,
+                total: total,
                 offset: previewPos - dragStartPosition,
               ),
             );
@@ -915,6 +957,81 @@ void _setupControllerListener(VideoPlayerController? controller) {
       _bufferingNotifier.value = false;
       _wasControllerReady = false;
       _lastHasSize = false;
+    }
+  }
+
+  // ===== batch 28：统一控制句柄状态流（MPV/VLC 引擎无 EXO controller 时的全屏状态源）=====
+
+  ValueListenable<int>? _handlePositionMs;
+  bool _handleStatusReady = false;
+
+  void _setupControlHandleListener(PlayerControlHandle? handle) {
+    _handlePositionMs?.removeListener(_onHandleStatusTick);
+    _handlePositionMs = handle?.positionMsListenable;
+    _handlePositionMs?.addListener(_onHandleStatusTick);
+    // 初始同步一次状态（首帧进入全屏时 handle 可能已就绪但流尚未变化）
+    _onHandleStatusTick();
+  }
+
+  /// 统一句柄位置/状态变化：驱动 _positionMsNotifier（进度条/弹幕/字幕）、
+  /// 播放暂停图标与隐藏计时器刷新（MPV/VLC 引擎没有 EXO controller listener）
+  void _onHandleStatusTick() {
+    if (!mounted) return;
+    final handle = ref.read(currentPlayerControlProvider);
+    if (handle == null) return;
+
+    final ms = _handlePositionMs?.value;
+    if (ms != null && ms != _lastPositionMs) {
+      _lastPositionMs = ms;
+      _positionMsNotifier.value = ms;
+      _positionController?.add(Duration(milliseconds: ms));
+    }
+
+    bool needsRebuild = false;
+    final playing = handle.isPlaying;
+    if (playing != _lastIsPlaying) {
+      _lastIsPlaying = playing;
+      if (playing &&
+          _controlsVisible &&
+          !_isScreenLocked &&
+          !_showSettingsPanel) {
+        _startHideTimer();
+      } else {
+        _hideTimer?.cancel();
+      }
+      needsRebuild = true;
+    }
+
+    final ready = handle.isReady;
+    if (ready != _handleStatusReady) {
+      _handleStatusReady = ready;
+      needsRebuild = true;
+    }
+
+    if (needsRebuild) setState(() {});
+  }
+
+  /// 播放/暂停切换（三引擎统一）
+  ///
+  /// batch 28：优先走统一控制句柄（MPV/VLC 引擎下 EXO controller 是隐藏实例，
+  /// 直接调 controller.play/pause 无效），无句柄时回退 EXO controller。
+  Future<void> _togglePlayPause() async {
+    final handle = ref.read(currentPlayerControlProvider);
+    if (handle != null) {
+      if (handle.isPlaying) {
+        handle.pause();
+      } else {
+        handle.play();
+      }
+      if (mounted) setState(() {});
+      return;
+    }
+    final c = _watchedController;
+    if (c == null || !c.value.isInitialized) return;
+    if (c.value.isPlaying) {
+      c.pause();
+    } else {
+      c.play();
     }
   }
 
@@ -1311,11 +1428,12 @@ void _setupControllerListener(VideoPlayerController? controller) {
     ref.read(feedViewPageJumpRequestProvider.notifier).state = idx - 1;
   }
 
-  /// PRD P1：是否有下一集（播放列表中还有后续项）
+  /// PRD P1：是否有下一集（与 _getCurrentIndex 同源，均基于 videoListProvider，
+  /// batch 28：原误用 playbackListProvider 导致与当前索引基准不一致）
   bool _hasNext() {
     final idx = _getCurrentIndex();
     if (idx == null) return false;
-    final list = ref.read(playbackListProvider).items;
+    final list = ref.read(videoListProvider).items;
     return idx < list.length - 1;
   }
 
@@ -1323,7 +1441,7 @@ void _setupControllerListener(VideoPlayerController? controller) {
   void _jumpToNext() {
     final idx = _getCurrentIndex();
     if (idx == null) return;
-    final list = ref.read(playbackListProvider).items;
+    final list = ref.read(videoListProvider).items;
     if (idx >= list.length - 1) return;
     ref.read(feedViewPageJumpRequestProvider.notifier).state = idx + 1;
   }
@@ -1501,12 +1619,20 @@ Widget _buildErrorState(VideoPlayerController? controller) {
   }
 
   Widget _buildBottomBar(
-    VideoPlayerController controller,
+    VideoPlayerController? controller,
     MediaItem? playingItem,
     List<MediaItem> items,
   ) {
-    // 绑定最新 controller 的 seekTo，确保拖动结束时 seek 到当前 controller
-    _sliderSeekHandler.seekTo = controller.seekTo;
+    // 绑定最新 seek 通道：MPV/VLC 引擎下 controller 为 null，拖动结束经统一控制句柄
+    // seek 到真实播放器；EXO 引擎走 controller.seekTo（batch 28）
+    final controlHandle = ref.read(currentPlayerControlProvider);
+    _sliderSeekHandler.seekTo = (position) async {
+      if (controlHandle != null) {
+        await controlHandle.seekTo(position);
+      } else {
+        await controller?.seekTo(position);
+      }
+    };
     return Positioned(
       left: 0,
       right: 0,
@@ -1541,81 +1667,29 @@ Widget _buildErrorState(VideoPlayerController? controller) {
                 // 使用 throttledPreviewMs 避免每帧发 HTTP 请求（1s 节流）
                 if (_sliderSeekHandler.seekPreviewMs != null)
                   _buildFramePreview(context, _sliderSeekHandler.throttledPreviewMs!),
-                ValueListenableBuilder<VideoPlayerValue>(
-                  valueListenable: controller,
-                  builder: (context, value, child) {
-                    final position = value.position;
-                    final duration = value.duration;
-                    final progress = duration.inMilliseconds > 0
-                        ? position.inMilliseconds / duration.inMilliseconds
-                        : 0.0;
-                    // 拖动期间显示预览时间，否则显示真实播放位置
-                    final previewMs = _sliderSeekHandler.seekPreviewMs;
-                    final displayPosition = previewMs != null
-                        ? Duration(milliseconds: previewMs.round())
-                        : position;
-                    return Row(
-                      children: [
-                        Text(
-                          _formatDuration(displayPosition),
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: _kFontSizeSmall),
-                        ),
-                        const SizedBox(width: _kSpacingMedium),
-                        Expanded(
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              // PRD P1：缓冲进度指示（Slider 下层叠加灰色缓冲条）
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(2),
-                                child: LinearProgressIndicator(
-                                  value: duration.inMilliseconds > 0 &&
-                                          value.buffered.isNotEmpty
-                                      ? value.buffered.last.end.inMilliseconds /
-                                          duration.inMilliseconds
-                                      : 0.0,
-                                  minHeight: 2,
-                                  backgroundColor: Colors.white12,
-                                  valueColor:
-                                      const AlwaysStoppedAnimation(Colors.white38),
-                                ),
-                              ),
-                              Slider(
-                                value: progress.clamp(0.0, 1.0),
-                                // 拖动开始：标记进入拖动状态，初始化预览
-                                onChangeStart: (_) {
-                                  _sliderSeekHandler.startDrag();
-                                  setState(() {});
-                                },
-                                // 拖动中：仅更新预览时间，不发起 seek（防抖核心）
-                                onChanged: (v) {
-                                  setState(() {
-                                    _sliderSeekHandler.updateDrag(v, duration);
-                                  });
-                                },
-                                // 拖动结束：触发一次 seekTo 并清除预览
-                                onChangeEnd: (v) {
-                                  _sliderSeekHandler.endDrag(v, duration);
-                                  setState(() {});
-                                },
-                                activeColor:
-                                    Theme.of(context).colorScheme.primary,
-                                inactiveColor: Colors.transparent,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: _kSpacingMedium),
-                        Text(
-                          _formatDuration(duration),
-                          style: const TextStyle(
-                              color: Colors.white70, fontSize: _kFontSizeSmall),
-                        ),
-                      ],
-                    );
-                  },
-                ),
+                // 进度条：EXO 引擎由 controller 驱动（含缓冲进度条）；MPV/VLC 引擎由
+                // 统一控制句柄位置流驱动（无 EXO buffered 概念，不显示缓冲条）。
+                // 两分支共用 _buildProgressRow，进度计算/时间格式化/拖动逻辑单一路径。
+                if (controller != null)
+                  ValueListenableBuilder<VideoPlayerValue>(
+                    valueListenable: controller,
+                    builder: (context, value, child) => _buildProgressRow(
+                      position: value.position,
+                      duration: value.duration,
+                      bufferedEnd: value.buffered.isNotEmpty
+                          ? value.buffered.last.end
+                          : null,
+                    ),
+                  )
+                else
+                  ValueListenableBuilder<int>(
+                    valueListenable: _positionMsNotifier,
+                    builder: (context, ms, child) => _buildProgressRow(
+                      position: Duration(milliseconds: ms),
+                      duration: controlHandle?.totalDuration ?? Duration.zero,
+                      bufferedEnd: null,
+                    ),
+                  ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -1624,27 +1698,38 @@ Widget _buildErrorState(VideoPlayerController? controller) {
                           const Icon(Icons.skip_previous, color: Colors.white),
                       onPressed: _hasPrevious() ? _jumpToPrevious : null,
                     ),
-                    ValueListenableBuilder<VideoPlayerValue>(
-                      valueListenable: controller,
-                      builder: (context, value, child) {
-                        return IconButton(
+                    // 播放/暂停：EXO 由 controller 状态驱动；MPV/VLC 由统一句柄状态驱动。
+                    // 操作统一走 _togglePlayPause（句柄优先，避免命中隐藏 EXO 实例）。
+                    if (controller != null)
+                      ValueListenableBuilder<VideoPlayerValue>(
+                        valueListenable: controller,
+                        builder: (context, value, child) {
+                          return IconButton(
+                            icon: Icon(
+                              value.isPlaying
+                                  ? Icons.pause_circle_filled
+                                  : Icons.play_circle_filled,
+                              color: Colors.white,
+                              size: 44,
+                            ),
+                            onPressed: _togglePlayPause,
+                          );
+                        },
+                      )
+                    else
+                      ValueListenableBuilder<int>(
+                        valueListenable: _positionMsNotifier,
+                        builder: (context, ms, child) => IconButton(
                           icon: Icon(
-                            value.isPlaying
+                            (controlHandle?.isPlaying ?? false)
                                 ? Icons.pause_circle_filled
                                 : Icons.play_circle_filled,
                             color: Colors.white,
                             size: 44,
                           ),
-                          onPressed: () {
-                            if (value.isPlaying) {
-                              controller.pause();
-                            } else {
-                              controller.play();
-                            }
-                          },
-                        );
-                      },
-                    ),
+                          onPressed: _togglePlayPause,
+                        ),
+                      ),
                     // PRD P1：下一集按钮（与上一集对称）
                     IconButton(
                       icon: const Icon(Icons.skip_next, color: Colors.white),
@@ -1699,18 +1784,25 @@ Widget _buildErrorState(VideoPlayerController? controller) {
                         tooltip: '章节',
                       ),
                     IconButton(
-                      icon: ValueListenableBuilder<VideoPlayerValue>(
-                        valueListenable: controller,
-                        builder: (context, value, child) {
-                          return Text(
-                            '${value.playbackSpeed.toStringAsFixed(1)}x',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: _kFontSizeBody,
-                                fontWeight: FontWeight.w600),
-                          );
-                        },
-                      ),
+                      // 倍速显示：EXO 实时读 playbackSpeed；MPV/VLC 读统一句柄（记录最近 setRate）
+                      icon: controller != null
+                          ? ValueListenableBuilder<VideoPlayerValue>(
+                              valueListenable: controller,
+                              builder: (context, value, child) => Text(
+                                '${value.playbackSpeed.toStringAsFixed(1)}x',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: _kFontSizeBody,
+                                    fontWeight: FontWeight.w600),
+                              ),
+                            )
+                          : Text(
+                              '${(controlHandle?.playbackRate ?? 1.0).toStringAsFixed(1)}x',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: _kFontSizeBody,
+                                  fontWeight: FontWeight.w600),
+                            ),
                       onPressed: () => _toggleSettingsPanel(_SettingsTab.speed),
                       tooltip: '倍速',
                     ),
@@ -1730,7 +1822,82 @@ Widget _buildErrorState(VideoPlayerController? controller) {
     );
   }
 
-  Widget _buildSettingsPanel(VideoPlayerController controller, MediaItem? playingItem) {
+  /// 进度条行（batch 28：EXO / MPV/VLC 双数据源共用）
+  ///
+  /// - [position] / [duration]：播放位置与总时长
+  /// - [bufferedEnd]：EXO 引擎的缓冲进度（null 表示 MPV/VLC 无缓冲条概念）
+  Widget _buildProgressRow({
+    required Duration position,
+    required Duration duration,
+    required Duration? bufferedEnd,
+  }) {
+    final progress = duration.inMilliseconds > 0
+        ? position.inMilliseconds / duration.inMilliseconds
+        : 0.0;
+    // 拖动期间显示预览时间，否则显示真实播放位置
+    final previewMs = _sliderSeekHandler.seekPreviewMs;
+    final displayPosition = previewMs != null
+        ? Duration(milliseconds: previewMs.round())
+        : position;
+    return Row(
+      children: [
+        Text(
+          _formatDuration(displayPosition),
+          style: const TextStyle(
+              color: Colors.white, fontSize: _kFontSizeSmall),
+        ),
+        const SizedBox(width: _kSpacingMedium),
+        Expanded(
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // PRD P1：缓冲进度指示（Slider 下层叠加灰色缓冲条；MPV/VLC 无此数据）
+              ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: LinearProgressIndicator(
+                  value: duration.inMilliseconds > 0 && bufferedEnd != null
+                      ? bufferedEnd.inMilliseconds / duration.inMilliseconds
+                      : 0.0,
+                  minHeight: 2,
+                  backgroundColor: Colors.white12,
+                  valueColor: const AlwaysStoppedAnimation(Colors.white38),
+                ),
+              ),
+              Slider(
+                value: progress.clamp(0.0, 1.0),
+                // 拖动开始：标记进入拖动状态，初始化预览
+                onChangeStart: (_) {
+                  _sliderSeekHandler.startDrag();
+                  setState(() {});
+                },
+                // 拖动中：仅更新预览时间，不发起 seek（防抖核心）
+                onChanged: (v) {
+                  setState(() {
+                    _sliderSeekHandler.updateDrag(v, duration);
+                  });
+                },
+                // 拖动结束：触发一次 seekTo 并清除预览
+                onChangeEnd: (v) {
+                  _sliderSeekHandler.endDrag(v, duration);
+                  setState(() {});
+                },
+                activeColor: Theme.of(context).colorScheme.primary,
+                inactiveColor: Colors.transparent,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: _kSpacingMedium),
+        Text(
+          _formatDuration(duration),
+          style: const TextStyle(
+              color: Colors.white70, fontSize: _kFontSizeSmall),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSettingsPanel(VideoPlayerController? controller, MediaItem? playingItem) {
     // 沉浸式下 SafeArea 失效（padding 被置 0），改用 SafeInsets 避让物理刘海
     final safeInsets = SafeInsets.of(context);
     return Positioned(
@@ -1789,7 +1956,7 @@ Widget _buildErrorState(VideoPlayerController? controller) {
   }
 
   Widget _buildSettingsContent(
-      VideoPlayerController controller, MediaItem? playingItem) {
+      VideoPlayerController? controller, MediaItem? playingItem) {
     switch (_settingsTab) {
       case _SettingsTab.speed:
         return _buildSpeedList(controller);
@@ -1805,8 +1972,13 @@ Widget _buildErrorState(VideoPlayerController? controller) {
   }
 
   /// 字幕列表（PRD P1：横屏设置面板内嵌字幕轨道选择）
+  ///
+  /// batch 28：合并本地外挂字幕轨道（localSubtitleTracksProvider），
+  /// 与底部弹层 SubtitleSelector 的 `[...tracks, ...localTracks]` 合并逻辑保持一致，
+  /// 避免同屏两条字幕入口显示不一致。
   Widget _buildSubtitleList(MediaItem? playingItem) {
-    final tracks = playingItem?.subtitleTracks ?? [];
+    final localTracks = ref.watch(localSubtitleTracksProvider);
+    final tracks = [...?playingItem?.subtitleTracks, ...localTracks];
     final selectedId = ref.watch(selectedSubtitleProvider);
     if (tracks.isEmpty) {
       return const Padding(
@@ -1879,7 +2051,7 @@ Widget _buildErrorState(VideoPlayerController? controller) {
     );
   }
 
-  Widget _buildSpeedList(VideoPlayerController controller) {
+  Widget _buildSpeedList(VideoPlayerController? controller) {
     // 与竖屏统一：0.25–2.0 七档（PRD P1 倍速档位不一致）
     const rates = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
     final currentRate = ref.watch(playbackRateProvider);
@@ -1896,7 +2068,7 @@ Widget _buildErrorState(VideoPlayerController? controller) {
             // 必须走 currentPlayerControlProvider 才能作用于 MPV/VLC
             ref.read(currentPlayerControlProvider)?.setRate(rate);
             // 兼容：直接调 EXO controller 作为 fallback
-            controller.setPlaybackSpeed(rate);
+            controller?.setPlaybackSpeed(rate);
             ref.read(playbackRateProvider.notifier).state = rate;
             _startHideTimer();
           },
@@ -2054,12 +2226,19 @@ Widget _buildErrorState(VideoPlayerController? controller) {
   }
 
   /// PRD P1：章节导航弹窗（复用竖屏 chapter_picker.dart）
-  void _showChapterPicker(MediaItem item, VideoPlayerController controller) {
+  void _showChapterPicker(MediaItem item, VideoPlayerController? controller) {
+    // batch 28：章节跳转统一走控制句柄（MPV/VLC 引擎下 EXO controller 为 null/隐藏实例）
+    final handle = ref.read(currentPlayerControlProvider);
     showChapterPicker(
       context: context,
       chapters: item.chapters ?? [],
-      onSeek: (seconds) {
-        controller.seekTo(Duration(seconds: seconds.round()));
+      onSeek: (seconds) async {
+        final target = Duration(seconds: seconds.round());
+        if (handle != null) {
+          await handle.seekTo(target);
+        } else {
+          await controller?.seekTo(target);
+        }
       },
     );
   }
@@ -2149,6 +2328,11 @@ Widget _buildErrorState(VideoPlayerController? controller) {
   ///
   /// Emby API: /Items/{itemId}/Images/Playback/{width}?mediaSourceId=...&offset={ticks}
   /// 服务端未配置 trickplay 时返回 404，错误图占位。
+  ///
+  /// batch 28：鉴权从 URL query 的 X-Emby-Token 改为双请求头
+  /// （X-Emby-Authorization + X-Emby-Token，见 MediaItem.authHeaders），
+  /// 与项目统一鉴权策略一致——仅 X-Emby-Token 不满足部分 Emby 版本会 401，
+  /// 同时避免 token 明文出现在 URL 中。
   Widget _buildFramePreview(BuildContext context, double previewMs) {
     final item = currentItem;
     final auth = ref.read(authProvider);
@@ -2161,7 +2345,7 @@ Widget _buildErrorState(VideoPlayerController? controller) {
     // 1 tick = 100ns，毫秒转 tick = ms * 10000
     final offsetTicks = (previewMs * 10000).round();
     final url =
-        '${auth.embyServerUrl}/Items/${item.id}/Images/Playback/288?mediaSourceId=$msId&offset=$offsetTicks&X-Emby-Token=${auth.token}';
+        '${auth.embyServerUrl}/Items/${item.id}/Images/Playback/288?mediaSourceId=$msId&offset=$offsetTicks';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -2176,7 +2360,10 @@ Widget _buildErrorState(VideoPlayerController? controller) {
       child: Image.network(
         url,
         fit: BoxFit.cover,
-        headers: const {'Accept': 'image/*'},
+        headers: {
+          ...item.authHeaders(auth.token),
+          'Accept': 'image/*',
+        },
         errorBuilder: (_, __, ___) => const Center(
           child: Icon(Icons.image_not_supported_outlined,
               color: Colors.white24, size: 24),

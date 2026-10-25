@@ -371,6 +371,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
   }
 
   /// 统一获取当前播放位置（ExoPlayer 或 MPV/VLC 均支持）
+  @override
   Duration get currentPosition {
     final c = _controller;
     if (c != null && c.value.isInitialized) {
@@ -381,6 +382,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
   }
 
   /// 统一获取视频总时长
+  @override
   Duration get totalDuration {
     final c = _controller;
     if (c != null && c.value.isInitialized) {
@@ -396,6 +398,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
   }
 
   /// 统一获取是否正在播放
+  @override
   bool get isPlaying {
     final c = _controller;
     if (c != null && c.value.isInitialized) {
@@ -406,12 +409,52 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
         false;
   }
 
+  // ===== batch 28：PlayerControlHandle 状态接口补充实现 =====
+
+  /// 当前播放倍速（三引擎统一）
+  ///
+  /// - EXO：实时读取 controller 的 playbackSpeed
+  /// - MPV/VLC：播放器 State 未暴露倍速 getter，记录最近一次 [setRate] 的取值
+  @override
+  double get playbackRate {
+    final c = _controller;
+    if (c != null && c.value.isInitialized) {
+      return c.value.playbackSpeed;
+    }
+    return _lastSetRate;
+  }
+
+  /// 播放器是否已就绪（三引擎统一）
+  ///
+  /// - EXO：controller 已初始化且无错误
+  /// - MPV/VLC：已取得视频时长（时长非零，说明解码已起步）
+  @override
+  bool get isReady {
+    final c = _controller;
+    if (c != null && c.value.isInitialized) {
+      return !c.value.hasError;
+    }
+    return totalDuration > Duration.zero;
+  }
+
+  /// 播放位置变化流（三引擎统一）
+  ///
+  /// EXO / MPV / VLC 分支都写入同一个 [_positionMs]（见各引擎
+  /// onPositionChanged / controller listener），全屏页订阅此流驱动
+  /// 进度条、弹幕与字幕时间轴刷新。
+  @override
+  ValueListenable<int>? get positionMsListenable => _positionMs;
+
+  // 最近一次 setRate 的倍速（MPV/VLC 无倍速 getter 时的回退显示值）
+  double _lastSetRate = 1.0;
+
   // 从 Emby 服务器同步的续播位置 seek 到对应进度
   // 在 _initVideo() 中 play 之前调用，避免竞态条件
 
   // 外部控制 API：设置倍速（三引擎同步）
   @override
   Future<void> setRate(double rate) async {
+    _lastSetRate = rate;
     try {
       await _controller?.setPlaybackSpeed(rate);
       _mpvKey.currentState?.setRate(rate);
