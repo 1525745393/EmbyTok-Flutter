@@ -1287,7 +1287,19 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     String titlePart;
     if (yearMatch != null) {
       year = int.tryParse(yearMatch.group(1)!);
-      titlePart = name.substring(0, yearMatch.start);
+      if (yearMatch.start == 0) {
+        // 剥离开头的年份（如 "2023 荒岛求生"）；剥离后为空说明片名即年份（如 "2012"），保留原名不提取
+        // 与 ScrapeService.parseFilename 的年份剥离语义保持一致
+        final stripped = name.substring(yearMatch.end).replaceAll(_trailingSepRegex, '').trim();
+        if (stripped.isEmpty) {
+          year = null;
+          titlePart = name;
+        } else {
+          titlePart = stripped;
+        }
+      } else {
+        titlePart = name.substring(0, yearMatch.start);
+      }
     } else {
       titlePart = name;
     }
@@ -1733,6 +1745,12 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       if (confirm == true) {
         try {
           await LocalVideoService().delete(item);
+          // 同步清理刮削旁置文件（.nfo/海报/.actors）与缓存，避免孤儿残留（与批量删除一致）
+          try {
+            await ScrapeMediaStore.delete(item);
+            final sp = await SharedPreferences.getInstance();
+            await sp.remove('scrape_${item.pathHash}');
+          } catch (_) {}
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('已删除: ${item.name}')));
             _scan();
@@ -1765,6 +1783,10 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           await ScrapeService.saveCache(item.pathHash, m);
           await ScrapeMediaStore.save(item, m);
           ref.read(localVideoProvider.notifier).addScrapedEntry(item.pathHash, m);
+          // 重载刮削缓存，让本页列表立即显示新标题/海报（与 _scrapeAll/_scrapeGroup 一致）
+          final cache = await ScrapeService.loadCache();
+          if (!mounted) return;
+          setState(() => _scraped = cache);
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('刮削成功：${m.title}')));
         } else {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('未在 TMDB 找到匹配')));
