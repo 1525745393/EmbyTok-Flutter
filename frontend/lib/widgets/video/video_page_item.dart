@@ -633,43 +633,59 @@ void _resetInfoHideTimer() {
       // 播放结束判定：仅当真实播完（position >= duration 且时长有效）才执行一次结束副作用。
       // 原实现缺少该判定，导致 ended 副作用随每次位置变化每帧执行：
       // 在线缓存失效风暴、播放中 item 每帧从列表移除、autoPlayNext 开启时每帧触发翻页——batch 26 修复。
+      // batch 27：副作用统一收敛到 _handlePlaybackEnded()，MPV/VLC 引擎经 onPlaybackEnded 复用同一路径。
       if (pos >= dur && dur > Duration.zero) {
         _hasNotifiedEnded = true;
-      // History 中已播放条目会更新，需失效以反映最新观看进度
-        final serverUrl = _authServerUrl();
-        final token = _authToken();
-        if (serverUrl != null && token != null) {
-          try {
-            ref
-                .read(cacheControllerProvider)
-                .invalidateResume(serverUrl, token);
-            ref
-                .read(cacheControllerProvider)
-                .invalidateItemDetail(widget.item.id, serverUrl);
-            ref.read(cacheControllerProvider).invalidateNextUp(serverUrl);
-            ref.read(cacheControllerProvider).invalidateWatchHistory(serverUrl);
-          } catch (e) {
-            AppLogger.warn('视频播放结束后更新缓存失败', data: {'error': e.toString()});
-          }
-        }
-        ref.read(videoListProvider.notifier).removePlayedItem(widget.item.id);
-        // 自动连播下一集：用户在设置中开启后，播放结束自动切到下一个视频
-        if (ref.read(autoPlayNextProvider)) {
-          ref.read(autoPlayNextTriggerProvider.notifier).state++;
-        }
-        // 本地播放结束：清零续播位置，避免重开该集直接 seek 到片尾（batch 26）。
-        // 写入 0 与"已观看"判定（resume 未到片尾才算续看）语义一致。
-        if (widget.item.isLocalFile) {
-          final localHash = widget.item.id.replaceFirst('local_', '');
-          safeUnawaited(() async {
-            try {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setInt('local_resume_$localHash', 0);
-            } catch (_) {}
-          }(), context: 'clearLocalResumeOnEnd(itemId:${widget.item.id})');
-        }
+        _handlePlaybackEnded();
       }
     }
+    } catch (_) {
+      // dispose 阶段 ProviderScope 已释放，忽略
+    }
+  }
+
+  /// 播放结束统一副作用（batch 27）
+  ///
+  /// EXO 引擎由 _onVideoChanged 的 pos>=dur 判定触发；
+  /// MPV/VLC 引擎由 VideoPlayerWidget.onPlaybackEnded 回调触发
+  /// （原实现 ended 判定只挂在 EXO controller listener 上，
+  ///  MPV/VLC 引擎下 _videoController 为 null、listener 不注册，ended 副作用全部缺失）。
+  void _handlePlaybackEnded() {
+    if (_providerCleaned || !mounted) return;
+    try {
+      final serverUrl = _authServerUrl();
+      final token = _authToken();
+      // History 中已播放条目会更新，需失效以反映最新观看进度
+      if (serverUrl != null && token != null) {
+        try {
+          ref
+              .read(cacheControllerProvider)
+              .invalidateResume(serverUrl, token);
+          ref
+              .read(cacheControllerProvider)
+              .invalidateItemDetail(widget.item.id, serverUrl);
+          ref.read(cacheControllerProvider).invalidateNextUp(serverUrl);
+          ref.read(cacheControllerProvider).invalidateWatchHistory(serverUrl);
+        } catch (e) {
+          AppLogger.warn('视频播放结束后更新缓存失败', data: {'error': e.toString()});
+        }
+      }
+      ref.read(videoListProvider.notifier).removePlayedItem(widget.item.id);
+      // 自动连播下一集：用户在设置中开启后，播放结束自动切到下一个视频
+      if (ref.read(autoPlayNextProvider)) {
+        ref.read(autoPlayNextTriggerProvider.notifier).state++;
+      }
+      // 本地播放结束：清零续播位置，避免重开该集直接 seek 到片尾（batch 26）。
+      // 写入 0 与"已观看"判定（resume 未到片尾才算续看）语义一致。
+      if (widget.item.isLocalFile) {
+        final localHash = widget.item.id.replaceFirst('local_', '');
+        safeUnawaited(() async {
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setInt('local_resume_$localHash', 0);
+          } catch (_) {}
+        }(), context: 'clearLocalResumeOnEnd(itemId:${widget.item.id})');
+      }
     } catch (_) {
       // dispose 阶段 ProviderScope 已释放，忽略
     }
@@ -969,6 +985,15 @@ Widget _buildPage(BuildContext context) {
                 token: token,
                 preloadedController: widget.preloadedSession?.controller,
                 startFromResumePosition: widget.startFromResumePosition,
+                // MPV/VLC 引擎播放完成回调：与 EXO 的 pos>=dur 判定统一触发 ended 副作用（batch 27）。
+                // 原实现未接此回调，MPV/VLC 播放完不会连播/清缓存/清续播。
+                onPlaybackEnded: () {
+                  if (!mounted || _providerCleaned) return;
+                  if (!_hasNotifiedEnded) {
+                    _hasNotifiedEnded = true;
+                    _handlePlaybackEnded();
+                  }
+                },
                 onControllerReleased: () {
                   // 修复：deactivate() 中已清理 Provider 状态，dispose 阶段不再重复清理。
                   // 避免 VideoPlayerWidget.dispose → _releaseCurrentController → 此回调

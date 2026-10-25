@@ -530,41 +530,68 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
     final useMpv = effectiveEngine == PlayerEngine.mpv ||
         (effectiveEngine == PlayerEngine.auto &&
             (widget.item.isDolbyVision || widget.item.isHdr));
+    // 字幕叠加所需：三引擎共用（横屏全屏由 fullscreen_video_page 渲染字幕，此处 !isFullscreen 跳过——batch 27）
+    final selectedSubId = ref.watch(selectedSubtitleProvider);
+    final displayCues = _subtitleCues.isNotEmpty
+        ? _subtitleCues
+        : (widget.item.subtitleCues ?? const <SubtitleCue>[]);
     if (useMpv) {
       final mpvUrl = _playbackUrl;
       if (mpvUrl == null || mpvUrl.isEmpty) {
         return _buildThumbnailPlaceholder(context);
       }
-      return wrapFixedRatio(MpvVideoPlayer(
-        key: _mpvKey,
-        url: mpvUrl,
-        // 本地文件不传 Emby 认证头；WebDAV 等网络源合并 extraHttpHeaders
-        httpHeaders: widget.isLocal
-            ? {...widget.extraHttpHeaders}
-            : (widget.token != null
-                ? {
-                    'X-Emby-Token': widget.token!,
-                    'Accept': 'video/*',
-                    ...widget.extraHttpHeaders,
-                  }
-                : {'Accept': 'video/*', ...widget.extraHttpHeaders}),
-        autoPlay: widget.autoPlay,
-        muted: !widget.isCurrentPage,
-        isCurrentPage: widget.isCurrentPage,
-        hwDec: engineSettings.mpvHwDec,
-        cacheSizeMb: engineSettings.mpvCacheSizeMb,
-        forceAssStyle: engineSettings.mpvForceAssStyle,
-        fit: boxFit,
-        externalSubtitlePaths: widget.externalSubtitlePaths,
-        onPositionChanged: (pos) {
-          // 同步 MPV 播放位置到外层进度条
-          _positionMs.value = pos.inMilliseconds;
-        },
-        onError: (msg) => retryInitialization(),
-        onPlaybackEnded: () {
-          widget.onPlaybackEnded?.call();
-        },
-      ));
+      return wrapFixedRatio(
+        Stack(
+          fit: StackFit.expand,
+          children: [
+            MpvVideoPlayer(
+              key: _mpvKey,
+              url: mpvUrl,
+              // 本地文件不传 Emby 认证头；WebDAV 等网络源合并 extraHttpHeaders
+              httpHeaders: widget.isLocal
+                  ? {...widget.extraHttpHeaders}
+                  : (widget.token != null
+                      ? {
+                          'X-Emby-Token': widget.token!,
+                          'Accept': 'video/*',
+                          ...widget.extraHttpHeaders,
+                        }
+                      : {'Accept': 'video/*', ...widget.extraHttpHeaders}),
+              autoPlay: widget.autoPlay,
+              muted: !widget.isCurrentPage,
+              isCurrentPage: widget.isCurrentPage,
+              hwDec: engineSettings.mpvHwDec,
+              cacheSizeMb: engineSettings.mpvCacheSizeMb,
+              forceAssStyle: engineSettings.mpvForceAssStyle,
+              fit: boxFit,
+              externalSubtitlePaths: widget.externalSubtitlePaths,
+              onPositionChanged: (pos) {
+                // 同步 MPV 播放位置到外层进度条
+                _positionMs.value = pos.inMilliseconds;
+              },
+              onError: (msg) => retryInitialization(),
+              onPlaybackEnded: () {
+                widget.onPlaybackEnded?.call();
+              },
+            ),
+            // 服务器/本地字幕叠加（MPV 内部字幕仅覆盖 externalSubtitlePaths；
+            // 用户经 selectedSubtitleProvider 选择的轨道统一在此渲染——batch 27）
+            if (selectedSubId != null && displayCues.isNotEmpty && !isFullscreen)
+              RepaintBoundary(
+                child: ValueListenableBuilder<int>(
+                  valueListenable: _positionMs,
+                  builder: (_, ms, __) {
+                    return SubtitleRenderer(
+                      position: Duration(milliseconds: ms),
+                      cues: displayCues,
+                      enabled: true,
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      );
     }
 
     // VLC 引擎分支：libvlc，网络流兼容性兜底
@@ -573,38 +600,64 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
       if (vlcUrl == null || vlcUrl.isEmpty) {
         return _buildThumbnailPlaceholder(context);
       }
-      return wrapFixedRatio(VlcVideoPlayer(
-        key: _vlcKey,
-        url: vlcUrl,
-        // 本地文件不传 Emby 认证头；WebDAV 等网络源合并 extraHttpHeaders
-        httpHeaders: widget.isLocal
-            ? {...widget.extraHttpHeaders}
-            : (widget.token != null
-                ? {
-                    'X-Emby-Token': widget.token!,
-                    'Accept': 'video/*',
-                    ...widget.extraHttpHeaders,
-                  }
-                : {'Accept': 'video/*', ...widget.extraHttpHeaders}),
-        autoPlay: widget.autoPlay,
-        muted: !widget.isCurrentPage,
-        isCurrentPage: widget.isCurrentPage,
-        fit: switch (fitMode) {
-          VideoFitMode.fit => isFullscreen
-              ? VlcVideoFit.contain
-              : (isLandscapeVideo ? VlcVideoFit.contain : VlcVideoFit.cover),
-          VideoFitMode.fill => VlcVideoFit.cover,
-          VideoFitMode.stretch => VlcVideoFit.fill,
-          VideoFitMode.sixteenNine => VlcVideoFit.contain,
-          VideoFitMode.fourThree => VlcVideoFit.contain,
-        },
-        onPositionChanged: (pos) {
-          // 同步 VLC 播放位置到外层进度条
-          _positionMs.value = pos.inMilliseconds;
-        },
-        onError: (e) => retryInitialization(),
-        externalSubtitlePaths: widget.externalSubtitlePaths,
-      ));
+      return wrapFixedRatio(
+        Stack(
+          fit: StackFit.expand,
+          children: [
+            VlcVideoPlayer(
+              key: _vlcKey,
+              url: vlcUrl,
+              // 本地文件不传 Emby 认证头；WebDAV 等网络源合并 extraHttpHeaders
+              httpHeaders: widget.isLocal
+                  ? {...widget.extraHttpHeaders}
+                  : (widget.token != null
+                      ? {
+                          'X-Emby-Token': widget.token!,
+                          'Accept': 'video/*',
+                          ...widget.extraHttpHeaders,
+                        }
+                      : {'Accept': 'video/*', ...widget.extraHttpHeaders}),
+              autoPlay: widget.autoPlay,
+              muted: !widget.isCurrentPage,
+              isCurrentPage: widget.isCurrentPage,
+              fit: switch (fitMode) {
+                VideoFitMode.fit => isFullscreen
+                    ? VlcVideoFit.contain
+                    : (isLandscapeVideo ? VlcVideoFit.contain : VlcVideoFit.cover),
+                VideoFitMode.fill => VlcVideoFit.cover,
+                VideoFitMode.stretch => VlcVideoFit.fill,
+                VideoFitMode.sixteenNine => VlcVideoFit.contain,
+                VideoFitMode.fourThree => VlcVideoFit.contain,
+              },
+              onPositionChanged: (pos) {
+                // 同步 VLC 播放位置到外层进度条
+                _positionMs.value = pos.inMilliseconds;
+              },
+              onError: (e) => retryInitialization(),
+              externalSubtitlePaths: widget.externalSubtitlePaths,
+              // 播放结束转发：VLC 引擎下 ended 副作用依赖此回调（batch 27，
+              // 原实现未传，导致 VLC 播放完不连播/不清缓存/不清续播）
+              onPlaybackEnded: () {
+                widget.onPlaybackEnded?.call();
+              },
+            ),
+            // 服务器/本地字幕叠加（与 MPV/EXO 分支一致——batch 27）
+            if (selectedSubId != null && displayCues.isNotEmpty && !isFullscreen)
+              RepaintBoundary(
+                child: ValueListenableBuilder<int>(
+                  valueListenable: _positionMs,
+                  builder: (_, ms, __) {
+                    return SubtitleRenderer(
+                      position: Duration(milliseconds: ms),
+                      cues: displayCues,
+                      enabled: true,
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      );
     }
 
     final vc = _controller;
@@ -626,7 +679,6 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
     // BoxFit 策略：
     //   - 竖屏视频：cover（填满容器，TikTok 风格）
     //   - 横屏视频：contain（完整显示，上下黑边，避免裁剪）
-    final isLandscape = widget.item.isLandscape;
     // 视频尺寸：使用 controller.value.size，若为空则使用 1x1 占位（避免 VideoPlayer 首次构建时尺寸为0导致渲染异常）
     final videoSize = vc.value.size;
     final hasValidSize = !videoSize.isEmpty;
@@ -634,13 +686,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
     if (!hasValidSize) {
       _sizeWasEmpty = true;
     }
-    // 监听选中的字幕轨道 ID，变化时异步加载
-    final selectedSubId = ref.watch(selectedSubtitleProvider);
     // isFullscreen 已在上方 boxFit 计算处 watch，此处复用，避免重复 watch
-    // 当前实际显示的字幕（优先用异步加载的 _subtitleCues，否则用 item 自带的）
-    final displayCues = _subtitleCues.isNotEmpty
-        ? _subtitleCues
-        : (widget.item.subtitleCues ?? const <SubtitleCue>[]);
+    // displayCues 与 selectedSubId 已在 build 顶部统一计算（三引擎共用，batch 27）
     return wrapFixedRatio(SizedBox.expand(
       child: Stack(
         fit: StackFit.expand,
@@ -928,6 +975,12 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
         });
         return;
       }
+      // 非当前页跳过本地创建（与动态路径一致，OOM 防护：PageView 滑动中
+      // 预构建的相邻页不重复解码；回到当前页由 didUpdateWidget 重建——batch 27）
+      if (!widget.isCurrentPage) {
+        AppLogger.debug('非当前页跳过本地控制器创建', data: {'itemId': widget.item.id});
+        return;
+      }
       try {
         final uri = Uri.parse(url);
         // file:// URI 转 File；同时兼容直接传绝对路径
@@ -954,6 +1007,9 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
           });
           if (widget.autoPlay) await c.play();
           widget.onControllerReady?.call(c);
+          // 修复：init 完成时若已是非当前页（init 期间页面切走的竞态），
+          // 立即调度释放计时器，防止 controller 永久驻留（对齐动态路径——batch 27）
+          _scheduleBackgroundReleaseIfNeeded();
         }
         return;
       } catch (e) {
