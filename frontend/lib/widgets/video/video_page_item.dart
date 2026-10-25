@@ -630,6 +630,11 @@ void _resetInfoHideTimer() {
     if (!_hasNotifiedEnded) {
       final pos = controller.value.position;
       final dur = controller.value.duration;
+      // 播放结束判定：仅当真实播完（position >= duration 且时长有效）才执行一次结束副作用。
+      // 原实现缺少该判定，导致 ended 副作用随每次位置变化每帧执行：
+      // 在线缓存失效风暴、播放中 item 每帧从列表移除、autoPlayNext 开启时每帧触发翻页——batch 26 修复。
+      if (pos >= dur && dur > Duration.zero) {
+        _hasNotifiedEnded = true;
       // History 中已播放条目会更新，需失效以反映最新观看进度
         final serverUrl = _authServerUrl();
         final token = _authToken();
@@ -652,7 +657,19 @@ void _resetInfoHideTimer() {
         if (ref.read(autoPlayNextProvider)) {
           ref.read(autoPlayNextTriggerProvider.notifier).state++;
         }
+        // 本地播放结束：清零续播位置，避免重开该集直接 seek 到片尾（batch 26）。
+        // 写入 0 与"已观看"判定（resume 未到片尾才算续看）语义一致。
+        if (widget.item.isLocalFile) {
+          final localHash = widget.item.id.replaceFirst('local_', '');
+          safeUnawaited(() async {
+            try {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setInt('local_resume_$localHash', 0);
+            } catch (_) {}
+          }(), context: 'clearLocalResumeOnEnd(itemId:${widget.item.id})');
+        }
       }
+    }
     } catch (_) {
       // dispose 阶段 ProviderScope 已释放，忽略
     }

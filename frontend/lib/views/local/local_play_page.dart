@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/local_video_item.dart';
+import '../../providers/app_preferences_providers_extra.dart';
 import '../../providers/local_video_provider.dart';
 import '../../providers/video_playback_controller.dart';
 import '../../utils/local_video_adapter.dart';
@@ -72,6 +73,19 @@ class _LocalPlayPageState extends ConsumerState<LocalPlayPage> {
   Widget build(BuildContext context) {
     final scrapedMap = ref.watch(localVideoProvider).scrapedMap;
     final list = _list;
+    // 自动连播：监听播放结束触发事件，切到下一集（与在线 PlaybackShell 行为一致，
+    // batch 26；VideoPageItem 播放结束时 trigger++ 仅触发一次）
+    ref.listen<int>(autoPlayNextTriggerProvider, (prev, next) {
+      if (next != prev && mounted && _controller.hasClients) {
+        final nextIndex = _index + 1;
+        if (nextIndex < list.length) {
+          _controller.nextPage(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+      }
+    });
     return Scaffold(
       backgroundColor: Colors.black,
       body: PageView.builder(
@@ -93,6 +107,10 @@ class _LocalPlayPageState extends ConsumerState<LocalPlayPage> {
             item: m,
             isCurrentPage: i == _index,
             source: 'local_play',
+            // 删除当前视频后退出播放页（与在线 feed 删除后退出行为一致，batch 26）
+            onVideoEnded: () {
+              if (mounted) Navigator.of(context).pop();
+            },
           );
         },
       ),
