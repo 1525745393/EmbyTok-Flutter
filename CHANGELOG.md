@@ -1,3 +1,11 @@
+## [2.401.29](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.28...v2.401.29) (2026-10-25)
+
+
+### Bug Fixes
+
+* **player:** batch28 横屏全屏播放器覆盖层修复——MPV/VLC 引擎全屏控制链路统一走 currentPlayerControlProvider（播放暂停/进度条 seek/手势 seek 音量/章节/倍速），PlayerControlHandle 扩展三引擎状态接口（isReady/playbackRate/positionMsListenable），Navigator 放行 handle 就绪场景；上/下一集边界与索引统一 videoListProvider 同源；帧预览鉴权改 authHeaders 双头并移除 URL 明文 token；设置面板字幕列表合并本地外挂轨道与 SubtitleSelector 对齐 ([2f8621e](https://github.com/1525745393/EmbyTok-Flutter/commit/2f8621e62cd8f8a2cd906208e03dfec787591602))
+* **player:** 补 ValueListenable 的 foundation import（CI batch28 双红修复） ([056f1f4](https://github.com/1525745393/EmbyTok-Flutter/commit/056f1f4c76bcf8336cd4f352c5e0452b08436e76))
+
 ## [2.401.28](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.27...v2.401.28) (2026-10-25)
 
 
