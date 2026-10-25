@@ -120,16 +120,20 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
             onSelected: (v) async {
+              // 每个 case 必须 break，否则 fallthrough 会连带执行后续动作（batch 30 F2）
               switch (v) {
                 case 'rescan':
                   notifier.refresh();
+                  break;
                 case 'scrape':
                   notifier.scrapeMissing();
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('开始刮削未识别视频…')),
                   );
+                  break;
                 case 'sources':
                   context.push('/file-sources');
+                  break;
                 case 'undoRename':
                   try {
                     final path = await LocalVideoService().undoLastRename();
@@ -144,6 +148,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                       SnackBar(content: Text('撤销失败: $e')),
                     );
                   }
+                  break;
               }
             },
             itemBuilder: (_) => const [
@@ -1333,7 +1338,9 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
       }
     } else if (action == 'rename') {
       if (!mounted) return;
-      final ctrl = TextEditingController(text: item.name);
+      // 预填去掉扩展名：renameFile 会按服务层自动补全扩展名，直接确定产生 xx.mp4.mp4 双扩展名（batch 30 F4）
+      final baseName = item.name.contains('.') ? item.name.substring(0, item.name.lastIndexOf('.')) : item.name;
+      final ctrl = TextEditingController(text: baseName);
       final newName = await showDialog<String>(
         context: context,
         builder: (_) => AlertDialog(
@@ -1384,8 +1391,11 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
   }
 
   void _playVideo(LocalVideoItem item) {
-    final list = ref.read(localVideoProvider).filtered;
-    final idx = list.indexWhere((e) => e.id == item.id);
+    // 用完整列表定位：filtered 受搜索/类型筛选影响，筛选激活时播放记录/收藏卡片点播会
+    // 定位不到而错播 filtered[0]，filtered 为空时还会以空列表进入播放页（batch 30 F3）
+    final all = ref.read(localVideoProvider).items;
+    final idx = all.indexWhere((e) => e.id == item.id);
+    final list = idx >= 0 ? all : [item];
     Navigator.of(context)
         .push(
           MaterialPageRoute<Widget>(builder: (_) => LocalPlayPage(
@@ -1992,34 +2002,44 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
     int cmp(dynamic a, dynamic b) => Comparable.compare(a is Comparable ? a : 0, b is Comparable ? b : 0);
     void r() => list.sort((a, b) {
       int r;
+      // 每个 case 必须 break：fallthrough 会把比较结果一路覆盖到 default r=0，全部排序失效（batch 30 F1）
       switch (_sortBy) {
         case 'name':
           r = (state.scrapedMap[a.pathHash]?.title ?? a.name).compareTo(state.scrapedMap[b.pathHash]?.title ?? b.name);
+          break;
         case 'time':
         case 'playDate':
         case 'added':
         case 'lastAdded':
           // 自然升序（旧在前）；方向由 _sortAscending 统一翻转，保证箭头与结果一致
           r = a.modifiedAt.compareTo(b.modifiedAt);
+          break;
         case 'year':
           r = gY(a.pathHash).compareTo(gY(b.pathHash));
+          break;
         case 'rating':
         case 'criticRating':
           r = gR(a.pathHash).compareTo(gR(b.pathHash));
+          break;
         case 'certification':
           r = (state.scrapedMap[a.pathHash]?.certification ?? '').compareTo(state.scrapedMap[b.pathHash]?.certification ?? '');
+          break;
         case 'duration':
           r = a.duration.inSeconds.compareTo(b.duration.inSeconds);
+          break;
         case 'size':
           r = a.sizeBytes.compareTo(b.sizeBytes);
+          break;
         case 'resolution':
           // 按像素总量（宽×高）排序；元数据缺失宽高时排最后
           int px(LocalVideoItem e) =>
               (e.width > 0 && e.height > 0) ? e.width * e.height : -1;
           r = px(a).compareTo(px(b));
+          break;
         case 'bitrate':
           int bps(LocalVideoItem e) => e.duration.inSeconds > 0 ? e.sizeBytes ~/ e.duration.inSeconds : 0;
           r = bps(a).compareTo(bps(b));
+          break;
         default:
           r = 0;
       }
