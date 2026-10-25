@@ -1,3 +1,11 @@
+## [2.401.26](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.25...v2.401.26) (2026-10-25)
+
+
+### Bug Fixes
+
+* **local:** readResumeMs 为实例方法，修正静态调用编译错误 ([40cf299](https://github.com/1525745393/EmbyTok-Flutter/commit/40cf299b1263010dec3ec38deecf2da56d15e6ad))
+* **local:** 整剧重刮逐集落盘持久化+播放记录backdrop本地优先+续看/已观看筛选语义区分 ([8439312](https://github.com/1525745393/EmbyTok-Flutter/commit/84393122c11f4697d3fe80b2b61c1f0a2db42bda))
+
 ## [2.401.25](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.24...v2.401.25) (2026-10-25)
 
 
