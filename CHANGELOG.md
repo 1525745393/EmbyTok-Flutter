@@ -1,3 +1,10 @@
+## [2.401.33](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.32...v2.401.33) (2026-10-25)
+
+
+### Bug Fixes
+
+* **filesource:** batch32 修复文件源浏览页4处问题 ([9bad002](https://github.com/1525745393/EmbyTok-Flutter/commit/9bad002d92030ba0fd41a226810819b6982b1813))
+
 ## [2.401.32](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.31...v2.401.32) (2026-10-25)
 
 
