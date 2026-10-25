@@ -1,3 +1,10 @@
+## [2.401.31](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.30...v2.401.31) (2026-10-25)
+
+
+### Bug Fixes
+
+* **local:** batch30 修复 local_video_view 四处缺陷 ([771d3c3](https://github.com/1525745393/EmbyTok-Flutter/commit/771d3c3c875b064b7add42d73adf23c2f9bfe766))
+
 ## [2.401.30](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.29...v2.401.30) (2026-10-25)
 
 
