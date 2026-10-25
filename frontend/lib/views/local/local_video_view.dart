@@ -2042,7 +2042,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
     final items = state.items.where((e) => e.sourceId == widget.sourceId).toList();
     final map = <String, int>{};
     for (final it in items) {
-      final ms = await LocalVideoService.readResumeMs(it.pathHash);
+      final ms = await LocalVideoService().readResumeMs(it.pathHash);
       if (ms != null && ms > 0) map[it.pathHash] = ms;
     }
     if (mounted) setState(() => _resumeMs.addAll(map));
