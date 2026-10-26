@@ -1,3 +1,10 @@
+## [2.401.35](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.34...v2.401.35) (2026-10-26)
+
+
+### Bug Fixes
+
+* **login:** batch34 修复登录页服务器注册与历史切换2处问题 ([d0679c1](https://github.com/1525745393/EmbyTok-Flutter/commit/d0679c15be7736cb61f7a94ef41f12d1a1cd0615))
+
 ## [2.401.34](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.33...v2.401.34) (2026-10-25)
 
 
