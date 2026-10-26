@@ -578,29 +578,41 @@ Future<void> _navigateToEpisode(
   MediaItem item,
   int offset,
 ) async {
+  // batch37-F1：先请求剧集列表（面板保持打开），拿到目标集后再 pop+push 同帧。
+  // 原实现 pop 在最前、push 在 await 之后，await 跨帧期间 sheet 已 unmount，
+  // context.mounted 为 false，成功路径只关面板不跳转。
   final messenger = ScaffoldMessenger.of(context);
-  Navigator.pop(context);
+  // batch37-F1：await 期间面板可能已被用户手动关闭，关闭面板前必须校验 mounted
+  void closeSheet() {
+    if (context.mounted) Navigator.pop(context);
+  }
+
   try {
     final api = container.read(mediaServerApiProvider);
     final episodes = await api.getEpisodes(item.seriesId!, limit: 100);
     final items = episodes.items;
     final currentIndex = items.indexWhere((e) => e.id == item.id);
     if (currentIndex < 0) {
+      closeSheet();
       messenger.showSnackBar(const SnackBar(content: Text('未找到当前剧集')));
       return;
     }
     final targetIndex = currentIndex + offset;
     if (targetIndex < 0 || targetIndex >= items.length) {
+      closeSheet();
       messenger.showSnackBar(
         SnackBar(content: Text(offset < 0 ? '已经是第一集' : '已经是最后一集')),
       );
       return;
     }
     final targetItem = items[targetIndex];
+    // 面板仍挂载（用户未手动关闭）时：pop 与 push 在同一同步帧完成，避免跨帧 context 失效
     if (context.mounted) {
+      Navigator.pop(context);
       context.push('/play/${targetItem.id}');
     }
   } catch (e) {
+    closeSheet();
     messenger.showSnackBar(SnackBar(content: Text('加载失败：$e')));
   }
 }
@@ -1309,9 +1321,12 @@ class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
       _transformationController.value = Matrix4.identity();
     } else {
       final position = _doubleTapDetails!.localPosition;
+      // batch37-F2：以点击点为缩放中心（T(p)·S(2)·T(-p)）。
+      // 原实现 T(-2p)·S(2) 会把点击点映射到画布原点，导致双击放大中心偏移。
       _transformationController.value = Matrix4.identity()
-        ..translateByDouble(-position.dx * 2, -position.dy * 2, 0, 0)
-        ..scaleByDouble(2.0, 2.0, 1.0, 1.0);
+        ..translateByDouble(position.dx, position.dy, 0, 0)
+        ..scaleByDouble(2.0, 2.0, 1.0, 1.0)
+        ..translateByDouble(-position.dx, -position.dy, 0, 0);
     }
   }
 
