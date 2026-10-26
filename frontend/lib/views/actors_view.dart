@@ -43,16 +43,6 @@ class _ActorsViewState extends ConsumerState<ActorsView>
     _tabController.addListener(_onTabChanged);
     _scrollController.addListener(_onScroll);
     _searchController = TextEditingController();
-    // batch36-F3 数据就绪后恢复滚动位置：恢复类型筛选时 loadActors 由
-    // setSelectedType 异步触发、普通 loadActors 会被 loading 守卫短路，
-    // 监听 loading true→false 保证列表布局完成后才恢复（可重入，幂等）
-    ref.listen<ActorsState>(actorsProvider, (prev, next) {
-      if (prev?.loading == true && next.loading == false && mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _restoreScrollOffset();
-        });
-      }
-    });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _restoreState();
       // 首次加载演员数据
@@ -124,6 +114,17 @@ class _ActorsViewState extends ConsumerState<ActorsView>
     final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
     final actorsState = ref.watch(actorsProvider);
+    // batch36-F3 数据就绪后恢复滚动位置：恢复类型筛选时 loadActors 由
+    // setSelectedType 异步触发、普通 loadActors 会被 loading 守卫短路，
+    // 监听 loading true→false（build 中注册，Riverpod 按 provider 去重），
+    // 列表布局完成后才恢复（可重入，幂等）
+    ref.listen<ActorsState>(actorsProvider, (prev, next) {
+      if (prev?.loading == true && next.loading == false && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _restoreScrollOffset();
+        });
+      }
+    });
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
 
