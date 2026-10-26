@@ -1,3 +1,10 @@
+## [2.401.39](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.38...v2.401.39) (2026-10-26)
+
+
+### Bug Fixes
+
+* **video:** batch37 剧集导航跨帧 context 失效 + 双击缩放中心矩阵修正 ([b654adc](https://github.com/1525745393/EmbyTok-Flutter/commit/b654adc88de3aa2038bdfebf855fd132dc197e07))
+
 ## [2.401.38](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.37...v2.401.38) (2026-10-26)
 
 
