@@ -167,10 +167,13 @@ class _LoginViewState extends ConsumerState<LoginView> {
         ServerType.local => ServerKind.emby, // 本地模式不写注册表，兜底
       };
       final registry = ref.read(serverRegistryProvider.notifier);
-      final host = _hostOf(server);
       ServerProfile? existing;
       for (final s in ref.read(serverRegistryProvider)) {
-        if (s.kind == kind && s.username == username && s.url.contains(host)) {
+        // batch34-F1 用 host+port 精确匹配端点，避免字符串包含误合并
+        // （192.168.1.1 与 192.168.1.10 前缀混淆）及同 host 不同端口互相覆盖
+        if (s.kind == kind &&
+            s.username == username &&
+            _sameEndpoint(s.url, server)) {
           existing = s;
           break;
         }
@@ -212,12 +215,14 @@ class _LoginViewState extends ConsumerState<LoginView> {
     }
   }
 
-  /// 提取 host（用于匹配已有服务器）
-  static String _hostOf(String url) {
+  /// 判断两个服务器 URL 是否指向同一端点（host + 端口一致，忽略协议差异）
+  static bool _sameEndpoint(String a, String b) {
     try {
-      return Uri.parse(url).host;
+      final ua = Uri.parse(a);
+      final ub = Uri.parse(b);
+      return ua.host == ub.host && ua.port == ub.port;
     } catch (_) {
-      return url;
+      return a == b;
     }
   }
 
@@ -1064,6 +1069,13 @@ Widget _buildServerTypeSelector(ColorScheme scheme) {
                   if (entry.serverType != _serverType) {
                     setState(() => _serverType = entry.serverType);
                   }
+                  // batch34-F2 同类型切换（如群晖→群晖）也重置两步验证与连接测试状态，
+                  // 避免上一台服务器的 OTP 残留阻塞本次登录
+                  setState(() {
+                    _otpRequired = false;
+                    _otpController.clear();
+                    _connectionStatus = null;
+                  });
                   _clearError();
                   _testConnection();
                   _usernameFocusNode.requestFocus();
