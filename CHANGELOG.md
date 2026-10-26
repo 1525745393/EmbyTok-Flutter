@@ -1,3 +1,10 @@
+## [2.401.36](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.35...v2.401.36) (2026-10-26)
+
+
+### Bug Fixes
+
+* **favorites:** batch35 修复收藏页4处问题 ([6fdbd46](https://github.com/1525745393/EmbyTok-Flutter/commit/6fdbd46483ef9af08e9a9c33b47e25020af5bb58))
+
 ## [2.401.35](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.34...v2.401.35) (2026-10-26)
 
 
