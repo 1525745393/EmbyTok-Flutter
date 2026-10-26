@@ -98,11 +98,20 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
 
   bool _isLoadingFavorites = false;
 
+  /// batch36-F2 加载中收到强制重载（如切换类型筛选）时置位，
+  /// 当前请求结束后在 finally 中自动补执行，避免被 loading 守卫吞掉。
+  bool _pendingForceReload = false;
+
   // ---- 加载演员列表 ----
 
   /// 加载演员列表（始终从 Emby 服务器获取最新数据）
   Future<void> loadActors({bool forceRefresh = false}) async {
-    if (state.loading) return;
+    if (state.loading) {
+      // batch36-F2 加载中触发的强制重载不再被守卫吞掉：标记待重载，
+      // 当前请求结束（成功或失败）后由 finally 自动补一次
+      if (forceRefresh) _pendingForceReload = true;
+      return;
+    }
     if (state.hasLoaded && !forceRefresh) return;
 
     // 本地模式：不调 Emby API
@@ -131,6 +140,12 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
         loading: false,
         error: state.hasLoaded ? null : '加载演员失败',
       );
+    } finally {
+      // batch36-F2 补跑待重载请求（放 finally 保证异常路径也执行）
+      if (_pendingForceReload) {
+        _pendingForceReload = false;
+        loadActors(forceRefresh: true);
+      }
     }
   }
 
@@ -256,8 +271,13 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
           serverUrl: serverUrl,
           token: token,
         );
+        // batch36-F1 搜索竞态：响应只属于本次搜索词 q，用户已输入新词时
+        // 丢弃过期结果，避免旧词响应晚到覆盖新词搜索结果
+        if (state.searchQuery != q) return;
         state = state.copyWith(searchResults: resp.items, isSearching: false);
       } catch (e) {
+        // batch36-F1 过期请求的失败也不应重置新请求的搜索状态
+        if (state.searchQuery != q) return;
         AppLogger.error('搜索演员失败', error: e);
         state = state.copyWith(isSearching: false);
       }
