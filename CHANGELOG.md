@@ -1,3 +1,10 @@
+## [2.401.38](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.37...v2.401.38) (2026-10-26)
+
+
+### Bug Fixes
+
+* **actors:** batch36-F3 ref.listen 移入 build 注册 ([681d72b](https://github.com/1525745393/EmbyTok-Flutter/commit/681d72b3669b945a43a7bb4f2c0582dda3fa52b3))
+
 ## [2.401.37](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.36...v2.401.37) (2026-10-26)
 
 
