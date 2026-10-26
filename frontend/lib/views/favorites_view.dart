@@ -6,7 +6,7 @@
 //   3. 统计概览：三列卡片显示影片/合集/人物数量
 //   4. 分组列表（可折叠）：
 //      - 收藏影片：3 列网格预览（最多 N 张）+ 「查看全部」跳转
-//      - 收藏合集：横向列表卡（未看/进度/评分标签）+ 「查看全部」
+//      - 收藏合集：横向列表卡（年份/类型/评分标签）+ 「查看全部」
 //      - 收藏人物：4 列圆形头像 + 「查看全部」
 //   5. 批量操作底部栏（选择模式时浮起）：已选数量 + 移动到合集/批量下载/取消收藏
 //
@@ -546,13 +546,15 @@ List<MediaItem> _filter(List<MediaItem> items) {
     for (final item in targets) {
       await notifier.toggleFavorite(item);
     }
+    // batch35-F3 主路径同样校验部分失败（失败条目已回滚，仍在收藏中）
+    final anyFailed = targets.any((e) => !notifier.isFavorite(e.id));
 
     final n = targets.length;
     _exitSelectMode();
 
     messenger.showSnackBar(
       SnackBar(
-        content: Text('已批量取消收藏 $n 项'),
+        content: Text(anyFailed ? '部分取消失败，请重试' : '已批量取消收藏 $n 项'),
         duration: const Duration(seconds: 5),
         behavior: SnackBarBehavior.floating,
         action: SnackBarAction(
@@ -739,12 +741,30 @@ List<MediaItem> _filter(List<MediaItem> items) {
               const SizedBox(width: 6),
               _IconAction(
                 icon: Icons.playlist_play,
-                onTap: n == 0 ? null : () {}, // TODO: 移动到合集
+                // batch35-F2 TODO 未实现：点击明确提示"开发中"，避免可点无响应
+                onTap: n == 0
+                    ? null
+                    : () => ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('「移动到合集」功能开发中'),
+                            duration: Duration(seconds: 2),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        ),
               ),
               const SizedBox(width: 4),
               _IconAction(
                 icon: Icons.download_for_offline_outlined,
-                onTap: n == 0 ? null : () {}, // TODO: 批量下载
+                // batch35-F2 TODO 未实现：点击明确提示"开发中"
+                onTap: n == 0
+                    ? null
+                    : () => ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('「批量下载」功能开发中'),
+                            duration: Duration(seconds: 2),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        ),
               ),
               const SizedBox(width: 6),
               GestureDetector(

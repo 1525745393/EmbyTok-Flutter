@@ -86,23 +86,7 @@ class _BoxSetTile extends ConsumerWidget {
                   const SizedBox(height: 5),
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 7, vertical: 2),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
-                          color: scheme.outlineVariant.withValues(alpha: 0.25),
-                        ),
-                        child: Text(
-                          '未看 2',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: scheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 5),
+                      // batch35-F1 合集未看数无数据源，删除硬编码"未看 2"，仅保留真实评分标签
                       if ((item.displayRating ?? 0) > 0)
                         Container(
                           padding: const EdgeInsets.symmetric(

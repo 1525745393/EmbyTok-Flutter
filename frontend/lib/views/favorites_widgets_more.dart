@@ -35,7 +35,8 @@ class _MoreTile extends StatelessWidget {
                 color: scheme.onSurfaceVariant, size: 24),
             const SizedBox(height: 6),
             Text(
-              '+$remaining$suffix',
+              // batch35-F4 remaining 为已加载数：恰好 _previewMax 条且还有更多时避免显示"+0…"
+              remaining > 0 ? '+$remaining$suffix' : '全部',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
