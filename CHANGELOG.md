@@ -1,3 +1,10 @@
+## [2.401.37](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.36...v2.401.37) (2026-10-26)
+
+
+### Bug Fixes
+
+* **actors:** batch36 修复搜索响应竞态/类型切换重载被吞/滚动恢复失效 ([4b248d8](https://github.com/1525745393/EmbyTok-Flutter/commit/4b248d8cc7b573c0e6742aa86ac9f8788623607f))
+
 ## [2.401.36](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.35...v2.401.36) (2026-10-26)
 
 
