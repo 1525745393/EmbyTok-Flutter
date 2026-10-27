@@ -393,11 +393,19 @@ final favoriteIncludeTypesProvider =
 class PinLockNotifier extends StateNotifier<String> {
   PinLockNotifier(this._ref) : super('') {
     _secureStorage = _ref.read(secureStorageProvider);
-    _load();
+    // batch46-F1：记录加载 future，供 GoRouter redirect await，
+    // 避免冷启动时 PIN 未加载（state=''）被误判为"未设置"先放行主界面
+    _loadFuture = _load();
   }
 
   final Ref _ref;
   late final FlutterSecureStorage _secureStorage;
+  Future<void>? _loadFuture;
+
+  /// 等待 PIN 加载完成（首次 await 后立即返回）
+  Future<void> ensureLoaded() async {
+    await _loadFuture;
+  }
 
   /// 安全存储 key（FlutterSecureStorage）
   static const _key = 'app_pin_code';

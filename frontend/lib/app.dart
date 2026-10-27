@@ -112,7 +112,10 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       initialLocation: '/',
       refreshListenable: _refreshNotifier,
       observers: [_BreadcrumbObserver()],
-      redirect: (BuildContext context, GoRouterState state) {
+      redirect: (BuildContext context, GoRouterState state) async {
+        // batch46-F1：先等 PIN 从安全存储加载完成再判定，
+        // 避免冷启动时 state='' 被误判为"未设置"先放行主界面闪屏
+        await ref.read(pinLockProvider.notifier).ensureLoaded();
         // PIN 锁检查：已设置 PIN 但未验证时跳转到 PIN 页
         final pin = ref.read(pinLockProvider);
         final pinUnlocked = ref.read(pinUnlockedProvider);
