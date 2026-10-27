@@ -161,6 +161,9 @@ extension _SettingsRecommendRules on SettingsView {
             .firstOrNull;
         notifier.toggleLibrary(libraryId);
         final messenger = ScaffoldMessenger.of(context);
+        // batch42-F2：先隐藏当前 SnackBar 再展示新提示，避免批量移除时多条
+        // 3 秒提示排队显示、撤销动作被拖到队列末尾
+        messenger.hideCurrentSnackBar();
         messenger.showSnackBar(SnackBar(
           content: Text('已移除${removedName ?? "媒体库"}'),
           duration: const Duration(seconds: 3),
@@ -209,6 +212,9 @@ extension _SettingsRecommendRules on SettingsView {
             .firstOrNull;
         notifier.toggleLibrary(libraryId);
         final messenger = ScaffoldMessenger.of(context);
+        // batch42-F2：先隐藏当前 SnackBar 再展示新提示，避免批量移除时多条
+        // 3 秒提示排队显示、撤销动作被拖到队列末尾
+        messenger.hideCurrentSnackBar();
         messenger.showSnackBar(SnackBar(
           content: Text('已移除${removedName ?? "媒体库"}'),
           duration: const Duration(seconds: 3),

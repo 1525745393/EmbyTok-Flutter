@@ -131,11 +131,16 @@ extension _SettingsRecommendRules2 on SettingsView {
 
   void _showRecommendTypesDialog(
       BuildContext context, WidgetRef ref, Set<String> current) {
+    // batch42-F1：勾选态不能读函数参数 current（对话框打开时的旧快照）——
+    // toggle() 写的是 notifier 的新 Set，旧引用不变，否则勾选后 UI 不刷新。
+    // 改为 builder 内每次重建时 ref.read 重读 provider 最新 state，
+    // 勾选即时反馈；防全空（toggle 拒绝）时 checkbox 也自然保持原状。
     showDialog<void>(
       context: context,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setLocalState) {
+            final checkedTypes = ref.read(recommendIncludeTypesProvider);
             return AlertDialog(
               title: const Text('推荐类型'),
               content: Column(
@@ -144,7 +149,7 @@ extension _SettingsRecommendRules2 on SettingsView {
                     SettingsView._kRecommendTypeLabels.entries.map((entry) {
                   final type = entry.key;
                   final label = entry.value;
-                  final checked = current.contains(type);
+                  final checked = checkedTypes.contains(type);
                   return CheckboxListTile(
                     value: checked,
                     onChanged: (_) async {
