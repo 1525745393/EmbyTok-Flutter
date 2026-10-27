@@ -569,11 +569,8 @@ class SettingsView extends ConsumerWidget {
   // 账户 - 用户信息
   // P0-1：允许自签名证书（默认关闭，即启用 SSL 证书校验）
   // 开启时允许连接使用自签名证书的内网 NAS，存在中间人攻击风险
-  /// 从 SharedPreferences 读取是否允许自签名证书
-  Future<bool> _loadAllowSelfSignedCertificate() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(kStorageKeyAllowSelfSignedCertificate) ?? false;
-  }
+  // 读取/保存已提升为库顶层函数（settings_builders_extra.dart，batch41-F2）：
+  // _loadAllowSelfSignedCertificate / _setAllowSelfSignedCertificate
 
   /// 保存是否允许自签名证书到 SharedPreferences
   ///

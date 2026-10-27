@@ -268,28 +268,6 @@ extension _SettingsBuilders2 on SettingsView {
     return const _DownloadMirrorTile();
   }
 
-  String _mirrorLabel(String mirror) {
-    if (mirror == 'direct') return '原始链接（GitHub）';
-    if (mirror.contains('ghfast.top')) return 'ghfast.top';
-    if (mirror.contains('gh-proxy.com')) return 'gh-proxy.com';
-    if (mirror.contains('ghproxy.net')) return 'ghproxy.net';
-    if (mirror.contains('mirror.ghproxy.com')) return 'mirror.ghproxy.com';
-    if (mirror.contains('ghps.cc')) return 'ghps.cc';
-    return mirror;
-  }
-
-  Future<void> _showMirrorPicker(
-    BuildContext context,
-    WidgetRef ref,
-    UpdateCheckService svc,
-    String? current,
-  ) async {
-    await showDialog<void>(
-      context: context,
-      builder: (_) => _MirrorPickerDialog(svc: svc, current: current),
-    );
-  }
-
   Widget _buildDonateTile(BuildContext context, WidgetRef ref) {
     return settingsTapTile(
       icon: Icons.volunteer_activism_outlined,
@@ -532,27 +510,8 @@ extension _SettingsBuilders2 on SettingsView {
     return const _SelfSignedCertificateTile();
   }
 
-  Future<void> _setAllowSelfSignedCertificate(
-      BuildContext context, bool allow) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(kStorageKeyAllowSelfSignedCertificate, allow);
-    if (allow) {
-      AppLogger.warn('已允许自签名证书，SSL 校验已禁用，存在安全风险');
-    } else {
-      AppLogger.info('已禁用自签名证书，SSL 校验已启用');
-    }
-    // 提示用户重启 App 生效
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(allow ? '已允许自签名证书，重启 App 后生效' : '已禁用自签名证书，重启 App 后生效'),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
-  }
-
-  // 安全风险提示对话框已并入 _SelfSignedCertificateTileState._toggle（batch41-F2）
+  // 安全风险提示对话框已并入 _SelfSignedCertificateTileState._toggle（batch41-F2）；
+  // _setAllowSelfSignedCertificate 已提升为库顶层函数（batch41-F2 配套）
 
   Widget _buildLogoutButton(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
@@ -608,16 +567,6 @@ class _MirrorPickerDialogState extends State<_MirrorPickerDialog> {
       _results.addAll(r);
       _testing = false;
     });
-  }
-
-  String _label(String mirror) {
-    if (mirror == 'direct') return '原始链接（GitHub）';
-    if (mirror.contains('ghfast.top')) return 'ghfast.top';
-    if (mirror.contains('gh-proxy.com')) return 'gh-proxy.com';
-    if (mirror.contains('ghproxy.net')) return 'ghproxy.net';
-    if (mirror.contains('mirror.ghproxy.com')) return 'mirror.ghproxy.com';
-    if (mirror.contains('ghps.cc')) return 'ghps.cc';
-    return mirror;
   }
 
   @override
@@ -683,7 +632,7 @@ class _MirrorPickerDialogState extends State<_MirrorPickerDialog> {
                     return RadioListTile<String?>(
                       value: m,
                       groupValue: widget.current,
-                      title: Text(_label(m)),
+                      title: Text(_mirrorLabel(m)),
                       subtitle: Text(label),
                       secondary: ms < 0
                           ? Icon(Icons.error_outline, color: scheme.error, size: 18)
@@ -707,6 +656,64 @@ class _MirrorPickerDialogState extends State<_MirrorPickerDialog> {
       ],
     );
   }
+}
+
+// ==================== 下载源/自签名证书 库级辅助（batch41-F2/F5） ====================
+// 说明：以下 helper 原为 extension _SettingsBuilders2 成员，batch41-F2/F5 新增的
+// StatefulWidget（_DownloadMirrorTile / _SelfSignedCertificateTile）无法调用
+// extension 成员（非 SettingsView 实例），已提升为库顶层函数，供 extension 与
+// State 类共同调用（同库作用域直接可见，避免重复实现）。
+
+/// 镜像显示名映射（_MirrorPickerDialog 原 _label 与此合并，batch41-F5 消重）
+String _mirrorLabel(String mirror) {
+  if (mirror == 'direct') return '原始链接（GitHub）';
+  if (mirror.contains('ghfast.top')) return 'ghfast.top';
+  if (mirror.contains('gh-proxy.com')) return 'gh-proxy.com';
+  if (mirror.contains('ghproxy.net')) return 'ghproxy.net';
+  if (mirror.contains('mirror.ghproxy.com')) return 'mirror.ghproxy.com';
+  if (mirror.contains('ghps.cc')) return 'ghps.cc';
+  return mirror;
+}
+
+/// 打开下载源选择对话框
+Future<void> _showMirrorPicker(
+  BuildContext context,
+  WidgetRef ref,
+  UpdateCheckService svc,
+  String? current,
+) async {
+  await showDialog<void>(
+    context: context,
+    builder: (_) => _MirrorPickerDialog(svc: svc, current: current),
+  );
+}
+
+/// 保存自签名证书开关（batch41-F2 提升为顶层函数）
+Future<void> _setAllowSelfSignedCertificate(
+    BuildContext context, bool allow) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool(kStorageKeyAllowSelfSignedCertificate, allow);
+  if (allow) {
+    AppLogger.warn('已允许自签名证书，SSL 校验已禁用，存在安全风险');
+  } else {
+    AppLogger.info('已禁用自签名证书，SSL 校验已启用');
+  }
+  // 提示用户重启 App 生效
+  if (context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(allow ? '已允许自签名证书，重启 App 后生效' : '已禁用自签名证书，重启 App 后生效'),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+}
+
+/// 从 SharedPreferences 读取是否允许自签名证书
+/// （原 SettingsView 实例方法，batch41-F2 提升为顶层函数供证书 tile State 调用）
+Future<bool> _loadAllowSelfSignedCertificate() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getBool(kStorageKeyAllowSelfSignedCertificate) ?? false;
 }
 
 // ==================== NAS 元数据同步开关（batch41-F4） ====================

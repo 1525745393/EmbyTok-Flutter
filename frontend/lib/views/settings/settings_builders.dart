@@ -402,41 +402,8 @@ extension _SettingsBuilders on SettingsView {
     }
   }
 
-  /// 显示清除歌手元数据缓存对话框；清除成功返回 true（供 _ArtistMetadataCacheTile 刷新大小）
-  Future<bool> _showClearArtistMetadataDialog(
-      BuildContext context, WidgetRef ref) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('清除歌手元数据缓存'),
-        content: const Text('确定要清除所有歌手简介和头像缓存吗？清除后下次访问歌手时将重新从网络获取。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('清除'),
-          ),
-        ],
-      ),
-    );
-
-    if (result == true) {
-      await ref.read(artistMetadataServiceProvider).clearAllCache();
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('歌手元数据缓存已清除'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-      return true;
-    }
-    return false;
-  }
+  // 清除歌手元数据缓存对话框已提升为库顶层函数（batch41-F5 配套）：
+  // 返回 bool（清除成功 true），供 _ArtistMetadataCacheTileState 刷新缓存大小。
 
   Widget _buildResetSettingsTile(BuildContext context, WidgetRef ref) {
     return settingsTapTile(
@@ -818,4 +785,45 @@ extension _SettingsBuilders on SettingsView {
       ),
     );
   }
+}
+
+// ==================== 库级辅助（batch41-F5 配套） ====================
+// 说明：清除歌手元数据缓存对话框原为 extension _SettingsBuilders 成员，
+// batch41-F5 新增的 _ArtistMetadataCacheTile（StatefulWidget）无法调用
+// extension 成员，已提升为库顶层函数（同库作用域 extension 与 State 共用）。
+
+/// 显示清除歌手元数据缓存对话框；清除成功返回 true（供 _ArtistMetadataCacheTile 刷新大小）
+Future<bool> _showClearArtistMetadataDialog(
+    BuildContext context, WidgetRef ref) async {
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('清除歌手元数据缓存'),
+      content: const Text('确定要清除所有歌手简介和头像缓存吗？清除后下次访问歌手时将重新从网络获取。'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text('清除'),
+        ),
+      ],
+    ),
+  );
+
+  if (result == true) {
+    await ref.read(artistMetadataServiceProvider).clearAllCache();
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('歌手元数据缓存已清除'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+    return true;
+  }
+  return false;
 }
