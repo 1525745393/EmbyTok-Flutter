@@ -571,6 +571,12 @@ Future<void> _loadSavedData() async {
             _usernameController.text = username ?? '';
             _passwordController.text = password ?? '';
             _rememberMe = true;
+            // batch112-F2：凭据回填时按 URL 匹配历史条目恢复服务器类型，
+            // 避免上次用群晖登录后重启回填群晖地址却仍是 Emby 类型（连接测试走错端点）
+            final matched = entries.where((e) => e.url == server).firstOrNull;
+            if (matched != null) {
+              _serverType = matched.serverType;
+            }
           }
         });
       }
@@ -594,13 +600,13 @@ Future<void> _loadSavedData() async {
     }
   }
 
-  Future<void> _saveServerHistory(String url) async {
+  Future<void> _saveServerHistory(String url, [ServerType? type]) async {
     try {
       // 移除同 URL 的旧条目
       _serverHistory.removeWhere((e) => e.url == url);
-      // 插入到最前面
+      // 插入到最前面（batch112-F1：保存当前服务器类型，避免群晖条目被记为 emby）
       _serverHistory.insert(
-          0, _ServerHistoryEntry(url: url, lastUsed: DateTime.now()));
+          0, _ServerHistoryEntry(url: url, serverType: type ?? _serverType, lastUsed: DateTime.now()));
       // 最多保留 _kMaxServerHistory 条
       if (_serverHistory.length > _kMaxServerHistory) {
         _serverHistory = _serverHistory.sublist(0, _kMaxServerHistory);
