@@ -153,6 +153,12 @@ class UpdateRateLimitException implements Exception {
   String toString() => 'GitHub API 请求过于频繁，请稍后再试';
 }
 
+/// 仓库无 Release 异常（404 确定性结论）
+class UpdateNotFoundException implements Exception {
+  @override
+  String toString() => '仓库暂无发布版本';
+}
+
 /// 更新检查服务
 ///
 /// 通过 GitHub API 检查仓库最新 Release，与当前版本对比。
@@ -297,8 +303,12 @@ class UpdateCheckService {
           return releases.first;
         }
         if (code == 404) {
+          // batch68-F1：404 是确定性"仓库无 Release"，不继续尝试镜像，
+          // 抛 UpdateNotFoundException 让上层返回"无更新"——
+          // 旧实现返回 null 会被 checkForUpdate 当成网络失败回退旧缓存，
+          // 提示有更新但下载必失败，误导用户
           AppLogger.info('GitHub: 暂无 Release');
-          return null;
+          throw UpdateNotFoundException();
         }
         // 429：记录并尝试下一源（镜像服务器 IP 不同，可能未被限流）
         if (code == 429) {
@@ -314,10 +324,10 @@ class UpdateCheckService {
           'status': code,
         });
       } on DioException catch (e) {
-        // 404 为确定性结论（仓库无 Release），不继续尝试镜像
+        // batch68-F1：404 为确定性结论（仓库无 Release），抛异常让上层返回"无更新"
         if (e.response?.statusCode == 404) {
           AppLogger.info('GitHub: 暂无 Release');
-          return null;
+          throw UpdateNotFoundException();
         }
         // 429：记录并继续尝试下一源，全部源都被限流才抛异常
         if (e.response?.statusCode == 429) {
@@ -359,6 +369,13 @@ class UpdateCheckService {
       release = await getLatestRelease();
     } on UpdateRateLimitException {
       rethrow;
+    } on UpdateNotFoundException {
+      // batch68-F1：仓库当前无任何 Release（404 确定性结论）＝无更新，
+      // 不回退旧缓存，避免提示过期更新后下载必失败
+      return UpdateCheckResult(
+        hasUpdate: false,
+        currentVersion: currentVersion,
+      );
     }
     if (release == null) {
       // 网络失败：回退本地缓存，避免"检查失败"的坏体验
