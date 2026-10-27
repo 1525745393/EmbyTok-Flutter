@@ -62,19 +62,29 @@ class DanmakuService {
       if (data['success'] != true) return [];
       final comments = data['comments'] as List? ?? [];
       return comments.map((c) {
-        // p 字段格式: "时间,模式,颜色,用户Hash" （v1 旧格式）
-        // 新格式 JSON: { 'time': double, 'mode': int, 'color': int, 'text': String, 'uid': String }
-        if (c is Map<String, dynamic>) {
+        // batch64-F1：按官方 v2 schema 解析——comments 为对象数组 {cid, p, m}
+        // p = "出现时间,模式,颜色,用户ID"（CSV）；m = 弹幕内容。
+        // 旧实现读 c['time']/c['mode']/c['color']/c['text'] 全为 null，
+        // 导致 text 恒空被过滤，弹幕源实际不显示任何弹幕。
+        if (c is Map) {
+          final p = c['p']?.toString() ?? '';
+          final parts = p.split(',');
+          final time = parts.isNotEmpty ? (double.tryParse(parts[0]) ?? 0) : 0;
+          final mode = parts.length > 1 ? (int.tryParse(parts[1]) ?? 1) : 1;
+          final color =
+              parts.length > 2 ? (int.tryParse(parts[2]) ?? 0xFFFFFF) : 0xFFFFFF;
+          final text = c['m']?.toString() ?? '';
+          if (text.isEmpty) return null;
           return DanmakuItem(
-            time: (c['time'] as num?)?.toDouble() ?? 0,
-            text: c['content']?.toString() ?? c['text']?.toString() ?? '',
-            color: '#${((c['color'] as num?)?.toInt() ?? 0xFFFFFF).toRadixString(16).padLeft(6, '0')}',
-            type: (c['mode'] as num?)?.toInt() ?? 1,
-            size: (c['size'] as num?)?.toInt() ?? 25,
+            time: time,
+            text: text,
+            color: '#${color.toRadixString(16).padLeft(6, '0')}',
+            type: mode, // 1=滚动 4=底部 5=顶部（与官方 mode 一致）
+            size: 25, // API 无字号字段，用默认值
           );
         }
-        return DanmakuItem(time: 0, text: '', color: '#FFFFFF', type: 1, size: 25);
-      }).where((d) => d.text.isNotEmpty).toList();
+        return null;
+      }).whereType<DanmakuItem>().toList();
     } catch (_) {
       return [];
     }
