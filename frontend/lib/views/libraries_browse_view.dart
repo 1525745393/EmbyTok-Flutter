@@ -424,11 +424,15 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   String? _selectedGenre;
   bool _showGenreFilter = false;
   List<String> _serverGenres = []; // 从 Emby /Genres 获取的完整类型列表
+  Future<List<String>>? _serverGenresFuture; // batch110-F2：复用 in-flight 请求
   bool _loadingGenres = false;
 
   // 年份筛选
   int? _selectedYear;
   bool _showYearFilter = false;
+  // batch110-F1：年份筛选项从已加载分页数据持续累积（Emby 无独立年份列表
+  // 接口），避免此前仅取首屏 50 项年份、加载更多后选项不增长的误导
+  final Set<int> _loadedYears = {};
 
   // 搜索
   String _searchQuery = '';
@@ -753,8 +757,17 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   }
 
   /// 从 Emby 服务器获取完整类型列表（对标 Emby Web 类型筛选）
-  Future<List<String>> _loadServerGenres() async {
-    if (_serverGenres.isNotEmpty) return _serverGenres;
+  ///
+  /// batch110-F2：缓存 in-flight future——此前每次调用都新建 future，
+  /// 若请求仍在途时再次调用（如先展开类型筛选条触发加载后立刻切入分类
+  /// Tab）会立刻返回空列表，FutureBuilder 显示"暂无分类"假空态且不再重建。
+  Future<List<String>> _loadServerGenres() {
+    if (_serverGenres.isNotEmpty) return Future.value(_serverGenres);
+    return _serverGenresFuture ??= _fetchServerGenres().whenComplete(
+        () => _serverGenresFuture = null);
+  }
+
+  Future<List<String>> _fetchServerGenres() async {
     if (_loadingGenres) return const [];
     _loadingGenres = true;
     try {
@@ -1010,6 +1023,13 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
           _items.addAll(resp.items);
         } else {
           _items = resp.items;
+          _loadedYears.clear();
+        }
+        // batch110-F1：年份筛选项随分页累积（仅首屏时 Emby 返回的是 50 项子集）
+        for (final item in resp.items) {
+          if (item.productionYear != null) {
+            _loadedYears.add(item.productionYear!);
+          }
         }
         _startIndex += resp.items.length;
         _total = resp.total;
@@ -1464,12 +1484,8 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         // 年份筛选展开条
         if (_items.isNotEmpty && _showYearFilter)
           Builder(builder: (_) {
-            // 从已加载数据提取年份，降序排列
-            final years = <int>{};
-            for (final item in _items) {
-              if (item.productionYear != null) years.add(item.productionYear!);
-            }
-            final sorted = years.toList()..sort((a, b) => b.compareTo(a));
+            // batch110-F1：年份从已加载分页累积集合生成，随滚动加载更多逐步补全
+            final years = _loadedYears.toList()..sort((a, b) => b.compareTo(a));
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
               child: SingleChildScrollView(
@@ -1488,7 +1504,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                       },
                       visualDensity: VisualDensity.compact,
                     ),
-                    ...sorted.map((y) => Padding(
+                    ...years.map((y) => Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 3),
                           child: ChoiceChip(
                             label: Text('$y', style: const TextStyle(fontSize: 12)),
