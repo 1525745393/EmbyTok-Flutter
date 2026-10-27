@@ -35,16 +35,23 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
   }
 
   Future<void> _load() async {
-    final results = await Future.wait([
-      TmdbService.getPersonDetails(widget.personId),
-      TmdbService.getPersonCredits(widget.personId),
-    ]);
-    if (mounted) {
-      setState(() {
-        _details = results[0];
-        _credits = results[1];
-        _loading = false;
-      });
+    try {
+      final results = await Future.wait([
+        TmdbService.getPersonDetails(widget.personId),
+        TmdbService.getPersonCredits(widget.personId),
+      ]);
+      if (mounted) {
+        setState(() {
+          _details = results[0];
+          _credits = results[1];
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      // batch51-F1：任一接口失败不再卡 loading，走下方"暂无法获取演员信息"错误态
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 

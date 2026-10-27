@@ -61,6 +61,8 @@ class _LocalDirectoryBrowserViewState extends State<LocalDirectoryBrowserView> {
   List<_DirEntry> _entries = [];
   bool _loading = true;
   String? _error;
+  // batch51-F1：列表加载请求序号守卫，快速切换路径时丢弃过期响应
+  int _listSeq = 0;
 
   @override
   void initState() {
@@ -71,6 +73,7 @@ class _LocalDirectoryBrowserViewState extends State<LocalDirectoryBrowserView> {
 
   Future<void> _listDir() async {
     if (!mounted) return;
+    final seq = ++_listSeq;
     setState(() {
       _loading = true;
       _error = null;
@@ -78,7 +81,7 @@ class _LocalDirectoryBrowserViewState extends State<LocalDirectoryBrowserView> {
     try {
       final dir = Directory(_currentPath);
       if (!await dir.exists()) {
-        if (!mounted) return;
+        if (!mounted || seq != _listSeq) return;
         setState(() {
           _error = '目录不存在: $_currentPath';
           _loading = false;
@@ -127,13 +130,14 @@ class _LocalDirectoryBrowserViewState extends State<LocalDirectoryBrowserView> {
       }
       dirs.sort((a, b) => a.name.compareTo(b.name));
       videos.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
-      if (!mounted) return;
+      // batch51-F1：过期响应丢弃，避免旧目录内容覆盖当前路径
+      if (!mounted || seq != _listSeq) return;
       setState(() {
         _entries = [...dirs, ...videos];
         _loading = false;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || seq != _listSeq) return;
       setState(() {
         _error = '无法访问目录: $e';
         _loading = false;
