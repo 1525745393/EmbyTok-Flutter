@@ -1,3 +1,10 @@
+## [2.401.42](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.41...v2.401.42) (2026-10-27)
+
+
+### Bug Fixes
+
+* **settings:** batch40-F1 resetAllSettings 补全遗漏设置 key + F2 字幕大小文案统一 ([f7bf392](https://github.com/1525745393/EmbyTok-Flutter/commit/f7bf392aee208ea0190071c78e44fecbc343a876))
+
 ## [2.401.41](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.40...v2.401.41) (2026-10-27)
 
 
