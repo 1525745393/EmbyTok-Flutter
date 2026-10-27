@@ -153,10 +153,16 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   }
 
   /// 检查设置开关，开启时才移动失败文件
+  /// batch49-F1：内部吞掉移动异常，避免单个失败文件移动报错
+  /// 中断 _scrapeAll 整批 Future.wait（剩余刮削被连带中断 + unhandled）
   Future<void> _moveToFailedIfEnabled(String path) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.getBool('move_failed_enabled') ?? false) {
-      await ScrapeMediaStore.moveToFailed(path);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool('move_failed_enabled') ?? false) {
+        await ScrapeMediaStore.moveToFailed(path);
+      }
+    } catch (e) {
+      debugPrint('失败文件移动失败 $path: $e');
     }
   }
 
