@@ -155,6 +155,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   bool _statsRecorded = false;
   // 本地文件：是否已把真实时长/分辨率回写媒体库（避免每帧重复回写）
   bool _localMetaWritten = false;
+  // 本地文件：上次保存续播位置的秒数（batch38-F2 节流，-1 表示首次立即写）
+  int _lastLocalSavedSecond = -1;
 
   late final AnimationController _discRotationCtrl;
   late final Animation<double> _discRotation;
@@ -608,6 +610,24 @@ void _resetInfoHideTimer() {
           controller.value.position;
     }
 
+    // 本地文件：播放位置节流保存续播（batch38-F2）
+    // 原实现由 feed_view._buildLocalPageView.onPageChanged 在切页时读全局
+    // currentVideoControllerProvider 保存——但滚动切换时新页 didUpdateWidget 已把
+    // provider 覆盖为新页 controller，导致旧页 hash 配新页位置错位写入，破坏旧页续播。
+    // 改为「谁播谁存」：本页播放中按秒节流写 local_resume_<pathHash> 与
+    // local_resume_time_<pathHash>，与上方本地续播读取（local_resume_$localPathHash）
+    // 同 key 对称；seek 后退（位置回跳）同样触发保存。
+    if (widget.item.isLocalFile && posSec != _lastLocalSavedSecond) {
+      final delta = (posSec - _lastLocalSavedSecond).abs();
+      if (_lastLocalSavedSecond < 0 || delta >= 5) {
+        _lastLocalSavedSecond = posSec;
+        final localHash = widget.item.id.startsWith('local_')
+            ? widget.item.id.substring('local_'.length)
+            : widget.item.id;
+        unawaited(_saveLocalResume(localHash, posSec));
+      }
+    }
+
     // 本地文件源：初始化完成后回填真实时长/分辨率到媒体库
     // （localDir/App 目录扫描时未取元数据，详情页/排序/进度条需要真实值），
     // 仅在初始化且时长可用时写一次，避免每帧重复回写。
@@ -641,6 +661,22 @@ void _resetInfoHideTimer() {
     }
     } catch (_) {
       // dispose 阶段 ProviderScope 已释放，忽略
+    }
+  }
+
+  /// 本地文件续播位置落盘（batch38-F2）
+  ///
+  /// 由 _onVideoChanged 节流触发（首次立即写、此后每 5 秒或位置回跳时写），
+  /// key 与本地续播读取（local_resume_<pathHash> / local_resume_time_<pathHash>）
+  /// 及 LocalVideoService 一致；时间戳供首页"播放记录"区块排序使用。
+  Future<void> _saveLocalResume(String localHash, int posSec) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('local_resume_$localHash', posSec * 1000);
+      await prefs.setInt('local_resume_time_$localHash',
+          DateTime.now().millisecondsSinceEpoch);
+    } catch (_) {
+      // 续播保存失败不影响播放
     }
   }
 

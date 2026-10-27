@@ -44,11 +44,20 @@ extension _FeedActions on _FeedViewState {
   }
 
   void _animateToPage(int targetIndex) {
-    if (!mounted || !_pageController.hasClients) return;
+    if (!mounted) return;
+    // batch38-F1：本地流模式下 Emby 流 PageView 未挂载（build 三元直接替换），
+    // _pageController 无 clients，必须用本地流独立 controller；
+    // 本地流 index 来自合法 itemBuilder，跳过 Emby 列表长度检查（两列表长度可能不一致，
+    // 误判会再次吞掉本地网格点击定位）
+    final isLocal = ref.read(localFeedSourceIdProvider) != null;
+    final ctrl = isLocal ? _localPageController : _pageController;
+    if (!ctrl.hasClients) return;
     if (targetIndex < 0) return;
-    final items = ref.read(videoListProvider).items;
-    if (targetIndex >= items.length) return;
-    _pageController.animateToPage(
+    if (!isLocal) {
+      final items = ref.read(videoListProvider).items;
+      if (targetIndex >= items.length) return;
+    }
+    ctrl.animateToPage(
       targetIndex,
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,

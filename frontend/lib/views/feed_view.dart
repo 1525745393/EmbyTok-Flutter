@@ -53,6 +53,11 @@ class FeedView extends ConsumerStatefulWidget {
 class _FeedViewState extends ConsumerState<FeedView>
     with AutomaticKeepAliveClientMixin<FeedView> {
   late PageController _pageController;
+  // 本地流 PageView 独立 controller（batch38-F1）：
+  // 本地流模式下 build 三元分支直接把 Emby 流 PageView 替换为本地流 PageView，
+  // _pageController 无 clients——网格点击定位必须用本地 controller，
+  // 否则 _animateToPage 的 hasClients 检查会让本地网格点击静默失效。
+  late final PageController _localPageController;
   int _currentIndex = 0;
   final ValueNotifier<int> _currentIndexNotifier = ValueNotifier<int>(0);
 
@@ -96,6 +101,8 @@ class _FeedViewState extends ConsumerState<FeedView>
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0, viewportFraction: 1.0);
+    // batch38-F1：本地流 PageView 独立 controller（本地流下 _pageController 无 clients）
+    _localPageController = PageController(initialPage: 0);
     // 创建播放协调器
     _playbackCoordinator =
         PlaybackCoordinator(ref, onPageIndexReady: _jumpToPageByIndex);
@@ -214,6 +221,10 @@ class _FeedViewState extends ConsumerState<FeedView>
       //    - 已恢复：jumpToPage 触发 onPageChanged → syncCurrentPlaying 完成播放
       //    - grid 模式：不自动播放（避免后台激活播放器，F4）
       if (ref.read(viewModeProvider) != ViewMode.feed) return;
+      // batch38-F3：本地流模式下跳过 Emby 首项播放初始化——videoListProvider
+      // 在本地流下仍是 Emby 数据，原逻辑会把全局 playbackState 指向 Emby 首项，
+      // 而本地流页面不更新该信号，导致网格高亮/外部视图读到错误的"当前在播"。
+      if (ref.read(localFeedSourceIdProvider) != null) return;
       final videoState = ref.read(videoListProvider);
       final playbackState = ref.read(playbackStateProvider);
       if (!restored &&
@@ -260,6 +271,7 @@ class _FeedViewState extends ConsumerState<FeedView>
     _gridLoadMoreDebounce?.cancel();
     _currentIndexNotifier.dispose();
     _pageController.dispose();
+    _localPageController.dispose();
     _gridScrollController.removeListener(_onGridScrollChanged);
     _gridScrollController.dispose();
     _viewModel.dispose();
@@ -505,24 +517,16 @@ class _FeedViewState extends ConsumerState<FeedView>
       );
     }
     final mediaItems = LocalVideoAdapter.toMediaItems(items, scrapedMap: localState.scrapedMap);
+    // batch38-F1：绑定独立 _localPageController，供本地网格点击定位跳页
     return PageView.builder(
+      controller: _localPageController,
       scrollDirection: Axis.vertical,
       itemCount: mediaItems.length,
-      onPageChanged: (i) async {
-        // 离开当前本地页时保存播放位置（key 以本地 pathHash 为基准，
-        // 同时写最近播放时间戳供首页"播放记录"区块使用）
-        try {
-          final ctrl = ref.read(currentVideoControllerProvider);
-          if (ctrl != null && ctrl.value.isInitialized) {
-            final prefs = await SharedPreferences.getInstance();
-            final hash = items[_currentIndex].pathHash;
-            await prefs.setInt(
-                'local_resume_$hash',
-                ctrl.value.position.inMilliseconds);
-            await prefs.setInt('local_resume_time_$hash',
-                DateTime.now().millisecondsSinceEpoch);
-          }
-        } catch (_) {}
+      onPageChanged: (i) {
+        // batch38-F2：续播位置保存已移到 VideoPageItem 播放节流（谁播谁存）。
+        // 原实现在此处读 currentVideoControllerProvider 再写旧页 hash——
+        // 但滚动切换时新页 didUpdateWidget 已把 provider 覆盖为新页 controller，
+        // 此处会以旧页 hash 配新页位置错位写入，破坏旧页续播。
         setState(() {
           _currentIndex = i;
           _currentIndexNotifier.value = i;
