@@ -631,7 +631,10 @@ class ScrapeService {
               year: base.year,
               posterPath: base.posterPath,
               backdropPath: base.backdropPath,
-              overview: ep['overview'] as String? ?? base.overview,
+              // batch54-F2：单集条目保留整剧简介——若用 ep.overview 覆盖，
+              // 整剧详情页取首集条目的 overview 会显示"第一集简介"而非整剧简介
+              // （与整剧刮削 applyEpisodeInfo 路径不一致）；单集标题已存入 episodeTitle
+              overview: base.overview,
               rating: base.rating,
               genres: base.genres,
               cast: base.cast,
@@ -852,9 +855,6 @@ class ScrapeService {
     if (_cache != null) return Map.of(_cache!); // 浅拷贝，防调用方污染共享实例
     final sp = await SharedPreferences.getInstance();
     final result = <String, ScrapedMedia>{};
-    final now = DateTime.now().millisecondsSinceEpoch;
-    const movieTtl = 30 * 24 * 3600 * 1000;
-    const tvTtl = 14 * 24 * 3600 * 1000;
     for (final key in sp.getKeys()) {
       if (!key.startsWith(_prefix)) continue;
       // 防御：旧数据可能把 bool 写到了这个 key 下，sp.getString 会抛类型转换异常
@@ -863,12 +863,10 @@ class ScrapeService {
       try {
         final j = jsonDecode(raw) as Map<String, dynamic>;
         final media = ScrapedMedia.fromJson(j);
-        // scrapedAt=0 表示旧版本缓存，视为永不过期（不丢弃）
-        if (media.scrapedAt > 0) {
-          final age = now - media.scrapedAt;
-          final ttl = media.type == 'tv' ? tvTtl : movieTtl;
-          if (age > ttl) continue;
-        }
+        // batch54-F1：缓存不按 TTL 自动过期——过期即丢弃会让 scrapeMissing 自动重刮，
+        // 覆盖用户手动匹配/手动整理的成果（同一文件可能重新匹配到不同作品）；
+        // 需要刷新时由用户手动重刮（batch 24 保留 scrapedAt 的语义一并保留）。
+        // scrapedAt=0 表示旧版本缓存，兼容加载。
         result[key.substring(_prefix.length)] = media;
       } catch (e) { AppLogger.warn('刮削缓存解析失败', data: {'key': key, 'error': e.toString()}); }
     }
