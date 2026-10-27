@@ -65,8 +65,12 @@ class WebdavScanner {
           final size = int.tryParse(RegExp(r'<getcontentlength>(.*?)</getcontentlength>').firstMatch(block)?.group(1) ?? '0') ?? 0;
 
           if (isCollection) {
-            // 递归子目录
+            // batch65-F1：Depth:1 响应包含请求目录自身条目，服务器规范化 href
+            // （如尾斜杠）与请求 URL 字符串不等，若直接递归会对同一目录反复 PROPFIND
+            // 直到 depth 上限——规范化比较后跳过自身
             final childUrl = _joinUrl(url, href);
+            final norm = (String u) => u.replaceFirst(RegExp(r'/+$'), '');
+            if (norm(childUrl) == norm(url)) continue;
             await _walk(childUrl, auth, sourceId, out, depth: depth + 1);
           } else {
             // 从 href 路径取 basename 判断扩展名
@@ -74,6 +78,11 @@ class WebdavScanner {
             final lower = basename.toLowerCase();
             if (_videoExts.any(lower.endsWith)) {
               final fileUrl = _joinUrl(url, href);
+              // batch65-F2：解析 getlastmodified（RFC1123）回填修改时间——
+              // 否则恒为扫描时刻，WebDAV 源"最近修改"排序失真且随扫描漂移
+              final modifiedStr = RegExp(r'<getlastmodified>(.*?)</getlastmodified>')
+                  .firstMatch(block)?.group(1) ?? '';
+              final modified = DateTime.tryParse(modifiedStr) ?? DateTime.now();
               out.add(LocalVideoItem(
                 id: '$sourceId:$href',
                 name: basename.replaceAll(RegExp(r'\.[^.]+$'), ''),
@@ -83,7 +92,7 @@ class WebdavScanner {
                 width: 0,
                 height: 0,
                 mimeType: 'video/*',
-                modifiedAt: DateTime.now(),
+                modifiedAt: modified,
                 isAppDirFile: false,
                 sourceId: sourceId,
                 networkUrl: fileUrl,
