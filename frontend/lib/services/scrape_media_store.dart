@@ -67,7 +67,10 @@ class ScrapeMediaStore {
   // ---- 保存 ----
   // 双写策略：中央目录（App 沙箱，一定成功）作为权威副本；
   // 视频旁 .nfo/-poster.jpg（共享存储，可能因 Android 11+ 权限失败）尽力而为。
-  static Future<void> save(LocalVideoItem item, ScrapedMedia media, {String? sessionId, bool logHistory = true}) async {
+  // downloadImages=false 时仅落盘文本元数据（.nfo/中央 JSON/刮削记录），
+  // 不下载/覆盖图片（batch52-F1：详情页重刮"保留旧图片"场景）
+  static Future<void> save(LocalVideoItem item, ScrapedMedia media,
+      {String? sessionId, bool logHistory = true, bool downloadImages = true}) async {
     // 1) 中央目录元数据（一定成功）
     try {
       final dir = await _subDir('metadata');
@@ -125,6 +128,8 @@ class ScrapeMediaStore {
     // 3) 海报/背景/缩略图：先下中央目录，再尽力复制到视频旁
     // 同时写两种命名：{视频名}-poster.jpg 和 poster.jpg（Kodi/Jellyfin 标准）
     // 图片下载是 best-effort，任何失败都不应让 save() 抛异常（成功记录已写入）
+    // batch52-F1：downloadImages=false 时跳过整段图片下载
+    if (downloadImages) {
     try {
     final jobs = <Future<void>>[];
     Future<void> dl(String? tmdbPath, String Function() url, String centralSubDir,
@@ -245,6 +250,7 @@ class ScrapeMediaStore {
     }
     } catch (e) {
       AppLogger.warn('图片下载阶段异常（不影响元数据落盘）', data: {'error': e.toString()});
+    }
     }
     // 中央元数据已变更，失效内存镜像
     _invalidateCentralCache();

@@ -267,6 +267,8 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                         } else {
                           // 保留旧：只保存元数据不覆盖视频旁图片
                           await ScrapeService.saveCache(widget.item.pathHash, result);
+                          // batch52-F1：磁盘 .nfo/中央 JSON 同步新元数据（不下载图片，尊重"保留旧图片"）
+                          await ScrapeMediaStore.save(widget.item, result, downloadImages: false);
                           final cached = Map<String, ScrapedMedia>.from(ref.read(localVideoProvider).scrapedMap);
                           cached[widget.item.pathHash] = result;
                           ref.read(localVideoProvider.notifier).updateScrapedMap(cached);
