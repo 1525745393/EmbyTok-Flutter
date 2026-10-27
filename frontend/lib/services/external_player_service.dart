@@ -68,7 +68,12 @@ class ExternalPlayerService {
       queryParams['subtitles'] = subtitlesUrl;
     }
     buf.write('?');
-    buf.write(queryParams.entries.map((e) => '${e.key}=${e.value}').join('&'));
+    // batch82-F1: query 值统一 URL 编码，防止 title 含 & / # / 中文等字符
+    // 破坏 intent URI 结构（& 会拆出多余参数，# 会把 #Intent; 之后的
+    // 指令截入 fragment），导致指定播放器唤起失败、静默回退系统默认。
+    buf.write(queryParams.entries
+        .map((e) => '${e.key}=${Uri.encodeQueryComponent(e.value)}')
+        .join('&'));
     buf.write('#Intent;');
     buf.write('action=android.intent.action.VIEW;');
     buf.write('type=video/*;');
