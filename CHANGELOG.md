@@ -1,3 +1,10 @@
+## [2.401.44](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.43...v2.401.44) (2026-10-27)
+
+
+### Bug Fixes
+
+* **settings:** batch42 修复推荐规则 part 2 项问题 ([7fd70e1](https://github.com/1525745393/EmbyTok-Flutter/commit/7fd70e170a4651e8e2ee739f9d596b747acb6ab0))
+
 ## [2.401.43](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.42...v2.401.43) (2026-10-27)
 
 
