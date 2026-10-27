@@ -457,8 +457,10 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       );
 
       final merged = [...state.taggedItems, ...newItems.tagged];
-      // Task 4：只有所有数据源都耗尽时才认为无更多数据
-      final hasMore = !newItems.allSourcesExhausted;
+      // batch103-F1：数据源 loadMore 均从 offset 0 重拉、仅靠 seenIds 去重，
+      // 任一源达到分页上限时 hasMore 恒 true 会造成无限空翻页（无新内容仍可继续加载）。
+      // 本轮去重后无任何新项时置 false，结束无效翻页。
+      final hasMore = !newItems.allSourcesExhausted && newItems.tagged.isNotEmpty;
 
       state = _withDerived(state.copyWith(
         taggedItems: merged,
