@@ -265,6 +265,13 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
     // 加载弹幕高级设置（P3）
     _loadDanmakuSettings();
 
+    // batch109-F1：弹幕开关与全局持久化开关（danmakuEnabledProvider，
+    // 设置页可改）联动——此前 _danmakuEnabled 恒 true 本地初值，设置页
+    // 关闭弹幕后全屏页仍加载并渲染弹幕，且下方残留一个 watch 全局开关
+    // 但内容恒空的占位弹幕层（TODO 注释已过时，batch63/64 已接入真实弹幕）。
+    // 现以全局开关为唯一数据源，本地仅作渲染镜像。
+    _danmakuEnabled = ref.read(danmakuEnabledProvider);
+
     // 同步竖屏已设置的画面比例，避免横屏选中态与渲染不一致
     final currentFit = ref.read(videoFitModeProvider);
     _aspectMode = switch (currentFit) {
@@ -464,7 +471,10 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
       if (cnMatch != null) episode = int.tryParse(cnMatch.group(1)!) ?? 1;
     }
     final rawList = await DanmakuService.getDanmaku(title, episode);
-    if (mounted && rawList.isNotEmpty) {
+    // batch109-F2：切歌竞态守卫——弹幕请求期间用户切到另一集/另一视频时，
+    // 旧请求响应晚到不得覆盖新视频画面（此前仅检查 mounted，慢网络下
+    // 会把上一集的弹幕渲染到当前视频上）
+    if (mounted && _danmakuItemId == item.id && rawList.isNotEmpty) {
       // 转换为 Widget 的 DanmakuItem 格式
       final converted = <DanmakuItem>[];
       for (var i = 0; i < rawList.length; i++) {
@@ -703,24 +713,6 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                     top: 8,
                     left: 8,
                     child: PlaybackInfoOsd(item: playingItem),
-                  ),
-
-                // 弹幕层（PRD P1：danmaku_overlay 接入横屏）
-                if (isControllerReady &&
-                    !hasError &&
-                    ref.watch(danmakuEnabledProvider))
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: DanmakuOverlay(
-                        positionMs: _positionMsNotifier,
-                        // TODO: 接入 dandanplay_api.dart 根据影片名拉取弹幕
-                        danmakus: const [],
-                        enabled: true,
-                        fontSize: _danmakuFontSize,
-                        opacity: _danmakuOpacity,
-                        scrollSpeed: _danmakuSpeed,
-                      ),
-                    ),
                   ),
 
                 // 字幕渲染层
@@ -1766,6 +1758,11 @@ Widget _buildErrorState(VideoPlayerController? controller) {
                           // 手动重新开启时允许重新尝试加载弹幕
                           if (_danmakuEnabled) _danmakuLoadAttempted = false;
                         });
+                        // batch109-F1：与全局持久化开关保持同步，
+                        // 设置页开关与全屏按钮看到同一状态
+                        ref
+                            .read(danmakuEnabledProvider.notifier)
+                            .setEnabled(_danmakuEnabled);
                       },
                       tooltip: _danmakuEnabled ? '关闭弹幕' : '开启弹幕',
                     ),
