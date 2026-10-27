@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/file_source.dart';
@@ -9,12 +10,19 @@ import '../models/file_source.dart';
 ///
 /// 持久化到 SharedPreferences，启动时恢复。
 /// 默认包含一个"手机媒体库"本地源，不可删除。
+///
+/// batch48-F1：SMB/WebDAV 密码不随列表 JSON 明文落 SharedPreferences，
+/// 单独存 FlutterSecureStorage（key 见 [_pwdKey]），列表中 config 剥离 password；
+/// 加载时按源 id 从安全存储恢复，旧版明文一次性迁移删除。
 class FileSourcesNotifier extends StateNotifier<List<FileSource>> {
   FileSourcesNotifier() : super([]) {
     _load();
   }
 
   static const _key = 'file_sources_v1';
+
+  /// 密码映射（源 id → 密码）在安全存储中的 key
+  static const _pwdKey = 'file_sources_pwd_v1';
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -44,12 +52,65 @@ class FileSourcesNotifier extends StateNotifier<List<FileSource>> {
         ),
       );
     }
-    state = list;
+    // batch48-F1：从安全存储按源 id 恢复密码；检测到旧明文（SharedPreferences
+    // 列表里仍含 password 且安全存储无对应值）时触发一次性迁移重存剥离版
+    final pwdMap = await _readPwdMap();
+    var hasLegacy = false;
+    final restored = list.map((s) {
+      final cfg = Map<String, String>.from(s.config);
+      final legacyPwd = cfg['password'];
+      if (legacyPwd != null && legacyPwd.isNotEmpty) {
+        if (pwdMap[s.id] == null) hasLegacy = true;
+        final pwd = pwdMap[s.id] ?? legacyPwd;
+        if (pwd.isNotEmpty) {
+          cfg['password'] = pwd;
+        } else {
+          cfg.remove('password');
+        }
+      } else {
+        final pwd = pwdMap[s.id];
+        if (pwd != null && pwd.isNotEmpty) {
+          cfg['password'] = pwd;
+        }
+      }
+      return s.copyWith(config: cfg);
+    }).toList();
+    state = restored;
+    if (hasLegacy) {
+      await _save();
+    }
   }
 
   Future<void> _save() async {
+    // batch48-F1：密码剥离出 SharedPreferences，改存安全存储，避免 NAS 凭据明文落盘
+    final pwdMap = <String, String>{};
+    final redacted = state.map((s) {
+      final cfg = Map<String, String>.from(s.config);
+      final pwd = cfg['password'];
+      if (pwd != null && pwd.isNotEmpty) {
+        pwdMap[s.id] = pwd;
+      }
+      cfg.remove('password');
+      return s.copyWith(config: cfg);
+    }).toList();
+    const ss = FlutterSecureStorage();
+    await ss.write(key: _pwdKey, value: json.encode(pwdMap));
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, json.encode(state.map((e) => e.toJson()).toList()));
+    await prefs.setString(_key, json.encode(redacted.map((e) => e.toJson()).toList()));
+  }
+
+  /// 读取安全存储中的密码映射（源 id → 密码）
+  Future<Map<String, String>> _readPwdMap() async {
+    const ss = FlutterSecureStorage();
+    try {
+      final raw = await ss.read(key: _pwdKey);
+      if (raw == null || raw.isEmpty) return {};
+      final decoded = json.decode(raw);
+      if (decoded is! Map<String, dynamic>) return {};
+      return decoded.map((k, v) => MapEntry(k, v.toString()));
+    } catch (e) {
+      return {};
+    }
   }
 
   Future<void> add(FileSource source) async {
