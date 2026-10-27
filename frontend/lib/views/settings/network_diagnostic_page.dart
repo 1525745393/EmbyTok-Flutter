@@ -88,6 +88,17 @@ class _NetworkDiagnosticPageState extends State<NetworkDiagnosticPage> {
       setState(() => _running = false);
       return;
     }
+    // batch43-F2 本地媒体库模式（local://）：无服务器连接，跳过 TCP/HTTPS/API 步骤，
+    // 避免 Socket.connect 对 local://（port=0）必失败造成全步骤误报
+    if (_serverUrl!.startsWith('local://')) {
+      _addResult(const _DiagResult(
+        label: '服务器连接',
+        detail: '本地媒体库模式：无服务器连接，无需网络诊断',
+        success: false,
+      ));
+      setState(() => _running = false);
+      return;
+    }
 
     // 2. 解析服务器地址
     Uri? uri;
@@ -171,7 +182,9 @@ class _NetworkDiagnosticPageState extends State<NetworkDiagnosticPage> {
       final sw = Stopwatch()..start();
       apiClient = HttpClient()
         ..connectionTimeout = const Duration(seconds: 10);
-      final apiUri = Uri.parse('${_serverUrl!}/emby/System/Info/Public');
+      // batch43-F1 与主应用对齐：ApiClient.baseUrl = serverUrl 后拼接根路径相对路径，
+      // 不硬编码 /emby 前缀（服务器地址带子路径如反代 /media 时会重复拼接误报 404）
+      final apiUri = Uri.parse('$_serverUrl/System/Info/Public');
       final request = await apiClient.getUrl(apiUri);
       final response = await request.close().timeout(const Duration(seconds: 10));
       sw.stop();
@@ -186,7 +199,7 @@ class _NetworkDiagnosticPageState extends State<NetworkDiagnosticPage> {
     } catch (e) {
       _addResult(_DiagResult(
         label: 'API 响应',
-        detail: '请求失败：$e\n建议：确认服务器路径正确（/emby）',
+        detail: '请求失败：$e\n建议：确认服务器在线、服务器地址是否正确',
         success: false,
       ));
     } finally {
