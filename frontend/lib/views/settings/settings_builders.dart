@@ -274,52 +274,13 @@ extension _SettingsBuilders on SettingsView {
     );
   }
 
+  // 外观 - 语言
+  // batch41-F1：原实现 groupValue 硬编码 'system'、onChanged 仅弹提示不保存，
+  // 且 app.dart locale 恒 null——语言选择从未生效。已提取为 _LanguageTile
+  // （settings_widgets.dart）：读取当前语言、选择后 AppLocale.save/clear 持久化，
+  // 由 app.dart 的 MaterialApp.locale 消费。
   Widget _buildLanguageTile(BuildContext context, WidgetRef ref) {
-    return settingsTapTile(
-      icon: Icons.language_outlined,
-      iconColor: Colors.indigo,
-      title: '语言',
-      subtitle: '跟随系统 / 简体中文 / English',
-      onTap: () => _showLanguageDialog(context, ref),
-      helpText: '选择 App 显示语言。\n\n· 跟随系统 → 使用设备默认语言\n· 简体中文 → 始终中文\n· English → 始终英文\n\n切换后重启 App 生效。',
-    );
-  }
-
-  void _showLanguageDialog(BuildContext context, WidgetRef ref) {
-    showDialog<Widget>(context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('选择语言'),
-        content: RadioGroup<String>(
-          groupValue: 'system',
-          onChanged: (v) {
-            Navigator.pop(context);
-            final String msg = v == 'zh'
-                ? '已选择简体中文（重启后生效）'
-                : v == 'en'
-                    ? 'English selected (restart to apply)'
-                    : '将跟随系统语言（重启后生效）';
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-          },
-          child: const Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              RadioListTile<String>(
-                title: Text('跟随系统'),
-                value: 'system',
-              ),
-              RadioListTile<String>(
-                title: Text('简体中文'),
-                value: 'zh',
-              ),
-              RadioListTile<String>(
-                title: Text('English'),
-                value: 'en',
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    return const _LanguageTile();
   }
 
   Widget _buildOrientationTile(BuildContext context, WidgetRef ref) {
@@ -348,22 +309,12 @@ extension _SettingsBuilders on SettingsView {
     );
   }
 
+  // 存储 - 歌手元数据缓存管理（V1.1）
+  // 查看歌手简介/头像缓存大小，支持单独清除
+  // batch41-F5：原 FutureBuilder 在 build 中重建 future（每次 rebuild 闪回 + 重复 IO），
+  // 已提取为 _ArtistMetadataCacheTile（settings_widgets.dart），future 在 initState 创建一次。
   Widget _buildArtistMetadataCacheTile(BuildContext context, WidgetRef ref) {
-    return FutureBuilder<int>(
-      future: ref.read(artistMetadataServiceProvider).getCacheSize(),
-      builder: (context, snapshot) {
-        final size = snapshot.data ?? 0;
-        return settingsTapTile(
-          icon: Icons.person_outline,
-          iconColor: Colors.purple,
-          title: '歌手元数据缓存',
-          subtitle: '简介/头像缓存 ${formatBytes(size)}，点击清除',
-          onTap: () => _showClearArtistMetadataDialog(context, ref),
-          helpText:
-              '管理艺术家/歌手元数据缓存（头像、简介等）。\n\n· 查看缓存条目数\n· 清理缓存后，歌手详情将从数据源重新拉取\n\n适用于音乐服务模式。',
-        );
-      },
-    );
+    return const _ArtistMetadataCacheTile();
   }
 
   Widget _buildBatchScanTile(BuildContext context, WidgetRef ref) {
@@ -451,7 +402,8 @@ extension _SettingsBuilders on SettingsView {
     }
   }
 
-  Future<void> _showClearArtistMetadataDialog(
+  /// 显示清除歌手元数据缓存对话框；清除成功返回 true（供 _ArtistMetadataCacheTile 刷新大小）
+  Future<bool> _showClearArtistMetadataDialog(
       BuildContext context, WidgetRef ref) async {
     final result = await showDialog<bool>(
       context: context,
@@ -481,7 +433,9 @@ extension _SettingsBuilders on SettingsView {
           ),
         );
       }
+      return true;
     }
+    return false;
   }
 
   Widget _buildResetSettingsTile(BuildContext context, WidgetRef ref) {
@@ -492,7 +446,11 @@ extension _SettingsBuilders on SettingsView {
       subtitle: '恢复所有偏好为默认值（不影响登录/历史/收藏）',
       onTap: () => _showResetSettingsDialog(context, ref),
       helpText:
-          '将所有设置恢复为默认值。\n\n不影响：登录的服务器、观看历史、收藏数据。\n\n仅重置本页可见的偏好项，操作不可撤销，建议先确认当前配置。',
+          '将所有设置恢复为默认值。\n\n不影响：登录的服务器、观看历史、收藏数据。\n\n'
+          // batch41-F6：重置范围已由 batch40-F1 扩大到全部设置类 key（含家长控制、
+          // PIN 锁、服务模式、自签名证书、下载镜像等非本页可见项），文案同步修正。
+          '重置范围覆盖全部设置项（含家长控制、PIN 锁、服务模式等），'
+          '不影响登录、观看历史与收藏。操作不可撤销，建议先确认当前配置。',
     );
   }
 
@@ -684,7 +642,8 @@ extension _SettingsBuilders on SettingsView {
       title: const Text('播放信息浮层'),
       subtitle: const Text('视频左上角显示引擎/编码/分辨率/HDR'),
       value: enabled,
-      onChanged: (v) => ref.read(playbackInfoOsdProvider.notifier).state = v,
+      // batch41-F3：由内存 StateProvider 改为持久化 Notifier，走 setEnabled 写 prefs
+      onChanged: (v) => ref.read(playbackInfoOsdProvider.notifier).setEnabled(v),
     );
   }
 
@@ -784,7 +743,8 @@ extension _SettingsBuilders on SettingsView {
       title: const Text('弹幕'),
       subtitle: const Text('在视频上叠加显示弹幕（后续接入弹幕源）'),
       value: enabled,
-      onChanged: (v) => ref.read(danmakuEnabledProvider.notifier).state = v,
+      // batch41-F3：由内存 StateProvider 改为持久化 Notifier，走 setEnabled 写 prefs
+      onChanged: (v) => ref.read(danmakuEnabledProvider.notifier).setEnabled(v),
     );
   }
 

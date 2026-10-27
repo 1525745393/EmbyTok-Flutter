@@ -13,8 +13,12 @@ class AppLocale {
 
   static const _key = 'app_locale_language_code';
 
-  /// 读取已保存的语言
-  static Future<Locale> load() async {
+  /// 读取已保存的语言；未保存时返回 null（跟随系统）
+  ///
+  /// batch41-F1：原实现 key 缺失时回退 fallbackLocale，调用方无法区分
+  /// 「未保存（跟随系统）」与「保存为简体中文」；现改为返回 null，
+  /// 由 app.dart 的 MaterialApp.locale 决定 null=跟随系统的语义。
+  static Future<Locale?> load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final code = prefs.getString(_key);
@@ -25,13 +29,19 @@ class AppLocale {
         }
       }
     } catch (_) {}
-    return fallbackLocale;
+    return null;
   }
 
   /// 保存语言
   static Future<void> save(Locale locale) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_key, '${locale.languageCode}_${locale.countryCode}');
+  }
+
+  /// 清除已保存语言（恢复跟随系统，batch41-F1）
+  static Future<void> clear() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_key);
   }
 }
 

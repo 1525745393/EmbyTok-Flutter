@@ -168,31 +168,13 @@ extension _SettingsBuilders2 on SettingsView {
     );
   }
 
+  // 音乐 - NAS 元数据同步（L3 缓存）
+  // batch41-F4：原实现 onChanged 未登录时静默 return（点击无任何反馈）、直接改
+  // service 可写字段（不持久化、且 settingsSwitchTile 非响应式——开关点击后弹回）。
+  // 已提取为 _NasMetadataSyncTile（本文件底部类）：initState 直读 prefs 恢复开关，
+  // 未登录点击弹提示，写 service.setNasSyncEnabled 持久化，写入后本地 setState 刷新。
   Widget _buildNasMetadataSyncTile(BuildContext context, WidgetRef ref) {
-    final service = ref.read(artistMetadataServiceProvider);
-    final isLoggedIn = ref.read(synologyAuthProvider).isLoggedIn;
-
-    return settingsSwitchTile(
-      icon: Icons.cloud_sync_outlined,
-      iconColor: Colors.teal,
-      title: 'NAS 元数据同步',
-      subtitle: service.nasSyncEnabled
-          ? '已开启：歌手简介/头像同步到群晖，多设备共享'
-          : '开启后同步到 NAS（需先登录群晖）',
-      value: service.nasSyncEnabled,
-      onChanged: (value) {
-        if (!isLoggedIn) return;
-        service.nasSyncEnabled = value;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(value ? 'NAS 元数据同步已开启' : 'NAS 元数据同步已关闭'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      },
-      helpText:
-          '开启后，自动同步 NAS（群晖）音乐库的元数据（歌手、专辑、曲目信息）。\n\n· 开启 → 音乐库信息保持最新（同步耗时）\n· 关闭 → 仅使用本地缓存（更快但可能滞后）\n\n首次配置后建议开启一次完成全量同步。',
-    );
+    return const _NasMetadataSyncTile();
   }
 
   void _showLastFmKeyDialog(
@@ -278,26 +260,12 @@ extension _SettingsBuilders2 on SettingsView {
     );
   }
 
+  // 关于 - 下载源
+  // batch41-F5：原 FutureBuilder 在 build 中重建 future（每次 rebuild 闪回 + 重复
+  // 读 prefs）——已提取为 _DownloadMirrorTile（本文件底部类），initState 读一次，
+  // 选择镜像后重建 future 刷新副标题。
   Widget _buildDownloadMirrorTile(BuildContext context, WidgetRef ref) {
-    final svc = ref.read(updateCheckServiceProvider);
-    return FutureBuilder<String?>(
-      future: svc.getPreferredMirror(),
-      builder: (_, snap) {
-        final preferred = snap.data;
-        final subtitle = preferred == null
-            ? '自动选择（推荐）'
-            : '当前：${_mirrorLabel(preferred)}';
-        return settingsTapTile(
-          icon: Icons.download_outlined,
-          iconColor: Colors.teal,
-          title: '下载源',
-          subtitle: subtitle,
-          onTap: () => _showMirrorPicker(context, ref, svc, preferred),
-          helpText:
-              '选择 APK 下载加速镜像。\n\n· 自动模式按顺序尝试，失败自动切换\n· 手动测速后选择最快的镜像\n· 原始链接为 GitHub 官方地址',
-        );
-      },
-    );
+    return const _DownloadMirrorTile();
   }
 
   String _mirrorLabel(String mirror) {
@@ -555,32 +523,13 @@ extension _SettingsBuilders2 on SettingsView {
     }
   }
 
+  // P0-1：允许自签名证书（默认关闭，即启用 SSL 证书校验）
+  // 开启时允许连接使用自签名证书的内网 NAS，存在中间人攻击风险
+  // batch41-F2：原 FutureBuilder 在 build 中重建 future（每次 rebuild 闪回；
+  // 确认开启写 prefs 后旧 future 不刷新，开关一直显示"已禁用"）——已提取为
+  // _SelfSignedCertificateTile（本文件底部类），initState 读一次，写入后本地覆盖。
   Widget _buildSelfSignedCertificateTile(BuildContext context, WidgetRef ref) {
-    return FutureBuilder<bool>(
-      future: _loadAllowSelfSignedCertificate(),
-      builder: (context, snapshot) {
-        final allow = snapshot.data ?? false;
-        return settingsSwitchTile(
-          icon: Icons.security_outlined,
-          iconColor: Colors.orange,
-          title: '允许自签名证书',
-          subtitle:
-              allow ? '已允许：可连接自签名证书的内网服务器（存在安全风险）' : '已禁用：严格校验 SSL 证书（推荐）',
-          value: allow,
-          onChanged: (value) {
-            if (value) {
-              // 开启时弹出安全风险提示
-              _showSelfSignedCertificateWarning(context, ref);
-            } else {
-              // 关闭时直接保存
-              _setAllowSelfSignedCertificate(context, false);
-            }
-          },
-          helpText:
-              '开启后允许连接使用自签名证书的服务器（如内网 NAS、自建 Emby）。\n\n· 开启 → 信任自签名证书，避免 TLS 校验失败\n· 关闭 → 只信任受信任 CA 签发的证书\n\n仅在你信任该服务器时开启，否则存在中间人攻击风险。',
-        );
-      },
-    );
+    return const _SelfSignedCertificateTile();
   }
 
   Future<void> _setAllowSelfSignedCertificate(
@@ -603,41 +552,7 @@ extension _SettingsBuilders2 on SettingsView {
     }
   }
 
-  void _showSelfSignedCertificateWarning(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: scheme.error, size: 24),
-            const SizedBox(width: 8),
-            const Text('安全风险提示'),
-          ],
-        ),
-        content: const Text(
-          '允许自签名证书将禁用 SSL 证书校验，可能导致中间人攻击，'
-          '使您的账号密码和播放数据面临泄露风险。\n\n'
-          '仅建议在受信任的内网环境中使用，且仅连接您自己的服务器。\n\n'
-          '确定要开启吗？',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              _setAllowSelfSignedCertificate(context, true);
-            },
-            style: TextButton.styleFrom(foregroundColor: scheme.error),
-            child: const Text('确认开启'),
-          ),
-        ],
-      ),
-    );
-  }
+  // 安全风险提示对话框已并入 _SelfSignedCertificateTileState._toggle（batch41-F2）
 
   Widget _buildLogoutButton(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
@@ -790,6 +705,242 @@ class _MirrorPickerDialogState extends State<_MirrorPickerDialog> {
           child: const Text('关闭'),
         ),
       ],
+    );
+  }
+}
+
+// ==================== NAS 元数据同步开关（batch41-F4） ====================
+
+/// NAS 元数据同步开关（batch41-F4）
+///
+/// 原实现：未登录点击静默 return（无任何反馈）；直接写 service 可写字段
+/// （不持久化，重启即丢）；settingsSwitchTile 非响应式（service 不是
+/// ChangeNotifier），点击后 Switch 视觉弹回。修复：
+/// 1. initState 直读 SharedPreferences（key `nas_sync_enabled`，与
+///    ArtistMetadataService 持久化同一 key，不受 service.init 异步竞态影响）；
+/// 2. 未登录点击弹提示「需先登录群晖 Audio Station」；
+/// 3. 登录后调 service.setNasSyncEnabled 持久化，本地 setState 刷新开关。
+class _NasMetadataSyncTile extends ConsumerStatefulWidget {
+  const _NasMetadataSyncTile({super.key});
+
+  @override
+  ConsumerState<_NasMetadataSyncTile> createState() =>
+      _NasMetadataSyncTileState();
+}
+
+class _NasMetadataSyncTileState extends ConsumerState<_NasMetadataSyncTile> {
+  static const _key = 'nas_sync_enabled';
+  bool _enabled = false;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance().then((p) {
+      if (mounted) {
+        setState(() {
+          _enabled = p.getBool(_key) ?? false;
+          _loaded = true;
+        });
+      }
+    });
+  }
+
+  Future<void> _toggle(bool value) async {
+    if (!ref.read(synologyAuthProvider).isLoggedIn) {
+      // 未登录：明确提示，不再静默吞掉点击
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('NAS 元数据同步需先登录群晖 Audio Station'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+    // 持久化：service 内部同步更新字段并写 prefs（key 与本 tile 一致）
+    await ref.read(artistMetadataServiceProvider).setNasSyncEnabled(value);
+    if (mounted) setState(() => _enabled = value);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(value ? 'NAS 元数据同步已开启' : 'NAS 元数据同步已关闭'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_loaded) return const SizedBox.shrink();
+    return settingsSwitchTile(
+      icon: Icons.cloud_sync_outlined,
+      iconColor: Colors.teal,
+      title: 'NAS 元数据同步',
+      subtitle: _enabled
+          ? '已开启：歌手简介/头像同步到群晖，多设备共享'
+          : '开启后同步到 NAS（需先登录群晖）',
+      value: _enabled,
+      onChanged: _toggle,
+      helpText:
+          '开启后，自动同步 NAS（群晖）音乐库的元数据（歌手、专辑、曲目信息）。\n\n· 开启 → 音乐库信息保持最新（同步耗时）\n· 关闭 → 仅使用本地缓存（更快但可能滞后）\n\n首次配置后建议开启一次完成全量同步。',
+    );
+  }
+}
+
+// ==================== 下载源 tile（batch41-F5） ====================
+
+/// 下载源 tile（batch41-F5）
+///
+/// 原实现（settings_builders_extra.dart）在 build 中新建
+/// `svc.getPreferredMirror()` future——每次 rebuild 回 pending 再 resolve，
+/// 副标题闪回且重复读 prefs。修复：future 在 initState 创建一次；
+/// 选择镜像并关闭弹窗后重建 future 刷新当前源显示。
+class _DownloadMirrorTile extends ConsumerStatefulWidget {
+  const _DownloadMirrorTile({super.key});
+
+  @override
+  ConsumerState<_DownloadMirrorTile> createState() =>
+      _DownloadMirrorTileState();
+}
+
+class _DownloadMirrorTileState extends ConsumerState<_DownloadMirrorTile> {
+  late Future<String?> _preferredFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _preferredFuture =
+        ref.read(updateCheckServiceProvider).getPreferredMirror();
+  }
+
+  Future<void> _pick(String? current) async {
+    final svc = ref.read(updateCheckServiceProvider);
+    await _showMirrorPicker(context, ref, svc, current);
+    if (mounted) {
+      // 选择后重建 future，刷新副标题为最新镜像
+      setState(() => _preferredFuture = svc.getPreferredMirror());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String?>(
+      future: _preferredFuture,
+      builder: (_, snap) {
+        final preferred = snap.data;
+        final subtitle = preferred == null
+            ? '自动选择（推荐）'
+            : '当前：${_mirrorLabel(preferred)}';
+        return settingsTapTile(
+          icon: Icons.download_outlined,
+          iconColor: Colors.teal,
+          title: '下载源',
+          subtitle: subtitle,
+          onTap: () => _pick(preferred),
+          helpText:
+              '选择 APK 下载加速镜像。\n\n· 自动模式按顺序尝试，失败自动切换\n· 手动测速后选择最快的镜像\n· 原始链接为 GitHub 官方地址',
+        );
+      },
+    );
+  }
+}
+
+// ==================== 允许自签名证书开关（batch41-F2） ====================
+
+/// 允许自签名证书开关（batch41-F2）
+///
+/// 原实现（settings_builders_extra.dart）在 build 中新建
+/// `_loadAllowSelfSignedCertificate()` future——每次 rebuild（切分组/返回页面/
+/// 操作其他开关）回 pending、开关闪回关闭；确认开启写入 prefs 后，已 resolve
+/// 的旧 future 不刷新，UI 一直显示"已禁用"直到重启，与实际状态不符。
+/// 修复：initState 读一次并缓存到本地 state；开启走二次确认（原
+/// `_showSelfSignedCertificateWarning` 逻辑并入 `_toggle`），写入后本地覆盖显示。
+class _SelfSignedCertificateTile extends StatefulWidget {
+  const _SelfSignedCertificateTile({super.key});
+
+  @override
+  State<_SelfSignedCertificateTile> createState() =>
+      _SelfSignedCertificateTileState();
+}
+
+class _SelfSignedCertificateTileState extends State<_SelfSignedCertificateTile> {
+  bool _allow = false;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final allow = await _loadAllowSelfSignedCertificate();
+    if (mounted) {
+      setState(() {
+        _allow = allow;
+        _loaded = true;
+      });
+    }
+  }
+
+  Future<void> _toggle(bool value) async {
+    if (value) {
+      // 开启时弹出安全风险提示，确认后才保存
+      final scheme = Theme.of(context).colorScheme;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded,
+                  color: scheme.error, size: 24),
+              const SizedBox(width: 8),
+              const Text('安全风险提示'),
+            ],
+          ),
+          content: const Text(
+            '允许自签名证书将禁用 SSL 证书校验，可能导致中间人攻击，'
+            '使您的账号密码和播放数据面临泄露风险。\n\n'
+            '仅建议在受信任的内网环境中使用，且仅连接您自己的服务器。\n\n'
+            '确定要开启吗？',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: TextButton.styleFrom(foregroundColor: scheme.error),
+              child: const Text('确认开启'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+      await _setAllowSelfSignedCertificate(context, true);
+    } else {
+      // 关闭时直接保存
+      await _setAllowSelfSignedCertificate(context, false);
+    }
+    if (mounted) setState(() => _allow = value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_loaded) {
+      // 读取中：与原 FutureBuilder waiting 态一致，避免首帧开关抖动
+      return const SizedBox.shrink();
+    }
+    return settingsSwitchTile(
+      icon: Icons.security_outlined,
+      iconColor: Colors.orange,
+      title: '允许自签名证书',
+      subtitle:
+          _allow ? '已允许：可连接自签名证书的内网服务器（存在安全风险）' : '已禁用：严格校验 SSL 证书（推荐）',
+      value: _allow,
+      onChanged: _toggle,
+      helpText:
+          '开启后允许连接使用自签名证书的服务器（如内网 NAS、自建 Emby）。\n\n· 开启 → 信任自签名证书，避免 TLS 校验失败\n· 关闭 → 只信任受信任 CA 签发的证书\n\n仅在你信任该服务器时开启，否则存在中间人攻击风险。',
     );
   }
 }

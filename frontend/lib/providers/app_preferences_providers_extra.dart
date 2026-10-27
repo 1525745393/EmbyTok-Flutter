@@ -515,4 +515,28 @@ final autoPlayNextProvider =
 final autoPlayNextTriggerProvider = StateProvider<int>((ref) => 0);
 
 /// 弹幕开关（默认关闭）
-final danmakuEnabledProvider = StateProvider<bool>((ref) => false);
+/// batch41-F3：由内存 StateProvider 改为持久化 Notifier（key `danmaku_enabled`），
+/// 设置后重启不丢，与 autoPlayNextProvider 等其余开关行为一致。
+class DanmakuEnabledNotifier extends StateNotifier<bool> {
+  DanmakuEnabledNotifier() : super(false) {
+    _load();
+  }
+
+  static const _key = 'danmaku_enabled';
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getBool(_key) ?? false;
+  }
+
+  Future<void> setEnabled(bool value) async {
+    state = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_key, value);
+  }
+}
+
+final danmakuEnabledProvider =
+    StateNotifierProvider<DanmakuEnabledNotifier, bool>(
+  (ref) => DanmakuEnabledNotifier(),
+);

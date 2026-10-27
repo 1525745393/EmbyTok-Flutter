@@ -5,14 +5,39 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/media_item.dart';
 import '../../providers/player_engine_provider.dart';
 
-/// 播放信息 OSD 显示开关（内存开关，重启 App 后重置为关闭）
+/// 播放信息 OSD 显示开关
 ///
-/// 用户可在设置中切换，便于临时排查解码问题。
-final playbackInfoOsdProvider = StateProvider<bool>((ref) => false);
+/// 用户可在设置中切换，便于排查解码问题。
+/// batch41-F3：由内存 StateProvider 改为持久化 Notifier（key
+/// `playback_info_osd_enabled`），设置后重启不丢。
+class PlaybackInfoOsdNotifier extends StateNotifier<bool> {
+  PlaybackInfoOsdNotifier() : super(false) {
+    _load();
+  }
+
+  static const _key = 'playback_info_osd_enabled';
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getBool(_key) ?? false;
+  }
+
+  Future<void> setEnabled(bool value) async {
+    state = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_key, value);
+  }
+}
+
+final playbackInfoOsdProvider =
+    StateNotifierProvider<PlaybackInfoOsdNotifier, bool>(
+  (ref) => PlaybackInfoOsdNotifier(),
+);
 
 /// 播放信息 OSD 浮层
 ///

@@ -77,10 +77,20 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
   final _refreshNotifier = _AuthRefreshNotifier();
   late final GoRouter _router;
   late final MemoryPressureHandler _memoryHandler;
+  // batch41-F1：用户保存的语言（AppLocale.load 异步读取；null = 跟随系统）
+  Locale? _locale;
 
   @override
   void initState() {
     super.initState();
+    // batch41-F1：读取用户保存的语言设置（null = 跟随系统），
+    // 作为 MaterialApp.locale 消费 AppLocale.save 的写入
+    safeUnawaited(
+      AppLocale.load().then((l) {
+        if (mounted && l != null) setState(() => _locale = l);
+      }),
+      context: 'EmbyTokApp.initState.Locale.load',
+    );
     // 挂载内存压力监听器：系统内存警告时主动清缓存 + 释放视频池
     // Web 平台在 Handler 内部自动跳过注册
     _memoryHandler = MemoryPressureHandler(ref);
@@ -624,7 +634,7 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocale.supportedLocales,
-      locale: null, // null = 跟随系统；后续可从设置读取用户选择
+      locale: _locale, // batch41-F1：用户语言（AppLocale.load 读取；null = 跟随系统）
       builder: (context, child) {
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: systemOverlayStyleOf(context),

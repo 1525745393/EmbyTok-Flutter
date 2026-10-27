@@ -620,6 +620,10 @@ class AppPreferencesService {
       'smart_cache_cleanup', // 存储-智能缓存清理（batch39-F1 开关）
       'log_min_level', // 日志-最小级别
       'move_failed_enabled', // 文件管理-失败移动开关
+      // —— batch41-F3/F4 配套：新增持久化设置 key ——
+      'danmaku_enabled', // 播放-弹幕开关（DanmakuEnabledNotifier._key，batch41-F3 起持久化）
+      'playback_info_osd_enabled', // 播放-信息浮层开关（PlaybackInfoOsdNotifier._key，batch41-F3 起持久化）
+      'nas_sync_enabled', // 音乐库-NAS 元数据同步开关（ArtistMetadataService，batch41-F4 起持久化）
     ];
     await Future.wait(
       keysToRemove.map((key) => prefs.remove(key)),

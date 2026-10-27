@@ -18,6 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/models.dart';
+import '../l10n/app_translations.dart'; // batch41-F1：语言设置 tile 读取/保存 AppLocale
 import '../providers/artist_metadata_provider.dart';
 import '../providers/player_engine_provider.dart';
 import '../providers/server_registry_provider.dart';

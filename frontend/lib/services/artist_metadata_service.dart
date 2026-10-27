@@ -70,7 +70,20 @@ class ArtistMetadataService {
   DeezerService get deezerService => _deezerService;
 
   /// 是否启用 NAS 同步（L3 缓存）
-  bool nasSyncEnabled = false;
+  ///
+  /// batch41-F4：由普通可写字段改为 getter + 持久化 setter
+  /// （SharedPreferences key `nas_sync_enabled`），设置后重启不丢。
+  bool _nasSyncEnabled = false;
+
+  /// 是否启用 NAS 同步（L3 缓存）
+  bool get nasSyncEnabled => _nasSyncEnabled;
+
+  /// 设置 NAS 同步开关并持久化（batch41-F4）
+  Future<void> setNasSyncEnabled(bool value) async {
+    _nasSyncEnabled = value;
+    final prefs = _prefs ??= await SharedPreferences.getInstance();
+    await prefs.setBool('nas_sync_enabled', value);
+  }
 
   /// L1 内存缓存：歌手名 → 元数据
   final Map<String, ArtistMetadata> _memoryCache = {};
@@ -81,9 +94,11 @@ class ArtistMetadataService {
   /// SharedPreferences 存储 key 前缀
   static const String _prefsKeyPrefix = 'artist_metadata_';
 
-  /// 初始化（加载 SharedPreferences 实例）
+  /// 初始化（加载 SharedPreferences 实例，并恢复 NAS 同步开关）
   Future<void> init() async {
     _prefs ??= await SharedPreferences.getInstance();
+    // batch41-F4：恢复持久化的 NAS 同步开关
+    _nasSyncEnabled = _prefs?.getBool('nas_sync_enabled') ?? false;
   }
 
   /// 获取歌手元数据（自动处理缓存和多源降级）
