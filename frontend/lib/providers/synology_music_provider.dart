@@ -189,56 +189,78 @@ class SynologyMusicNotifier extends StateNotifier<SynologyMusicState> {
 
   /// 加载首页专用数据（PRD 模块）：最近添加专辑 + 热门艺术家 + 音乐流派
   ///
-  /// 并发请求 3 个接口，单个失败不影响其他模块。已加载则跳过（force 时强制刷新）。
+  /// 并发请求 4 个接口，单个失败不影响其他模块（batch97-F1：此前 Future.wait
+  /// 任一失败即整体抛错、成功结果也被丢弃，导致首页全部模块空白）。
+  /// 返回首个错误（无错误返回 null），供会话过期续期判断。
+  /// 已加载则跳过（force 时强制刷新）。
+  Future<Object?> _loadHomeOnce() async {
+    List<AudioAlbum>? recentAlbums;
+    List<AudioArtist>? topArtists;
+    List<AudioGenre>? genres;
+    List<AudioPin>? pins;
+    Object? firstError;
+
+    Future<void> guarded(
+      Future<Object?> Function() load,
+      void Function(Object? value) assign,
+    ) async {
+      try {
+        assign(await load());
+      } catch (e) {
+        firstError ??= e;
+      }
+    }
+
+    await Future.wait([
+      guarded(
+        () => _api.getAlbums(sort: 'time_add', direction: 'desc', limit: 10),
+        (v) => recentAlbums = v as List<AudioAlbum>?,
+      ),
+      guarded(
+        () => _api.getArtists(sort: 'song_count', direction: 'desc', limit: 15),
+        (v) => topArtists = v as List<AudioArtist>?,
+      ),
+      guarded(
+        () => _api.getGenres(limit: 50),
+        (v) => genres = v as List<AudioGenre>?,
+      ),
+      guarded(
+        () => _api.getPins(),
+        (v) => pins = v as List<AudioPin>?,
+      ),
+    ]);
+
+    // 失败模块保留旧值（首次加载时为空），不覆盖其他成功模块
+    state = state.copyWith(
+      recentAlbums: recentAlbums ?? state.recentAlbums,
+      topArtists: topArtists ?? state.topArtists,
+      genres: genres ?? state.genres,
+      pins: pins ?? state.pins,
+      isHomeLoaded: true,
+      error: firstError?.toString(),
+    );
+    return firstError;
+  }
+
   Future<void> loadHomeData({bool force = false}) async {
     if (!_isLoggedIn) return;
     if (!force && state.isHomeLoaded) return;
 
     try {
-      // 并发加载四个首页模块（最近添加/热门艺术家/流派/我的锁定）
-      final results = await Future.wait([
-        _api.getAlbums(sort: 'time_add', direction: 'desc', limit: 10),
-        _api.getArtists(sort: 'song_count', direction: 'desc', limit: 15),
-        _api.getGenres(limit: 50),
-        _api.getPins(),
-      ], eagerError: false);
-
-      state = state.copyWith(
-        recentAlbums: results[0] as List<AudioAlbum>,
-        topArtists: results[1] as List<AudioArtist>,
-        genres: results[2] as List<AudioGenre>,
-        pins: results[3] as List<AudioPin>,
-        isHomeLoaded: true,
-        error: null,
-      );
-    } catch (e, st) {
+      final error = await _loadHomeOnce();
+      if (error == null) return;
       // 会话过期（105）：用保存的密码自动续期后重试一次
-      if (e is SynologySessionExpiredException) {
+      if (error is SynologySessionExpiredException) {
         AppLogger.warn('群晖会话过期，尝试自动续期');
         final renewed =
             await _ref.read(synologyAuthProvider.notifier).renewSession();
         if (renewed) {
-          try {
-            final results = await Future.wait([
-              _api.getAlbums(sort: 'time_add', direction: 'desc', limit: 10),
-              _api.getArtists(sort: 'song_count', direction: 'desc', limit: 15),
-              _api.getGenres(limit: 50),
-              _api.getPins(),
-            ], eagerError: false);
-            state = state.copyWith(
-              recentAlbums: results[0] as List<AudioAlbum>,
-              topArtists: results[1] as List<AudioArtist>,
-              genres: results[2] as List<AudioGenre>,
-              pins: results[3] as List<AudioPin>,
-              isHomeLoaded: true,
-              error: null,
-            );
-            return;
-          } catch (_) {}
+          await _loadHomeOnce();
+          return;
         }
       }
+    } catch (e, st) {
       AppLogger.error('加载首页数据失败', error: e, stackTrace: st);
-      // 单个接口失败不阻断，标记已加载避免重复请求
       state = state.copyWith(isHomeLoaded: true, error: e.toString());
     }
   }
