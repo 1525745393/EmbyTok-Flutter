@@ -1,3 +1,10 @@
+## [2.401.40](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.39...v2.401.40) (2026-10-27)
+
+
+### Bug Fixes
+
+* **feed:** batch38 本地流网格定位 + 续播保存竞态 + 启动信号污染 ([a25a611](https://github.com/1525745393/EmbyTok-Flutter/commit/a25a611bd834c22e019d5ce83a89051b5c38b053))
+
 ## [2.401.39](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.38...v2.401.39) (2026-10-26)
 
 
