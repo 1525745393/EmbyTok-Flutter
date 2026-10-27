@@ -1,3 +1,10 @@
+## [2.401.45](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.44...v2.401.45) (2026-10-27)
+
+
+### Bug Fixes
+
+* **settings:** batch43 网络诊断对齐主应用拼接+本地模式跳过诊断 ([f43265c](https://github.com/1525745393/EmbyTok-Flutter/commit/f43265c5e112a8a136354aacaadaf134167adef7))
+
 ## [2.401.44](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.43...v2.401.44) (2026-10-27)
 
 
