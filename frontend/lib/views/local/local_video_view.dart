@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'local_detail_view.dart';
 import 'person_detail_view.dart';
 import '../../widgets/local/local_images.dart';
@@ -1807,7 +1808,16 @@ class _VideoThumbnail extends StatefulWidget { // 刮削海报优先
   final ScrapedMedia? scraped;
 
   /// 静态内存缓存：assetId → thumb bytes
+  /// batch53-F3：加 FIFO 容量上限，大媒体库滚动时不再无限驻留内存
   static final Map<String, Uint8List> _cache = {};
+  static const int _maxCacheEntries = 200;
+
+  static void _cachePut(String key, Uint8List bytes) {
+    if (_cache.length >= _maxCacheEntries) {
+      _cache.remove(_cache.keys.first); // 淘汰最旧
+    }
+    _cache[key] = bytes;
+  }
 
   @override
   State<_VideoThumbnail> createState() => _VideoThumbnailState();
@@ -1844,7 +1854,7 @@ class _VideoThumbnailState extends State<_VideoThumbnail> {
         const ThumbnailSize.square(200),
       );
       if (data != null) {
-        _VideoThumbnail._cache[aid] = data;
+        _VideoThumbnail._cachePut(aid, data);
         if (mounted) setState(() => _thumb = data);
       }
     } catch (_) {}
@@ -1975,6 +1985,8 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
   final _searchCtrl = TextEditingController();
   /// 续播进度缓存：pathHash -> 毫秒（"续看/已观看"筛选需要区分未完成进度，batch 25 F3）
   final Map<String, int> _resumeMs = {};
+  /// 最近播放时间戳缓存：pathHash -> epochMs（batch53-F1："播放日期"排序真实时间源）
+  final Map<String, int> _resumeAtMs = {};
 
   static const _sortOptions = {
     'name': '按名称',
@@ -2008,11 +2020,20 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
           r = (state.scrapedMap[a.pathHash]?.title ?? a.name).compareTo(state.scrapedMap[b.pathHash]?.title ?? b.name);
           break;
         case 'time':
-        case 'playDate':
-        case 'added':
-        case 'lastAdded':
           // 自然升序（旧在前）；方向由 _sortAscending 统一翻转，保证箭头与结果一致
           r = a.modifiedAt.compareTo(b.modifiedAt);
+          break;
+        case 'playDate':
+          // batch53-F1：按最近播放时间戳排序（local_resume_time_ 键），未播放过（0）排前
+          r = (_resumeAtMs[a.pathHash] ?? 0).compareTo(_resumeAtMs[b.pathHash] ?? 0);
+          break;
+        case 'added':
+          r = a.modifiedAt.compareTo(b.modifiedAt);
+          break;
+        case 'lastAdded':
+          // batch53-F1：按刮削加入时间（scrapedAt）排序，未刮削（0）排前
+          r = (state.scrapedMap[a.pathHash]?.scrapedAt ?? 0)
+              .compareTo(state.scrapedMap[b.pathHash]?.scrapedAt ?? 0);
           break;
         case 'year':
           r = gY(a.pathHash).compareTo(gY(b.pathHash));
@@ -2061,9 +2082,13 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
     final state = ref.read(localVideoProvider);
     final items = state.items.where((e) => e.sourceId == widget.sourceId).toList();
     final map = <String, int>{};
+    final sp = await SharedPreferences.getInstance();
     for (final it in items) {
       final ms = await LocalVideoService().readResumeMs(it.pathHash);
       if (ms != null && ms > 0) map[it.pathHash] = ms;
+      // batch53-F1："播放日期"排序需要真实播放时间戳（写端 local_play_page._savePosition）
+      final t = sp.getInt('local_resume_time_${it.pathHash}');
+      if (t != null && t > 0) _resumeAtMs[it.pathHash] = t;
     }
     if (mounted) setState(() => _resumeMs.addAll(map));
   }
@@ -2586,7 +2611,10 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
           initialIndex: index,
         ),
       ),
-    );
+      // batch53-F2：播放返回后重读续播进度，让"续看/已观看"筛选立即反映最新观看状态
+    ).then((_) {
+      if (mounted) _loadResumeProgress();
+    });
   }
 }
 
