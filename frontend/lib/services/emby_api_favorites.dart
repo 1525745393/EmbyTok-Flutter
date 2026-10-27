@@ -414,14 +414,24 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
         // Watchlist API 在旧版 Emby 服务器上不存在（404）
         // 降级：用 UserData 的 Played=false 模拟"稍后观看"
         AppLogger.warn('Watchlist API 404，降级使用 UserData', data: {'error': e.toString()});
-        await _fallbackWatchlist(userItemPath: '/Users/$effectiveUserId/Items/$itemId', isWatchlisted: isWatchlisted);
+        // batch83-F1: 降级路径与主路径保持一致的分支（无 userId 时用 /Items/...，
+        // 避免拼出 /Users/null/Items/... 导致降级必然 404）
+        final userItemPath =
+            effectiveUserId != null && effectiveUserId.isNotEmpty
+                ? '/Users/$effectiveUserId/Items/$itemId'
+                : '/Items/$itemId';
+        await _fallbackWatchlist(userItemPath: userItemPath, isWatchlisted: isWatchlisted);
       }
     } else {
       try {
         await _apiClient.delete<dynamic>(path, queryParameters: params);
       } catch (e) {
         AppLogger.warn('Watchlist API 404，降级使用 UserData', data: {'error': e.toString()});
-        await _fallbackWatchlist(userItemPath: '/Users/$effectiveUserId/Items/$itemId', isWatchlisted: isWatchlisted);
+        final userItemPath =
+            effectiveUserId != null && effectiveUserId.isNotEmpty
+                ? '/Users/$effectiveUserId/Items/$itemId'
+                : '/Items/$itemId';
+        await _fallbackWatchlist(userItemPath: userItemPath, isWatchlisted: isWatchlisted);
       }
     }
   }
