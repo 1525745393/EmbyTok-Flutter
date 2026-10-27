@@ -1,3 +1,10 @@
+## [2.401.41](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.40...v2.401.41) (2026-10-27)
+
+
+### Bug Fixes
+
+* **settings:** batch39 智能缓存开关挂钩 + tile 提取 StatefulWidget ([cd3e5f7](https://github.com/1525745393/EmbyTok-Flutter/commit/cd3e5f7138f04b9de19e1474ff8fb6397ed27336))
+
 ## [2.401.40](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.39...v2.401.40) (2026-10-27)
 
 
