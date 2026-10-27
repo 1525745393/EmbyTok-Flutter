@@ -1,3 +1,10 @@
+## [2.401.46](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.45...v2.401.46) (2026-10-27)
+
+
+### Bug Fixes
+
+* **settings:** batch44 PIN 明文改安全存储+更新对话框长正文可滚动 ([f2ece6c](https://github.com/1525745393/EmbyTok-Flutter/commit/f2ece6ccb9afab8172d478355d626d312f4e0739))
+
 ## [2.401.45](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.44...v2.401.45) (2026-10-27)
 
 
