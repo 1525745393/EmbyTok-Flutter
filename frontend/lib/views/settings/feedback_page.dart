@@ -43,16 +43,21 @@ class _FeedbackPageState extends State<FeedbackPage> {
         buffer.writeln(logs.join('\n'));
       }
 
-      await SharePlus.instance.share(ShareParams(
+      // batch45-F1：区分分享取消/成功——取消时不误报"已生成反馈"
+      final result = await SharePlus.instance.share(ShareParams(
         text: buffer.toString(),
         subject: 'EmbyTok 反馈',
       ));
 
-      if (context.mounted) {
+      if (!context.mounted) return;
+      if (result.status == ShareResultStatus.dismissed) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('已生成反馈内容，请通过邮件发送')));
-        Navigator.pop(context);
+            .showSnackBar(const SnackBar(content: Text('已取消分享')));
+        return;
       }
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('已生成反馈内容，请通过邮件发送')));
+      Navigator.pop(context);
     } catch (e) {
       AppLogger.error('提交反馈失败', error: e);
       if (context.mounted) {
