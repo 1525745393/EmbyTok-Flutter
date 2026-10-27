@@ -281,10 +281,12 @@ class SynologyDownloadService {
     _queueRunning = true;
     while (true) {
       final tasks = await loadTasks();
+      // batch86-F1: failed 任务不进自动队列——失败原因（流地址失效/网络拒绝）
+      // 不会自行恢复，放行会导致每 500ms 无限重试同一失败任务、队列永不退出；
+      // 失败任务仅由 retry() 显式置回 waiting 后重新入队。
       final pending = tasks
           .where((t) =>
               t.status == DownloadStatus.waiting ||
-              t.status == DownloadStatus.failed ||
               t.status == DownloadStatus.paused)
           .toList();
       if (pending.isEmpty) break;
