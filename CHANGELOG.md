@@ -1,3 +1,11 @@
+## [2.401.43](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.42...v2.401.43) (2026-10-27)
+
+
+### Bug Fixes
+
+* **settings:** batch41 CI 编译错误——helper 提升为库顶层函数 ([8800caa](https://github.com/1525745393/EmbyTok-Flutter/commit/8800caaf2c010021d3bd3ce23c5e80654b769402))
+* **settings:** batch41 修复设置页 builders 族 6 项问题 ([cca8da4](https://github.com/1525745393/EmbyTok-Flutter/commit/cca8da4d36675d4a23a74214c20a8a804e24c67f))
+
 ## [2.401.42](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.41...v2.401.42) (2026-10-27)
 
 
