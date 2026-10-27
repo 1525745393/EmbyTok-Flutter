@@ -594,9 +594,12 @@ class LocalVideoService {
         final epMatch = ScrapeService.episodeRegex.firstMatch(item.name);
         if (epMatch != null) {
           final sNum = epMatch.group(1) ?? epMatch.group(3);
-          final e = epMatch.group(2) ?? epMatch.group(4) ?? epMatch.group(5) ?? epMatch.group(6);
+          // batch56-F1：补中文集号组 group(7)（"第一集"），并经 cnToInt 归一后补零——
+          // 否则中文集号文件名在兜底分支重命名后集号丢失或出现 "S01E一"
+          final e = epMatch.group(2) ?? epMatch.group(4) ?? epMatch.group(5) ?? epMatch.group(6) ?? epMatch.group(7);
           if (e != null) {
-            se = 'S${(sNum ?? '1').padLeft(2, '0')}E${e.padLeft(2, '0')}';
+            final epNum = ScrapeService.cnToInt(e);
+            se = 'S${(sNum ?? '1').padLeft(2, '0')}E${epNum.toString().padLeft(2, '0')}';
           }
         }
       }
