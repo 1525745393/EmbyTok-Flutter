@@ -3,13 +3,14 @@
 // 桥接 SynologyDownloadService，向 UI 暴露任务列表与已下载歌曲。
 // 进度回调时 setState 重建状态。
 
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../models/audio_models.dart';
 import '../services/synology_download_service.dart';
 import 'synology_auth_provider.dart';
-
 class DownloadState {
   const DownloadState({
     this.tasks = const [],
@@ -39,6 +40,12 @@ class DownloadNotifier extends StateNotifier<DownloadState> {
   final Ref _ref;
   SynologyDownloadService get _svc => SynologyDownloadService.instance;
 
+  /// 当前是否允许下载（仅 WiFi/以太网）。未知时默认放行，避免启动误暂停。
+  bool _wifiOk = true;
+
+  /// 连接状态订阅（dispose 时取消）
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+
   Future<void> _init() async {
     // 注入流 URL 解析器：按 songId 取带 _sid 的播放地址
     SynologyDownloadService.instance.streamUrlResolver = (songId) {
@@ -48,16 +55,20 @@ class DownloadNotifier extends StateNotifier<DownloadState> {
         return null;
       }
     };
-    // 网络门控：默认仅 WiFi/以太网可下载，移动网络暂停
-    SynologyDownloadService.instance.canDownloadOnNetwork = () {
-      try {
-        final result = Connectivity().checkConnectivity();
-        // 同步读取最近缓存：真异步检查在 _runQueue 启动时执行
-        return true; // 默认放行，避免初始化时误暂停；移动网时由状态监听处理
-      } catch (_) {
-        return true;
-      }
-    };
+    // batch91-F1: 网络门控接入真实连接状态——订阅 Connectivity 变化，
+    // wifi/ethernet 才放行下载（此前恒 true，移动网络也会下载，与注释声称
+    // 的"移动网时由状态监听处理"不符；现行为与注释一致）。
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
+      final r = results.isNotEmpty ? results.first : ConnectivityResult.none;
+      _wifiOk = r == ConnectivityResult.wifi || r == ConnectivityResult.ethernet;
+    });
+    // 启动时读取一次当前状态，避免订阅回调迟迟不来导致门控未知
+    try {
+      final initial = Connectivity().checkConnectivity();
+      // checkConnectivity 异步，最终状态由订阅流收敛；此处不阻塞初始化
+      _ = initial;
+    } catch (_) {}
+    SynologyDownloadService.instance.canDownloadOnNetwork = () => _wifiOk;
     final tasks = await _svc.loadTasks();
     final downloaded = await _svc.loadDownloaded();
     if (!mounted) return;
@@ -95,6 +106,12 @@ class DownloadNotifier extends StateNotifier<DownloadState> {
   Future<void> deleteDownloaded(String songId) async {
     await _svc.deleteDownloaded(songId);
     _refresh();
+  }
+
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    super.dispose();
   }
 }
 
