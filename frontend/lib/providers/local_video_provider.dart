@@ -499,7 +499,11 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
         }
         done++;
         if (_mounted) {
-          state = state.copyWith(scrapedMap: cached, scrapeDone: done, failedMap: Map.unmodifiable(failed));
+          // batch57-F1：以 state.scrapedMap 为基合并本次结果——若直接整体覆盖 cached 副本，
+          // 会把 _doRefresh 后台 fetchShowCast 补拉的演员结果覆盖回旧值（无 cast）
+          final merged = Map<String, ScrapedMedia>.from(state.scrapedMap)
+            ..addAll(cached);
+          state = state.copyWith(scrapedMap: merged, scrapeDone: done, failedMap: Map.unmodifiable(failed));
         }
       }
     }
@@ -560,7 +564,10 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
         }
         done++;
         if (_mounted) {
-          state = state.copyWith(scrapedMap: cached, scrapeDone: done, failedMap: Map.unmodifiable(failed));
+          // batch57-F1：同 scrapeMissing——合并更新而非整体覆盖，保留后台补拉的演员结果
+          final merged = Map<String, ScrapedMedia>.from(state.scrapedMap)
+            ..addAll(cached);
+          state = state.copyWith(scrapedMap: merged, scrapeDone: done, failedMap: Map.unmodifiable(failed));
         }
       }
     }
