@@ -137,7 +137,10 @@ class ScrapeMediaStore {
       if (tmdbPath == null || tmdbPath.isEmpty) return;
       final dir = await _subDir(centralSubDir);
       final centralPath = _join(dir.path, '${_safeName(item.pathHash)}.jpg');
-      await _downloadImage(url(), centralPath);
+      // batch55-F2：重刮换图必须覆盖中央旧图——否则 _downloadImage"已存在即跳过"
+      // 导致新图既不落中央、视频旁也被 forceOverwriteSiblingImages 用旧图覆盖，
+      // 用户"使用选中图片"重刮后换图无效
+      await _downloadImage(url(), centralPath, force: true);
       if (base != null) {
         try {
           final cf = File(centralPath);
@@ -373,6 +376,8 @@ class ScrapeMediaStore {
   }
 
   /// 强制用中央目录的图片覆盖视频旁的海报/背景图（用户确认后调用）
+  /// 前置：save(downloadImages:true) 已把新图下到中央目录（batch55-F2 后不再跳过），
+  /// 这里只负责同步到视频旁与标准名
   static Future<void> forceOverwriteSiblingImages(LocalVideoItem item) async {
     final base = _siblingBase(item);
     if (base == null) return;
@@ -616,14 +621,16 @@ class ScrapeMediaStore {
     }
   }
 
-  static Future<void> _downloadImage(String url, String? savePath) =>
-      _limited(() => _downloadImageInner(url, savePath));
+  static Future<void> _downloadImage(String url, String? savePath, {bool force = false}) =>
+      _limited(() => _downloadImageInner(url, savePath, force: force));
 
-  static Future<void> _downloadImageInner(String url, String? savePath) async {
+  static Future<void> _downloadImageInner(String url, String? savePath,
+      {bool force = false}) async {
     if (url.isEmpty || savePath == null) return;
     try {
       final f = File(savePath);
-      if (await f.exists() && await f.length() > 0) return;
+      // force=true（重刮换图）时覆盖旧图；否则已存在即跳过（省流量）
+      if (!force && await f.exists() && await f.length() > 0) return;
       final r = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 8));
       if (r.statusCode == 200 && r.bodyBytes.isNotEmpty) {
         await f.parent.create(recursive: true);
