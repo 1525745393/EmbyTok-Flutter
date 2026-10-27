@@ -554,12 +554,19 @@ class AppPreferencesService {
 
   /// 重置所有偏好设置到默认值
   ///
-  /// 仅清除"设置类"偏好（播放、字幕、外观、推荐、媒体库等），
+  /// 仅清除"设置类"偏好（播放、字幕、外观、推荐、媒体库、家长控制等），
   /// 不影响用户数据（登录信息、观看历史、搜索历史、收藏、缓存等）。
-  /// 清除后各 Notifier 的 _load() 会读到 null，自动回退到默认值。
+  /// 注意：Notifier 的 state 为进程内存值，_load() 只在构造时执行一次；
+  /// 本方法只删除持久化 key，界面会在重启后回退到默认值
+  /// （batch40-F1 配套：重置对话框文案已同步说明"重启后生效"）。
   Future<void> resetAllSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    // 需要重置的偏好 key 列表（与 save() 中的 key 保持一致）
+    // 需要重置的偏好 key 列表：播放/字幕/外观/推荐/媒体库/发现/关注/家长控制/PIN/智能缓存/服务模式等设置类 key；
+    // 有意保留：登录与账户（kStorageKeyConfig/User/EmbyServerUrl/ActiveServerId/ServerRegistry/
+    // SavedCredentials/AccessToken/ServerHistory/LastFmApiKey）、观看历史（WatchStats/recent_playbacks）、
+    // 搜索历史/收藏与内容缓存、导航恢复与 UI 会话态（LastPageIndex/LastGridScrollOffset/LastFeedVideoIndex/
+    // LastFeedVideoItemId/PlaybackShellPosition/RecommendScrollOffset/RecommendGridColumns/Actors*）、
+    // 更新提示状态（UpdateCheckCache/update_shown_ver/update_skipped_ver）与配置标记（*LibraryConfigured）。
     const keysToRemove = <String>[
       kStorageKeyForceDeviceMode,
       kStorageKeyFeedType,
@@ -587,6 +594,32 @@ class AppPreferencesService {
       kStorageKeyFollowActorVideoCount,
       kStorageKeyFollowOnlyUnwatched,
       kStorageKeyRecommendTagSourceMapping,
+      // —— batch40-F1 补全：此前遗漏的设置类 key ——
+      kStorageKeySubtitle, // 字幕扩展设置（颜色/位置/阴影/偏移）
+      kStorageKeyAllowSelfSignedCertificate, // 网络-允许自签名证书
+      kStorageKeyPreferredDownloadMirror, // 下载-首选镜像
+      kStorageKeyDiscoverGenres, // 发现页-类型
+      kStorageKeyDiscoverTags, // 发现页-标签
+      kStorageKeyDiscoverCollections, // 发现页-合集
+      kStorageKeyRecommendNextUpSeriesCount, // 推荐-下一集数量
+      kStorageKeyRecommendFavActorNewCount, // 推荐-关注演员新片数量
+      kStorageKeyFollowMaxActors, // 关注-最大演员数
+      kStorageKeyFavoriteIncludeTypes, // 收藏-包含类型
+      kStorageKeySelectedLibraryId, // 媒体库-选择
+      kStorageKeySelectedLibraryIdForRecommend, // 媒体库-推荐页选择
+      'app_service_mode', // 服务模式（视频/音乐）（service_mode_provider._kStorageKeyServiceMode 私有常量，字面量对齐）
+      'embytok_theme_mode', // 外观-主题（theme_provider._kStorageKeyTheme 私有常量，字面量对齐）
+      'app_locale_language_code', // 语言（app_translations.dart 私有 key）
+      'audio_offset_ms', // 播放-音频偏移（AudioOffsetNotifier._key）
+      'video_fit_mode', // 播放-画面缩放（VideoFitModeNotifier._key）
+      'auto_play_next', // 播放-自动连播下一集（AutoPlayNextNotifier._key）
+      'parental_kids_mode', // 家长控制-儿童模式
+      'parental_max_rating', // 家长控制-最高分级
+      'parental_hide_restricted', // 家长控制-隐藏受限内容
+      'app_pin_code', // 安全-PIN 锁（PinLockNotifier）
+      'smart_cache_cleanup', // 存储-智能缓存清理（batch39-F1 开关）
+      'log_min_level', // 日志-最小级别
+      'move_failed_enabled', // 文件管理-失败移动开关
     ];
     await Future.wait(
       keysToRemove.map((key) => prefs.remove(key)),

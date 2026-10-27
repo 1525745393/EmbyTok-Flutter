@@ -529,7 +529,9 @@ extension _SettingsDialogs on SettingsView {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: const Text('设置已重置并立即生效'),
+                    // batch40-F1 配套：resetAllSettings 只删除持久化 key，Notifier 内存 state
+                    // 重启后才从默认值加载，因此如实提示"重启后生效"而非"立即生效"
+                    content: const Text('设置已重置，重启后生效'),
                     backgroundColor: scheme.primary,
                     duration: const Duration(seconds: 4),
                   ),

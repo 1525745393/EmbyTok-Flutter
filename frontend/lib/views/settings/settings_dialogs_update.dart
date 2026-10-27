@@ -524,7 +524,8 @@ extension _SettingsDialogs3 on SettingsView {
         return '大';
       case 'medium':
       default:
-        return '中等';
+        // batch40-F2：与字幕大小对话框选项文案保持一致（settings_dialogs.dart 选项为 '中'）
+        return '中';
     }
   }
 
