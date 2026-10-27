@@ -3,6 +3,57 @@
 
 part of '../settings_view.dart';
 
+// ==================== 智能缓存清理开关 ====================
+
+/// 智能缓存清理开关（batch39-F2）
+///
+/// 独立 StatefulWidget 持有 Future——原实现（settings_view.dart 的
+/// StatefulBuilder）每次 rebuild 都在 builder 内新建
+/// `SharedPreferences.getInstance().then(...)`，开关切换触发 rebuild 后
+/// future 进入 pending、`?? true` 兜底闪回开启再回落，视觉抖动且重复读 prefs。
+/// 此处 future 在 initState 创建一次；切换时用 `Future.value` 替换避免 pending 窗口。
+/// 开关值由 MemoryPressureHandler（batch39-F1）消费。
+class _SmartCacheTile extends StatefulWidget {
+  const _SmartCacheTile({super.key});
+
+  @override
+  State<_SmartCacheTile> createState() => _SmartCacheTileState();
+}
+
+class _SmartCacheTileState extends State<_SmartCacheTile> {
+  late Future<bool> _enabledFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _enabledFuture = SharedPreferences.getInstance()
+        .then((p) => p.getBool('smart_cache_cleanup') ?? true);
+  }
+
+  Future<void> _toggle(bool v) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('smart_cache_cleanup', v);
+    setState(() => _enabledFuture = Future.value(v));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: _enabledFuture,
+      builder: (context, snapshot) {
+        final enabled = snapshot.data ?? true;
+        return SwitchListTile(
+          secondary: const Icon(Icons.memory, color: Colors.teal),
+          title: const Text('智能缓存清理'),
+          subtitle: const Text('内存不足时自动清理图片和视频缓存'),
+          value: enabled,
+          onChanged: _toggle,
+        );
+      },
+    );
+  }
+}
+
 // ==================== 手势项组件 ====================
 
 class _GestureItem extends StatelessWidget {

@@ -698,29 +698,11 @@ class SettingsView extends ConsumerWidget {
   }
 
   // 智能缓存清理开关
+  // batch39-F2：future 生命周期已移至 _SmartCacheTile StatefulWidget（settings_widgets.dart）——
+  // 原 StatefulBuilder 每次 rebuild 重建 future，开关切换短暂闪回默认值；
+  // 开关值由 MemoryPressureHandler（batch39-F1）消费。
   Widget _buildSmartCacheTile(BuildContext context, WidgetRef ref) {
-    return StatefulBuilder(
-      builder: (context, setTileState) {
-        return FutureBuilder<bool>(
-          future: SharedPreferences.getInstance()
-              .then((p) => p.getBool('smart_cache_cleanup') ?? true),
-          builder: (context, snapshot) {
-            final enabled = snapshot.data ?? true;
-            return SwitchListTile(
-              secondary: const Icon(Icons.memory, color: Colors.teal),
-              title: const Text('智能缓存清理'),
-              subtitle: const Text('内存不足时自动清理图片和视频缓存'),
-              value: enabled,
-              onChanged: (v) async {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setBool('smart_cache_cleanup', v);
-                setTileState(() {});
-              },
-            );
-          },
-        );
-      },
-    );
+    return const _SmartCacheTile();
   }
 
   void _showRatingPicker(BuildContext context, WidgetRef ref) {

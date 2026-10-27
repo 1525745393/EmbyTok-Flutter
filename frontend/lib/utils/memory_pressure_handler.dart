@@ -8,6 +8,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/providers.dart';
 import 'logger.dart';
@@ -57,6 +58,15 @@ class MemoryPressureHandler with WidgetsBindingObserver {
     _isHandling = true;
 
     try {
+      // batch39-F1：尊重设置页「智能缓存清理」开关（smart_cache_cleanup，默认开）。
+      // 该开关此前只在设置页写入、无任何消费者——系统内存压力回调仍无条件清缓存，
+      // 关闭开关对行为零影响。此处作为唯一消费点：关闭时跳过自动清理。
+      final prefs = await SharedPreferences.getInstance();
+      if (!(prefs.getBool('smart_cache_cleanup') ?? true)) {
+        AppLogger.info('内存压力：智能缓存清理已关闭，跳过自动清理');
+        return;
+      }
+
       // 1. 清空 Flutter 图片缓存（释放已解码的图片内存）
       PaintingBinding.instance.imageCache.clear();
       AppLogger.info('内存压力：已清空图片缓存');
