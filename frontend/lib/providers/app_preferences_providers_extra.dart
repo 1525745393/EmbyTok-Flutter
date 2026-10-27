@@ -388,25 +388,49 @@ final favoriteIncludeTypesProvider =
 // ---------------- PIN 锁 ----------------
 
 /// PIN 锁状态：存储 4 位数字 PIN（空字符串表示未设置）
+/// batch44-F1：PIN 改为写入安全存储（FlutterSecureStorage），
+/// 不再明文存 SharedPreferences；首次读取时把旧明文迁移到安全存储。
 class PinLockNotifier extends StateNotifier<String> {
-  PinLockNotifier() : super('') {
+  PinLockNotifier(this._ref) : super('') {
+    _secureStorage = _ref.read(secureStorageProvider);
     _load();
   }
 
+  final Ref _ref;
+  late final FlutterSecureStorage _secureStorage;
+
+  /// 安全存储 key（FlutterSecureStorage）
   static const _key = 'app_pin_code';
 
+  /// 旧版明文存储 key（SharedPreferences）——仅用于一次性迁移
+  static const _legacyPrefsKey = 'app_pin_code';
+
   Future<void> _load() async {
+    // 1. 优先读安全存储（batch44-F1 之后的新写入路径）
+    final pin = await _secureStorage.read(key: _key);
+    if (pin != null && pin.isNotEmpty) {
+      state = pin;
+      return;
+    }
+    // 2. 一次性迁移：旧版本明文 PIN 存在 SharedPreferences
     final prefs = await SharedPreferences.getInstance();
-    state = prefs.getString(_key) ?? '';
+    final legacy = prefs.getString(_legacyPrefsKey);
+    if (legacy != null && legacy.isNotEmpty) {
+      await _secureStorage.write(key: _key, value: legacy);
+      await prefs.remove(_legacyPrefsKey);
+      state = legacy;
+    }
   }
 
   Future<void> setPin(String pin) async {
     state = pin;
-    final prefs = await SharedPreferences.getInstance();
     if (pin.isEmpty) {
-      await prefs.remove(_key);
+      await _secureStorage.delete(key: _key);
+      // 同步清理旧明文残留（若曾以旧版本写入）
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_legacyPrefsKey);
     } else {
-      await prefs.setString(_key, pin);
+      await _secureStorage.write(key: _key, value: pin);
     }
   }
 
@@ -417,7 +441,7 @@ class PinLockNotifier extends StateNotifier<String> {
 
 final pinLockProvider =
     StateNotifierProvider<PinLockNotifier, String>(
-  (ref) => PinLockNotifier(),
+  (ref) => PinLockNotifier(ref),
 );
 
 /// PIN 是否已解锁（本次会话内）

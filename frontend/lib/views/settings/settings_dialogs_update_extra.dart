@@ -435,12 +435,19 @@ extension _SettingsDialogs4 on SettingsView {
               ),
             ),
             const SizedBox(height: _kSpacingXLarge),
-            Text(
-              message,
-              style: TextStyle(
-                color: scheme.onSurfaceVariant,
-                fontSize: _kFontSizeMedium,
-                height: 1.5,
+            // batch44-F2：正文可能含整段 release notes，限高 + 可滚动，
+            // 防止长正文把 actions 按钮挤出对话框
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 300),
+              child: SingleChildScrollView(
+                child: Text(
+                  message,
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: _kFontSizeMedium,
+                    height: 1.5,
+                  ),
+                ),
               ),
             ),
           ],

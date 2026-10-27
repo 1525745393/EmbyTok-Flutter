@@ -5,12 +5,14 @@
 library app_preferences_providers;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../utils/app_preferences.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
+import 'auth_provider.dart'; // batch44-F1：PIN 锁复用 secureStorageProvider 安全存储
 part 'app_preferences_providers_extra.dart';
 
 /// 应用版本信息 Provider（动态读取，避免硬编码）
