@@ -80,6 +80,10 @@ class SeekableProgressBar extends StatefulWidget {
 class _SeekableProgressBarState extends State<SeekableProgressBar> {
   double _dragProgress = 0.0;
   bool _isDragging = false;
+  // batch154：记录 initState 实际挂载的监听器类型——与 batch151 同款问题：
+  // dispose 时重新评估 _controllerUsable，EXO 初始化中进入（挂 handle 流）再
+  // 退出时会错误移除 controller listener，导致 handle 监听器泄漏
+  bool _useHandleListener = false;
 
   /// EXO controller 是否可用（已初始化）
   bool get _controllerUsable =>
@@ -105,16 +109,17 @@ class _SeekableProgressBarState extends State<SeekableProgressBar> {
     if (_controllerUsable) {
       widget.controller!.addListener(_onChanged);
     } else {
+      _useHandleListener = true;
       widget.handle?.positionMsListenable?.addListener(_onChanged);
     }
   }
 
   @override
   void dispose() {
-    if (_controllerUsable) {
-      widget.controller!.removeListener(_onChanged);
-    } else {
+    if (_useHandleListener) {
       widget.handle?.positionMsListenable?.removeListener(_onChanged);
+    } else if (_controllerUsable) {
+      widget.controller!.removeListener(_onChanged);
     }
     super.dispose();
   }
