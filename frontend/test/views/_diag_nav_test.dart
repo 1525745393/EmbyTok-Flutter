@@ -1,4 +1,6 @@
 // 临时诊断测试：定位 HomeScaffold 缺失根因（定位后删除）
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
