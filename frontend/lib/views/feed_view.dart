@@ -94,6 +94,10 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 防止多次 rebuild 重复触发首 item 播放初始化
   bool _firstItemInitProcessed = false;
 
+  // batch116-F1 追加加载失败 SnackBar 去重：记录已提示的错误消息，
+  // 同帧多次 build 只弹一次；错误清除后由 build 复位（见 _buildVideoPageView）
+  String? _lastErrorSnackBarShownMsg;
+
   @override
   bool get wantKeepAlive => true;
 
@@ -773,10 +777,14 @@ Widget _buildTopBar(ViewMode viewMode) {
       );
     }
     // 追加失败时用 SnackBar 提示，不清除已有数据
+    // batch116-F1 去重：同一帧内多次 build 会各注册一个 postFrame 回调，
+    // 帧末重复弹同一错误的 SnackBar——按消息内容只弹一次；
+    // 错误清除（errorMsg==null）时复位标记，同类错误再次发生仍会提示。
     if (videoState.items.isNotEmpty && errorMsg != null) {
       final msg = errorMsg;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
+        if (mounted && msg != _lastErrorSnackBarShownMsg) {
+          _lastErrorSnackBarShownMsg = msg;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(msg),
@@ -788,9 +796,11 @@ Widget _buildTopBar(ViewMode viewMode) {
               ),
             ),
           );
-          ref.read(videoListProvider.notifier).clearError();
         }
+        ref.read(videoListProvider.notifier).clearError();
       });
+    } else if (errorMsg == null) {
+      _lastErrorSnackBarShownMsg = null;
     }
     if (videoState.items.isEmpty) {
       return EmptyStateCard.noVideos();
