@@ -1,3 +1,10 @@
+## [2.401.49](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.48...v2.401.49) (2026-10-28)
+
+
+### Bug Fixes
+
+* **nav:** batch146-F1 PIN 守卫不再阻塞等待，未加载完成先放行 + 加载后重估 ([bbbb69c](https://github.com/1525745393/EmbyTok-Flutter/commit/bbbb69c5f9a1e1f13214d57286a1cf5edd625966))
+
 ## [2.401.48](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.47...v2.401.48) (2026-10-28)
 
 
