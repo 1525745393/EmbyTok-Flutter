@@ -1,3 +1,11 @@
+## [2.401.56](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.55...v2.401.56) (2026-10-28)
+
+
+### Bug Fixes
+
+* **services:** batch157-F1 弹幕回退错集 + 清理重复弹幕 API ([2db22e6](https://github.com/1525745393/EmbyTok-Flutter/commit/2db22e6d9b2fcd6e385e50a558aac91fa70b99bb))
+* **services:** batch158-F1/F2 移除 URL 明文 api_key（搜索建议死字段+演员头像） ([496f268](https://github.com/1525745393/EmbyTok-Flutter/commit/496f268b6a981cabab354d86d977032116ce36ae))
+
 ## [2.401.55](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.54...v2.401.55) (2026-10-28)
 
 
