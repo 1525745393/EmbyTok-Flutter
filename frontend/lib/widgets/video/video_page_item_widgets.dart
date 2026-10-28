@@ -314,6 +314,7 @@ class _BottomInfoBar extends StatelessWidget {
     required this.item,
     required this.controller,
     required this.isVisible,
+    required this.bottomPadding,
     required this.onToggleFullscreen,
     required this.onInfoTap,
     required this.formatDuration,
@@ -324,6 +325,7 @@ class _BottomInfoBar extends StatelessWidget {
   // batch 29：MPV/VLC 引擎下 controller 不可用，进度条走统一句柄
   final PlayerControlHandle? handle;
   final bool isVisible;
+  final double bottomPadding;
   final VoidCallback onToggleFullscreen;
   final VoidCallback onInfoTap;
   final String Function(Duration) formatDuration;

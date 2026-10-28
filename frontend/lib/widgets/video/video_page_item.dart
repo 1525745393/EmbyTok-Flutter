@@ -1190,6 +1190,7 @@ Widget _buildPage(BuildContext context) {
             controller: _videoController,
             handle: controlHandle,
             isVisible: _isInfoVisible,
+            bottomPadding: bottomPadding,
             onToggleFullscreen: _openFullscreenPage,
             onInfoTap: () =>
                 sheet_utils.showVideoInfoSheet(context, widget.item),
