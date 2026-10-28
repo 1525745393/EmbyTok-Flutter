@@ -105,9 +105,19 @@ class DanmakuService {
         return getComments(ep['episodeId'] as int);
       }
     }
-    // 回退：取第一个匹配作品的第 episode 集
-    if (eps.length >= episode) {
-      return getComments(eps[episode - 1]['episodeId'] as int);
+    // 回退：取第一个作品的第 episode 集。
+    // batch157-F1：eps 是跨作品的扁平集列表，旧实现 eps[episode-1] 在
+    // 多作品时取到其他作品的集（弹幕错集）；改为按 animeId 分组后
+    // 取第一个作品内的第 episode 集。
+    final byAnime = <int, List<Map<String, dynamic>>>{};
+    for (final ep in eps) {
+      byAnime.putIfAbsent(ep['animeId'] as int, () => []).add(ep);
+    }
+    if (byAnime.isNotEmpty) {
+      final firstAnime = byAnime.values.first;
+      if (firstAnime.length >= episode) {
+        return getComments(firstAnime[episode - 1]['episodeId'] as int);
+      }
     }
     return [];
   }
