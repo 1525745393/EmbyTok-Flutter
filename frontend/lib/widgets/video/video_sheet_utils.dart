@@ -18,6 +18,7 @@ import '../../views/local/local_detail_view.dart';
 import '../../providers/player_engine_provider.dart';
 import '../../providers/providers.dart';
 import '../../utils/constants.dart';
+import '../../utils/logger.dart';
 import '../person_avatar_image.dart';
 import 'subtitle_selector.dart';
 
@@ -122,6 +123,9 @@ Future<void> showSpeedControlPanel(
                   child: ElevatedButton(
                     onPressed: () {
                       final h = handle;
+                      // batch147-F3：播放器未就绪（handle/controller 均 null）时
+                      // 不持久化默认倍速——避免把从未应用成功的速度写为新视频默认值
+                      final applied = h != null || controller != null;
                       if (h != null) {
                         h.setRate(selectedSpeed);
                       } else {
@@ -135,10 +139,12 @@ Future<void> showSpeedControlPanel(
                           container
                               .read(playbackRateProvider.notifier)
                               .state = selectedSpeed;
-                          // 持久化播放速度，新视频自动应用
-                          container
-                              .read(defaultPlaybackRateProvider.notifier)
-                              .set(selectedSpeed);
+                          if (applied) {
+                            // 持久化播放速度，新视频自动应用（仅实际应用成功时）
+                            container
+                                .read(defaultPlaybackRateProvider.notifier)
+                                .set(selectedSpeed);
+                          }
                         }
                       });
                       Navigator.pop(context);
@@ -612,8 +618,10 @@ Future<void> _navigateToEpisode(
       context.push('/play/${targetItem.id}');
     }
   } catch (e) {
+    // batch147-F2：异常原文仅记录日志，不直显给用户（可能含服务器路径等内部细节）
+    AppLogger.debug('剧集导航加载失败', data: {'error': e.toString()});
     closeSheet();
-    messenger.showSnackBar(SnackBar(content: Text('加载失败：$e')));
+    messenger.showSnackBar(const SnackBar(content: Text('加载失败，请稍后重试')));
   }
 }
 
@@ -933,8 +941,11 @@ class _FavoriteButtonState extends ConsumerState<_FavoriteButton> {
         itemId: widget.item.id,
         isFavorite: newVal,
       );
-      setState(() => _isFavorite = newVal);
+      // batch147-F1：await 期间面板可能已关闭，先校验 mounted 再 setState——
+      // 原实现 setState 在 mounted 检查之前，unmounted 上调用会触发
+      // "setState() called after dispose()"（debug 断言崩溃）
       if (mounted) {
+        setState(() => _isFavorite = newVal);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(newVal ? '已收藏' : '已取消收藏')),
         );
