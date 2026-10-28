@@ -26,6 +26,11 @@ class _GenreItemsViewState extends ConsumerState<GenreItemsView> {
   String? _error;
   final ScrollController _scrollController = ScrollController();
 
+  /// 在途加载 future：下拉刷新时若上一次加载仍在进行，
+  /// 先等在途请求完成再重置 offset，避免旧 offset 结果回填到
+  /// 已重置的列表造成分页错位（batch137-F1）
+  Future<void>? _pendingLoad;
+
   @override
   void initState() {
     super.initState();
@@ -44,8 +49,14 @@ class _GenreItemsViewState extends ConsumerState<GenreItemsView> {
     super.dispose();
   }
 
-  Future<void> _loadMore() async {
-    if (_isLoading || !_hasMore) return;
+  Future<void> _loadMore() {
+    if (_isLoading || !_hasMore) return _pendingLoad ?? Future<void>.value();
+    final future = _doLoad();
+    _pendingLoad = future;
+    return future.whenComplete(() => _pendingLoad = null);
+  }
+
+  Future<void> _doLoad() async {
     setState(() {
       _isLoading = true;
       _error = null;
@@ -76,6 +87,22 @@ class _GenreItemsViewState extends ConsumerState<GenreItemsView> {
     }
   }
 
+  /// 重置并重新加载（下拉刷新入口）：先等在途加载完成再重置，
+  /// 防止并发竞态
+  Future<void> _refresh() async {
+    if (_pendingLoad != null) {
+      await _pendingLoad;
+    }
+    setState(() {
+      _items.clear();
+      _offset = 0;
+      _hasMore = true;
+      _isLoading = false;
+      _error = null;
+    });
+    await _loadMore();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -83,14 +110,7 @@ class _GenreItemsViewState extends ConsumerState<GenreItemsView> {
         title: Text(widget.genreName),
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          setState(() {
-            _items.clear();
-            _offset = 0;
-            _hasMore = true;
-          });
-          await _loadMore();
-        },
+        onRefresh: _refresh,
         child: _buildBody(),
       ),
     );
@@ -99,14 +119,7 @@ class _GenreItemsViewState extends ConsumerState<GenreItemsView> {
   Widget _buildBody() {
     if (_error != null && _items.isEmpty) {
       return RefreshIndicator(
-        onRefresh: () async {
-          setState(() {
-            _items.clear();
-            _offset = 0;
-            _hasMore = true;
-          });
-          await _loadMore();
-        },
+        onRefresh: _refresh,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
@@ -137,14 +150,7 @@ class _GenreItemsViewState extends ConsumerState<GenreItemsView> {
     }
     if (_items.isEmpty) {
       return RefreshIndicator(
-        onRefresh: () async {
-          setState(() {
-            _items.clear();
-            _offset = 0;
-            _hasMore = true;
-          });
-          await _loadMore();
-        },
+        onRefresh: _refresh,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           children: const [
