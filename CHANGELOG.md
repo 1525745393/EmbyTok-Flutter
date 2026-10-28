@@ -1,3 +1,10 @@
+## [2.401.58](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.57...v2.401.58) (2026-10-28)
+
+
+### Bug Fixes
+
+* **settings:** 弹幕开关副标题移除过时'后续接入'文案；批量扫描帮助文案与实际功能对齐 ([42385ac](https://github.com/1525745393/EmbyTok-Flutter/commit/42385ac53fed303c05087ab1f0262accf5764635))
+
 ## [2.401.57](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.56...v2.401.57) (2026-10-28)
 
 
