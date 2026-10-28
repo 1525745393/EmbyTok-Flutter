@@ -1,3 +1,10 @@
+## [2.401.57](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.56...v2.401.57) (2026-10-28)
+
+
+### Bug Fixes
+
+* **test:** batch159-F1 同步 actors_api_test 断言——头像 URL 不再含明文 api_key（batch158-F2 配套） ([fdea1e7](https://github.com/1525745393/EmbyTok-Flutter/commit/fdea1e7667a44ed4a34424ff32ac26541f46b2e7))
+
 ## [2.401.56](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.55...v2.401.56) (2026-10-28)
 
 
