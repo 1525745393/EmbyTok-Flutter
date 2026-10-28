@@ -469,7 +469,16 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   bool _isEmptyForTab(SynologyMusicState state) {
     switch (SynologyMusicTab.values[_tabController.index]) {
       case SynologyMusicTab.home:
-        return false; // 首页永不为空（有快捷入口）
+        // batch123-F1 首页是否空与 home_tab 全空占位同条件（历史"永不为空"
+        // 硬编码会让加载失败错误永不展示）；首次全空时显示 loading，
+        // 全空失败时显示错误卡，已有部分数据时不误闪 loading
+        return state.recentAlbums.isEmpty &&
+            state.topArtists.isEmpty &&
+            state.genres.isEmpty &&
+            state.playlists.isEmpty &&
+            state.albums.isEmpty &&
+            state.songs.isEmpty &&
+            state.pins.isEmpty;
       case SynologyMusicTab.songs:
         return state.songs.isEmpty;
       case SynologyMusicTab.albums:
