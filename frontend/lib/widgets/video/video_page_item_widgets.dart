@@ -162,7 +162,12 @@ class _RightActionButtons extends ConsumerWidget {
                         icon: Icons.open_in_new,
                         label: '外部播放',
                         color: scheme.onSurface,
-                        onTap: () => _playWithExternalPlayer(context, item),
+                        onTap: () => _playWithExternalPlayer(
+                          context,
+                          item,
+                          embyServerUrl: ref.read(authProvider).embyServerUrl,
+                          token: ref.read(authProvider).token,
+                        ),
                       ),
                       SizedBox(height: rs(16, 1.5)),
                       // 画中画 PiP
@@ -309,8 +314,6 @@ class _BottomInfoBar extends StatelessWidget {
     required this.item,
     required this.controller,
     required this.isVisible,
-    required this.toolbarVisible,
-    required this.bottomPadding,
     required this.onToggleFullscreen,
     required this.onInfoTap,
     required this.formatDuration,
@@ -321,8 +324,6 @@ class _BottomInfoBar extends StatelessWidget {
   // batch 29：MPV/VLC 引擎下 controller 不可用，进度条走统一句柄
   final PlayerControlHandle? handle;
   final bool isVisible;
-  final bool toolbarVisible;
-  final double bottomPadding;
   final VoidCallback onToggleFullscreen;
   final VoidCallback onInfoTap;
   final String Function(Duration) formatDuration;
@@ -355,9 +356,7 @@ class _BottomInfoBar extends StatelessWidget {
               rs(_kRightActionWidth, 2.0) + _kHorizontalPadding,
               // 全面屏适配：底部叠加导航栏高度，避免进度条 / 时间文字
               // 与 HomeScaffold 底部导航栏发生视觉重叠。
-              toolbarVisible
-                  ? bottomPadding + _kBottomControlBarHeight + kBottomNavHeight
-                  : bottomPadding + _kBottomControlBarHeight + kBottomNavHeight,
+              bottomPadding + _kBottomControlBarHeight + kBottomNavHeight,
             ),
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -619,8 +618,19 @@ String _buildPeopleSummary(List<Person> people) {
 ///
 /// 当内置播放器无法解码时，通过 Android Intent 唤起已安装的第三方播放器
 /// （VLC / MX Player 等）播放视频流。
-void _playWithExternalPlayer(BuildContext context, MediaItem item) async {
-  final url = item.playbackUrl;
+/// batch148-F4：在线模式 playbackUrl 兼容字段恒为 null（Emby API 不返回），
+/// 需用 computePlaybackUrl 动态构造带鉴权的流 URL 传给本机安装的
+/// 第三方播放器（播放器需要 api_key 才能拉流）；本地文件优先用网络可访问 URL。
+void _playWithExternalPlayer(
+  BuildContext context,
+  MediaItem item, {
+  String? embyServerUrl,
+  String? token,
+}) async {
+  final url = item.playbackUrl ??
+      (item.isLocalFile
+          ? (item.localNetworkUrl ?? item.localPath)
+          : item.computePlaybackUrl(embyServerUrl, token));
   if (url == null || url.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('无法获取播放地址')),

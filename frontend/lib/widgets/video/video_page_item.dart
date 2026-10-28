@@ -179,9 +179,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   DateTime _lastProgressReport = DateTime.fromMicrosecondsSinceEpoch(0);
   static const _progressReportMinSeconds = 4;
 
-  // 底部信息面板展开/收起
-  bool _isInfoExpanded = false;
-
   // 控制层（VideoControls）显示状态
   bool _controlsVisible = false;
   Timer? _controlsHideTimer;
@@ -462,8 +459,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 
   // ===== Duration 格式化 =====
 
-  @override
-  @override
   @override
   Widget build(BuildContext context) {
     // 缓存 auth 值，dispose 后上报使用缓存值避免 ref after disposed
@@ -1189,14 +1184,12 @@ Widget _buildPage(BuildContext context) {
         ],
 
         // 底部渐变 + 标题/简介/类型标签（非纯净模式）
-        if ((_isInfoExpanded || !isAutoPlay) && !isInFullscreen)
+        if (!isAutoPlay && !isInFullscreen)
           _BottomInfoBar(
             item: widget.item,
             controller: _videoController,
             handle: controlHandle,
             isVisible: _isInfoVisible,
-            toolbarVisible: toolbarVisible,
-            bottomPadding: bottomPadding,
             onToggleFullscreen: _openFullscreenPage,
             onInfoTap: () =>
                 sheet_utils.showVideoInfoSheet(context, widget.item),
@@ -1215,10 +1208,8 @@ Widget _buildPage(BuildContext context) {
             toolbarVisible: toolbarVisible,
             bottomPadding: bottomPadding,
             onToggleFullscreen: _openFullscreenPage,
-            onInfoTap: () {
-              setState(() => _isInfoExpanded = !_isInfoExpanded);
-              sheet_utils.showVideoInfoSheet(context, widget.item);
-            },
+            onInfoTap: () =>
+                sheet_utils.showVideoInfoSheet(context, widget.item),
             onDeleteTap: _showDeleteConfirmDialog,
             onShareTap: _shareItem,
             onCommentTap: () => showVideoCommentsSheet(
