@@ -414,19 +414,31 @@ class PinLockNotifier extends StateNotifier<String> {
   static const _legacyPrefsKey = 'app_pin_code';
 
   Future<void> _load() async {
-    // 1. 优先读安全存储（batch44-F1 之后的新写入路径）
-    final pin = await _secureStorage.read(key: _key);
-    if (pin != null && pin.isNotEmpty) {
-      state = pin;
-      return;
-    }
-    // 2. 一次性迁移：旧版本明文 PIN 存在 SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
-    final legacy = prefs.getString(_legacyPrefsKey);
-    if (legacy != null && legacy.isNotEmpty) {
-      await _secureStorage.write(key: _key, value: legacy);
-      await prefs.remove(_legacyPrefsKey);
-      state = legacy;
+    // batch145-F1：存储读取/迁移整体包 try/catch ——
+    // widget test 环境无 flutter_secure_storage/SharedPreferences 原生插件，
+    // _secureStorage.read 会抛 MissingPluginException；该异常若外泄到
+    // _loadFuture，GoRouter redirect 中 ensureLoaded() await 会失败，
+    // 首页路由（'/'）永远无法完成渲染（测试表现为 HomeScaffold 缺失、
+    // 退出确认弹窗不出现；真机存储异常时则为启动白屏）。存储不可用
+    // 一律视为"未设置 PIN"，保持空状态，不阻断主流程。
+    try {
+      // 1. 优先读安全存储（batch44-F1 之后的新写入路径）
+      final pin = await _secureStorage.read(key: _key);
+      if (pin != null && pin.isNotEmpty) {
+        state = pin;
+        return;
+      }
+      // 2. 一次性迁移：旧版本明文 PIN 存在 SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final legacy = prefs.getString(_legacyPrefsKey);
+      if (legacy != null && legacy.isNotEmpty) {
+        await _secureStorage.write(key: _key, value: legacy);
+        await prefs.remove(_legacyPrefsKey);
+        state = legacy;
+      }
+    } catch (e) {
+      // 存储异常（MissingPluginException 等）按未设置 PIN 处理，仅记录
+      AppLogger.warn('PIN 加载失败，按未设置处理', data: {'error': e.toString()});
     }
   }
 
