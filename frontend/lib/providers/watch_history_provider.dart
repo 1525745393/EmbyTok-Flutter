@@ -74,9 +74,11 @@ class WatchHistoryNotifier extends StateNotifier<WatchHistoryState> {
   }
 
   /// 删除单条历史记录（调用 Emby API 清除播放进度）
-  Future<void> removeItem(String itemId) async {
+  /// 返回是否删除成功：失败时已记录日志、不抛异常（调用方如 Dismissible
+  /// 通过返回 false 回弹，避免滑走但记录仍存在的不一致）。
+  Future<bool> removeItem(String itemId) async {
     final auth = _ref.read(authProvider);
-    if (auth.user?.id == null) return;
+    if (auth.user?.id == null) return false;
     try {
       await _ref.read(mediaServerApiProvider).markAsUnplayed(
             itemId,
@@ -87,20 +89,37 @@ class WatchHistoryNotifier extends StateNotifier<WatchHistoryState> {
         items: state.items.where((i) => i.id != itemId).toList(),
       );
       AppLogger.info('已删除历史记录', data: {'itemId': itemId});
+      return true;
     } catch (e) {
       AppLogger.error('删除历史记录失败', error: e);
+      return false;
     }
   }
 
   /// 一键清空全部历史（分批并发删除，每批 5 个）
+  /// batch131-F1 只移除删除成功的项：removeItem 失败时若仍把
+  /// state.items 置空，用户会看到"已清空"但记录其实残留在服务端，
+  /// 下次加载又全部回来（假清空）。
   Future<void> clearAll() async {
     final items = List.of(state.items);
+    final remaining = <MediaItem>[];
     for (var i = 0; i < items.length; i += 5) {
       final batch = items.sublist(
           i, i + 5 > items.length ? items.length : i + 5);
-      await Future.wait(batch.map((item) => removeItem(item.id)));
+      final results = await Future.wait(
+          batch.map((item) => removeItem(item.id)));
+      for (var j = 0; j < batch.length; j++) {
+        if (!results[j]) {
+          remaining.add(batch[j]);
+        }
+      }
     }
-    state = state.copyWith(items: []);
+    if (remaining.isEmpty) {
+      state = state.copyWith(items: []);
+    } else if (remaining.length != items.length) {
+      // 部分删除失败：列表保留失败项，避免假清空
+      state = state.copyWith(items: remaining);
+    }
   }
 }
 
