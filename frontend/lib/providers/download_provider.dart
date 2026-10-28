@@ -44,7 +44,7 @@ class DownloadNotifier extends StateNotifier<DownloadState> {
   bool _wifiOk = true;
 
   /// 连接状态订阅（dispose 时取消）
-  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  StreamSubscription<ConnectivityResult>? _connectivitySub;
 
   Future<void> _init() async {
     // 注入流 URL 解析器：按 songId 取带 _sid 的播放地址
@@ -58,15 +58,15 @@ class DownloadNotifier extends StateNotifier<DownloadState> {
     // batch91-F1: 网络门控接入真实连接状态——订阅 Connectivity 变化，
     // wifi/ethernet 才放行下载（此前恒 true，移动网络也会下载，与注释声称
     // 的"移动网时由状态监听处理"不符；现行为与注释一致）。
-    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
-      final r = results.isNotEmpty ? results.first : ConnectivityResult.none;
-      _wifiOk = r == ConnectivityResult.wifi || r == ConnectivityResult.ethernet;
+    // connectivity_plus 5.x：onConnectivityChanged 回调为单值 ConnectivityResult
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((result) {
+      _wifiOk =
+          result == ConnectivityResult.wifi || result == ConnectivityResult.ethernet;
     });
     // 启动时读取一次当前状态，避免订阅回调迟迟不来导致门控未知
+    // checkConnectivity 异步，最终状态由订阅流收敛；此处不阻塞初始化
     try {
-      final initial = Connectivity().checkConnectivity();
-      // checkConnectivity 异步，最终状态由订阅流收敛；此处不阻塞初始化
-      _ = initial;
+      unawaited(Connectivity().checkConnectivity());
     } catch (_) {}
     SynologyDownloadService.instance.canDownloadOnNetwork = () => _wifiOk;
     final tasks = await _svc.loadTasks();

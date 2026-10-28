@@ -69,7 +69,8 @@ class DanmakuService {
         if (c is Map) {
           final p = c['p']?.toString() ?? '';
           final parts = p.split(',');
-          final time = parts.isNotEmpty ? (double.tryParse(parts[0]) ?? 0) : 0;
+          final time =
+              parts.isNotEmpty ? (double.tryParse(parts[0]) ?? 0.0) : 0.0;
           final mode = parts.length > 1 ? (int.tryParse(parts[1]) ?? 1) : 1;
           final color =
               parts.length > 2 ? (int.tryParse(parts[2]) ?? 0xFFFFFF) : 0xFFFFFF;

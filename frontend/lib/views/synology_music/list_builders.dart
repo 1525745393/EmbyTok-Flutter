@@ -331,7 +331,7 @@ extension _MusicListBuilders on _SynologyMusicViewState {
                     // batch124-F2 行高按网格真实尺寸计算（单元格宽 / 纵横比 +
                     // 主轴间距），取代固定 96 估算，避免索引导航系统性偏移
                     final availWidth =
-                        MediaQuery.sizeOf(context).size.width - 12 - 32;
+                        MediaQuery.sizeOf(context).width - 12 - 32;
                     final cellWidth =
                         availWidth / _kArtistGridCrossAxisCount;
                     final rowHeight = cellWidth /
