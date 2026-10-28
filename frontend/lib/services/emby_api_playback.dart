@@ -354,11 +354,10 @@ mixin _EmbyPlaybackApi on EmbyServerApiBase {
               type: (e['Type'] as String?),
               year: (e['ProductionYear'] as int?) ?? (e['year'] as int?),
               seriesName: (e['SeriesName'] as String?),
-              thumbnailUrl: _defaultServerUrl != null
-                  ? '$_defaultServerUrl/Items/${e['Id']}/Images/Primary'
-                      '?MaxWidth=200&Format=jpg'
-                      '${_defaultToken != null ? '&api_key=$_defaultToken' : ''}'
-                  : null,
+              // batch158-F1：不再构造带明文 api_key 的 thumbnailUrl——
+              // 该字段在搜索建议 UI（_buildHints）中从未被消费（leading 用
+              // 图标而非图片），且 URL 明文泄漏 token；如后续需要图片，
+              // 应走 authHeaders 携带 token 的图片加载通道。
             ))
         .toList();
   }

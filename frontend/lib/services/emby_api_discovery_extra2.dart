@@ -55,7 +55,6 @@ mixin _EmbyDiscoveryApi3 on EmbyServerApiBase {
         ? (resp.data['TotalRecordCount'] as int?) ?? items.length
         : items.length;
     final baseUrl = _defaultServerUrl ?? serverUrl ?? '';
-    final effectiveToken = token ?? _defaultToken;
     final people = items.whereType<Map<String, dynamic>>().map((e) {
       final id = (e['Id'] as String?) ?? '';
       final name = (e['Name'] as String?) ?? '';
@@ -63,9 +62,12 @@ mixin _EmbyDiscoveryApi3 on EmbyServerApiBase {
           (e['ImageTags']?['Primary'] as String?);
       String? imgUrl;
       if (imageTag != null && baseUrl.isNotEmpty) {
+        // batch158-F2：头像 URL 不再拼明文 api_key——
+        // 渲染统一走 PersonAvatarImage/CachedNetworkImage 的
+        // httpHeaders（embyAuthHeaders）携带 token，URL 不带 key，
+        // 避免 token 经 URL 泄漏（缓存 key / 日志 / 分享）。
         imgUrl = '$baseUrl/Items/$id/Images/Primary?MaxWidth=300'
-            '&Tag=${Uri.encodeQueryComponent(imageTag)}&Format=jpg'
-            '${effectiveToken != null && effectiveToken.isNotEmpty ? '&api_key=$effectiveToken' : ''}';
+            '&Tag=${Uri.encodeQueryComponent(imageTag)}&Format=jpg';
       }
       return Person(
         id: id,
