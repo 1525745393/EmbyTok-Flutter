@@ -99,8 +99,10 @@ class _SearchViewState extends ConsumerState<SearchView>
       onResult: (result) {
         if (!mounted) return;
         if (result.finalResult) {
+          // batch118-F2 语音 final 结果只走一次搜索：直接更新输入框并取消
+          // 防抖（避免 _onQueryChanged 注册的 300ms timer 再触发一次相同搜索）
           _controller.text = result.recognizedWords;
-          _onQueryChanged(result.recognizedWords);
+          _debounce?.cancel();
           _doSearch(result.recognizedWords);
           setState(() => _isListening = false);
         }
@@ -674,8 +676,16 @@ class _PersonCard extends ConsumerWidget {
 
     return GestureDetector(
       onTap: () {
-        context.push('/person/${person.id}',
-            extra: {'personId': person.id, 'personName': person.name});
+        // batch118-F1 与 actors_view 的 extra 契约对齐：路由解析端只读
+        // extra['item']（MediaItem），personId/personName 键会被丢弃导致
+        // 详情页回退时标题为空；personType 缺省时详情页用 _personDetail.type 兜底。
+        final mediaItem = MediaItem(
+          id: person.id,
+          title: person.name,
+          type: 'Person',
+          thumbnailUrl: person.imageUrl,
+        );
+        context.push('/person/${person.id}', extra: {'item': mediaItem});
       },
       child: Column(
         children: [
