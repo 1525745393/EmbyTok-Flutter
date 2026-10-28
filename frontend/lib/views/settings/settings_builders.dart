@@ -325,7 +325,10 @@ extension _SettingsBuilders on SettingsView {
       subtitle: '扫描音乐库中所有歌手，批量获取缺失的头像和简介',
       onTap: () => _startBatchScan(context, ref),
       helpText:
-          '批量扫描设置：控制启动/刷新时是否全量扫描服务器内容。\n\n· 开启 → 启动后自动拉取最新媒体库（耗流量、加载慢）\n· 关闭 → 只加载本地缓存（加载快、内容可能滞后）\n\n建议在内容更新频繁时开启，日常使用可关闭。',
+          '批量扫描音乐库中的所有歌手，自动补全缺失的头像和简介。\n\n'
+          '· 需要先登录群晖 Audio Station\n'
+          '· 仅补全缺失的数据，已完整的歌手会自动跳过\n'
+          '· 歌手较多时扫描较耗时，可在对话框中查看进度',
     );
   }
 
@@ -708,7 +711,7 @@ extension _SettingsBuilders on SettingsView {
     return SwitchListTile(
       secondary: const Icon(Icons.subtitles, color: Colors.pink),
       title: const Text('弹幕'),
-      subtitle: const Text('在视频上叠加显示弹幕（后续接入弹幕源）'),
+      subtitle: const Text('在视频上叠加显示弹幕（弹弹Play 弹幕源）'),
       value: enabled,
       // batch41-F3：由内存 StateProvider 改为持久化 Notifier，走 setEnabled 写 prefs
       onChanged: (v) => ref.read(danmakuEnabledProvider.notifier).setEnabled(v),
