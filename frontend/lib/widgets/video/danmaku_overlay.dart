@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -21,8 +20,9 @@ class DanmakuItem { // 垂直位置比例 0~1
 
 /// 弹幕叠加层：在视频上层滚动显示弹幕
 ///
-/// 简单实现：根据当前播放时间显示匹配的弹幕，从右向左滚动。
-/// 后续接入 dandanplay 等弹幕源时，只需替换弹幕数据源。
+/// batch156-F1：弹幕严格按播放时间对齐——按 DanmakuItem.startMs 排序维护
+/// 发射游标，仅发射 startMs 落在 [positionMs, positionMs+提前窗口] 内的弹幕；
+/// 不再随机取整集弹幕（此前弹幕与视频内容完全错乱）。
 class DanmakuOverlay extends StatefulWidget {
 
   const DanmakuOverlay({
@@ -62,13 +62,35 @@ class _DanmakuOverlayState extends State<DanmakuOverlay>
   int _lastPosition = 0;
   final List<_ActiveDanmaku> _active = [];
   Timer? _emitTimer;
+  // batch156-F1：按 startMs 排序后的弹幕池 + 发射游标（弹幕时间对齐）
+  List<DanmakuItem> _sortedDanmakus = const [];
+  int _emitCursor = 0;
+  /// 发射提前窗口：startMs 落在 [pos, pos+提前窗口] 内的弹幕立即发射（毫秒）
+  static const int _emitAheadMs = 4000;
 
   @override
   void initState() {
     super.initState();
     _ticker = createTicker(_onTick)..start();
-    // 每 2 秒尝试发射一条新弹幕
-    _emitTimer = Timer.periodic(const Duration(seconds: 2), (_) => _emit());
+    _sortDanmakus();
+    // 每 500ms 尝试发射一次新弹幕（原 2s 一次太慢，时间窗口内多条弹幕会堆积延迟）
+    _emitTimer = Timer.periodic(const Duration(milliseconds: 500), (_) => _emit());
+  }
+
+  @override
+  void didUpdateWidget(covariant DanmakuOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 弹幕池变化（切集/换视频）时重置游标并重新排序
+    if (!identical(oldWidget.danmakus, widget.danmakus)) {
+      _emitCursor = 0;
+      _sortDanmakus();
+    }
+  }
+
+  void _sortDanmakus() {
+    final list = List<DanmakuItem>.from(widget.danmakus)
+      ..sort((a, b) => a.startMs.compareTo(b.startMs));
+    _sortedDanmakus = list;
   }
 
   void _onTick(Duration elapsed) {
@@ -88,16 +110,31 @@ class _DanmakuOverlayState extends State<DanmakuOverlay>
   }
 
   void _emit() {
-    if (!widget.enabled || !mounted || widget.danmakus.isEmpty) return;
-    // 随机选一条弹幕
-    final d = widget.danmakus[math.Random().nextInt(widget.danmakus.length)];
+    if (!widget.enabled || !mounted || _sortedDanmakus.isEmpty) return;
+    final pos = widget.positionMs.value;
+    // 跳过已远过期（seek 前进越过）的弹幕，避免补发
+    while (_emitCursor < _sortedDanmakus.length &&
+        _sortedDanmakus[_emitCursor].startMs < pos - 500) {
+      _emitCursor++;
+    }
+    // 发射落在 [pos, pos + 提前窗口] 内的全部弹幕
+    final windowEnd = pos + _emitAheadMs;
+    final toEmit = <DanmakuItem>[];
+    while (_emitCursor < _sortedDanmakus.length &&
+        _sortedDanmakus[_emitCursor].startMs <= windowEnd) {
+      toEmit.add(_sortedDanmakus[_emitCursor]);
+      _emitCursor++;
+    }
+    if (toEmit.isEmpty) return;
     setState(() {
-      _active.add(_ActiveDanmaku(
-        text: d.text,
-        color: d.color,
-        y: d.y,
-        x: 1.0, // 从右侧开始（比例）
-      ));
+      for (final d in toEmit) {
+        _active.add(_ActiveDanmaku(
+          text: d.text,
+          color: d.color,
+          y: d.y,
+          x: 1.0, // 从右侧开始（比例）
+        ));
+      }
     });
   }
 
