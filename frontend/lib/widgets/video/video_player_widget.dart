@@ -301,6 +301,16 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
       _fallbackEngine = next;
       // 记录降级日志
       AppLogger.warn('自动降级：$current → $next', tag: 'EngineFallback');
+    } else {
+      // 已是最后兜底引擎：不再清错重建。VLC 初始化失败后 VlcVideoPlayer State
+      // 复用且不会重新 _init，重建只会永久转圈 + 后台 EXO 空转——batch143-F2
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+          _errorMessage = AppError.playback(message: '播放失败，请尝试外部播放器或切换引擎');
+        });
+      }
+      return;
     }
 
     setState(() {
@@ -639,6 +649,11 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
 
     // VLC 引擎分支：libvlc，网络流兼容性兜底
     if (effectiveEngine == PlayerEngine.vlc) {
+      // 最后引擎失败（batch143-F2 错误态）时展示错误占位，避免 VlcVideoPlayer
+      // State 复用后永久转圈
+      if (_hasError) {
+        return _buildThumbnailPlaceholder(context);
+      }
       final vlcUrl = _playbackUrl;
       if (vlcUrl == null || vlcUrl.isEmpty) {
         return _buildThumbnailPlaceholder(context);
@@ -712,6 +727,10 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
 
     // 场景 2：视频正在初始化，显示加载指示器
     if (vc == null || !_initialized) {
+      // 降级链全失败时展示错误占位（含重试/外部播放器入口），而非无限转圈——batch143-F3
+      if (_hasError) {
+        return wrapFixedRatio(_buildThumbnailPlaceholder(context));
+      }
       return wrapFixedRatio(Center(
         child: CircularProgressIndicator(
             color: Theme.of(context).colorScheme.primary),
@@ -900,6 +919,21 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
 
   Future<void> _initVideo({int token = 0}) async {
     if (_isDisposed) return;
+
+    // ——batch143-F1：MPV/VLC 引擎由 build 直接渲染对应播放器（MpvVideoPlayer /
+    // VlcVideoPlayer），无需创建 EXO controller；否则 EXO 与目标引擎同时初始化并
+    // 播放同一视频，造成双解码/双音轨。仅 EXO（含降级到 EXO）路径需要 controller。
+    final _engine = _fallbackEngine ??
+        ref.read(playerEngineSettingsProvider).defaultEngine;
+    final _skipExo = _engine == PlayerEngine.vlc ||
+        _engine == PlayerEngine.mpv ||
+        (_engine == PlayerEngine.auto &&
+            (widget.item.isDolbyVision || widget.item.isHdr));
+    if (_skipExo) {
+      AppLogger.debug('引擎 $_engine 由独立播放器渲染，跳过 EXO controller 创建',
+          data: {'itemId': widget.item.id});
+      return;
+    }
 
     bool isCancelled() => _reinitToken != token || _isDisposed;
     // 播放前预检：检测网络连接状态
@@ -1589,8 +1623,11 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
                               horizontal: 12, vertical: 4),
                         ),
                       ),
+                    ],
+                    // 播放失败（如解码不支持）时也提供外部播放器兜底——
+                    // playback 类错误不可重试，但恰恰最需要外部播放器——batch143-F4
+                    if (errMsg.isRetryable || errMsg.type == ErrorType.playback) ...[
                       const SizedBox(height: 8),
-                      // 播放失败时建议用外部播放器（VLC/MX Player）兜底
                       TextButton.icon(
                         onPressed: () =>
                             _playWithExternalPlayerFromError(context),
