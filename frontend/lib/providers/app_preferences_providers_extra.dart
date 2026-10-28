@@ -402,6 +402,15 @@ class PinLockNotifier extends StateNotifier<String> {
   late final FlutterSecureStorage _secureStorage;
   Future<void>? _loadFuture;
 
+  // batch146-F1：加载完成标志。_load() 完成（含存储异常兜底）后置 true；
+  // 平台通道无实现（如 widget test 环境）时 _load() 的 await 永不完成（挂起
+  // 而非抛错），_loaded 保持 false → 路由守卫据此"未加载完成先放行"，
+  // 不阻塞首帧渲染；加载完成后由 refreshListenable 重估并执行 PIN 拦截。
+  bool _loaded = false;
+
+  /// 是否已完成 PIN 存储加载（未完成 = 尚未加载，守卫应放行）
+  bool get loaded => _loaded;
+
   /// 等待 PIN 加载完成（首次 await 后立即返回）
   Future<void> ensureLoaded() async {
     await _loadFuture;
@@ -439,6 +448,11 @@ class PinLockNotifier extends StateNotifier<String> {
     } catch (e) {
       // 存储异常（MissingPluginException 等）按未设置 PIN 处理，仅记录
       AppLogger.warn('PIN 加载失败，按未设置处理', data: {'error': e.toString()});
+    } finally {
+      // batch146-F1：加载流程结束（成功或异常兜底）标记完成。
+      // 注意：平台通道无实现时 await 永不完成，finally 不执行，
+      // _loaded 保持 false —— 这正是守卫"未加载先放行"所需的状态。
+      _loaded = true;
     }
   }
 

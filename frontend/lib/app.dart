@@ -112,19 +112,26 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       initialLocation: '/',
       refreshListenable: _refreshNotifier,
       observers: [_BreadcrumbObserver()],
-      redirect: (BuildContext context, GoRouterState state) async {
-        // batch46-F1：先等 PIN 从安全存储加载完成再判定，
-        // 避免冷启动时 state='' 被误判为"未设置"先放行主界面闪屏
-        await ref.read(pinLockProvider.notifier).ensureLoaded();
-        // PIN 锁检查：已设置 PIN 但未验证时跳转到 PIN 页
+      redirect: (BuildContext context, GoRouterState state) {
+        // batch146-F1：PIN 加载改为"就绪后拦截"而非"阻塞等待"——
+        // 原 batch46-F1 用 await ensureLoaded() 阻塞 redirect，在平台通道
+        // 无实现的测试环境（_load() 的 await 永不完成）导致 '/' 永不渲染
+        // （6 个行为测试失败）；widget test 已用 10 分钟超时实证挂起。
+        // 现在未加载完成先放行（loaded=false），由 build 中新增的
+        // pinLockProvider 监听在加载完成后 notify → GoRouter 重估 redirect
+        // → 再执行 PIN 拦截，真机 PIN 行为不变。
+        final pinNotifier = ref.read(pinLockProvider.notifier);
         final pin = ref.read(pinLockProvider);
         final pinUnlocked = ref.read(pinUnlockedProvider);
         final goingToPin = state.matchedLocation == '/pin';
-        if (pin.isNotEmpty && !pinUnlocked && !goingToPin) {
-          return '/pin';
-        }
-        if (pin.isEmpty && goingToPin) {
-          return '/';
+        // PIN 锁检查：已设置 PIN 但未验证时跳转到 PIN 页（仅加载完成后）
+        if (pinNotifier.loaded) {
+          if (pin.isNotEmpty && !pinUnlocked && !goingToPin) {
+            return '/pin';
+          }
+          if (pin.isEmpty && goingToPin) {
+            return '/';
+          }
         }
         // 登录判定：Emby 或群晖任一登录即可（音乐模式用户可能只登录群晖）
         final embyLoggedIn = ref.read(
@@ -616,6 +623,14 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
     ref.listen(serviceModeProvider, (prev, next) {
       if (prev != next) {
         AppLogger.debug('服务模式变化', data: {'mode': next.name});
+        _refreshNotifier.notify();
+      }
+    });
+    // batch146-F1：监听 PIN 加载/变化，加载完成或 PIN 变更后触发
+    // GoRouter 重估 redirect（PIN 拦截依赖加载完成后的重定向）
+    ref.listen(pinLockProvider, (prev, next) {
+      if (prev != next) {
+        AppLogger.debug('PIN 状态变化', data: {'length': next.length});
         _refreshNotifier.notify();
       }
     });
