@@ -1,3 +1,10 @@
+## [2.401.48](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.47...v2.401.48) (2026-10-28)
+
+
+### Bug Fixes
+
+* **nav:** batch145-F1 PIN 存储异常防护，修复 CI 6 个行为测试失败 ([809d50f](https://github.com/1525745393/EmbyTok-Flutter/commit/809d50ffab4581eac8358398639b246c6cb97fbb))
+
 ## [2.401.47](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.46...v2.401.47) (2026-10-28)
 
 
