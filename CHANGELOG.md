@@ -1,3 +1,12 @@
+## [2.401.54](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.53...v2.401.54) (2026-10-28)
+
+
+### Bug Fixes
+
+* **widgets:** batch152-F1..F2 评论提交态复位+TMDB评论全量显示 ([f55429a](https://github.com/1525745393/EmbyTok-Flutter/commit/f55429ab635345cfeea08246f0fe50c3bb06e1ae))
+* **widgets:** batch153-F1..F2 季切换竞态+超长剧集截断 ([ea6f881](https://github.com/1525745393/EmbyTok-Flutter/commit/ea6f881dd8e9a6a9def6bedb0b68ecca9f1f4eec))
+* **widgets:** batch154-F1 进度条监听器泄漏 ([6307572](https://github.com/1525745393/EmbyTok-Flutter/commit/6307572e2391efcae810f8821aecaeef9a1590b2))
+
 ## [2.401.53](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.52...v2.401.53) (2026-10-28)
 
 
