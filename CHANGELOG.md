@@ -1,3 +1,10 @@
+## [2.401.52](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.51...v2.401.52) (2026-10-28)
+
+
+### Bug Fixes
+
+* **widgets:** batch149-F1..F6 手势层三引擎适配+亮度还原竞态 ([ef04010](https://github.com/1525745393/EmbyTok-Flutter/commit/ef040105b33ec0a46b20dcd5917cf963eecf4e23))
+
 ## [2.401.51](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.50...v2.401.51) (2026-10-28)
 
 
