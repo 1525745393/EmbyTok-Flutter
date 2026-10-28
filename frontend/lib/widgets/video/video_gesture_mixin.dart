@@ -48,6 +48,36 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
 
   MediaItem? get currentItem => null;
 
+  // ===== batch149：播放状态钩子（MPV/VLC 引擎支持）=====
+  //
+  // 默认实现回退到 [videoController]（EXO 引擎）。MPV/VLC 引擎下 EXO
+  // controller 恒为 null，双击 seek / 长按倍速 / 拖动进度会被旧守卫
+  // （c == null return）整体拦截，且双击被误分发到 onDoubleTapCenter（点赞）。
+  // 子类（FullscreenVideoPage / GestureOverlay）基于 PlayerControlHandle
+  // 重写本组钩子，使手势在 MPV/VLC 引擎下同样生效。
+
+  /// 播放器是否可交互（EXO：已初始化；MPV/VLC：handle 已就绪）
+  bool get playbackUsable => videoController?.value.isInitialized ?? false;
+
+  /// 当前播放位置（MPV/VLC 下子类用 handle.currentPosition 重写）
+  Duration get playbackPosition =>
+      videoController?.value.position ?? Duration.zero;
+
+  /// 视频总时长（MPV/VLC 下子类用 handle.totalDuration 重写）
+  Duration get playbackDuration =>
+      videoController?.value.duration ?? Duration.zero;
+
+  /// 当前播放倍速（MPV/VLC 下子类用 handle.playbackRate 重写）
+  double get currentPlaybackRate => videoController?.value.playbackSpeed ?? 1.0;
+
+  /// 当前音量（MPV/VLC 下子类用 handle.volume 重写）
+  double get currentVolume => videoController?.value.volume ?? 0.5;
+
+  /// 应用播放倍速（MPV/VLC 下子类用 handle.setRate 重写）
+  void applyPlaybackRate(double rate) {
+    videoController?.setPlaybackSpeed(rate);
+  }
+
   // ==================== 常量 ====================
 
   static const _kSingleTapDelay = Duration(milliseconds: 300);
@@ -126,9 +156,11 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
   void _onDoubleTap() {
     if (!mounted) return;
     final pos = _lastTapPosition;
-    final c = videoController;
 
-    if (pos != null && c != null && c.value.isInitialized) {
+    // batch149：左右分区判断不再依赖 EXO controller 可用——MPV/VLC 引擎下
+    // videoController 恒为 null，旧实现会无条件落到 onDoubleTapCenter()，
+    // 双击左右想快进/快退时被误判成点赞（意外收藏切换）。
+    if (pos != null) {
       final screenWidth = MediaQuery.of(context).size.width;
       final relativeX = pos.dx / screenWidth;
       if (relativeX < 0.33) {
@@ -166,11 +198,15 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
   }
 
   void seekBySeconds(int seconds) {
-    final c = videoController;
-    if (c == null || !c.value.isInitialized) return;
+    // batch149：用播放状态钩子替代 videoController 守卫——MPV/VLC 引擎下
+    // 双击快进/快退原先整体失效（无任何反馈），现基于 handle 恢复。
+    if (!playbackUsable) {
+      _showSeekFeedbackAnimation(seconds > 0);
+      return;
+    }
     try {
-      final current = c.value.position;
-      final duration = c.value.duration;
+      final current = playbackPosition;
+      final duration = playbackDuration;
       var target = current + Duration(seconds: seconds);
       if (target < Duration.zero) target = Duration.zero;
       if (duration > Duration.zero && target > duration) target = duration;
@@ -192,8 +228,7 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
   void onPanStart(DragStartDetails d) {
     if (!gesturesEnabled) return;
     _cancelSingleTap();
-    final c = videoController;
-    if (c == null || !c.value.isInitialized) return;
+    if (!playbackUsable) return;
     _dragStartX = d.globalPosition.dx;
     _dragStartY = d.globalPosition.dy;
     isDragging = true;
@@ -204,8 +239,7 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
   }
 
   void onPanUpdate(DragUpdateDetails d) {
-    final c = videoController;
-    if (c == null || !c.value.isInitialized) return;
+    if (!playbackUsable) return;
 
     final dx = d.globalPosition.dx - _dragStartX;
     final dy = d.globalPosition.dy - _dragStartY;
@@ -213,8 +247,8 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
     if (dragAxis == null) {
       if (dx.abs() > dy.abs() && dx.abs() > 8) {
         dragAxis = 'h';
-        dragStartPosition = c.value.position;
-        previewPositionNotifier.value = c.value.position;
+        dragStartPosition = playbackPosition;
+        previewPositionNotifier.value = playbackPosition;
         HapticFeedback.selectionClick();
         if (mounted) setState(() {});
       } else if (dy.abs() > dx.abs() && dy.abs() > 8) {
@@ -223,7 +257,7 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
         isVolumeSide = _dragStartX >= screenWidth / 2;
 
         if (isVolumeSide) {
-          _volumeStartValue = c.value.volume;
+          _volumeStartValue = currentVolume;
           previewVolumeNotifier.value = _volumeStartValue;
           showVolumeUINotifier.value = true;
         } else if (handleLeftVerticalDrag) {
@@ -242,7 +276,7 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
     if (dragAxis == 'h') {
       final seekMs = (dx * _kSeekPerPixelMs).toInt();
       var target = dragStartPosition + Duration(milliseconds: seekMs);
-      final duration = c.value.duration;
+      final duration = playbackDuration;
       if (target < Duration.zero) target = Duration.zero;
       if (duration > Duration.zero && target > duration) target = duration;
       previewPositionNotifier.value = target;
@@ -295,13 +329,12 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
   void onHorizontalDragStart(DragStartDetails d) {
     if (!gesturesEnabled) return;
     _cancelSingleTap();
-    final c = videoController;
-    if (c == null || !c.value.isInitialized) return;
+    if (!playbackUsable) return;
     isDragging = true;
     dragAxis = 'h';
     _dragStartX = d.globalPosition.dx;
-    dragStartPosition = c.value.position;
-    previewPositionNotifier.value = c.value.position;
+    dragStartPosition = playbackPosition;
+    previewPositionNotifier.value = playbackPosition;
     _dragHideTimer?.cancel();
     HapticFeedback.selectionClick();
     if (mounted) setState(() {});
@@ -309,12 +342,11 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
 
   void onHorizontalDragUpdate(DragUpdateDetails d) {
     if (!isDragging || dragAxis != 'h') return;
-    final c = videoController;
-    if (c == null || !c.value.isInitialized) return;
+    if (!playbackUsable) return;
     final dx = d.globalPosition.dx - _dragStartX;
     final seekMs = (dx * _kSeekPerPixelMs).toInt();
     var target = dragStartPosition + Duration(milliseconds: seekMs);
-    final duration = c.value.duration;
+    final duration = playbackDuration;
     if (target < Duration.zero) target = Duration.zero;
     if (duration > Duration.zero && target > duration) target = duration;
     previewPositionNotifier.value = target;
@@ -331,13 +363,12 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
   // ==================== 公共方法 ====================
 
   void endDrag() {
-    final c = videoController;
     _volumeHideTimer?.cancel();
 
     if (dragAxis == 'h') {
-      if (c != null && c.value.isInitialized) {
+      if (playbackUsable) {
         try {
-          final duration = c.value.duration;
+          final duration = playbackDuration;
           var target = previewPositionNotifier.value;
           if (target < Duration.zero) target = Duration.zero;
           if (duration > Duration.zero && target > duration) target = duration;
@@ -369,12 +400,12 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
 
   void onLongPressStart(LongPressStartDetails details) {
     if (!gesturesEnabled) return;
-    final c = videoController;
-    if (c == null || !c.value.isInitialized) return;
+    // batch149：播放状态钩子——MPV/VLC 引擎下长按倍速原被 c==null 守卫拦截
+    if (!playbackUsable) return;
     try {
       _isLongPressing = true;
-      originalRate = c.value.playbackSpeed;
-      c.setPlaybackSpeed(_kLongPressRate);
+      originalRate = currentPlaybackRate;
+      applyPlaybackRate(_kLongPressRate);
       showSpeedBadgeNotifier.value = true;
     } catch (e) {
       AppLogger.debug('长按倍速启动失败', data: {'error': e.toString()});
@@ -384,15 +415,14 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
   void onLongPressEnd(LongPressEndDetails details) {
     if (!_isLongPressing) return;
     _isLongPressing = false;
-    final c = videoController;
-    if (c != null && c.value.isInitialized) {
+    if (playbackUsable) {
       try {
-        c.setPlaybackSpeed(originalRate);
+        applyPlaybackRate(originalRate);
       } catch (e) {
         AppLogger.debug('长按倍速结束失败', data: {'error': e.toString()});
       }
     }
-    // 无条件隐藏倍速徽标：controller 不可用时也不残留
+    // 无条件隐藏倍速徽标：播放器不可用时也不残留
     showSpeedBadgeNotifier.value = false;
   }
 
@@ -403,10 +433,9 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
   void cancelLongPress() {
     if (!_isLongPressing) return;
     _isLongPressing = false;
-    final c = videoController;
-    if (c != null && c.value.isInitialized) {
+    if (playbackUsable) {
       try {
-        c.setPlaybackSpeed(originalRate);
+        applyPlaybackRate(originalRate);
       } catch (e) {
         AppLogger.debug('长按倍速取消恢复失败', data: {'error': e.toString()});
       }

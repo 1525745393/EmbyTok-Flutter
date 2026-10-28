@@ -121,6 +121,51 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
     _watchedController?.setVolume(value);
   }
 
+  // ===== batch149：播放状态钩子走统一控制句柄 =====
+  // MPV/VLC 引擎下 _watchedController（EXO）恒为 null，双击 seek /
+  // 长按倍速 / 拖动进度原先被 mixin 的 c==null 守卫整体拦截（双击还会
+  // 被误分发为点赞），现基于 PlayerControlHandle 恢复三引擎手势。
+
+  @override
+  bool get playbackUsable =>
+      ref.read(currentPlayerControlProvider)?.isReady ??
+      _watchedController?.value.isInitialized ??
+      false;
+
+  @override
+  Duration get playbackPosition =>
+      ref.read(currentPlayerControlProvider)?.currentPosition ??
+      _watchedController?.value.position ??
+      Duration.zero;
+
+  @override
+  Duration get playbackDuration =>
+      ref.read(currentPlayerControlProvider)?.totalDuration ??
+      _watchedController?.value.duration ??
+      Duration.zero;
+
+  @override
+  double get currentPlaybackRate =>
+      ref.read(currentPlayerControlProvider)?.playbackRate ??
+      _watchedController?.value.playbackSpeed ??
+      1.0;
+
+  @override
+  double get currentVolume =>
+      ref.read(currentPlayerControlProvider)?.volume ??
+      _watchedController?.value.volume ??
+      0.5;
+
+  @override
+  void applyPlaybackRate(double rate) {
+    final handle = ref.read(currentPlayerControlProvider);
+    if (handle != null) {
+      handle.setRate(rate);
+      return;
+    }
+    _watchedController?.setPlaybackSpeed(rate);
+  }
+
   @override
   void onSingleTap() {
     _toggleControls();

@@ -261,6 +261,9 @@ abstract class PlayerControlHandle {
   /// 当前播放倍速（EXO 实时读取；MPV/VLC 记录最近一次 setRate）
   double get playbackRate;
 
+  /// 当前音量（EXO 实时读取；MPV/VLC 记录最近一次 setVolume）——batch149
+  double get volume;
+
   /// 播放器是否已就绪：
   /// - EXO：controller 已初始化且无错误
   /// - MPV/VLC：已取得视频时长（时长非零）

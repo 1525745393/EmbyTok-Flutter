@@ -100,6 +100,47 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
     widget.controller?.setVolume(value);
   }
 
+  // ===== batch149：播放状态钩子走统一控制句柄 =====
+  // feed 页在 MPV/VLC 引擎下 widget.controller（EXO）恒为 null，双击 seek /
+  // 长按倍速 / 水平拖动进度原先被 mixin 的 c==null 守卫整体拦截，现基于
+  // PlayerControlHandle 恢复三引擎手势。
+
+  @override
+  bool get playbackUsable =>
+      ref.read(currentPlayerControlProvider)?.isReady ??
+      widget.controller?.value.isInitialized ??
+      false;
+
+  @override
+  Duration get playbackPosition =>
+      ref.read(currentPlayerControlProvider)?.currentPosition ??
+      widget.controller?.value.position ??
+      Duration.zero;
+
+  @override
+  Duration get playbackDuration =>
+      ref.read(currentPlayerControlProvider)?.totalDuration ??
+      widget.controller?.value.duration ??
+      Duration.zero;
+
+  @override
+  double get currentPlaybackRate =>
+      ref.read(currentPlayerControlProvider)?.playbackRate ??
+      widget.controller?.value.playbackSpeed ??
+      1.0;
+
+  @override
+  double get currentVolume =>
+      ref.read(currentPlayerControlProvider)?.volume ??
+      widget.controller?.value.volume ??
+      0.5;
+
+  @override
+  void applyPlaybackRate(double rate) {
+    ref.read(currentPlayerControlProvider)?.setRate(rate);
+    widget.controller?.setPlaybackSpeed(rate);
+  }
+
   @override
   void onLeftVerticalDragUpdate(double delta) {
     // 左侧垂直拖动：调节亮度
@@ -157,6 +198,11 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
 
   void _adjustBrightness(double delta) async {
     try {
+      // batch149：亮度快照未就绪时先读当前系统亮度作为还原基准，
+      // 否则进入页面立即拖动亮度后 dispose 无法还原（原亮度被覆盖）
+      if (_originalBrightness == null) {
+        _originalBrightness = await _screenBrightness.current;
+      }
       _brightness = (_brightness + delta).clamp(0.1, 1.0);
       await _screenBrightness.setScreenBrightness(_brightness);
     } catch (_) {
@@ -478,7 +524,7 @@ class _SeekPreviewBar extends StatelessWidget {
     }
     final m = d.inMinutes;
     final s = d.inSeconds.remainder(60);
-    return '${m.toString().padLeft(1, '0')}:${s.toString().padLeft(2, '0')}';
+    return '$m:${s.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -489,8 +535,7 @@ class _SeekPreviewBar extends StatelessWidget {
     final clampedProgress = progress.clamp(0.0, 1.0);
 
     final isForward = offset >= Duration.zero;
-    final offsetText =
-        '${isForward ? '+' : '-'}${(offset.inSeconds.abs() ~/ 1)}s';
+    final offsetText = '${isForward ? '+' : '-'}${offset.inSeconds.abs()}s';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),

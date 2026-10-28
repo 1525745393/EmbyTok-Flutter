@@ -455,8 +455,24 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
   @override
   ValueListenable<int>? get positionMsListenable => _positionMs;
 
+  /// 当前音量（三引擎统一）——batch149
+  ///
+  /// - EXO：实时读取 controller 的 volume
+  /// - MPV/VLC：播放器 State 未暴露音量 getter，记录最近一次 [setVolume] 的取值
+  @override
+  double get volume {
+    final c = _controller;
+    if (c != null && c.value.isInitialized) {
+      return c.value.volume;
+    }
+    return _lastSetVolume;
+  }
+
   // 最近一次 setRate 的倍速（MPV/VLC 无倍速 getter 时的回退显示值）
   double _lastSetRate = 1.0;
+
+  // 最近一次 setVolume 的音量（MPV/VLC 无音量 getter 时的回退值）——batch149
+  double _lastSetVolume = 1.0;
 
   // 从 Emby 服务器同步的续播位置 seek 到对应进度
   // 在 _initVideo() 中 play 之前调用，避免竞态条件
@@ -477,6 +493,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
   // 外部控制 API：设置音量 0.0 ~ 1.0（三引擎同步）
   @override
   void setVolume(double value) {
+    _lastSetVolume = value;
     try {
       _controller?.setVolume(value);
       _mpvKey.currentState?.setVolume(value);
