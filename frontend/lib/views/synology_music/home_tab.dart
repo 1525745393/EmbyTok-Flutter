@@ -516,8 +516,10 @@ extension _MusicHomeTabBuilders on _SynologyMusicViewState {
               title: const Text('下一首播放'),
               onTap: () {
                 Navigator.pop(ctx);
+                // batch122-F1 诚实提示：播放队列尚无插入 API（provider 仅 next() 按
+                // 模式切歌），原提示"已添加"为虚假成功反馈，误导用户
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('已添加到播放队列下一首')),
+                  const SnackBar(content: Text('下一首播放功能暂未实现')),
                 );
               },
             ),
@@ -534,8 +536,10 @@ extension _MusicHomeTabBuilders on _SynologyMusicViewState {
               title: const Text('收藏'),
               onTap: () {
                 Navigator.pop(ctx);
+                // batch122-F1 诚实提示：群晖 API 仅 getPins() 读接口无收藏写入，
+                // 原提示"已收藏"为虚假成功反馈，误导用户
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('已收藏')),
+                  const SnackBar(content: Text('收藏功能暂未实现')),
                 );
               },
             ),
