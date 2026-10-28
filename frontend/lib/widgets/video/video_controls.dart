@@ -62,6 +62,12 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
   bool get _controllerUsable =>
       widget.controller != null && widget.controller!.value.isInitialized;
 
+  // batch150：记录 initState 实际挂载的监听器类型。
+  // 原实现 dispose 时重新评估 _controllerUsable——若 initState 时 EXO
+  // controller 尚未初始化（挂的是 handle 位置流），dispose 时已初始化
+  // （会错误移除 controller listener），导致 handle 监听器泄漏。
+  bool _useHandleListener = false;
+
   @override
   void initState() {
     super.initState();
@@ -70,16 +76,17 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
       widget.controller!.addListener(_onControllerChanged);
     } else {
       // MPV/VLC：订阅统一句柄位置流，isPlaying 变化时同步 Provider
+      _useHandleListener = true;
       widget.handle?.positionMsListenable?.addListener(_onControllerChanged);
     }
   }
 
   @override
   void dispose() {
-    if (_controllerUsable) {
-      widget.controller!.removeListener(_onControllerChanged);
-    } else {
+    if (_useHandleListener) {
       widget.handle?.positionMsListenable?.removeListener(_onControllerChanged);
+    } else if (_controllerUsable) {
+      widget.controller!.removeListener(_onControllerChanged);
     }
     super.dispose();
   }
@@ -268,7 +275,9 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
   Future<void> _showSleepTimerMenu() async {
     final current = ref.read(sleepTimerProvider);
     final minutes = [15, 30, 45, 60];
-    final choice = await showModalBottomSheet<String>(
+    // batch150：showModalBottomSheet 返回值无人消费（各 ListTile 均
+    // Navigator.pop 不带值），移除无用的 choice 与空 if 分支
+    await showModalBottomSheet<String>(
       context: context,
       builder: (context) => SafeArea(
         child: Column(
@@ -310,7 +319,6 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
         ),
       ),
     );
-    if (choice != null) {}
   }
 
   @override
