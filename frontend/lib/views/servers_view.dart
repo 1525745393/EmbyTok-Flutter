@@ -74,10 +74,14 @@ class ServersView extends ConsumerWidget {
     SynologyAuthState synoAuth,
   ) {
     return switch (server.kind) {
+      // batch126-F2 host 精确比较：contains 子串匹配会把
+      // "192.168.1.5" 误命中 "192.168.1.50"，造成未登录误显示已登录
       ServerKind.emby || ServerKind.plex => auth.isAuthenticated &&
-          (auth.embyServerUrl?.contains(_hostOf(server.url)) ?? false),
+          auth.embyServerUrl != null &&
+          _hostOf(auth.embyServerUrl!) == _hostOf(server.url),
       ServerKind.synology => synoAuth.isLoggedIn &&
-          (synoAuth.serverUrl?.contains(_hostOf(server.url)) ?? false),
+          synoAuth.serverUrl != null &&
+          _hostOf(synoAuth.serverUrl!) == _hostOf(server.url),
     };
   }
 
@@ -118,6 +122,29 @@ class ServersView extends ConsumerWidget {
             account: server.username,
             sid: sid,
           );
+          // batch126-F1 会话恢复是本地乐观置位，不校验 sid 有效性；
+          // 无效 sid（NAS 重启/会话过期）会让下方弹"已切换到"成功提示而实际未登录。
+          // 用一次轻量 API 调用验证，失败则清除假登录态并回退密码登录。
+          try {
+            await synoAuth.api.getGenres();
+          } catch (_) {
+            await synoAuth.logout();
+            final password = await _readPassword(secureStorage, server.id);
+            if (password == null) {
+              messenger.showSnackBar(const SnackBar(
+                  content: Text('会话已过期且未保存密码，请编辑后重试')));
+              return;
+            }
+            await synoAuth.login(
+              serverUrl: server.resolveUrl(),
+              account: server.username,
+              password: password,
+            );
+            final current = ref.read(synologyAuthProvider);
+            if (current.sid != null && current.sid!.isNotEmpty) {
+              await registry.update(server, synoSid: current.sid);
+            }
+          }
         } else {
           final password = await _readPassword(secureStorage, server.id);
           if (password == null) {
