@@ -76,10 +76,12 @@ class PosterAvatar extends ConsumerWidget {
 
     final actorId = firstActor?.id;
     if (firstActor != null && actorId != null && actorId.isNotEmpty) {
+      // batch150：URL 不再拼接明文 api_key（token 已由 authHeaders 随请求携带），
+      // 避免 token 进入图片缓存/日志（对齐 batch28 帧预览去明文 token 的做法）
       final actorImageUrl = (embyServerUrl != null && token != null)
           ? (actorId.startsWith('person_') || actorId.startsWith('demo_')
               ? 'https://picsum.photos/seed/embytok_$actorId/200/200'
-              : '$embyServerUrl/Items/$actorId/Images/Primary?MaxWidth=200&api_key=$token')
+              : '$embyServerUrl/Items/$actorId/Images/Primary?MaxWidth=200')
           : firstActor.imageUrl;
       final headers = item.authHeaders(token);
       final isFavorited =
@@ -471,13 +473,29 @@ class DiscMuteButton extends ConsumerWidget {
         responsiveSize(context, base, max);
     return GestureDetector(
       onTap: () {
-        ref.read(isMutedProvider.notifier).toggle();
-        final targetVolume = isMuted ? 1.0 : 0.0;
+        // batch150：取消静音恢复静音前音量（原实现硬回 1.0，音量记忆丢失）
+        final volumeBeforeMute = ref.read(volumeBeforeMuteProvider);
         final handle = this.handle;
-        if (handle != null) {
-          handle.setVolume(targetVolume);
+        if (!isMuted) {
+          // 即将静音：记录当前音量
+          final currentVol =
+              handle?.volume ?? controller?.value.volume ?? 1.0;
+          ref.read(volumeBeforeMuteProvider.notifier).state = currentVol;
+          ref.read(isMutedProvider.notifier).toggle();
+          if (handle != null) {
+            handle.setVolume(0.0);
+          } else {
+            controller?.setVolume(0.0);
+          }
         } else {
-          controller?.setVolume(targetVolume);
+          // 取消静音：恢复静音前音量
+          final prevVolume = volumeBeforeMute ?? 1.0;
+          ref.read(isMutedProvider.notifier).toggle();
+          if (handle != null) {
+            handle.setVolume(prevVolume);
+          } else {
+            controller?.setVolume(prevVolume);
+          }
         }
       },
       child: RotationTransition(

@@ -186,6 +186,10 @@ class IsMutedNotifier extends StateNotifier<bool> {
 final isMutedProvider =
     StateNotifierProvider<IsMutedNotifier, bool>((ref) => IsMutedNotifier());
 
+/// 静音前的音量（0.0~1.0）——batch150：取消静音时恢复原音量，
+/// 而不是硬回 1.0（DiscMuteButton 静音切换用）
+final volumeBeforeMuteProvider = StateProvider<double?>((ref) => null);
+
 /// isAutoPlayProvider：是否开启纯净模式（沉浸式播放）
 ///
 /// 纯净模式下：工具栏持续隐藏，按钮组自动隐藏，提供更沉浸的观看体验。
