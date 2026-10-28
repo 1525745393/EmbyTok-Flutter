@@ -82,12 +82,16 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
     final text = _inputController.text.trim();
     if (text.isEmpty || _submitting) return;
     setState(() => _submitting = true);
-    await ref
-        .read(videoCommentsProvider.notifier)
-        .addComment(widget.itemId, text);
-    if (mounted) {
-      setState(() => _submitting = false);
-      _inputController.clear();
+    try {
+      await ref
+          .read(videoCommentsProvider.notifier)
+          .addComment(widget.itemId, text);
+    } finally {
+      // batch152：addComment 异常时也要复位提交态，避免发送按钮永久禁用
+      if (mounted) {
+        setState(() => _submitting = false);
+        _inputController.clear();
+      }
     }
   }
 
@@ -142,7 +146,9 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Text('TMDB 评论', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: scheme.onSurfaceVariant)),
           ));
-          children.addAll(tmdbReviews.take(10).map((r) => _TmdbReviewTile(review: r)));
+          // batch152：TMDB 评论全量显示（原 take(10) 截断且无提示，
+          // 列表本身可滚动，截断无收益）
+          children.addAll(tmdbReviews.map((r) => _TmdbReviewTile(review: r)));
           children.add(const Divider(height: 24));
         }
         if (localComments.isNotEmpty) {
