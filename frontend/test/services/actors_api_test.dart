@@ -104,8 +104,11 @@ void main() {
         expect(result.items[0].id, 'person-1');
         expect(result.items[0].name, '演员A');
         expect(result.items[0].type, 'Actor');
-        // 图片URL应包含认证token
-        expect(result.items[0].imageUrl, contains('api_key=$testToken'));
+        // batch158-F2：头像 URL 不再拼明文 api_key（token 走 httpHeaders 通道），
+        // 断言 URL 无明文 key 且保留图片参数结构
+        expect(result.items[0].imageUrl, isNot(contains('api_key=')));
+        expect(result.items[0].imageUrl, contains('/Images/Primary'));
+        expect(result.items[0].imageUrl, contains('MaxWidth=300'));
         expect(result.items[1].name, '导演B');
         expect(result.items[1].type, 'Director');
       });
@@ -148,7 +151,7 @@ void main() {
         expect(result.items[0].type, 'Director');
       });
 
-      test('图片URL使用传入的token而非默认token', () async {
+      test('图片URL不包含明文token（token走httpHeaders通道）', () async {
         const customToken = 'custom-token-xyz';
         final response = <String, dynamic>{
           'Items': [
@@ -169,8 +172,10 @@ void main() {
           token: customToken,
         );
 
-        // 图片URL应使用传入的token
-        expect(result.items[0].imageUrl, contains('api_key=$customToken'));
+        // batch158-F2：URL 使用传入 serverUrl 构造图片地址且不含明文 token
+        expect(result.items[0].imageUrl, contains(testEmbyUrl));
+        expect(result.items[0].imageUrl, isNot(contains('api_key=')));
+        expect(result.items[0].imageUrl, contains('Tag=tag-3'));
       });
 
       test('空演员列表返回空结果', () async {
