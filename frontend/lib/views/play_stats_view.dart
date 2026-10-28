@@ -65,12 +65,15 @@ class _PlayStatsViewState extends ConsumerState<PlayStatsView> {
     final artists = <String, _Counter>{};
     final albums = <String, _Counter>{};
     for (final e in scoped) {
-      (songs[e.songId] ??= _Counter(e.title, e.artist)).inc();
+      // batch134-F1 _Counter 记录 songId，供点击时精确匹配；
+      // 仅按 title 匹配会在同名不同歌手（不同 songId 聚合为两条）时
+      // firstWhere 取到错误的那条，播放错误曲目
+      (songs[e.songId] ??= _Counter(e.songId, e.title, e.artist)).inc();
       if (e.artist.isNotEmpty) {
-        (artists[e.artist] ??= _Counter(e.artist, '')).inc();
+        (artists[e.artist] ??= _Counter('', e.artist, '')).inc();
       }
       if (e.album.isNotEmpty) {
-        (albums[e.album] ??= _Counter(e.album, e.artist)).inc();
+        (albums[e.album] ??= _Counter('', e.album, e.artist)).inc();
       }
     }
     final topSongs = songs.values.toList()..sort((a, b) => b.count - a.count);
@@ -140,9 +143,9 @@ class _PlayStatsViewState extends ConsumerState<PlayStatsView> {
               title: '热门歌曲',
               items: topSongs.take(10).toList(),
               onTap: (c) {
-                // 点击播放：从事件里找这首歌
+                // 点击播放：按 songId 精确匹配（同名不同歌手不串播）
                 final ev = scoped.firstWhere(
-                  (e) => e.title == c.name,
+                  (e) => e.songId == c.songId && c.songId.isNotEmpty,
                   orElse: () =>
                       PlayEvent(songId: '', title: c.name, playedAtMs: 0),
                 );
@@ -174,7 +177,8 @@ class _PlayStatsViewState extends ConsumerState<PlayStatsView> {
 }
 
 class _Counter {
-  _Counter(this.name, this.sub);
+  _Counter(this.songId, this.name, this.sub);
+  final String songId;
   final String name;
   final String sub;
   int count = 0;
