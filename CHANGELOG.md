@@ -1,3 +1,11 @@
+## [2.401.53](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.52...v2.401.53) (2026-10-28)
+
+
+### Bug Fixes
+
+* **widgets:** batch150-F1..F2 静音音量记忆+头像URL去明文token ([e0c4f02](https://github.com/1525745393/EmbyTok-Flutter/commit/e0c4f026967c5bd58ac77dafcd4bf03bf9594eb1))
+* **widgets:** batch151-F1..F2 控制条监听器泄漏+睡眠菜单死代码 ([303743d](https://github.com/1525745393/EmbyTok-Flutter/commit/303743da8589565c247cb443c8774a5c3749f0c1))
+
 ## [2.401.52](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.51...v2.401.52) (2026-10-28)
 
 
