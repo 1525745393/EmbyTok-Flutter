@@ -1,3 +1,10 @@
+## [2.401.59](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.58...v2.401.59) (2026-10-28)
+
+
+### Bug Fixes
+
+* **artist:** 歌曲长按菜单下一首播放/收藏消除假反馈，对齐开发中提示惯例 ([e6f00f4](https://github.com/1525745393/EmbyTok-Flutter/commit/e6f00f48a448df8f594f59d31a5cbb5a7d4403c8))
+
 ## [2.401.58](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.57...v2.401.58) (2026-10-28)
 
 
