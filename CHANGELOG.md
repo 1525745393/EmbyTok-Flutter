@@ -1,3 +1,10 @@
+## [2.401.60](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.59...v2.401.60) (2026-10-28)
+
+
+### Bug Fixes
+
+* **fullscreen:** 长按倍速恢复三引擎手势，MPV/VLC 下不再被 controller==null 拦截 ([d4d4f43](https://github.com/1525745393/EmbyTok-Flutter/commit/d4d4f43279d5d26e4a13392f14a75a465cdf2919))
+
 ## [2.401.59](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.58...v2.401.59) (2026-10-28)
 
 
