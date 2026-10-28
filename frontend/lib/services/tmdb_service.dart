@@ -180,13 +180,16 @@ class TmdbService {
   }
 
   /// 获取演员作品
+  ///
+  /// batch141-F1: 补 language=zh-CN——否则 combined_credits 默认 en-US，
+  /// 演员详情页作品标题/角色名为英文，与 getPersonDetails（zh-CN）不一致。
   static Future<List<Map<String, dynamic>>> getPersonMovieCredits(
       int personId) async {
     if (!isConfigured) return [];
     try {
       final r = await http
           .get(Uri.parse(
-              '$_base/person/$personId/combined_credits?api_key=$_apiKey'))
+              '$_base/person/$personId/combined_credits?api_key=$_apiKey&language=zh-CN'))
           .timeout(const Duration(seconds: 6));
       if (r.statusCode != 200) return [];
       final data = jsonDecode(r.body);
