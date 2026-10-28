@@ -75,8 +75,15 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
       ..sort((a, b) => ((b['vote_count'] as num?) ?? 0)
           .compareTo((a['vote_count'] as num?) ?? 0));
 
-    // 本地已入库的 TMDB ID 集合
-    final localTmdbIds = ref.watch(localVideoProvider).scrapedMap.values
+    // batch127-F1 本地已入库的 TMDB ID 按媒体类型分开：
+    // 电影/剧集 ID 空间独立，混合集合会在跨类型同号时误标"已入库"
+    final scrapedMap = ref.watch(localVideoProvider).scrapedMap;
+    final localMovieTmdbIds = scrapedMap.values
+        .where((s) => s.type == 'movie')
+        .map((s) => s.tmdbId)
+        .toSet();
+    final localTvTmdbIds = scrapedMap.values
+        .where((s) => s.type == 'tv')
         .map((s) => s.tmdbId)
         .toSet();
 
@@ -214,7 +221,7 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                               itemBuilder: (_, i) {
                                 final m = movies[i] as Map<String, dynamic>;
                                 final poster = m['poster_path'] as String?;
-                                final inLibrary = localTmdbIds.contains(m['id']);
+                                final inLibrary = localMovieTmdbIds.contains(m['id']);
                                 return SizedBox(
                                   width: 110,
                                   child: Column(
@@ -286,7 +293,7 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                               itemBuilder: (_, i) {
                                 final t = tvs[i] as Map<String, dynamic>;
                                 final poster = t['poster_path'] as String?;
-                                final inLibrary = localTmdbIds.contains(t['id']);
+                                final inLibrary = localTvTmdbIds.contains(t['id']);
                                 return SizedBox(
                                   width: 110,
                                   child: Column(

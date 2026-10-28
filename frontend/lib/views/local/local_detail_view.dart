@@ -41,7 +41,16 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
     final localState = ref.watch(localVideoProvider);
     final scraped = localState.scrapedMap[widget.item.pathHash];
     final isFav = localState.favoriteHashes.contains(widget.item.pathHash);
-    final localTmdbIds = localState.scrapedMap.values.map((s) => s.tmdbId).toSet();
+    // batch127-F1 本地已入库 TMDB ID 按媒体类型分开建集合：
+    // 电影/剧集 ID 空间独立，混合集合会在跨类型同号时误标"已入库"
+    final localMovieTmdbIds = localState.scrapedMap.values
+        .where((s) => s.type == 'movie')
+        .map((s) => s.tmdbId)
+        .toSet();
+    final localTvTmdbIds = localState.scrapedMap.values
+        .where((s) => s.type == 'tv')
+        .map((s) => s.tmdbId)
+        .toSet();
     final totalMs = widget.item.duration.inMilliseconds;
 
     return Scaffold(
@@ -698,7 +707,13 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                             itemBuilder: (_, i) {
                               final r = recs[i];
                               final poster = r['poster_path'] as String?;
-                              final inLibrary = localTmdbIds.contains(r['id']);
+                              // 推荐列表按 scraped.type 分流（纯电影/纯剧集），
+                              // 用对应类型的已入库集合判断
+                              final inLibrary =
+                                  (scraped.type == 'tv'
+                                          ? localTvTmdbIds
+                                          : localMovieTmdbIds)
+                                      .contains(r['id']);
                               return SizedBox(
                                 width: 110,
                                 child: Column(
