@@ -1,3 +1,10 @@
+## [2.401.55](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.54...v2.401.55) (2026-10-28)
+
+
+### Bug Fixes
+
+* **widgets:** batch156-F1 弹幕与播放时间对齐 ([64a54f9](https://github.com/1525745393/EmbyTok-Flutter/commit/64a54f9b6531ecdbcf0e086868e1aab7aefa4b4a))
+
 ## [2.401.54](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.53...v2.401.54) (2026-10-28)
 
 
