@@ -53,6 +53,28 @@ void main() {
     debugPrint('DIAG mode=${container.read(serviceModeProvider)}');
     debugPrint('DIAG pin=${container.read(pinLockProvider)}');
 
+    // 实验 1：ensureLoaded 是否挂起
+    final pinN = container.read(pinLockProvider.notifier);
+    try {
+      await pinN.ensureLoaded().timeout(const Duration(seconds: 5));
+      debugPrint('DIAG ensureLoaded=done');
+    } on TimeoutException {
+      debugPrint('DIAG ensureLoaded=TIMEOUT');
+    }
+
+    // 实验 2：tree 中是否有 Router/Navigator
+    final all = tester.allWidgets
+        .map((w) => w.runtimeType.toString())
+        .where((t) =>
+            t.contains('Router') ||
+            t.contains('Navigator') ||
+            t.contains('Page') ||
+            t.contains('Loading') ||
+            t.contains('Error'))
+        .take(20)
+        .toList();
+    debugPrint('DIAG routerParts=$all');
+
     expect(true, isTrue);
   });
 }
