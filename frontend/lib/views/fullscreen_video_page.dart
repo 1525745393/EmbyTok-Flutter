@@ -693,11 +693,17 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
             behavior: HitTestBehavior.opaque,
             onTapDown: handleTapDown,
             onTap: handleTap,
+            // batch151-F1：长按倍速恢复三引擎手势——MPV/VLC 引擎分支直接渲染
+            // MpvVideoPlayer/VlcVideoPlayer，不创建 EXO controller（onControllerReady
+            // 不触发，currentVideoControllerProvider 恒 null）。原 controller != null
+            // 注册条件把长按手势整体拦截，长按倍速在 MPV/VLC 下完全失效；
+            // 改用 playbackUsable（已 override 走统一控制句柄 isReady，见 batch149）
+            // 作为注册条件，与 mixin 内部 playbackUsable 守卫保持一致。
             onLongPressStart:
-                gesturesEnabled && controller != null ? onLongPressStart : null,
+                gesturesEnabled && playbackUsable ? onLongPressStart : null,
             onLongPressEnd:
-                gesturesEnabled && controller != null ? onLongPressEnd : null,
-            onLongPressCancel: gesturesEnabled && controller != null
+                gesturesEnabled && playbackUsable ? onLongPressEnd : null,
+            onLongPressCancel: gesturesEnabled && playbackUsable
                 ? _onLongPressCancel
                 : null,
             onPanStart: gesturesEnabled ? onPanStart : null,
