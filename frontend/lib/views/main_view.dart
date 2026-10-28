@@ -8,6 +8,7 @@
 // Mini 播放条在所有 Tab 中统一显示（底部导航栏上方）。
 // 使用 IndexedStack 保持各 Tab 状态，切换不重新加载。
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -131,6 +132,9 @@ class _MainViewState extends ConsumerState<MainView> {
     final updateService = ref.read(updateCheckServiceProvider);
     final progress = ValueNotifier<double>(0);
     final status = ValueNotifier<String>('准备下载...');
+    // batch136-F1 取消按钮真正取消下载：downloadApk 支持 CancelToken，
+    // 之前取消只关闭对话框、下载仍在后台跑完并占用流量/存储
+    final cancelToken = CancelToken();
     showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -146,9 +150,10 @@ class _MainViewState extends ConsumerState<MainView> {
                     ? '${(p * 100).toStringAsFixed(0)}%'
                     : '下载中...';
               },
+              cancelToken: cancelToken,
               expectedSha256: release.sha256Digest,
             );
-            if (!ctx.mounted) return;
+            if (!ctx.mounted || cancelToken.isCancelled) return;
             Navigator.pop(ctx);
             // 下载完成，弹窗提示安装
             showDialog<void>(
@@ -174,6 +179,11 @@ class _MainViewState extends ConsumerState<MainView> {
               ),
             );
           } catch (e) {
+            // 用户主动取消：静默关闭，不弹失败提示
+            if (cancelToken.isCancelled) {
+              if (ctx.mounted) Navigator.pop(ctx);
+              return;
+            }
             if (!ctx.mounted) return;
             Navigator.pop(ctx);
             ScaffoldMessenger.of(context).showSnackBar(
@@ -206,7 +216,10 @@ class _MainViewState extends ConsumerState<MainView> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx),
+              onPressed: () {
+                cancelToken.cancel('用户取消下载');
+                Navigator.pop(ctx);
+              },
               child: const Text('取消'),
             ),
           ],
