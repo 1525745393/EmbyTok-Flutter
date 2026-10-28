@@ -1,3 +1,11 @@
+## [2.401.51](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.50...v2.401.51) (2026-10-28)
+
+
+### Bug Fixes
+
+* **widgets:** batch148 编译修复——_BottomInfoBar 保留 bottomPadding 字段 ([f75cdb7](https://github.com/1525745393/EmbyTok-Flutter/commit/f75cdb75febb803b46e0b8a7aadf78cc1202c0fa))
+* **widgets:** batch148-F1..F4 video_page_item(含3个part) 审查修复 ([316cde7](https://github.com/1525745393/EmbyTok-Flutter/commit/316cde7813f45b51c86ee0c2fa989b5dcf6d0844))
+
 ## [2.401.50](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.49...v2.401.50) (2026-10-28)
 
 
