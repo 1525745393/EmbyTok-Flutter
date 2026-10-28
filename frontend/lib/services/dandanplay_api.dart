@@ -49,11 +49,11 @@ class DandanplayApi {
       if (comments == null) return [];
       return comments.map((c) {
         final parts = (c as String).split(',');
-        // 格式："time,type,color,uid"
+        // 格式："time,type,color,uid,text"
         final time = double.tryParse(parts[0]) ?? 0;
         final type = int.tryParse(parts[1]) ?? 0; // 0滚动 1顶端 2底端
         final color = int.tryParse(parts[2]) ?? 0xFFFFFF;
-        final text = parts.length > 3 ? parts.sublist(3).join(',') : '';
+        final text = parts.length > 4 ? parts.sublist(4).join(',') : '';
         return DanmakuEntry(
           timeMs: (time * 1000).round(),
           text: text,
