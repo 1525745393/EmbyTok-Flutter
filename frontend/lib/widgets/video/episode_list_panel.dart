@@ -39,6 +39,8 @@ class _EpisodeListPanelState extends ConsumerState<EpisodeListPanel> {
   String? _selectedSeasonId;
   bool _loading = false;
   String? _error;
+  // batch153：季切换请求序号——快速连点两个季时旧请求晚返回会覆盖新季剧集
+  int _loadEpisodesSeq = 0;
 
   @override
   void initState() {
@@ -109,6 +111,8 @@ class _EpisodeListPanelState extends ConsumerState<EpisodeListPanel> {
   }
 
   Future<void> _loadEpisodes(String seasonId) async {
+    // batch153：记录本次请求序号，响应返回时若已切换季则丢弃旧响应
+    final seq = ++_loadEpisodesSeq;
     setState(() {
       _loading = true;
       _error = null;
@@ -124,18 +128,19 @@ class _EpisodeListPanelState extends ConsumerState<EpisodeListPanel> {
       final resp = await repo.getEpisodes(
         widget.currentItem.seriesId!,
         seasonId: seasonId,
-        limit: 100,
+        // batch153：100 集上限会截断超长剧（如海贼王 1000+ 集），提高到 1000
+        limit: 1000,
         serverUrl: serverUrl,
         token: token,
       );
-      if (!mounted) return;
+      if (!mounted || seq != _loadEpisodesSeq) return;
       setState(() {
         _episodes = resp.items;
         _loading = false;
       });
     } catch (e) {
       AppLogger.warn('加载剧集列表失败', data: {'error': e.toString()});
-      if (!mounted) return;
+      if (!mounted || seq != _loadEpisodesSeq) return;
       setState(() {
         _error = '加载剧集失败';
         _loading = false;
