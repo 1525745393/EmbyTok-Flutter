@@ -85,7 +85,9 @@ class NasMetadataSyncService {
       );
 
       if (response.statusCode != 200) {
-        _downloadCache[key] = null;
+        // batch142-F1: 失败不缓存 null——会话级缓存若写入 null，
+        // 未登录/404/网络瞬断后将整个会话无法重试，与字幕/lrclib
+        // "失败不缓存可重试"的既定模式一致。
         return null;
       }
 
@@ -102,7 +104,7 @@ class NasMetadataSyncService {
     } catch (e) {
       AppLogger.warn('NAS 元数据下载失败',
           data: {'artist': key, 'error': e.toString()});
-      _downloadCache[key] = null;
+      // batch142-F1: 异常同样不缓存 null，保持可重试
       return null;
     }
   }
