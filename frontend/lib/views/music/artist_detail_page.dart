@@ -922,6 +922,13 @@ Future<void> _loadFavoriteStatus() async {
 
   void _playAll(BuildContext context) {
     final songsAsync = ref.read(artistSongsProvider(_artistName));
+    // batch115-F1 歌曲加载中不误报"暂无歌曲"：AsyncValue 在 loading 态 value 为 null
+    if (songsAsync.isLoading) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('歌曲加载中，请稍候')),
+      );
+      return;
+    }
     final songs = songsAsync.value ?? [];
     if (songs.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
