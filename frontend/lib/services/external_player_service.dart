@@ -53,15 +53,19 @@ class ExternalPlayerService {
     String? packageName,
     String? subtitlesUrl,
   }) async {
+    final uri = Uri.parse(videoUrl);
     // 构造 VIEW Intent URL
     // Android: intent: ...#Intent;action=android.intent.action.VIEW;type=video/*;end
     final buf = StringBuffer();
     buf.write('intent://');
-    buf.write(Uri.parse(videoUrl).host);
-    buf.write(Uri.parse(videoUrl).path);
+    buf.write(uri.host);
+    // batch140-F1: 显式端口必须保留（Emby 8096 / 群晖 5000 等），
+    // 否则第三方播放器拿到的地址缺端口、无法连接服务端。
+    if (uri.hasPort) buf.write(':${uri.port}');
+    buf.write(uri.path);
     final queryParams = <String, String>{};
-    if (Uri.parse(videoUrl).query.isNotEmpty) {
-      queryParams.addAll(Uri.parse(videoUrl).queryParameters);
+    if (uri.query.isNotEmpty) {
+      queryParams.addAll(uri.queryParameters);
     }
     queryParams['title'] = title ?? '';
     if (subtitlesUrl != null) {
@@ -77,7 +81,7 @@ class ExternalPlayerService {
     buf.write('#Intent;');
     buf.write('action=android.intent.action.VIEW;');
     buf.write('type=video/*;');
-    buf.write('scheme=${Uri.parse(videoUrl).scheme};');
+    buf.write('scheme=${uri.scheme};');
     if (packageName != null && packageName.isNotEmpty) {
       buf.write('package=$packageName;');
     }
