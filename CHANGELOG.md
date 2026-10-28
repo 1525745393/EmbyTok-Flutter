@@ -1,3 +1,10 @@
+## [2.401.61](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.60...v2.401.61) (2026-10-28)
+
+
+### Bug Fixes
+
+* **error-state:** 自动重试真正触发 onRetry，手动重试复位并重启自动重试循环 ([c72294c](https://github.com/1525745393/EmbyTok-Flutter/commit/c72294ca8c2d4f0baf4f34d0107ea041fb065f82))
+
 ## [2.401.60](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.59...v2.401.60) (2026-10-28)
 
 
