@@ -50,19 +50,25 @@ extension _MusicListBuilders on _SynologyMusicViewState {
     );
   }
 
-  Widget _buildSongList(List<AudioSong> songs, ColorScheme scheme) {
+  Widget _buildSongList(List<AudioSong> songs, ColorScheme scheme,
+      {bool paginated = true, bool shrinkWrap = false}) {
     if (songs.isEmpty) {
       return _buildEmpty('暂无歌曲', scheme);
     }
     final playback = ref.watch(synologyPlaybackProvider);
     final musicState = ref.watch(synologyMusicProvider);
+    // batch124-F1 搜索结果嵌入外层 ListView 时必须 shrinkWrap + 禁滚动，
+    // 否则垂直嵌套无界高度直接抛 unbounded height 异常
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      itemCount: songs.length + (musicState.hasMoreSongs ? 1 : 0),
+      shrinkWrap: shrinkWrap,
+      physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
+      itemCount:
+          songs.length + (paginated && musicState.hasMoreSongs ? 1 : 0),
       itemBuilder: (context, index) {
-        // 触底加载更多
+        // 触底加载更多（搜索结果列表不分页，paginated=false 不渲染加载槽）
         if (index >= songs.length) {
-          if (!musicState.isLoadingMoreSongs) {
+          if (paginated && !musicState.isLoadingMoreSongs) {
             // 延迟到下一帧触发，避免 build 中副作用
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
@@ -153,14 +159,17 @@ extension _MusicListBuilders on _SynologyMusicViewState {
   }
 
   Widget _buildAlbumGrid(List<AudioAlbum> albums, ColorScheme scheme,
-      {bool paginated = true}) {
+      {bool paginated = true, bool shrinkWrap = false}) {
     if (albums.isEmpty) {
       return _buildEmpty('暂无专辑', scheme);
     }
     final musicState = ref.watch(synologyMusicProvider);
     final showLoadingCell = paginated && musicState.hasMoreAlbums;
+    // batch124-F1 搜索结果嵌入外层 ListView 时必须 shrinkWrap + 禁滚动
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+      shrinkWrap: shrinkWrap,
+      physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: _kAlbumGridCrossAxisCount,
         childAspectRatio: _kAlbumGridChildAspectRatio,
@@ -319,10 +328,18 @@ extension _MusicListBuilders on _SynologyMusicViewState {
                       return key == ch;
                     });
                     if (idx < 0 || !_artistScrollController.hasClients) return;
-                    const rowH = 96.0;
+                    // batch124-F2 行高按网格真实尺寸计算（单元格宽 / 纵横比 +
+                    // 主轴间距），取代固定 96 估算，避免索引导航系统性偏移
+                    final availWidth =
+                        MediaQuery.sizeOf(context).size.width - 12 - 32;
+                    final cellWidth =
+                        availWidth / _kArtistGridCrossAxisCount;
+                    final rowHeight = cellWidth /
+                            _kArtistGridChildAspectRatio +
+                        _kArtistGridMainAxisSpacing;
                     final row = idx ~/ _kArtistGridCrossAxisCount;
                     _artistScrollController.animateTo(
-                      (row * rowH).toDouble(),
+                      (row * rowHeight).toDouble(),
                       duration: const Duration(milliseconds: 200),
                       curve: Curves.easeOut,
                     );
@@ -451,11 +468,13 @@ extension _MusicListBuilders on _SynologyMusicViewState {
       children: [
         if (result.songs.isNotEmpty) ...[
           _buildSectionHeader('歌曲 (${result.songs.length})', scheme),
-          _buildSongList(result.songs, scheme),
+          _buildSongList(result.songs, scheme,
+              paginated: false, shrinkWrap: true),
         ],
         if (result.albums.isNotEmpty) ...[
           _buildSectionHeader('专辑 (${result.albums.length})', scheme),
-          _buildAlbumGrid(result.albums, scheme, paginated: false),
+          _buildAlbumGrid(result.albums, scheme,
+              paginated: false, shrinkWrap: true),
         ],
         if (result.artists.isNotEmpty) ...[
           _buildSectionHeader('歌手 (${result.artists.length})', scheme),
