@@ -897,20 +897,22 @@ Future<void> _loadFavoriteStatus() async {
             ListTile(
               leading: const Icon(Icons.playlist_play),
               title: const Text('下一首播放'),
+              // batch146-F1 TODO 未实现：对齐批量栏惯例，明确提示"开发中"，避免假反馈
               onTap: () {
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('已添加到播放队列下一首')),
+                  const SnackBar(content: Text('「下一首播放」功能开发中')),
                 );
               },
             ),
             ListTile(
               leading: const Icon(Icons.favorite_border),
               title: const Text('收藏'),
+              // batch146-F1 TODO 未实现：明确提示"开发中"，避免假反馈
               onTap: () {
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('已收藏')),
+                  const SnackBar(content: Text('「收藏歌曲」功能开发中')),
                 );
               },
             ),
