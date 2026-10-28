@@ -185,6 +185,8 @@ class _AutoRetryErrorCardState extends State<AutoRetryErrorCard> {
         } else {
           timer.cancel();
           _retryCount++;
+          // 触发一次真实重试：此前归零只重启倒计时从不调用 onRetry，自动重试从未生效（batch152-F1）
+          widget.onRetry();
           if (_retryCount < _maxRetries) {
             // 还有重试次数，重新倒计时
             _countdown = widget.retrySeconds;
@@ -268,6 +270,11 @@ class _AutoRetryErrorCardState extends State<AutoRetryErrorCard> {
               label: Text(_autoRetryStopped ? '重试' : '立即重试'),
               onPressed: () {
                 _timer?.cancel();
+                // 手动重试后复位计数并重启自动重试循环：父组件复用同一卡片再次失败时，自动重试继续生效（batch152-F1）
+                _retryCount = 0;
+                _autoRetryStopped = false;
+                _countdown = widget.retrySeconds;
+                _startTimer();
                 widget.onRetry();
               },
             ),
