@@ -45,7 +45,13 @@ class EmbytokAudioHandler extends BaseAudioHandler with SeekHandler {
       await _synologyPlayback.resume();
       return;
     }
-    // 视频场景
+    // 视频场景：优先统一控制句柄（MPV/VLC 引擎下 EXO controller 为 null，
+    // 通知栏按钮必须经句柄作用到当前渲染引擎），无句柄时回退 EXO controller
+    final handle = _ref.read(currentPlayerControlProvider);
+    if (handle != null) {
+      handle.play();
+      return;
+    }
     final controller = _ref.read(currentVideoControllerProvider);
     if (controller != null && controller.value.isInitialized) {
       await controller.play();
@@ -57,6 +63,11 @@ class EmbytokAudioHandler extends BaseAudioHandler with SeekHandler {
     // 群晖音乐场景：暂停音乐
     if (_isSynologyMusic) {
       await _synologyPlayback.pause();
+      return;
+    }
+    final handle = _ref.read(currentPlayerControlProvider);
+    if (handle != null) {
+      handle.pause();
       return;
     }
     final controller = _ref.read(currentVideoControllerProvider);
@@ -73,9 +84,14 @@ class EmbytokAudioHandler extends BaseAudioHandler with SeekHandler {
       return;
     }
     // 停止播放：仅暂停视频，不释放 controller（由 VideoPageItem 管理生命周期）
-    final controller = _ref.read(currentVideoControllerProvider);
-    if (controller != null && controller.value.isInitialized) {
-      await controller.pause();
+    final handle = _ref.read(currentPlayerControlProvider);
+    if (handle != null) {
+      handle.pause();
+    } else {
+      final controller = _ref.read(currentVideoControllerProvider);
+      if (controller != null && controller.value.isInitialized) {
+        await controller.pause();
+      }
     }
     // 清除 MediaSession：通知栏移除媒体控制按钮
     playbackState.add(PlaybackState(

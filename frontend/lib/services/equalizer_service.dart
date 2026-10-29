@@ -15,6 +15,7 @@ class EqualizerService {
   static const _kLevels = 'syno_eq_levels_mb';
 
   bool _available = false;
+  bool _enabled = true;
   int _bands = 0;
   int _minMb = 0;
   int _maxMb = 0;
@@ -22,6 +23,7 @@ class EqualizerService {
   List<int> _levels = [];
 
   bool get available => _available;
+  bool get enabled => _enabled;
   int get bands => _bands;
   int get minMb => _minMb;
   int get maxMb => _maxMb;
@@ -42,6 +44,7 @@ class EqualizerService {
 
       final prefs = await SharedPreferences.getInstance();
       final enabled = prefs.getBool(_kEnabled) ?? true;
+      _enabled = enabled;
       final raw = prefs.getString(_kLevels);
       if (raw != null) {
         final list =
@@ -73,6 +76,7 @@ class EqualizerService {
 
   Future<void> setEnabled(bool on) async {
     if (!_available) return;
+    _enabled = on;
     await _ch.invokeMethod('setEnabled', {'on': on});
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_kEnabled, on);

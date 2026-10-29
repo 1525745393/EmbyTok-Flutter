@@ -30,6 +30,8 @@ class _EqualizerViewState extends ConsumerState<EqualizerView> {
     setState(() {
       _available = ok;
       _inited = true;
+      // 同步持久化的开关状态，避免重启后 UI 显示与实际生效状态不一致
+      _enabled = equalizerService.enabled;
     });
   }
 

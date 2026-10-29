@@ -504,7 +504,8 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
 
   /// 加载弹幕：根据当前播放项的标题和集号匹配弹弹Play弹幕
   Future<void> _loadDanmaku(MediaItem item) async {
-    final title = item.title ?? '';
+    // MediaItem.title 为非空字段，无需空值兜底
+    final title = item.title;
     if (title.isEmpty) return;
     // 电视剧：从标题中提取集号；电影：集号为1
     int episode = 1;
@@ -1123,7 +1124,7 @@ void _setupControllerListener(VideoPlayerController? controller) {
       }
     }
 
-    // 位置秒数节流更新，用于字幕渲染（每秒最多一次）
+    // 位置变化即更新（position 变化时驱动进度条/弹幕/字幕渲染）
     final ms = v.position.inMilliseconds;
     if (ms != _lastPositionMs) {
       _lastPositionMs = ms;

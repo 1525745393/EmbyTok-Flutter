@@ -25,14 +25,22 @@ import 'video_playback_controller.dart';
 final audioSessionHandlerProvider = Provider<AudioSessionHandler>((ref) {
   final handler = AudioSessionHandler();
 
-  // 判断当前是否正在播放：实时读取最新 controller 的播放状态
+  // 判断当前是否正在播放：优先统一控制句柄（MPV/VLC 引擎下 EXO controller 为 null），
+  // 无句柄时回退 EXO controller 的播放状态
   handler.isPlaying = () {
+    final handle = ref.read(currentPlayerControlProvider);
+    if (handle != null) return handle.isPlaying;
     final controller = ref.read(currentVideoControllerProvider);
     return controller?.value.isPlaying ?? false;
   };
 
-  // 焦点丢失时暂停当前播放器
+  // 焦点丢失时暂停当前播放器（三引擎统一，经句柄作用到当前渲染引擎）
   handler.onPauseRequested = () {
+    final handle = ref.read(currentPlayerControlProvider);
+    if (handle != null) {
+      handle.pause();
+      return;
+    }
     ref.read(currentVideoControllerProvider)?.pause();
   };
 
@@ -42,6 +50,12 @@ final audioSessionHandlerProvider = Provider<AudioSessionHandler>((ref) {
     final autoResume = ref.read(autoResumeAfterInterruptionProvider);
     if (!autoResume) return;
 
+    final handle = ref.read(currentPlayerControlProvider);
+    if (handle != null) {
+      // 仅在当前未播放时续播，避免重复调用
+      if (!handle.isPlaying) handle.play();
+      return;
+    }
     final controller = ref.read(currentVideoControllerProvider);
     // 仅在 controller 存在且当前未播放时续播，避免重复调用
     if (controller != null && !controller.value.isPlaying) {

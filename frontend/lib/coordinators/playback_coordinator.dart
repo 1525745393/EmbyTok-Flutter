@@ -162,18 +162,30 @@ class PlaybackCoordinator {
   /// - null：无需操作
   ///
   /// 注意：系统栏显隐是 UI 层职责，本方法不处理。
+  /// 三引擎统一：优先经 currentPlayerControlProvider（MPV/VLC 引擎下 EXO
+  /// controller 为 null/隐藏实例，直调 pause/play 无效），无句柄时回退 EXO。
   String? handleViewModeChange(ViewMode prev, ViewMode next) {
-    final controller = _ref.read(currentVideoControllerProvider);
+    final handle = _ref.read(currentPlayerControlProvider);
     if (prev == ViewMode.feed && next == ViewMode.grid) {
       // 切到网格：暂停视频
-      if (controller != null && controller.value.isPlaying) {
-        controller.pause();
+      if (handle != null) {
+        handle.pause();
+      } else {
+        final controller = _ref.read(currentVideoControllerProvider);
+        if (controller != null && controller.value.isPlaying) {
+          controller.pause();
+        }
       }
       return 'pause';
     } else if (prev == ViewMode.grid && next == ViewMode.feed) {
       // 切回视频流：恢复播放
-      if (controller != null && !controller.value.isPlaying) {
-        controller.play();
+      if (handle != null) {
+        if (!handle.isPlaying) handle.play();
+      } else {
+        final controller = _ref.read(currentVideoControllerProvider);
+        if (controller != null && !controller.value.isPlaying) {
+          controller.play();
+        }
       }
       return 'resume';
     }
