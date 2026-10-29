@@ -1,3 +1,10 @@
+## [2.401.65](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.64...v2.401.65) (2026-10-29)
+
+
+### Bug Fixes
+
+* **music:** playQueue 保留播放模式与睡眠定时器；下一首按钮按模式可用；切歌清除恢复进度；下载去重含已完成 ([34cbce0](https://github.com/1525745393/EmbyTok-Flutter/commit/34cbce0e61dd112d8952fdf23c1dd1e1a5b2afa2))
+
 ## [2.401.64](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.63...v2.401.64) (2026-10-29)
 
 
