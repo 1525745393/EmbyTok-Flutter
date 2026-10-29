@@ -1,3 +1,10 @@
+## [2.401.67](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.66...v2.401.67) (2026-10-29)
+
+
+### Bug Fixes
+
+* **home:** 生命周期/Tab切换暂停恢复优先走三引擎统一句柄 ([9c6dddc](https://github.com/1525745393/EmbyTok-Flutter/commit/9c6dddc89f30ca5383b3c6e642b84b91a76f960e))
+
 ## [2.401.66](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.65...v2.401.66) (2026-10-29)
 
 
