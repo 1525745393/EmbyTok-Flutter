@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class CrashSimulatorPage extends StatelessWidget {
@@ -25,17 +26,14 @@ class CrashSimulatorPage extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.bug_report, color: Colors.red),
             title: const Text('Dart 空指针异常'),
-            subtitle: const Text('throw on null'),
+            subtitle: const Text('null 解引用抛 NoSuchMethodError（未捕获）'),
             onTap: () {
-              try {
-                String? nullStr;
-                // ignore: unnecessary_null_comparison
-                if (nullStr?.length == 0) {}
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('已捕获: $e')),
-                );
-              }
+              // batch153-F5：原 nullStr?.length 空安全永不抛异常，演示无效；
+              // 改为强制解引用抛出，验证 FlutterError.onError 捕获并记录 ERROR 日志
+              String? nullStr;
+              // ignore: unnecessary_non_null_assertion
+              final len = nullStr!.length;
+              debugPrint('unreachable len=$len');
             },
           ),
           ListTile(

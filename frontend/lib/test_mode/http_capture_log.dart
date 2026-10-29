@@ -55,37 +55,43 @@ class HttpRequestLog extends ChangeNotifier {
 
 /// Dio 拦截器：记录请求到环形缓冲
 class CaptureLogInterceptor extends Interceptor {
-  final _stopwatch = Stopwatch();
+  static const _kCaptureStartKey = 'capture_start_ms';
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    _stopwatch.reset();
-    _stopwatch.start();
+    // 并发安全：起点写入请求级 extra，禁止用拦截器实例字段共享 Stopwatch
+    // （此前单实例 Stopwatch 被并发 onRequest 互相 reset，durationMs 错乱，batch153-F2）
+    options.extra[_kCaptureStartKey] =
+        DateTime.now().millisecondsSinceEpoch;
     handler.next(options);
   }
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    _stopwatch.stop();
     HttpRequestLog.instance.add(HttpRequestRecord(
       method: response.requestOptions.method,
       path: response.requestOptions.uri.path,
       statusCode: response.statusCode,
-      durationMs: _stopwatch.elapsedMilliseconds,
+      durationMs: _elapsedOf(response.requestOptions),
     ));
     handler.next(response);
   }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    _stopwatch.stop();
     HttpRequestLog.instance.add(HttpRequestRecord(
       method: err.requestOptions.method,
       path: err.requestOptions.uri.path,
       statusCode: err.response?.statusCode,
-      durationMs: _stopwatch.elapsedMilliseconds,
+      durationMs: _elapsedOf(err.requestOptions),
       error: err.message,
     ));
     handler.next(err);
+  }
+
+  int _elapsedOf(RequestOptions options) {
+    final start = options.extra[_kCaptureStartKey] as int?;
+    if (start == null) return 0;
+    return DateTime.now().millisecondsSinceEpoch - start;
   }
 }

@@ -1,7 +1,5 @@
 // 网络与弱网测试：超时模拟、错误码、重试
 
-import 'dart:async';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
@@ -27,11 +25,15 @@ class _NetworkWeakTestPageState extends State<NetworkWeakTestPage> {
     try {
       final resp = await request();
       setState(() => _result = '$label 成功：HTTP ${resp.statusCode}');
-    } on TimeoutException {
-      setState(() => _result = '$label 超时（符合预期）');
     } on DioException catch (e) {
-      setState(() => _result =
-          '$label 失败：${e.type} ${e.response?.statusCode ?? ''} ${e.message ?? ''}');
+      // Dio 超时抛 DioExceptionType.receiveTimeout/sendTimeout，不抛 Dart TimeoutException；
+      // 原 on TimeoutException 分支永不触发，"超时模拟"一直显示失败（batch153-F3）
+      final isTimeout = e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.connectionTimeout;
+      setState(() => _result = isTimeout
+          ? '$label 超时（符合预期）'
+          : '$label 失败：${e.type} ${e.response?.statusCode ?? ''} ${e.message ?? ''}');
     } catch (e) {
       setState(() => _result = '$label 异常：$e');
     } finally {

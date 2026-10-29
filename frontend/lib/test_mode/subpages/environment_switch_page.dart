@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../services/api_client.dart';
+import '../../providers/providers.dart';
+import '../../services/emby_server_api.dart';
 import '../test_env_provider.dart';
 
 const _kTestEnvKey = 'test_mode_override_base_url';
@@ -45,7 +46,10 @@ class _EnvironmentSwitchPageState extends ConsumerState<EnvironmentSwitchPage> {
   Future<void> _apply(String url) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kTestEnvKey, url);
-    ApiClient().setBaseUrl(url);
+    // 作用于全局真实 ApiClient（batch153-F1）：此前 new 孤儿实例，切换对实际请求链无效
+    (ref.read(mediaServerApiProvider) as EmbyServerApi)
+        .apiClient
+        .setBaseUrl(url);
     // 更新全局 provider，触发红色横幅显示
     ref.read(testEnvOverrideProvider.notifier).state =
         url.isEmpty ? null : url;
@@ -62,7 +66,7 @@ class _EnvironmentSwitchPageState extends ConsumerState<EnvironmentSwitchPage> {
             padding: EdgeInsets.all(16),
             child: Text(
               '临时覆盖 ApiClient baseUrl，不写入正式服务器列表。\n'
-              '重启 App 后自动恢复原配置。',
+              '设置后重启 App 继续生效；点"正式"或应用空地址即恢复默认（batch153-F6）。',
               style: TextStyle(color: Colors.grey, fontSize: 12),
             ),
           ),

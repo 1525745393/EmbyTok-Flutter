@@ -6,6 +6,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 
 import '../models/models.dart';
 import '../utils/logger.dart';
@@ -31,6 +32,29 @@ abstract class EmbyServerApiBase {
   static const int maxSubtitleFileSize = 5 * 1024 * 1024;
 
   final ApiClient _apiClient;
+
+  /// 暴露真实 API client 供测试模式注入（环境切换/抓包/Mock/代理）：
+  /// 测试模式各处不得 new 孤儿 ApiClient，必须通过此 getter 操作实际请求链（batch153-F1）
+  ApiClient get apiClient => _apiClient;
+
+  /// 测试模式：应用/清除 HTTP 代理到指定 Dio（proxy_settings_page 与 App 启动恢复共用，
+  /// 集中在此避免 app.dart 引入 dart:io 破坏 Web 构建，batch153-F1）
+  static void applyTestProxy(Dio dio, {String? proxy}) {
+    final adapter = dio.httpClientAdapter;
+    if (adapter is IOHttpClientAdapter) {
+      if (proxy == null || proxy.isEmpty) {
+        // 关闭代理：恢复默认 HttpClient 创建逻辑
+        adapter.createHttpClient = null;
+      } else {
+        adapter.createHttpClient = () {
+          final client = HttpClient();
+          client.findProxy = (uri) => 'PROXY $proxy';
+          return client;
+        };
+      }
+    }
+  }
+
   String? _defaultServerUrl;
   String? _defaultToken;
   String? _defaultUserId;

@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../services/api_client.dart';
+import '../services/emby_server_api.dart';
 import '../utils/logger.dart';
 import '../utils/memory_pressure_handler.dart';
 import '../utils/safe_unawaited.dart';
@@ -177,20 +178,31 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
     super.dispose();
   }
 
-  /// 恢复测试模式环境覆盖：启动时读取 SharedPreferences，若有则应用并显示红色横幅
+  /// 恢复测试模式环境覆盖/代理：启动时读取 SharedPreferences，若有则应用到真实请求链并显示红色横幅
+  /// 必须通过 mediaServerApiProvider 拿到全局真实 ApiClient，不得 new 孤儿实例（batch153-F1）
   Future<void> _restoreTestEnvOverride() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final saved = prefs.getString('test_mode_override_base_url') ?? '';
+      final api = (ref.read(mediaServerApiProvider) as EmbyServerApi).apiClient;
       if (saved.isNotEmpty) {
-        ApiClient().setBaseUrl(saved);
+        api.setBaseUrl(saved);
         ref.read(testEnvOverrideProvider.notifier).state = saved;
         AppLogger.warn('测试环境覆盖已恢复', data: {'baseUrl': saved});
       }
-      // 注册网络抓包拦截器（仅 debug）
-      ApiClient().dio.interceptors.add(CaptureLogInterceptor());
-      // 注册 API Mock 拦截器（仅 debug，默认关闭）
-      ApiClient().dio.interceptors.add(MockInterceptor());
+      // 恢复测试模式 HTTP 代理（与 proxy_settings_page 持久化 key 一致）
+      final proxy = prefs.getString('test_mode_proxy');
+      if (proxy != null && proxy.isNotEmpty) {
+        EmbyServerApiBase.applyTestProxy(api.dio, proxy: proxy);
+      }
+      // 注册网络抓包拦截器（仅测试模式，防重复注册）
+      if (!api.dio.interceptors.any((i) => i is CaptureLogInterceptor)) {
+        api.dio.interceptors.add(CaptureLogInterceptor());
+      }
+      // 注册 API Mock 拦截器（仅测试模式，默认关闭，防重复注册）
+      if (!api.dio.interceptors.any((i) => i is MockInterceptor)) {
+        api.dio.interceptors.add(MockInterceptor());
+      }
     } catch (e) {
       AppLogger.debug('恢复测试环境覆盖失败', data: {'error': e.toString()});
     }

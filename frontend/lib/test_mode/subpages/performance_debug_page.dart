@@ -13,7 +13,7 @@ class PerformanceDebugPage extends StatefulWidget {
 }
 
 class _PerformanceDebugPageState extends State<PerformanceDebugPage> {
-  bool _showOverlay = false;
+  // 性能浮层由主界面 AppPerformanceOverlay 的右下角悬浮按钮控制（batch153-F4）
   FlutterMemory? _mem;
   Timer? _timer;
 
@@ -54,29 +54,25 @@ class _PerformanceDebugPageState extends State<PerformanceDebugPage> {
                 : '${_mem!.rssMB.toStringAsFixed(1)} MB'),
           ),
           const Divider(),
-          SwitchListTile(
-            secondary: const Icon(Icons.speed),
-            title: const Text('PerformanceOverlay'),
-            subtitle: const Text('开启渲染性能浮层（FPS/绘制）'),
-            value: _showOverlay,
-            onChanged: (v) => setState(() => _showOverlay = v),
+          ListTile(
+            leading: const Icon(Icons.speed),
+            title: const Text('性能监控浮层'),
+            subtitle: const Text('由主界面右下角悬浮按钮切换显示'),
           ),
           const Padding(
             padding: EdgeInsets.all(16),
             child: Text(
-              '提示：开启 PerformanceOverlay 后返回上一页即可看到浮层。\n'
-              '网格线表示耗时（绿色=正常，红色=掉帧）。',
+              '返回主界面后点击右下角悬浮按钮可显示/隐藏性能浮层\n'
+              '（内存/FPS/重建次数/API 请求），可拖拽移动。',
               style: TextStyle(color: Colors.grey, fontSize: 12),
             ),
           ),
         ],
       ),
-      floatingActionButton: _showOverlay
-          ? null
-          : FloatingActionButton(
-              onPressed: _refresh,
-              child: const Icon(Icons.refresh),
-            ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _refresh,
+        child: const Icon(Icons.refresh),
+      ),
     );
   }
 }

@@ -1,23 +1,22 @@
 // HTTP 代理设置：配置 Dio 走 Charles/mitmproxy 抓包代理
 
-import 'dart:io';
-
-import 'package:dio/io.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../services/api_client.dart';
+import '../../providers/providers.dart';
+import '../../services/emby_server_api.dart';
 
 const _kProxyKey = 'test_mode_proxy';
 
-class ProxySettingsPage extends StatefulWidget {
+class ProxySettingsPage extends ConsumerStatefulWidget {
   const ProxySettingsPage({super.key});
 
   @override
-  State<ProxySettingsPage> createState() => _ProxySettingsPageState();
+  ConsumerState<ProxySettingsPage> createState() => _ProxySettingsPageState();
 }
 
-class _ProxySettingsPageState extends State<ProxySettingsPage> {
+class _ProxySettingsPageState extends ConsumerState<ProxySettingsPage> {
   late TextEditingController _hostController;
   late TextEditingController _portController;
   bool _enabled = false;
@@ -43,28 +42,28 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
 
   Future<void> _apply() async {
     final prefs = await SharedPreferences.getInstance();
+    // 作用于全局真实 ApiClient（batch153-F1）：此前 new 孤儿实例，代理对实际请求链无效
+    final dio =
+        (ref.read(mediaServerApiProvider) as EmbyServerApi).apiClient.dio;
     if (_enabled) {
-      final proxy = '${_hostController.text.trim()}:${_portController.text.trim()}';
+      final proxy =
+          '${_hostController.text.trim()}:${_portController.text.trim()}';
       await prefs.setString(_kProxyKey, proxy);
-      // Dio 设置代理
-      final adapter = ApiClient().dio.httpClientAdapter;
-      if (adapter is IOHttpClientAdapter) {
-        adapter.createHttpClient = () {
-          final client = HttpClient();
-          client.findProxy = (uri) => 'PROXY $proxy';
-          return client;
-        };
-      }
+      // 统一走 EmbyServerApiBase.applyTestProxy，设置代理
+      EmbyServerApiBase.applyTestProxy(dio, proxy: proxy);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('代理已设置: $proxy（重启后生效）')),
+          SnackBar(content: Text('代理已设置: $proxy（立即生效，重启后保留）')),
         );
       }
     } else {
       await prefs.remove(_kProxyKey);
+      // 关闭代理时恢复默认 HttpClient 创建逻辑（batch153-F1）：
+      // 此前只删 prefs 不恢复 adapter，代理在当前会话内仍生效无法真正关闭
+      EmbyServerApiBase.applyTestProxy(dio);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('代理已关闭')),
+          const SnackBar(content: Text('代理已关闭（当前会话立即生效）')),
         );
       }
     }
@@ -79,7 +78,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
         children: [
           const Text(
             '配置 Dio 走外部代理（Charles / mitmproxy）。\n'
-            '设置后需重启 App 生效。\n\n'
+            '应用后立即生效，重启 App 后自动恢复该代理；关闭则立即恢复直连。\n\n'
             '注意：代理需在同一局域网，手机需信任代理证书才能抓 HTTPS。',
             style: TextStyle(color: Colors.grey, fontSize: 12),
           ),

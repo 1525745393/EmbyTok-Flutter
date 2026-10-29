@@ -35,7 +35,7 @@ class TestModeAboutPage extends StatelessWidget {
               '1. 本控制台仅在 debug 构建或 --dart-define=TEST_MODE=true 时可用\n'
               '2. release 构建不包含任何测试入口与路由\n'
               '3. 测试数据（日志、环境覆盖）不影响正式用户配置\n'
-              '4. 退出测试模式：返回设置页即可，环境切换在重启后自动恢复',
+              '4. 退出测试模式：返回设置页即可；环境切换重启后继续生效，需手动选"正式"恢复（batch153-F6）',
             ),
           ),
           ListTile(
