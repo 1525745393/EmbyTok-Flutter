@@ -181,9 +181,23 @@ abstract class CachedMediaRepositoryBase {
         '${params.excludePlayed}';
   }
 
+  // 收藏 key：必须覆盖 includeTypes/excludePlayed，否则同一会话内
+  // 追剧流（Movie/Episode、BoxSet、Person 三种 includeTypes）会命中
+  // 同一缓存条目，返回错误类型的数据。
   String _favoritesKey(
-      String serverUrl, String token, String? userId, int limit, int offset) {
-    return 'fav:$serverUrl:$token:${userId ?? ''}:$limit:$offset';
+    String serverUrl,
+    String token,
+    String? userId,
+    int limit,
+    int offset, {
+    List<String>? includeTypes,
+    bool excludePlayed = false,
+  }) {
+    final typesStr = includeTypes != null
+        ? (includeTypes.toList()..sort()).join(',')
+        : '';
+    return 'fav:$serverUrl:$token:${userId ?? ''}:$limit:$offset:'
+        '${excludePlayed ? 'unplayed' : 'all'}:$typesStr';
   }
 
   String _boxSetsFavoritesKey(

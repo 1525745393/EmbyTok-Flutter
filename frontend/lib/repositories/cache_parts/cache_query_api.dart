@@ -63,7 +63,8 @@ mixin _CacheQueryApi on CachedMediaRepositoryBase {
     List<String>? includeTypes,
     bool excludePlayed = false,
   }) {
-    final key = _favoritesKey(serverUrl, token, userId, limit, offset);
+    final key = _favoritesKey(serverUrl, token, userId, limit, offset,
+        includeTypes: includeTypes, excludePlayed: excludePlayed);
     return _withCache(
         _favoritesCache,
         key,
