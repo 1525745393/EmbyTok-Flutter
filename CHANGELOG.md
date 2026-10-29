@@ -1,3 +1,10 @@
+## [2.401.64](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.63...v2.401.64) (2026-10-29)
+
+
+### Bug Fixes
+
+* **feed:** 跳页路径统一越界守卫，列表变化后越界 index 不再黑屏 ([60d1183](https://github.com/1525745393/EmbyTok-Flutter/commit/60d118395a2be7bd11b3752484b54f5a5f0618c5))
+
 ## [2.401.63](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.62...v2.401.63) (2026-10-29)
 
 
