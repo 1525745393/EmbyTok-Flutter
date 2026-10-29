@@ -261,9 +261,12 @@ class PlaybackCoordinator {
 
     // 同步播放状态
     final items = _ref.read(videoListProvider).items;
-    if (request < items.length) {
-      syncCurrentPlaying(index: request, items: items);
+    if (request < 0 || request >= items.length) {
+      // 列表已变化（loadMore 失败/媒体库切换等），请求 index 越界：
+      // 丢弃请求，避免 UI 层 jumpToPage 越界滚到无页面区域导致黑屏。
+      return null;
     }
+    syncCurrentPlaying(index: request, items: items);
     return request;
   }
 

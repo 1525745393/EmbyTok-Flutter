@@ -9,10 +9,21 @@ extension _FeedActions on _FeedViewState {
     if (!mounted) return;
     if (retryCount > 30) return;
 
-    if (_pageController.hasClients) {
+    // 越界守卫：与 _animateToPage 同一套边界逻辑。
+    // 外部跳页请求（全屏页下一集等）或位置恢复在列表变化后可能携带越界
+    // index，裸调 jumpToPage 会滚到无页面区域导致黑屏 + _currentIndex 污染。
+    if (targetIndex < 0) return;
+    final isLocal = ref.read(localFeedSourceIdProvider) != null;
+    final ctrl = isLocal ? _localPageController : _pageController;
+    if (!isLocal) {
+      final items = ref.read(videoListProvider).items;
+      if (targetIndex >= items.length) return;
+    }
+
+    if (ctrl.hasClients) {
       _currentIndex = targetIndex;
       _currentIndexNotifier.value = targetIndex;
-      _pageController.jumpToPage(targetIndex);
+      ctrl.jumpToPage(targetIndex);
       return;
     }
 
@@ -24,10 +35,18 @@ extension _FeedActions on _FeedViewState {
   Future<bool> _jumpToPageWhenReadyAsync(int targetIndex) async {
     for (int i = 0; i < 30; i++) {
       if (!mounted) return false;
-      if (_pageController.hasClients) {
+      // 越界守卫：与 _jumpToPageWhenReady 一致，避免列表变化后跳页黑屏
+      if (targetIndex < 0) return false;
+      final isLocal = ref.read(localFeedSourceIdProvider) != null;
+      final ctrl = isLocal ? _localPageController : _pageController;
+      if (!isLocal) {
+        final items = ref.read(videoListProvider).items;
+        if (targetIndex >= items.length) return false;
+      }
+      if (ctrl.hasClients) {
         _currentIndex = targetIndex;
         _currentIndexNotifier.value = targetIndex;
-        _pageController.jumpToPage(targetIndex);
+        ctrl.jumpToPage(targetIndex);
         return true;
       }
       await Future<void>.delayed(const Duration(milliseconds: 50));
@@ -37,6 +56,9 @@ extension _FeedActions on _FeedViewState {
 
   bool _jumpToPageByIndex(int targetIndex) {
     if (!mounted || !_pageController.hasClients) return false;
+    // 越界守卫：waitForInitialItem 等入口在列表变化后可能携带越界 index
+    final items = ref.read(videoListProvider).items;
+    if (targetIndex < 0 || targetIndex >= items.length) return false;
     _currentIndex = targetIndex;
     _currentIndexNotifier.value = targetIndex;
     _pageController.jumpToPage(targetIndex);
