@@ -112,6 +112,7 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
     final isForeground = state == AppLifecycleState.resumed;
 
     final controller = ref.read(currentVideoControllerProvider);
+    final handle = ref.read(currentPlayerControlProvider);
     final userWantsToPlay = ref.read(isPlayingProvider);
     // 仅当 Feed 当前可见时才在回前台时恢复播放
     final navState = ref.read(pageNavigationProvider);
@@ -134,6 +135,7 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
       isFeedVisible: navState.isFeedVisible,
       controller: controller,
       userWantsToPlay: userWantsToPlay,
+      handle: handle,
     );
   }
 
@@ -146,12 +148,14 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
     if (!mounted) return;
 
     final controller = ref.read(currentVideoControllerProvider);
+    final handle = ref.read(currentPlayerControlProvider);
     final userWantsToPlay = ref.read(isPlayingProvider);
     applyFeedVisibilityChange(
       prev: prev,
       next: next,
       controller: controller,
       userWantsToPlay: userWantsToPlay,
+      handle: handle,
     );
   }
 
@@ -400,7 +404,15 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
 }
 
 /// 底层工具：仅在 controller 正在播放时 pause（防止重复 pause）
-void _pauseIfPlaying(VideoPlayerController? controller) {
+/// handle 存在时优先走三引擎统一句柄（MPV/VLC 引擎下 EXO controller 为 null）
+void _pauseIfPlaying(
+  VideoPlayerController? controller,
+  PlayerControlHandle? handle,
+) {
+  if (handle != null) {
+    handle.pause();
+    return;
+  }
   if (controller == null) return;
   if (!controller.value.isInitialized) return;
   if (controller.value.isPlaying) {
@@ -411,10 +423,18 @@ void _pauseIfPlaying(VideoPlayerController? controller) {
 /// 底层工具：仅在 userWantsToPlay=true 且 controller 已暂停时 play
 ///
 /// 不覆盖用户的"主动暂停"意图——只有当用户原本就想播放时才恢复。
+/// handle 存在时优先走三引擎统一句柄（MPV/VLC 引擎下 EXO controller 为 null）
 void _playIfWantedAndPaused(
   VideoPlayerController? controller,
+  PlayerControlHandle? handle,
   bool userWantsToPlay,
 ) {
+  if (handle != null) {
+    if (userWantsToPlay && !handle.isPlaying) {
+      handle.play();
+    }
+    return;
+  }
   if (controller == null) return;
   if (!controller.value.isInitialized) return;
   if (userWantsToPlay && !controller.value.isPlaying) {
@@ -440,16 +460,17 @@ void applyFeedVisibilityChange({
   required PageNavigationState next,
   required VideoPlayerController? controller,
   required bool userWantsToPlay,
+  PlayerControlHandle? handle,
 }) {
   // 1. 可见性没有变化 → 不处理
   if (prev.isFeedVisible == next.isFeedVisible) return;
 
   if (!next.isFeedVisible) {
     // Feed 刚被隐藏（切到其他 Tab）：暂停
-    _pauseIfPlaying(controller);
+    _pauseIfPlaying(controller, handle);
   } else {
     // Feed 刚重新可见：恢复（仅当用户原本"想播放"）
-    _playIfWantedAndPaused(controller, userWantsToPlay);
+    _playIfWantedAndPaused(controller, handle, userWantsToPlay);
   }
 }
 
@@ -476,6 +497,7 @@ void applyLifecyclePlaybackChange({
   required bool isFeedVisible,
   required VideoPlayerController? controller,
   required bool userWantsToPlay,
+  PlayerControlHandle? handle,
 }) {
   // 首次回调（prev 为 null）：不做处理
   if (prev == null) return;
@@ -485,11 +507,11 @@ void applyLifecyclePlaybackChange({
 
   if (wasForeground && !isForeground) {
     // 刚离开前台：无论 Feed 是否可见都暂停（节省资源）
-    _pauseIfPlaying(controller);
+    _pauseIfPlaying(controller, handle);
   } else if (!wasForeground && isForeground) {
     // 刚回到前台：仅当 Feed 可见 + 用户原本想播放 才恢复
     if (isFeedVisible) {
-      _playIfWantedAndPaused(controller, userWantsToPlay);
+      _playIfWantedAndPaused(controller, handle, userWantsToPlay);
     }
   }
   // 中间过渡态（resumed → inactive → paused 或反向）由边界触发，

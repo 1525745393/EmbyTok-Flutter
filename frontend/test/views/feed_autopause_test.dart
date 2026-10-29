@@ -12,6 +12,7 @@
 // 测试策略：核心逻辑已抽到顶层纯函数 applyFeedVisibilityChange，
 // 用 mockito mock VideoPlayerController 验证 pause/play 调用。
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:video_player/video_player.dart';
@@ -304,6 +305,36 @@ void main() {
       );
       verify(mockController.play()).called(1);
     });
+
+    test('MPV/VLC 引擎（controller=null）: 切 Tab 走三引擎统一句柄 pause', () {
+      // 播放器段 F1 同模式：切 Tab 暂停/恢复直读 EXO controller，
+      // MPV/VLC 引擎下为 null。修复后优先走 currentPlayerControlProvider 句柄。
+      final fakeHandle = _FakePlayerControlHandle(playing: true);
+
+      applyFeedVisibilityChange(
+        prev: const PageNavigationState(),
+        next: const PageNavigationState(currentIndex: PageIndices.favorites),
+        controller: null,
+        userWantsToPlay: true,
+        handle: fakeHandle,
+      );
+
+      expect(fakeHandle.pauseCalled, isTrue);
+      expect(fakeHandle.isPlaying, isFalse);
+
+      // 切回 Feed + 用户想播放 → handle.play()
+      fakeHandle.playing = false;
+      fakeHandle.pauseCalled = false;
+      applyFeedVisibilityChange(
+        prev: const PageNavigationState(currentIndex: PageIndices.favorites),
+        next: const PageNavigationState(),
+        controller: null,
+        userWantsToPlay: true,
+        handle: fakeHandle,
+      );
+      expect(fakeHandle.playCalled, isTrue);
+      expect(fakeHandle.isPlaying, isTrue);
+    });
   });
 
   test('TC-1: isFeedVisible 在搜索覆盖层(isOverlayPage=true)时返回 false', () {
@@ -338,6 +369,56 @@ void main() {
 /// `Bad state: Cannot call when within a stub response` 或
 /// `Bad state: Verification appears to be in progress`。
 /// 这里通过 [super.noSuchMethod] 提供有效的 [returnValue] 兜底，避免上述问题。
+class _FakePlayerControlHandle implements PlayerControlHandle {
+  _FakePlayerControlHandle({required this.playing});
+
+  bool playing;
+  bool pauseCalled = false;
+  bool playCalled = false;
+
+  @override
+  void play() {
+    playing = true;
+    playCalled = true;
+  }
+
+  @override
+  void pause() {
+    playing = false;
+    pauseCalled = true;
+  }
+
+  @override
+  bool get isPlaying => playing;
+
+  @override
+  Duration get currentPosition => Duration.zero;
+
+  @override
+  Duration get totalDuration => Duration.zero;
+
+  @override
+  double get playbackRate => 1.0;
+
+  @override
+  double get volume => 1.0;
+
+  @override
+  bool get isReady => true;
+
+  @override
+  ValueListenable<int>? get positionMsListenable => null;
+
+  @override
+  Future<void> seekTo(Duration position) async {}
+
+  @override
+  Future<void> setRate(double rate) async {}
+
+  @override
+  void setVolume(double value) {}
+}
+
 class MockVideoPlayerController extends Mock implements VideoPlayerController {
   @override
   VideoPlayerValue get value => super.noSuchMethod(

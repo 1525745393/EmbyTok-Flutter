@@ -14,6 +14,7 @@
 // 测试策略：核心逻辑抽到顶层纯函数 applyLifecyclePlaybackChange，
 // 用 mockito mock VideoPlayerController 验证 pause/play 调用。
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
@@ -340,6 +341,65 @@ void main() {
         verify(mockController.play()).called(1);
       });
     });
+
+    group('三引擎统一句柄（MPV/VLC 引擎下 EXO controller 为 null）', () {
+      // home_scaffold 生命周期暂停/恢复直读 EXO controller，MPV/VLC 下恒 null，
+      // 切后台不会 pause、回前台不恢复。修复后优先走 currentPlayerControlProvider
+      // 的三引擎统一句柄，EXO 直调保留为 fallback。此处 controller 传 null
+      // 模拟 MPV/VLC 引擎，验证 handle 分支兜底。
+
+      late _FakePlayerControlHandle fakeHandle;
+
+      setUp(() {
+        fakeHandle = _FakePlayerControlHandle(playing: true);
+      });
+
+      test('切后台（handle 播放中）: handle.pause()，不依赖 EXO controller', () {
+        applyLifecyclePlaybackChange(
+          prev: AppLifecycleState.resumed,
+          next: AppLifecycleState.inactive,
+          isFeedVisible: true,
+          controller: null,
+          userWantsToPlay: true,
+          handle: fakeHandle,
+        );
+
+        expect(fakeHandle.pauseCalled, isTrue);
+        expect(fakeHandle.isPlaying, isFalse);
+      });
+
+      test('回前台（handle 暂停 + 用户想播放）: handle.play()', () {
+        fakeHandle = _FakePlayerControlHandle(playing: false);
+
+        applyLifecyclePlaybackChange(
+          prev: AppLifecycleState.inactive,
+          next: AppLifecycleState.resumed,
+          isFeedVisible: true,
+          controller: null,
+          userWantsToPlay: true,
+          handle: fakeHandle,
+        );
+
+        expect(fakeHandle.playCalled, isTrue);
+        expect(fakeHandle.isPlaying, isTrue);
+      });
+
+      test('回前台（handle 暂停 + 用户主动暂停）: 不自动恢复', () {
+        fakeHandle = _FakePlayerControlHandle(playing: false);
+
+        applyLifecyclePlaybackChange(
+          prev: AppLifecycleState.inactive,
+          next: AppLifecycleState.resumed,
+          isFeedVisible: true,
+          controller: null,
+          userWantsToPlay: false,
+          handle: fakeHandle,
+        );
+
+        expect(fakeHandle.playCalled, isFalse);
+        expect(fakeHandle.isPlaying, isFalse);
+      });
+    });
   });
 
   group('PageNavigationState.isFeedVisible：复用 PR #93 测试', () {
@@ -364,6 +424,56 @@ void main() {
 /// `Bad state: Cannot call when within a stub response` 或
 /// `Bad state: Verification appears to be in progress`。
 /// 这里通过 [super.noSuchMethod] 提供有效的 [returnValue] 兜底，避免上述问题。
+class _FakePlayerControlHandle implements PlayerControlHandle {
+  _FakePlayerControlHandle({required this.playing});
+
+  bool playing;
+  bool pauseCalled = false;
+  bool playCalled = false;
+
+  @override
+  void play() {
+    playing = true;
+    playCalled = true;
+  }
+
+  @override
+  void pause() {
+    playing = false;
+    pauseCalled = true;
+  }
+
+  @override
+  bool get isPlaying => playing;
+
+  @override
+  Duration get currentPosition => Duration.zero;
+
+  @override
+  Duration get totalDuration => Duration.zero;
+
+  @override
+  double get playbackRate => 1.0;
+
+  @override
+  double get volume => 1.0;
+
+  @override
+  bool get isReady => true;
+
+  @override
+  ValueListenable<int>? get positionMsListenable => null;
+
+  @override
+  Future<void> seekTo(Duration position) async {}
+
+  @override
+  Future<void> setRate(double rate) async {}
+
+  @override
+  void setVolume(double value) {}
+}
+
 class MockVideoPlayerController extends Mock implements VideoPlayerController {
   @override
   VideoPlayerValue get value => super.noSuchMethod(
