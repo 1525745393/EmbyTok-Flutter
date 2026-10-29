@@ -1,3 +1,10 @@
+## [2.401.62](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.61...v2.401.62) (2026-10-29)
+
+
+### Bug Fixes
+
+* **test_mode:** batch153 修复孤儿 ApiClient 与 5 个 P3 ([d1db707](https://github.com/1525745393/EmbyTok-Flutter/commit/d1db707fa9bacb83dc717b9a3258e8a6550cc295))
+
 ## [2.401.61](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.60...v2.401.61) (2026-10-28)
 
 
