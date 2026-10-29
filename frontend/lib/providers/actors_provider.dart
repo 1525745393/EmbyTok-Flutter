@@ -178,7 +178,7 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
       // 本地缓存读取失败不影响主流程
     }
 
-    // 2. 后台从服务器更新关注列表
+    // 2. 后台从服务器更新关注列表（分页拉全量，避免超过单页 50 条截断）
     try {
       final auth = _ref.read(authProvider);
       final serverUrl = auth.embyServerUrl;
@@ -186,22 +186,33 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
       final userId = auth.user?.id;
       if (serverUrl == null || token == null) return;
       final cachedRepo = _ref.read(cachedMediaRepositoryProvider);
-      final result = await cachedRepo.getFavoritePeople(
-        serverUrl: serverUrl,
-        token: token,
-        userId: userId,
-      );
-      // Person.id 可空，过滤掉 null 后再收集
-      final ids = result.items.map((e) => e.id).whereType<String>().toSet();
-      if (ids.isNotEmpty) {
-        state = state.copyWith(favoritedIds: ids);
-        // 保存到本地缓存
-        try {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setStringList('embytok_favorite_people_ids', ids.toList());
-        } catch (_) {
-          // 本地缓存保存失败不影响主流程
-        }
+      final allIds = <String>{};
+      var offset = 0;
+      while (true) {
+        final result = await cachedRepo.getFavoritePeople(
+          limit: 200,
+          offset: offset,
+          serverUrl: serverUrl,
+          token: token,
+          userId: userId,
+        );
+        allIds.addAll(
+          result.items.map((e) => e.id).whereType<String>(),
+        );
+        if (result.items.length < 200) break;
+        offset += 200;
+      }
+      // 无条件更新：服务器返回空集（用户已取消全部关注）同样是合法状态，
+      // 此前的 isNotEmpty 守卫会让「全部取消」后本地缓存残留旧关注，
+      // 重新进入页面时 UI 仍显示已关注。
+      state = state.copyWith(favoritedIds: allIds);
+      // 保存到本地缓存（空集也保存，保证与服务器一致）
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setStringList(
+            'embytok_favorite_people_ids', allIds.toList());
+      } catch (_) {
+        // 本地缓存保存失败不影响主流程
       }
     } catch (e) {
       AppLogger.error('加载关注列表失败', error: e);

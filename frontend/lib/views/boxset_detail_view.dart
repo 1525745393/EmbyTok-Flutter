@@ -36,12 +36,25 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
     });
     try {
       final auth = ref.read(authProvider);
+      final serverUrl = auth.embyServerUrl;
+      final token = auth.token;
+      // 会话过期或未登录时友好提示并提前返回，
+      // 避免对 null 强制解包触发空指针崩溃（与 person_detail_view 一致）
+      if (serverUrl == null || token == null) {
+        if (mounted) {
+          setState(() {
+            _error = '登录已过期，请重新登录';
+            _loading = false;
+          });
+        }
+        return;
+      }
       // 走缓存仓库（5min TTL）：合集详情页频繁返回时直接命中缓存
       final cachedRepo = ref.read(cachedMediaRepositoryProvider);
       final items = await cachedRepo.getChildren(
         widget.item.id,
-        serverUrl: auth.embyServerUrl!,
-        token: auth.token!,
+        serverUrl: serverUrl,
+        token: token,
       );
       if (mounted) {
         setState(() {
