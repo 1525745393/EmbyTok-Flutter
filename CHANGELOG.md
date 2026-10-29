@@ -1,3 +1,10 @@
+## [2.401.69](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.68...v2.401.69) (2026-10-29)
+
+
+### Bug Fixes
+
+* **actors/boxset:** 关注列表空集残留 + 合集详情页强解包崩溃 ([074786c](https://github.com/1525745393/EmbyTok-Flutter/commit/074786ccbc1af157929868b90856d513ee0f8aec))
+
 ## [2.401.68](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.67...v2.401.68) (2026-10-29)
 
 
