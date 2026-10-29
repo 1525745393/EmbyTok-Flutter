@@ -252,6 +252,18 @@ class FeedViewModel {
   }
 
   void _seekBySeconds(int seconds) {
+    // 三引擎统一句柄优先：MPV/VLC 引擎下 EXO controller 恒 null，
+    // 键盘快捷键 ±15s 依赖句柄的 currentPosition/totalDuration/seekTo。
+    final handle = _ref.read(currentPlayerControlProvider);
+    if (handle != null) {
+      final current = handle.currentPosition;
+      final duration = handle.totalDuration;
+      final deltaMs = seconds * 1000;
+      var newMs = current.inMilliseconds + deltaMs;
+      newMs = newMs.clamp(0, duration.inMilliseconds);
+      handle.seekTo(Duration(milliseconds: newMs));
+      return;
+    }
     final controller = _ref.read(currentVideoControllerProvider);
     if (controller == null) return;
     if (!controller.value.isInitialized) return;
@@ -265,6 +277,19 @@ class FeedViewModel {
 
   void _togglePlayPause() {
     final isPlaying = _ref.read(isPlayingProvider);
+    // 三引擎统一句柄优先：MPV/VLC 引擎下 EXO controller 恒 null，
+    // 空格快捷键若只翻转 isPlaying 意图状态而不控制播放器，
+    // 播放器继续播但状态显示暂停，两者脱节。
+    final handle = _ref.read(currentPlayerControlProvider);
+    if (handle != null) {
+      if (isPlaying) {
+        handle.pause();
+      } else {
+        handle.play();
+      }
+      _ref.read(isPlayingProvider.notifier).state = !isPlaying;
+      return;
+    }
     final controller = _ref.read(currentVideoControllerProvider);
     if (controller != null && controller.value.isInitialized) {
       if (isPlaying) {

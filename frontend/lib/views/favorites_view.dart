@@ -450,13 +450,15 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
 
   // ---------- Body：状态判断 + 内容 ----------
 
-  // ---------- 搜索 ----------
+  // ---------- 搜索 / 统计卡 / 批量操作底部栏（均见 _buildPage） ----------
 
-  // ---------- 统计卡 ----------
-
-  // ---------- 批量操作底部栏 ----------
   @override
-  Widget build(BuildContext context) => _buildPage(context);
+  Widget build(BuildContext context) {
+    // AutomaticKeepAliveClientMixin：wantKeepAlive=true，必须链式调用 super.build
+    // 才会在 _keepAliveHandle 未注册时调用 _ensureKeepAlive()，否则 keepAlive 永不生效。
+    super.build(context);
+    return _buildPage(context);
+  }
 
   // === 合并自 favorites_actions.dart ===
 List<MediaItem> _filter(List<MediaItem> items) {
@@ -560,9 +562,13 @@ List<MediaItem> _filter(List<MediaItem> items) {
         action: SnackBarAction(
           label: '撤销',
           onPressed: () async {
-            // 逐条重新收藏（撤销）
+            // 逐条重新收藏（撤销）：仅恢复「已成功取消」的条目。
+            // 批量取消中失败的条目仍处于收藏态（已回滚），若再次 toggle
+            // 会被反方向取消收藏——用户点撤销反而把它从收藏列表移除。
             for (final item in targets) {
-              await notifier.toggleFavorite(item);
+              if (!notifier.isFavorite(item.id)) {
+                await notifier.toggleFavorite(item);
+              }
             }
             // 简单校验：至少一条失败则提示
             final anyFailed = targets.any((e) => !notifier.isFavorite(e.id));

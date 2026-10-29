@@ -228,12 +228,17 @@ class _SearchNoResultHint extends StatelessWidget {
 ///
 /// 与原实现一致：FavoritesNotifier.toggleFavorite 采用乐观更新 + 失败回滚，
 /// 通过 isFavorite 判定撤销结果，避免依赖异常机制。
+///
+/// 注意：仅对「当前未收藏」的条目执行 toggle。取消失败（已回滚，仍收藏）
+/// 的条目若再次 toggle，会被反方向取消收藏——用户点撤销反而把它移除。
 Future<void> _undoUnfavorite(
   ScaffoldMessengerState messenger,
   FavoritesNotifier notifier,
   MediaItem item,
 ) async {
-  await notifier.toggleFavorite(item);
+  if (!notifier.isFavorite(item.id)) {
+    await notifier.toggleFavorite(item);
+  }
   if (!notifier.isFavorite(item.id)) {
     messenger.showSnackBar(
       const SnackBar(
