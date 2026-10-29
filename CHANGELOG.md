@@ -1,3 +1,10 @@
+## [2.401.63](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.62...v2.401.63) (2026-10-29)
+
+
+### Bug Fixes
+
+* **repositories:** 收藏缓存 key 覆盖 includeTypes/excludePlayed，避免追剧流三种类型请求串缓存 ([64be232](https://github.com/1525745393/EmbyTok-Flutter/commit/64be232cadf05131c49d7239e11f1c69fb262ee0))
+
 ## [2.401.62](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.61...v2.401.62) (2026-10-29)
 
 
