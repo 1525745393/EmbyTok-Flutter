@@ -578,9 +578,10 @@ class _FullPlayerSheetState extends ConsumerState<_FullPlayerSheet> {
                   icon: const Icon(Icons.skip_next, size: 34),
                   color: Colors.white,
                   tooltip: '下一首',
-                  onPressed: state.currentIndex < state.queue.length - 1
-                      ? notifier.next
-                      : null,
+                  // 下一首在列表循环/单曲循环/随机模式下均有有效行为
+                  // （回绕/重播/随机），仅无曲目时禁用
+                  onPressed:
+                      state.currentIndex >= 0 ? notifier.next : null,
                 ),
                 const SizedBox(width: 20),
                 IconButton(

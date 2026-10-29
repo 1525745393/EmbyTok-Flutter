@@ -241,12 +241,14 @@ class SynologyDownloadService {
     required void Function(List<DownloadTask> tasks) onProgress,
   }) async {
     final tasks = await loadTasks();
-    // 已存在未完成任务则跳过
+    // 已存在未完成或已下载完成的同曲目则跳过，避免重复下载；
+    // failed 状态不拦，保留重试语义
     if (tasks.any((t) =>
         t.songId == song.id &&
         (t.status == DownloadStatus.downloading ||
             t.status == DownloadStatus.waiting ||
-            t.status == DownloadStatus.paused))) {
+            t.status == DownloadStatus.paused ||
+            t.status == DownloadStatus.completed))) {
       return;
     }
     final dir = await _downloadsDir();

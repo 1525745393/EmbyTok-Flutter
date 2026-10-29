@@ -190,7 +190,11 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
   Future<void> playQueue(List<AudioSong> queue, int index) async {
     if (queue.isEmpty || index < 0 || index >= queue.length) return;
     final song = queue[index];
-    state = SynologyPlaybackState(
+    // 切歌放弃未消费的恢复进度，避免新歌被 seek 到旧歌位置
+    _pendingSeek = null;
+    // 用 copyWith 保留播放模式（列表循环/单曲循环/随机）与睡眠定时器；
+    // 全新建构会把二者重置（随机播放失效、睡眠定时器静默取消）
+    state = state.copyWith(
       currentSong: song,
       queue: queue,
       currentIndex: index,
