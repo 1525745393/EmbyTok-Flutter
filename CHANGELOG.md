@@ -1,3 +1,10 @@
+## [2.401.66](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.65...v2.401.66) (2026-10-29)
+
+
+### Bug Fixes
+
+* **player:** 视频外部控制链路(通知栏/音频焦点/视图切换)优先走三引擎统一句柄；均衡器开关状态同步持久化；修正过时注释 ([06d2715](https://github.com/1525745393/EmbyTok-Flutter/commit/06d271531ab3720a8240d624d30afc34715249ad))
+
 ## [2.401.65](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.64...v2.401.65) (2026-10-29)
 
 
