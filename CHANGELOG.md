@@ -1,3 +1,10 @@
+## [2.401.68](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.67...v2.401.68) (2026-10-29)
+
+
+### Bug Fixes
+
+* **favorites:** 批量/单条取消收藏撤销在失败条目上反向操作 + keepAlive 链式调用 ([aa2a19c](https://github.com/1525745393/EmbyTok-Flutter/commit/aa2a19c6526f51e6dd9b1fcc495a5c7df44fcc5d))
+
 ## [2.401.67](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.66...v2.401.67) (2026-10-29)
 
 
