@@ -1,3 +1,10 @@
+## [2.401.74](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.73...v2.401.74) (2026-10-30)
+
+
+### Bug Fixes
+
+* **providers:** discover load 竞态覆盖 + library toggleLibrary 空选择守卫 ([e04b37b](https://github.com/1525745393/EmbyTok-Flutter/commit/e04b37bbe1283f3807daf3335d810d0c0a16e261))
+
 ## [2.401.73](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.72...v2.401.73) (2026-10-30)
 
 
