@@ -145,6 +145,9 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
   /// 取消最后一个选中项时不生效，保证始终至少有一个媒体库被选中
   void toggleLibrary(String libraryId) {
     if (state.contains(libraryId)) {
+      // F1(batch144):补上注释承诺的守卫——移除最后一个选中项时拒绝,
+      // 否则 state 为空导致视频流/推荐无库可加载
+      if (state.length <= 1) return;
       state = state.where((id) => id != libraryId).toList();
     } else {
       state = <String>[...state, libraryId];

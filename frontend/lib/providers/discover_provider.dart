@@ -93,6 +93,10 @@ class DiscoverNotifier extends StateNotifier<DiscoverState> {
   static const int _kPerSourceLimit = 30;
 
   Timer? _loadDebounce;
+  // F1(batch144):load 代数守卫。
+  // 连续修改筛选会触发多次并行 load,若后启动的请求先返回,
+  // 先启动(慢)的旧结果会覆盖新结果,丢失最新筛选内容。
+  int _loadSeq = 0;
 
   AuthState get _auth => _ref.read(authProvider);
 
@@ -287,6 +291,7 @@ class DiscoverNotifier extends StateNotifier<DiscoverState> {
 
   /// 按已选类型 + 合集拉取影片，合并去重
   Future<void> load() async {
+    final seq = ++_loadSeq;
     final auth = _auth;
     final serverUrl = auth.embyServerUrl;
     final token = auth.token;
@@ -368,8 +373,11 @@ class DiscoverNotifier extends StateNotifier<DiscoverState> {
       // 按生产年份倒序，新片在前
       items.sort(
           (a, b) => (b.productionYear ?? 0).compareTo(a.productionYear ?? 0));
+      // F1:已有更新的 load 启动则丢弃,避免旧筛选结果覆盖新内容
+      if (seq != _loadSeq) return;
       state = state.copyWith(items: items, isLoading: false, error: null);
     } catch (e) {
+      if (seq != _loadSeq) return;
       AppLogger.error('发现：加载失败', error: e);
       state = state.copyWith(isLoading: false, error: '加载失败：$e');
     }

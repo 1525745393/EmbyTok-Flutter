@@ -74,13 +74,27 @@ void main() {
       expect(prefs.getStringList(kStorageKeySelectedLibraryId), <String>['libA'],
           reason: '添加后必须落盘，否则重启回滚');
 
-      // 快捷移除 libA（设置页 chip 点击路径）
+      // 再添加 libB：多库选中
+      notifier.toggleLibrary('libB');
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(selectedLibraryIdsProvider), <String>['libA', 'libB']);
+
+      // 快捷移除 libA（设置页 chip 点击路径）：移除后立即落盘
       notifier.toggleLibrary('libA');
       await Future<void>.delayed(Duration.zero);
-      expect(container.read(selectedLibraryIdsProvider), isEmpty);
+      expect(container.read(selectedLibraryIdsProvider), <String>['libB']);
       prefs = await SharedPreferences.getInstance();
-      expect(prefs.getStringList(kStorageKeySelectedLibraryId), isNull,
-          reason: '清空选择 = 删除 key（防重启恢复空），等价于落盘空选择');
+      expect(prefs.getStringList(kStorageKeySelectedLibraryId), <String>['libB'],
+          reason: '移除后必须落盘，否则重启回滚');
+
+      // 移除最后一个选中项：注释契约「取消最后一个不生效」，保持至少一个库
+      notifier.toggleLibrary('libB');
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(selectedLibraryIdsProvider), <String>['libB'],
+          reason: '取消最后一个选中项时不生效，保证始终至少有一个媒体库被选中');
+      prefs = await SharedPreferences.getInstance();
+      expect(prefs.getStringList(kStorageKeySelectedLibraryId), <String>['libB'],
+          reason: '守卫拒绝时不应改写磁盘');
     });
 
     test('监听器应等待 _loadSaved 完成后再 fallback（修复 race condition）',
