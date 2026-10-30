@@ -1,3 +1,10 @@
+## [2.401.70](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.69...v2.401.70) (2026-10-30)
+
+
+### Bug Fixes
+
+* **playlists/watchlist:** 歌单拖拽末尾插入被忽略 + 稍后观看单页截断 ([affdce9](https://github.com/1525745393/EmbyTok-Flutter/commit/affdce9183b7a29f1f9b4df4cadda0bba8594db8))
+
 ## [2.401.69](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.68...v2.401.69) (2026-10-29)
 
 
