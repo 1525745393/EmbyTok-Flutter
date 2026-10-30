@@ -541,6 +541,12 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   Future<void> loadMore() async {
     if (state.isLoading || !state.hasMore) return;
 
+    // F1(batch144):在途 loadMore 与 refresh 竞态守卫。
+    // loadMore 请求未挂到 _refreshCancelToken,refresh(媒体库/浏览模式/排除已观看
+    // /顶栏筛选切换)启动后若 loadMore 后完成,旧库数据会拼到新库 items 造成混合污染。
+    // 快照启动时的代数,完成时与 _refreshGeneration 比对,不一致则丢弃结果。
+    final gen = _refreshGeneration;
+
     final currentFeedType = state.feedType;
     if (currentFeedType != FeedType.latest) {
       state = state.copyWith(hasMore: false);
@@ -605,6 +611,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         },
       );
       final newItems = loadMoreResult.items;
+      // F1:refresh 已启动(代数变化),放弃本次 loadMore 结果,避免旧库数据覆盖新列表
+      if (_refreshGeneration != gen) return;
       // 所有库都返回空 → hasMore=false，避免无限空加载循环
       final allEmpty = loadMoreResult.perLibraryResults
           .every((r) => !r.isSuccess || r.items!.isEmpty);
@@ -643,6 +651,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       );
       AppLogger.debug('加载更多成功', data: {'newCount': newItems.length});
     } catch (e) {
+      // F1:refresh 已启动则丢弃,避免旧 loadMore 的错误覆盖新状态
+      if (_refreshGeneration != gen) return;
       AppLogger.error('加载更多失败', error: e);
       state = state.copyWith(
           isLoading: false,
