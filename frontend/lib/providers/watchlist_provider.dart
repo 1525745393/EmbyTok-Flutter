@@ -12,12 +12,22 @@ final watchlistProvider =
   final tkn = auth.token;
   if (svr == null || tkn == null) return <MediaItem>[];
   final service = ref.watch(embytokServiceProvider);
-  final result = await service.getWatchlist(
-    limit: limit,
-    serverUrl: svr,
-    token: tkn,
-  );
-  return result.items;
+  // 循环分页拉全量：Emby getWatchlist 单页上限由 limit 控制，
+  // 稍后观看超过单页条数时若只取一页会导致列表截断（列表页固定传 100）
+  final all = <MediaItem>[];
+  var offset = 0;
+  while (true) {
+    final page = await service.getWatchlist(
+      limit: limit,
+      offset: offset,
+      serverUrl: svr,
+      token: tkn,
+    );
+    all.addAll(page.items);
+    if (page.items.length < limit) break;
+    offset += page.items.length;
+  }
+  return all;
 });
 
 /// 稍后观看操作 Notifier

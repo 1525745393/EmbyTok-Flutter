@@ -65,10 +65,11 @@ class PlaylistsNotifier extends StateNotifier<List<LocalPlaylist>> {
   static const _kKey = 'syno_local_playlists_v1';
 
   /// 写操作串行化，避免连续快速操作 read-modify-write 互相覆盖
-  Future _writeLock = Future.value();
+  Future<void> _writeLock = Future.value();
   Future<T> _lock<T>(Future<T> Function() body) {
-    final r = _writeLock.then((_) => body());
-    _writeLock = r.catchError((_) {});
+    final r = _writeLock.then<T>((_) => body());
+    // 仅用结果链衔接锁（丢弃返回值并消费错误，避免旧失败阻断后续操作）
+    _writeLock = r.then<void>((_) {}, onError: (Object _) {});
     return r;
   }
 
@@ -166,7 +167,10 @@ class PlaylistsNotifier extends StateNotifier<List<LocalPlaylist>> {
           if (oldIndex < 0 || oldIndex >= p.songs.length) return p;
           // onReorderItem 已自动调整 newIndex（移除 oldIndex 后的位置），无需再 to -= 1
           final to = newIndex;
-          if (to < 0 || to >= p.songs.length) return p;
+          // 允许 to == length：拖拽到列表末尾（最后一项之后）时
+          // ReorderableListView 传入的 newIndex 等于列表长度，拒绝会导致
+          // 拖到末尾的操作被静默忽略
+          if (to < 0 || to > p.songs.length) return p;
           final songs = [...p.songs];
           final item = songs.removeAt(oldIndex);
           songs.insert(to, item);
