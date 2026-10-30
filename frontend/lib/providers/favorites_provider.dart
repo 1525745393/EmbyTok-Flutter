@@ -421,7 +421,10 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
   /// 加载更多（分页追加）
   /// [category] 指定加载哪一栏
   Future<void> loadMore(FavoritesCategory category) async {
-    if (_isLoadingMore) return;
+    // F1(batch144):首页 loadFavorites 在途时拒绝 loadMore。
+    // 此时 _moviesLoaded 等计数仍为 0,offset 与首屏重叠,
+    // 网络返回后会把同一批数据重复追加进列表。
+    if (_isLoading || _isLoadingMore) return;
 
     final auth = _auth;
     if (!auth.isAuthenticated ||
