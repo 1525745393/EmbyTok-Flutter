@@ -1,3 +1,10 @@
+## [2.401.73](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.72...v2.401.73) (2026-10-30)
+
+
+### Bug Fixes
+
+* **favorites:** loadMore 在首页加载在途时防重复追加 ([27dc982](https://github.com/1525745393/EmbyTok-Flutter/commit/27dc98210baf9cd6a0474f4b426dfc16735f3a08))
+
 ## [2.401.72](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.71...v2.401.72) (2026-10-30)
 
 
