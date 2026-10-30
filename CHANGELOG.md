@@ -1,3 +1,10 @@
+## [2.401.72](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.71...v2.401.72) (2026-10-30)
+
+
+### Bug Fixes
+
+* **video_list:** loadMore 与 refresh 竞态守卫 ([e95adf4](https://github.com/1525745393/EmbyTok-Flutter/commit/e95adf430ac2d65dd49aa488c7a77139a23d324f))
+
 ## [2.401.71](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.70...v2.401.71) (2026-10-30)
 
 
