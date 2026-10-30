@@ -1,3 +1,10 @@
+## [2.401.71](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.70...v2.401.71) (2026-10-30)
+
+
+### Bug Fixes
+
+* **login:** 注册表同端点仅协议变化时保留旧 URL ([9b6cdc8](https://github.com/1525745393/EmbyTok-Flutter/commit/9b6cdc857b866c66ad87ca3980bc4dc69e2fc850))
+
 ## [2.401.70](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.69...v2.401.70) (2026-10-30)
 
 
