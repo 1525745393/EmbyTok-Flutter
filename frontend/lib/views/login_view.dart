@@ -182,7 +182,9 @@ class _LoginViewState extends ConsumerState<LoginView> {
         id: existing?.id ?? 'srv_${DateTime.now().microsecondsSinceEpoch}',
         kind: kind,
         name: existing?.name ?? _extractHostPortName(server),
-        url: existing?.url ?? server,
+        // 总是用本次登录的 URL 覆盖旧值：同 host+port 仅协议变化
+        // （http→https）时，保留 existing.url 会让注册表继续指向旧协议
+        url: server,
         internalUrl: existing?.internalUrl,
         externalUrl: existing?.externalUrl,
         username: username,
