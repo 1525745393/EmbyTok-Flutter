@@ -42,22 +42,48 @@ final artistMetadataProvider =
 });
 
 /// 歌手歌曲列表 Provider（family 模式，按歌手名筛选）
+///
+/// 循环分页拉全量：NAS 单次 getSongs 上限 200，歌手歌曲超过该数时若只取
+/// 一页，详情页歌曲列表与「播放全部」会被静默截断（与 watchlist/favorites
+/// 单页截断同族缺陷，此处统一按 offset 递增拉全量）。
 final artistSongsProvider =
     FutureProvider.family<List<AudioSong>, String>((ref, artistName) async {
   final isLoggedIn = ref.read(synologyAuthProvider).isLoggedIn;
   if (!isLoggedIn) return [];
   final api = ref.read(synologyAuthProvider.notifier).api;
-  return api.getSongs(artist: artistName, limit: 200);
+  const pageSize = 200;
+  final all = <AudioSong>[];
+  var offset = 0;
+  while (true) {
+    final page =
+        await api.getSongs(artist: artistName, limit: pageSize, offset: offset);
+    all.addAll(page);
+    if (page.length < pageSize) break;
+    offset += page.length;
+  }
+  return all;
 });
 
 /// 歌手专辑列表 Provider（family 模式，按歌手名筛选）
-/// 注意：getAlbums 不支持按歌手筛选，获取所有专辑后在本地过滤
+///
+/// 注意：getAlbums 不支持按歌手筛选，获取所有专辑后在本地过滤；
+/// 循环分页拉全量：NAS 单次 getAlbums 上限 200，专辑总数超过该数时
+/// 若只取一页（旧实现 limit 500），名称排序靠后的专辑会缺失，导致
+/// 该歌手的部分专辑从详情页专辑区与专辑详情弹层消失。
 final artistAlbumsProvider =
     FutureProvider.family<List<AudioAlbum>, String>((ref, artistName) async {
   final isLoggedIn = ref.read(synologyAuthProvider).isLoggedIn;
   if (!isLoggedIn) return [];
   final api = ref.read(synologyAuthProvider.notifier).api;
-  final allAlbums = await api.getAlbums(limit: 500);
+  const pageSize = 200;
+  final allAlbums = <AudioAlbum>[];
+  var offset = 0;
+  while (true) {
+    final page = await api.getAlbums(limit: pageSize, offset: offset);
+    allAlbums.addAll(page);
+    if (page.length < pageSize) break;
+    offset += page.length;
+  }
   // 在本地按歌手名筛选（匹配 albumArtist 或 artist 或 displayArtist）
   return allAlbums
       .where((album) =>

@@ -20,7 +20,6 @@ import 'package:share_plus/share_plus.dart';
 import '../../models/artist_metadata.dart';
 import '../../models/audio_models.dart';
 import '../../providers/artist_metadata_provider.dart';
-import '../../providers/synology_auth_provider.dart';
 import '../../providers/synology_playback_provider.dart';
 import '../../utils/html_parser.dart';
 import 'artist_metadata_editor.dart';
@@ -791,16 +790,8 @@ Future<void> _loadFavoriteStatus() async {
     }
     await prefs.setStringList('favorite_artists', favorites);
 
-    // 异步同步到 NAS（不阻塞 UI）
-    try {
-      final api = ref.read(synologyAudioApiProvider);
-      if (api.isLoggedIn) {
-        // 直接调用 NAS 同步服务上传收藏列表
-        // 这里简化处理，直接上传完整列表
-      }
-    } catch (e) {
-      // 忽略同步错误，本地保存已成功
-    }
+    // 仅本地收藏：群晖 Audio Station 只提供 getPins() 只读接口，
+    // 无收藏写 API，不尝试同步 NAS（避免误导性空同步）。
   }
 
   bool _isTabletLandscape(BuildContext context) {
@@ -865,7 +856,7 @@ Future<void> _loadFavoriteStatus() async {
 
   void _showSongOptions(
       BuildContext context, ColorScheme scheme, AudioSong song) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       builder: (ctx) => SafeArea(
         child: Column(
@@ -958,7 +949,7 @@ Future<void> _loadFavoriteStatus() async {
     ColorScheme scheme,
     AsyncValue<List<AudioAlbum>> albumsAsync,
   ) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: scheme.surface,
@@ -1052,7 +1043,7 @@ Future<void> _loadFavoriteStatus() async {
     ColorScheme scheme,
     AudioAlbum album,
   ) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: scheme.surface,
