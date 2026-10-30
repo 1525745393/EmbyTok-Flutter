@@ -1,3 +1,10 @@
+## [2.401.75](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.74...v2.401.75) (2026-10-30)
+
+
+### Bug Fixes
+
+* **providers:** 歌手详情页歌曲/专辑单页截断 + 收藏假同步注释 ([29c4ac9](https://github.com/1525745393/EmbyTok-Flutter/commit/29c4ac9c76a23c53e9d31a2f61dff99ca67c282b))
+
 ## [2.401.74](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.73...v2.401.74) (2026-10-30)
 
 
