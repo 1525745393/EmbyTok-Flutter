@@ -378,6 +378,9 @@ class SynologyAudioApi {
       'library': 'all',
       'offset': offset,
       'limit': limit,
+      // 契约（Genre list）：sort_by 固定为 name，方向 ASC 名称升序
+      'sort_by': 'name',
+      'sort_direction': 'ASC',
     });
     final genres = _asList(data?['genres']);
     return genres
@@ -419,6 +422,10 @@ class SynologyAudioApi {
         'library': 'all',
         'offset': offset,
         'limit': pageSize,
+        // 契约（Folder list 抓包示例）：固定 sort_by=song_rating + ASC，
+        // 与群晖 UI 文件夹内条目顺序保持一致
+        'sort_by': 'song_rating',
+        'sort_direction': 'ASC',
         'additional': jsonify(['song_tag', 'song_audio', 'song_rating']),
         if (folderId != null && folderId.isNotEmpty) 'id': folderId,
       };
@@ -501,6 +508,8 @@ class SynologyAudioApi {
         'id': playlistId,
         'offset': offset,
         'limit': pageSize,
+        // 契约（Playlist getinfo）：sort_direction 可选值仅 ASC
+        'sort_direction': 'ASC',
         'additional': jsonify(
             ['songs_song_tag', 'songs_song_audio', 'songs_song_rating']),
       });
