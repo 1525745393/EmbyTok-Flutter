@@ -177,8 +177,20 @@ class SynologyMusicNotifier extends StateNotifier<SynologyMusicState> {
             isLoadingMoreArtists: false,
           );
         case SynologyMusicTab.playlists:
-          final playlists = await _api.getPlaylists();
-          state = state.copyWith(isLoading: false, playlists: playlists);
+          // 歌单数量通常远小于歌曲，且无分页加载更多状态；
+          // 一次性按 offset 循环拉全量，避免超过单页上限（200）时
+          // 歌单列表静默截断（与歌曲/专辑/歌手的分页列表不同，歌单 Tab 无触底加载）。
+          final allPlaylists = <AudioPlaylist>[];
+          var playlistOffset = 0;
+          while (true) {
+            final page = await _api.getPlaylists(
+                offset: playlistOffset, limit: _pageSize);
+            if (page.isEmpty) break;
+            allPlaylists.addAll(page);
+            if (page.length < _pageSize) break;
+            playlistOffset += _pageSize;
+          }
+          state = state.copyWith(isLoading: false, playlists: allPlaylists);
       }
       _loaded[tab] = true;
     } catch (e, st) {
@@ -347,10 +359,24 @@ class SynologyMusicNotifier extends StateNotifier<SynologyMusicState> {
   }
 
   /// 加载专辑内的歌曲
+  ///
+  /// getSongs 按专辑名过滤并默认单页 200；大专辑（>200 首，如古典全集/合辑）
+  /// 若只取单页会静默截断，且「播放全部」只播已加载部分（与已修
+  /// artistSongsProvider 同族），因此按 offset 循环拉全量。
   Future<List<AudioSong>> loadAlbumSongs(AudioAlbum album) async {
     if (!_isLoggedIn) return const [];
     try {
-      return await _api.getSongs(album: album.name);
+      final all = <AudioSong>[];
+      var offset = 0;
+      while (true) {
+        final page = await _api.getSongs(
+            album: album.name, offset: offset, limit: _pageSize);
+        if (page.isEmpty) break;
+        all.addAll(page);
+        if (page.length < _pageSize) break;
+        offset += _pageSize;
+      }
+      return all;
     } catch (e, st) {
       AppLogger.error('加载专辑歌曲失败', data: {'album': album.name}, error: e, stackTrace: st);
       return const [];

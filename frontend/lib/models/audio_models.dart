@@ -211,6 +211,14 @@ class AudioAlbum {
   String get artistDisplay =>
       displayArtist?.trim().isNotEmpty == true ? displayArtist! : (albumArtist ?? '');
 
+  /// cover.cgi 匹配用专辑歌手名
+  ///
+  /// 群晖 getcover 的 album_artist_name 按 Album list 的 album_artist（标签原值）
+  /// 精确匹配索引；display_artist 是展示规范化字段，二者不一致时会导致封面
+  /// 404/缓存分裂，因此一律以 album_artist 优先（为空时回退 display_artist）。
+  String get coverArtistName =>
+      albumArtist?.trim().isNotEmpty == true ? albumArtist! : (displayArtist ?? '');
+
   /// 返回带 coverUrl 的新实例（不可变模型的 copyWith 模式）
   AudioAlbum copyWith({String? coverUrl}) {
     return AudioAlbum(

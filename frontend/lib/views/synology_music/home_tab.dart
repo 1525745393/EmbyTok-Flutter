@@ -435,15 +435,16 @@ extension _MusicHomeTabBuilders on _SynologyMusicViewState {
   }
 
   void _playPin(AudioPin pin) {
-    final songs = ref.read(synologyMusicProvider).songs;
-    final match = songs.where((s) => s.id == pin.id).toList();
-    if (match.isNotEmpty) {
-      ref.read(synologyPlaybackProvider.notifier).playQueue(match, 0);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('「${pin.title}」已不在当前歌曲列表中')),
-      );
-    }
+    // Pin 接口只返回简化信息（id/title/artist/album），流地址仅需 song id，
+    // 直接构造可播放的最小 AudioSong 入队即可。
+    // 不依赖 state.songs 按 id 匹配：songs 是分页加载的（默认仅前 200 首），
+    // 收藏歌曲在已加载页之外会误报「已不在列表中」导致无法播放。
+    final song = AudioSong(
+      id: pin.id,
+      title: pin.title,
+      tag: AudioSongTag(artist: pin.artist ?? '', album: pin.album ?? ''),
+    );
+    ref.read(synologyPlaybackProvider.notifier).playQueue([song], 0);
   }
 
   void _showRecentPlaybackMenu(RecentPlayback record, ColorScheme scheme) {

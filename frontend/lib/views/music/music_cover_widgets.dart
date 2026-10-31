@@ -87,9 +87,11 @@ class AlbumCover extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    // 专辑歌手名与 API 层预计算封面同取 album_artist（见 AudioAlbum.coverArtistName），
+    // 保证同一专辑在任何位置封面 URL 一致，避免缓存分裂/404。
     final url = ref.read(synologyAuthProvider.notifier).api.getAlbumCoverUrl(
           albumName: album.name,
-          albumArtistName: album.albumArtist,
+          albumArtistName: album.coverArtistName,
         );
     return url != null
         ? CachedNetworkImage(

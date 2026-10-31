@@ -287,10 +287,13 @@ class SynologyAudioApi {
     return albums.map((e) {
       final album = AudioAlbum.fromJson(_asMap(e));
       // P2-2：预计算封面 URL，避免 UI 层 itemBuilder 中重复计算
+      // 专辑歌手用 album_artist（标签原值）而非 display_artist：cover.cgi 的
+      // album_artist_name 按索引字段匹配，两处取值必须与 AlbumCover/弹层一致，
+      // 否则同一专辑在不同位置封面 URL 不同、缓存分裂且可能 404。
       return album.copyWith(
         coverUrl: getAlbumCoverUrl(
           albumName: album.name,
-          albumArtistName: album.displayArtist ?? album.albumArtist,
+          albumArtistName: album.coverArtistName,
         ),
       );
     }).toList(growable: false);

@@ -551,9 +551,12 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     _tabController.animateTo(tab.index);
   }
 
-  /// Random100：从全量歌曲中随机抽取 100 首播放（PRD 系统内置随机歌单）
+  /// Random100：从已加载歌曲中随机抽取 100 首播放（PRD 系统内置随机歌单）
   ///
-  /// 全量歌曲少于 100 首时全部播放。
+  /// 歌曲列表为分页加载（单页 200，滚动触底追加），随机池 = 当前已加载歌曲；
+  /// 滚动加载更多后随机范围随之扩大；已加载歌曲少于 100 首时全部播放。
+  /// 全库（≈1.7 万首）一次性拉全再随机需数十次串行请求、开销过大，故采用
+  /// 已加载样本语义。
   void _shufflePlay() {
     final songs = ref.read(synologyMusicProvider).songs;
     if (songs.isEmpty) {
@@ -596,9 +599,11 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   // ============================
 
   String? _albumCoverUrl(AudioAlbum album) {
+    // 与 API 层预计算/AlbumCover 一致：取 album_artist（见 AudioAlbum.coverArtistName），
+    // 保证同一专辑封面 URL 全局唯一，避免缓存分裂/404。
     return ref.read(synologyAuthProvider.notifier).api.getAlbumCoverUrl(
           albumName: album.name,
-          albumArtistName: album.albumArtist,
+          albumArtistName: album.coverArtistName,
         );
   }
 
