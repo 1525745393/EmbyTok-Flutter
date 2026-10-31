@@ -1,3 +1,10 @@
+## [2.401.76](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.75...v2.401.76) (2026-10-31)
+
+
+### Bug Fixes
+
+* **音乐库适配:** 专辑/歌单分页拉全量、收藏直播放、封面参数统一 ([9d8e25d](https://github.com/1525745393/EmbyTok-Flutter/commit/9d8e25d4348cc087f197b790750d99250ff6eb91))
+
 ## [2.401.75](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.74...v2.401.75) (2026-10-30)
 
 
