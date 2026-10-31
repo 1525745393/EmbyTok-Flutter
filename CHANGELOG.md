@@ -1,3 +1,10 @@
+## [2.401.77](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.76...v2.401.77) (2026-10-31)
+
+
+### Bug Fixes
+
+* **music:** 群晖 Audio Station 契约适配(排序参数/文件夹/歌单分页/流派版本) ([1ba5d81](https://github.com/1525745393/EmbyTok-Flutter/commit/1ba5d8181a11fd1766f8edc8a70a8f6c1ed748f0))
+
 ## [2.401.76](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.75...v2.401.76) (2026-10-31)
 
 
