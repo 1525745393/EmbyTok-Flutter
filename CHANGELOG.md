@@ -1,3 +1,10 @@
+## [2.401.78](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.77...v2.401.78) (2026-10-31)
+
+
+### Bug Fixes
+
+* **music:** 契约排序参数收敛 Folder/Genre/Playlist getinfo ([ebc2b35](https://github.com/1525745393/EmbyTok-Flutter/commit/ebc2b35a0e7725e44289051507b8c0bd19ce9ae9))
+
 ## [2.401.77](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.76...v2.401.77) (2026-10-31)
 
 
