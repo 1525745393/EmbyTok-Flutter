@@ -336,17 +336,23 @@ enum AudioFolderItemType { folder, song }
 
 /// 文件夹浏览条目（子文件夹或歌曲）
 ///
-/// Folder API 返回 folders + songs 的混合列表，统一为此模型
+/// 契约（Folder list v2）：data.items 中 folder 项含 id（dir_xxx）/
+/// path/title，file 项即歌曲结构。id 用于契约参数（进入子目录时
+/// 以 id 作为 folder.cgi 的入参，而非路径字符串）。
 class AudioFolderItem { // type=song 时的完整歌曲信息
 
   const AudioFolderItem({
     required this.type,
     required this.name,
+    this.id,
     this.path = '',
     this.song,
   });
   final AudioFolderItemType type;
   final String name;
+
+  /// 目录 ID（folder 项为 dir_xxx，song 项为 music_xxx）
+  final String? id;
   final String path;
   final AudioSong? song;
 }

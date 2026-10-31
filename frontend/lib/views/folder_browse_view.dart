@@ -1,7 +1,8 @@
 // 文件夹浏览页面（PRD：快捷入口 → 文件夹）
 //
 // 按目录结构浏览 NAS 音乐文件，支持递归进入子文件夹，点击歌曲播放。
-// SYNO.AudioStation.Folder API 返回 folders + songs 混合列表。
+// SYNO.AudioStation.Folder list 契约参数为目录 ID（dir_xxx，不传=根），
+// 响应 data.items 为 folder/file 混合数组；进入子目录以 folder 项的 id 为参。
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,18 +13,18 @@ import '../providers/synology_auth_provider.dart';
 import '../providers/synology_playback_provider.dart';
 
 class FolderBrowseView extends ConsumerStatefulWidget {
-  const FolderBrowseView({super.key, this.initialPath});
+  const FolderBrowseView({super.key, this.initialFolderId});
 
-  /// 初始文件夹路径，null 表示根目录
-  final String? initialPath;
+  /// 初始目录 ID（dir_xxx），null 表示根目录
+  final String? initialFolderId;
 
   @override
   ConsumerState<FolderBrowseView> createState() => _FolderBrowseViewState();
 }
 
 class _FolderBrowseViewState extends ConsumerState<FolderBrowseView> {
-  /// 当前文件夹路径栈（用于返回上一级）
-  final List<String> _pathStack = [];
+  /// 当前文件夹导航栈（存目录条目，用于返回上一级与契约 id 入参）
+  final List<AudioFolderItem> _folderStack = [];
   List<AudioFolderItem> _items = [];
   bool _isLoading = true;
   String? _error;
@@ -31,16 +32,22 @@ class _FolderBrowseViewState extends ConsumerState<FolderBrowseView> {
   @override
   void initState() {
     super.initState();
-    if (widget.initialPath != null && widget.initialPath!.isNotEmpty) {
-      _pathStack.add(widget.initialPath!);
+    if (widget.initialFolderId != null && widget.initialFolderId!.isNotEmpty) {
+      _folderStack.add(AudioFolderItem(
+        type: AudioFolderItemType.folder,
+        id: widget.initialFolderId,
+        name: widget.initialFolderId!,
+      ));
     }
     _loadFolder();
   }
 
-  String get _currentPath => _pathStack.isEmpty ? '' : _pathStack.last;
+  /// 当前目录 ID（null 表示根目录）
+  String? get _currentFolderId =>
+      _folderStack.isEmpty ? null : _folderStack.last.id;
 
   String get _displayPath =>
-      _pathStack.isEmpty ? '根目录' : _pathStack.last.split('/').last;
+      _folderStack.isEmpty ? '根目录' : _folderStack.last.name;
 
   Future<void> _loadFolder() async {
     setState(() {
@@ -49,8 +56,7 @@ class _FolderBrowseViewState extends ConsumerState<FolderBrowseView> {
     });
     try {
       final api = ref.read(synologyAuthProvider.notifier).api;
-      final items = await api.getFolders(
-          folderPath: _currentPath.isEmpty ? null : _currentPath);
+      final items = await api.getFolders(folderId: _currentFolderId);
       if (!mounted) return;
       setState(() {
         _items = items;
@@ -66,13 +72,13 @@ class _FolderBrowseViewState extends ConsumerState<FolderBrowseView> {
   }
 
   void _openFolder(AudioFolderItem item) {
-    _pathStack.add(item.path);
+    _folderStack.add(item);
     _loadFolder();
   }
 
   void _goBack() {
-    if (_pathStack.isNotEmpty) {
-      _pathStack.removeLast();
+    if (_folderStack.isNotEmpty) {
+      _folderStack.removeLast();
       _loadFolder();
     } else if (Navigator.of(context).canPop()) {
       // 从其他页面进入时优先 pop，保留原页面上下文

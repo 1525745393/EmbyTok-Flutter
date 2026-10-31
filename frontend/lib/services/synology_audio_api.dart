@@ -264,8 +264,11 @@ class SynologyAudioApi {
 
   /// 获取专辑列表
   ///
-  /// [sort] 排序字段：name（名称）、year（年份）、artist（艺术家）、
-  /// time_add（入库时间，PRD 最近添加模块使用）。默认按名称排序。
+  /// 契约（Audio Station Album list v3，社区抓包）：排序参数名为
+  /// sort_by / sort_direction，sort_by 可选值 time|random|year|name|
+  /// display_artist|avg_rating，sort_direction 仅接受 ASC / DESC。
+  /// [sort] 排序字段：time（入库时间，PRD 最近添加模块使用）、name、year 等。
+  /// 默认按名称排序。
   Future<List<AudioAlbum>> getAlbums({
     int offset = 0,
     int limit = 200,
@@ -280,8 +283,9 @@ class SynologyAudioApi {
       'offset': offset,
       'limit': limit,
       'additional': jsonify(['avg_rating']),
-      if (sort != null && sort.isNotEmpty) 'sort': sort,
-      if (sort != null && sort.isNotEmpty) 'direction': direction,
+      if (sort != null && sort.isNotEmpty) 'sort_by': sort,
+      if (sort != null && sort.isNotEmpty)
+        'sort_direction': direction.toUpperCase(),
     });
     final albums = _asList(data?['albums']);
     return albums.map((e) {
@@ -301,7 +305,12 @@ class SynologyAudioApi {
 
   /// 获取歌手列表
   ///
-  /// [sort] 排序字段：name（名称）、song_count（歌曲数量，PRD 热门艺术家使用）。
+  /// 契约（Audio Station Artist list v3，社区抓包）：排序参数名为
+  /// sort_by / sort_direction，sort_by 可选值仅 name（该接口返回的歌手
+  /// 大概率是专辑艺术家列表而非艺术家列表）。
+  /// [sort] song_count（歌曲数量，PRD 热门艺术家使用）为契约外枚举值，
+  /// DSM 若忽略该参数则退化为默认排序（不报错），代码保持传参以保留
+  /// 服务端聚合语义，待 DSM 实测确认。
   Future<List<AudioArtist>> getArtists({
     int offset = 0,
     int limit = 200,
@@ -316,8 +325,9 @@ class SynologyAudioApi {
       'offset': offset,
       'limit': limit,
       'additional': jsonify(['avg_rating']),
-      if (sort != null && sort.isNotEmpty) 'sort': sort,
-      if (sort != null && sort.isNotEmpty) 'direction': direction,
+      if (sort != null && sort.isNotEmpty) 'sort_by': sort,
+      if (sort != null && sort.isNotEmpty)
+        'sort_direction': direction.toUpperCase(),
     });
     final artists = _asList(data?['artists']);
     return artists.map((e) {
@@ -331,8 +341,9 @@ class SynologyAudioApi {
 
   /// 获取歌单列表
   ///
-  /// [type] 歌单类型：personal（个人）、group（群组共享）、smart（智能）。
-  /// 不传则返回全部类型。
+  /// 契约（Audio Station Playlist list v2，社区抓包）：参数仅
+  /// library/offset/limit，无 type 参数；响应项自带 type 字段
+  /// （normal/smart 等），因此 [type] 过滤在本地完成。
   Future<List<AudioPlaylist>> getPlaylists({
     int offset = 0,
     int limit = 200,
@@ -345,15 +356,17 @@ class SynologyAudioApi {
       'library': 'all',
       'offset': offset,
       'limit': limit,
-      if (type != null && type.isNotEmpty) 'type': type,
     });
-    final playlists = _asList(data?['playlists']);
-    return playlists
+    final playlists = _asList(data?['playlists'])
         .map((e) => AudioPlaylist.fromJson(_asMap(e)))
+        .where((p) => type == null || type.isEmpty || p.type == type)
         .toList(growable: false);
+    return playlists;
   }
 
   /// 获取音乐流派列表（NAS 自动聚合的音乐标签分类）
+  ///
+  /// 契约（Audio Station Genre list）固定 version 3，排序参数 sort_by=name。
   Future<List<AudioGenre>> getGenres({
     int offset = 0,
     int limit = 200,
@@ -361,7 +374,7 @@ class SynologyAudioApi {
     final data =
         await _callList('SYNO.AudioStation.Genre', 'AudioStation/genre.cgi', {
       'method': 'list',
-      'version': 1,
+      'version': 3,
       'library': 'all',
       'offset': offset,
       'limit': limit,
@@ -389,59 +402,114 @@ class SynologyAudioApi {
 
   /// 获取文件夹内容（子文件夹 + 歌曲，按目录结构浏览）
   ///
-  /// SYNO.AudioStation.Folder，路径 AudioStation/folder.cgi
-  /// [folderPath] 为 null 时返回根目录（所有索引文件夹）
-  Future<List<AudioFolderItem>> getFolders({String? folderPath}) async {
-    final params = <String, dynamic>{
-      'method': 'list',
-      'version': 2,
-      'library': 'all',
-      'additional': jsonify(['song_tag', 'song_audio', 'song_rating']),
-      if (folderPath != null && folderPath.isNotEmpty)
-        'folder_path': folderPath,
-    };
-    final data = await _callList(
-        'SYNO.AudioStation.Folder', 'AudioStation/folder.cgi', params);
-    // Folder API 可能返回 folders 和/或 songs，统一转为 AudioFolderItem
+  /// 契约（Audio Station Folder list v2，社区抓包）：路径
+  /// AudioStation/folder.cgi，参数为 id（目录 ID，如 dir_1609，
+  /// 不传返回根目录），响应 data.items 为 folder/file 混合数组
+  /// （file 项即歌曲，含 additional.song_tag/song_audio/song_rating）。
+  /// 兼容部分 DSM 版本返回 folders/songs 双数组的形态（同函数内回退解析）。
+  /// [folderId] 为 null 时返回根目录；按 offset/limit 分页拉全量。
+  Future<List<AudioFolderItem>> getFolders({String? folderId}) async {
+    const pageSize = 200;
     final items = <AudioFolderItem>[];
-    final folders = _asList(data?['folders']);
-    for (final f in folders) {
-      final m = _asMap(f);
-      items.add(AudioFolderItem(
-        type: AudioFolderItemType.folder,
-        name: (m['name'] as String?) ?? '',
-        path: (m['path'] as String?) ?? (m['folder_path'] as String?) ?? '',
-      ));
-    }
-    final songs = _asList(data?['songs']);
-    for (final s in songs) {
-      final song = AudioSong.fromJson(_asMap(s));
-      items.add(AudioFolderItem(
-        type: AudioFolderItemType.song,
-        name: song.title,
-        path: song.path ?? '',
-        song: song,
-      ));
+    var offset = 0;
+    while (true) {
+      final params = <String, dynamic>{
+        'method': 'list',
+        'version': 2,
+        'library': 'all',
+        'offset': offset,
+        'limit': pageSize,
+        'additional': jsonify(['song_tag', 'song_audio', 'song_rating']),
+        if (folderId != null && folderId.isNotEmpty) 'id': folderId,
+      };
+      final data = await _callList(
+          'SYNO.AudioStation.Folder', 'AudioStation/folder.cgi', params);
+      var added = 0;
+      // 契约（DSM 7）：data.items 混合 folder/file
+      final mixed = _asList(data?['items']);
+      if (mixed.isNotEmpty) {
+        for (final e in mixed) {
+          final m = _asMap(e);
+          final isFolder = m['type'] == 'folder';
+          if (isFolder) {
+            items.add(AudioFolderItem(
+              type: AudioFolderItemType.folder,
+              id: m['id'] as String?,
+              name: (m['title'] as String?) ?? '',
+              path: (m['path'] as String?) ?? '',
+            ));
+          } else {
+            final song = AudioSong.fromJson(m);
+            items.add(AudioFolderItem(
+              type: AudioFolderItemType.song,
+              id: song.id,
+              name: song.title,
+              path: song.path ?? '',
+              song: song,
+            ));
+          }
+          added++;
+        }
+      } else {
+        // 兼容：部分 DSM 版本返回 folders / songs 双数组
+        final folders = _asList(data?['folders']);
+        for (final f in folders) {
+          final m = _asMap(f);
+          items.add(AudioFolderItem(
+            type: AudioFolderItemType.folder,
+            id: m['id'] as String?,
+            name: (m['name'] as String?) ?? (m['title'] as String?) ?? '',
+            path:
+                (m['path'] as String?) ?? (m['folder_path'] as String?) ?? '',
+          ));
+          added++;
+        }
+        final songs = _asList(data?['songs']);
+        for (final s in songs) {
+          final song = AudioSong.fromJson(_asMap(s));
+          items.add(AudioFolderItem(
+            type: AudioFolderItemType.song,
+            id: song.id,
+            name: song.title,
+            path: song.path ?? '',
+            song: song,
+          ));
+          added++;
+        }
+      }
+      if (added < pageSize) break;
+      offset += pageSize;
     }
     return items;
   }
 
   /// 获取歌单内歌曲
+  ///
+  /// 契约（Playlist getinfo v2）：支持 offset/limit 分页，limit=0 的
+  /// 「全部」语义未被契约定义，故按 offset/limit 分页拉全量，
+  /// additional 使用 songs_song_tag/songs_song_audio/songs_song_rating。
   Future<List<AudioSong>> getPlaylistSongs(String playlistId) async {
-    final data = await _callList(
-        'SYNO.AudioStation.Playlist', 'AudioStation/playlist.cgi', {
-      'method': 'getinfo',
-      'version': 2,
-      'library': 'all',
-      'id': playlistId,
-      'limit': 0,
-      'additional':
-          jsonify(['songs_song_tag', 'songs_song_audio', 'songs_song_rating']),
-    });
-    final songs = _asList(data?['songs']);
-    return songs
-        .map((e) => AudioSong.fromJson(_asMap(e)))
-        .toList(growable: false);
+    const pageSize = 200;
+    final songs = <AudioSong>[];
+    var offset = 0;
+    while (true) {
+      final data = await _callList(
+          'SYNO.AudioStation.Playlist', 'AudioStation/playlist.cgi', {
+        'method': 'getinfo',
+        'version': 2,
+        'library': 'all',
+        'id': playlistId,
+        'offset': offset,
+        'limit': pageSize,
+        'additional': jsonify(
+            ['songs_song_tag', 'songs_song_audio', 'songs_song_rating']),
+      });
+      final page = _asList(data?['songs']);
+      songs.addAll(page.map((e) => AudioSong.fromJson(_asMap(e))));
+      if (page.length < pageSize) break;
+      offset += pageSize;
+    }
+    return songs;
   }
 
   /// 搜索歌曲 / 专辑 / 歌手

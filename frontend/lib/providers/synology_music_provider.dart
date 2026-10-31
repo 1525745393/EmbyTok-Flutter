@@ -225,10 +225,13 @@ class SynologyMusicNotifier extends StateNotifier<SynologyMusicState> {
 
     await Future.wait([
       guarded(
-        () => _api.getAlbums(sort: 'time_add', direction: 'desc', limit: 10),
+        // 最近添加：契约 Album list sort_by=time（入库时间）desc
+        () => _api.getAlbums(sort: 'time', direction: 'desc', limit: 10),
         (v) => recentAlbums = v as List<AudioAlbum>?,
       ),
       guarded(
+        // 热门艺术家：契约 Artist list sort_by 仅 name，song_count 为契约外
+        // 枚举（PRD 按歌曲数），DSM 若忽略则退化为默认排序，不报错
         () => _api.getArtists(sort: 'song_count', direction: 'desc', limit: 15),
         (v) => topArtists = v as List<AudioArtist>?,
       ),

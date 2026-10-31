@@ -11,6 +11,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+import 'package:embytok_flutter/models/audio_models.dart';
 import 'package:embytok_flutter/services/synology_audio_api.dart';
 
 void main() {
@@ -406,6 +407,202 @@ void main() {
       final songs = await api.getSongs();
       expect(songs, hasLength(1));
       expect(songs[0].title, '串行');
+    });
+
+    test('getAlbums 排序使用契约参数 sort_by/sort_direction（ASC/DESC）', () async {
+      adapter.onGet(
+        '$serverUrl/webapi/AudioStation/album.cgi',
+        (server) => server.reply(
+          200,
+          {
+            'success': true,
+            'data': {
+              'albums': [
+                {'name': '叶惠美', 'album_artist': '周杰伦'},
+              ],
+            },
+          },
+        ),
+        queryParameters: {
+          'api': 'SYNO.AudioStation.Album',
+          'version': 3,
+          'method': 'list',
+          'library': 'all',
+          'offset': 0,
+          'limit': 10,
+          'additional': 'avg_rating',
+          'sort_by': 'time',
+          'sort_direction': 'DESC',
+          '_sid': sid,
+        },
+      );
+
+      final albums = await api.getAlbums(
+          offset: 0, limit: 10, sort: 'time', direction: 'desc');
+      expect(albums, hasLength(1));
+      expect(albums[0].name, '叶惠美');
+    });
+
+    test('getFolders 根目录解析契约 items（folder/file 混合）', () async {
+      adapter.onGet(
+        '$serverUrl/webapi/AudioStation/folder.cgi',
+        (server) => server.reply(
+          200,
+          {
+            'success': true,
+            'data': {
+              'items': [
+                {
+                  'id': 'dir_1609',
+                  'title': '华语',
+                  'path': '/music/华语',
+                  'type': 'folder',
+                },
+                {
+                  'id': 'music_9',
+                  'title': '晴天',
+                  'path': '/music/晴天.mp3',
+                  'type': 'file',
+                  'additional': {
+                    'song_tag': {'artist': '周杰伦'},
+                    'song_audio': {'duration': 269},
+                  },
+                },
+              ],
+            },
+          },
+        ),
+        queryParameters: {
+          'api': 'SYNO.AudioStation.Folder',
+          'version': 2,
+          'method': 'list',
+          'library': 'all',
+          'offset': 0,
+          'limit': 200,
+          'additional': 'song_tag,song_audio,song_rating',
+          '_sid': sid,
+        },
+      );
+
+      final items = await api.getFolders();
+      expect(items, hasLength(2));
+      expect(items[0].type, AudioFolderItemType.folder);
+      expect(items[0].id, 'dir_1609');
+      expect(items[0].name, '华语');
+      expect(items[1].type, AudioFolderItemType.song);
+      expect(items[1].song?.title, '晴天');
+    });
+
+    test('getFolders 子目录以契约 id 为参数（folderId=dir_xxx）', () async {
+      adapter.onGet(
+        '$serverUrl/webapi/AudioStation/folder.cgi',
+        (server) => server.reply(
+          200,
+          {
+            'success': true,
+            'data': {
+              'items': [
+                {
+                  'id': 'dir_1609',
+                  'title': '华语',
+                  'path': '/music/华语',
+                  'type': 'folder',
+                },
+              ],
+            },
+          },
+        ),
+        queryParameters: {
+          'api': 'SYNO.AudioStation.Folder',
+          'version': 2,
+          'method': 'list',
+          'library': 'all',
+          'offset': 0,
+          'limit': 200,
+          'additional': 'song_tag,song_audio,song_rating',
+          'id': 'dir_1609',
+          '_sid': sid,
+        },
+      );
+
+      final items = await api.getFolders(folderId: 'dir_1609');
+      expect(items, hasLength(1));
+      expect(items[0].id, 'dir_1609');
+      expect(items[0].type, AudioFolderItemType.folder);
+    });
+
+    test('getPlaylistSongs 按 offset/limit 分页拉全量', () async {
+      // 第一页返回 200 首（触发继续拉取）
+      final page1 = List.generate(200, (i) {
+        return <String, dynamic>{
+          'id': 'music_$i',
+          'title': '曲$i',
+          'additional': <String, dynamic>{},
+        };
+      });
+      // 第二页返回 1 首（终止）
+      final page2 = <Map<String, dynamic>>[
+        {'id': 'music_200', 'title': '曲200', 'additional': <String, dynamic>{}},
+      ];
+      for (final entry in [
+        (0, page1),
+        (200, page2),
+      ]) {
+        adapter.onGet(
+          '$serverUrl/webapi/AudioStation/playlist.cgi',
+          (server) => server.reply(200, {
+            'success': true,
+            'data': {'songs': entry.$2},
+          }),
+          queryParameters: {
+            'api': 'SYNO.AudioStation.Playlist',
+            'version': 2,
+            'method': 'getinfo',
+            'library': 'all',
+            'id': 'playlist_personal_normal/1',
+            'offset': entry.$1,
+            'limit': 200,
+            'additional':
+                'songs_song_tag,songs_song_audio,songs_song_rating',
+            '_sid': sid,
+          },
+        );
+      }
+
+      final songs = await api.getPlaylistSongs('playlist_personal_normal/1');
+      expect(songs, hasLength(201));
+      expect(songs.last.title, '曲200');
+    });
+
+    test('getGenres 使用契约 version 3', () async {
+      adapter.onGet(
+        '$serverUrl/webapi/AudioStation/genre.cgi',
+        (server) => server.reply(
+          200,
+          {
+            'success': true,
+            'data': {
+              'genres': [
+                {'name': '流行', 'song_count': 120},
+              ],
+            },
+          },
+        ),
+        queryParameters: {
+          'api': 'SYNO.AudioStation.Genre',
+          'version': 3,
+          'method': 'list',
+          'library': 'all',
+          'offset': 0,
+          'limit': 50,
+          '_sid': sid,
+        },
+      );
+
+      final genres = await api.getGenres(limit: 50);
+      expect(genres, hasLength(1));
+      expect(genres[0].name, '流行');
+      expect(genres[0].songCount, 120);
     });
   });
 
