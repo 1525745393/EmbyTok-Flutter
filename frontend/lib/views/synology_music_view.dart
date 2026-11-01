@@ -158,7 +158,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                         final notifier =
                             ref.read(synologyMusicProvider.notifier);
                         await notifier.loadTab(tab, force: true);
-                        // 首页下拉时同时刷新首页专用数据（最近添加/热门艺术家/流派）
+                        // 首页下拉时同时刷新首页专用数据（最近添加/艺术家/流派）
                         if (tab == SynologyMusicTab.home) {
                           await notifier.loadHomeData(force: true);
                           // 下拉刷新时清除精选专辑缓存，重新随机抽样

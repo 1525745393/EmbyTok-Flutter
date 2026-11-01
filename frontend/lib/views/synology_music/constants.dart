@@ -192,8 +192,8 @@ const String _kHomeSectionPlaylists = '我的歌单';
 /// 首页模块：精选专辑
 const String _kHomeSectionFeaturedAlbums = '精选专辑';
 
-/// 首页模块：热门艺术家
-const String _kHomeSectionTopArtists = '热门艺术家';
+/// 首页模块：艺术家（契约 name 序，DSM 不支持按歌曲数排序）
+const String _kHomeSectionTopArtists = '艺术家';
 
 /// 首页模块：音乐流派
 const String _kHomeSectionGenres = '音乐流派';

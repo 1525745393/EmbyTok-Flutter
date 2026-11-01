@@ -93,7 +93,7 @@ extension _MusicHomeTabBuilders on _SynologyMusicViewState {
                 albums: featured, scheme: scheme, onAlbumTap: _showAlbumSongs),
             const SizedBox(height: _kSpacingXXXXLarge),
           ],
-          // 热门艺术家（song_count 倒序）
+          // 艺术家（契约 name 序，DSM 不支持按歌曲数排序）
           if (state.topArtists.isNotEmpty) ...[
             _buildHomeSectionHeader(
                 _kHomeSectionTopArtists, SynologyMusicTab.artists, scheme),

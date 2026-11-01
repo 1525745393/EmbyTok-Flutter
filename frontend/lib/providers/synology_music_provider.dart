@@ -57,7 +57,7 @@ class SynologyMusicState {
 
   /// 首页专用数据（PRD 模块）
   final List<AudioAlbum> recentAlbums; // 最近添加（time_add 倒序）
-  final List<AudioArtist> topArtists; // 热门艺术家（song_count 倒序）
+  final List<AudioArtist> topArtists; // 首页艺术家（契约 name 序前 15，DSM 不支持按歌曲数排序）
   final List<AudioGenre> genres; // 音乐流派
   final List<AudioPin> pins; // 我的锁定（用户收藏的歌曲）
   final bool isHomeLoaded; // 首页数据是否已加载
@@ -199,7 +199,7 @@ class SynologyMusicNotifier extends StateNotifier<SynologyMusicState> {
     }
   }
 
-  /// 加载首页专用数据（PRD 模块）：最近添加专辑 + 热门艺术家 + 音乐流派
+  /// 加载首页专用数据（PRD 模块）：最近添加专辑 + 艺术家 + 音乐流派
   ///
   /// 并发请求 4 个接口，单个失败不影响其他模块（batch97-F1：此前 Future.wait
   /// 任一失败即整体抛错、成功结果也被丢弃，导致首页全部模块空白）。
@@ -230,9 +230,11 @@ class SynologyMusicNotifier extends StateNotifier<SynologyMusicState> {
         (v) => recentAlbums = v as List<AudioAlbum>?,
       ),
       guarded(
-        // 热门艺术家：契约 Artist list sort_by 仅 name，song_count 为契约外
-        // 枚举（PRD 按歌曲数），DSM 若忽略则退化为默认排序，不报错
-        () => _api.getArtists(sort: 'song_count', direction: 'desc', limit: 15),
+        // 艺术家：契约 Artist list sort_by 仅 name；song_count 为契约外枚举，
+        // DSM 实测（2026-10-31 DS920+）会忽略该键并回退 name 排序（方向仍生效），
+        // 且 Artist 响应无 song_count 字段——契约内无法实现"热门"，故不传排序参数，
+        // 使用契约默认 name 序（与群晖 UI 艺术家视图一致）
+        () => _api.getArtists(limit: 15),
         (v) => topArtists = v as List<AudioArtist>?,
       ),
       guarded(

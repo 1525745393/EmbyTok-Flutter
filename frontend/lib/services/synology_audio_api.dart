@@ -308,9 +308,10 @@ class SynologyAudioApi {
   /// 契约（Audio Station Artist list v3，社区抓包）：排序参数名为
   /// sort_by / sort_direction，sort_by 可选值仅 name（该接口返回的歌手
   /// 大概率是专辑艺术家列表而非艺术家列表）。
-  /// [sort] song_count（歌曲数量，PRD 热门艺术家使用）为契约外枚举值，
-  /// DSM 若忽略该参数则退化为默认排序（不报错），代码保持传参以保留
-  /// 服务端聚合语义，待 DSM 实测确认。
+  /// 实测（2026-10-31 DS920+/DSM7.2）：契约外 sort_by（如 song_count）
+  /// 会被 DSM 忽略并回退 name 排序（传入方向仍生效，song_count+desc 实得
+  /// name 逆序）；Artist 响应不含任何歌曲数字段。调用方只应传契约内 name
+  /// 或不传（默认即 name ASC）。
   Future<List<AudioArtist>> getArtists({
     int offset = 0,
     int limit = 200,
