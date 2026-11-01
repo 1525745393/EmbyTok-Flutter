@@ -138,6 +138,23 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     });
   }
 
+  /// 当前 Tab 的强制刷新（下拉刷新 / 错误重试 / 空态「刷新音乐库」共用同一逻辑）。
+  ///
+  /// 首页复用其他 Tab 数据，另有首页专用接口（loadHomeData）；provider 中
+  /// `loadTab(home)` 为空操作（仅复位 isLoading），故首页需单独刷新首页数据
+  /// （最近添加/艺术家/流派/锁定）并清除精选专辑缓存重新抽样。
+  Future<void> _refreshCurrentTab() async {
+    final tab = SynologyMusicTab.values[_tabController.index];
+    final notifier = ref.read(synologyMusicProvider.notifier);
+    if (tab == SynologyMusicTab.home) {
+      await notifier.loadHomeData(force: true);
+      // 下拉刷新时清除精选专辑缓存，重新随机抽样
+      _cachedFeaturedAlbums = null;
+    } else {
+      await notifier.loadTab(tab, force: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -155,19 +172,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                   _buildGradientHeader(scheme),
                   Expanded(
                     child: RefreshIndicator(
-                      onRefresh: () async {
-                        final tab =
-                            SynologyMusicTab.values[_tabController.index];
-                        final notifier =
-                            ref.read(synologyMusicProvider.notifier);
-                        await notifier.loadTab(tab, force: true);
-                        // 首页下拉时同时刷新首页专用数据（最近添加/艺术家/流派）
-                        if (tab == SynologyMusicTab.home) {
-                          await notifier.loadHomeData(force: true);
-                          // 下拉刷新时清除精选专辑缓存，重新随机抽样
-                          _cachedFeaturedAlbums = null;
-                        }
-                      },
+                      onRefresh: _refreshCurrentTab,
                       child: _buildTabContent(scheme),
                     ),
                   ),

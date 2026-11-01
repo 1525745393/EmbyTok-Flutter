@@ -35,15 +35,15 @@ extension _MusicHomeTabBuilders on _SynologyMusicViewState {
               }()
             : const <AudioAlbum>[]);
 
-    return RefreshIndicator(
-      onRefresh: () => ref
-          .read(synologyMusicProvider.notifier)
-          .loadTab(SynologyMusicTab.values[_tabController.index], force: true),
-      child: ListView(
-        controller: _homeScrollController,
-        padding: const EdgeInsets.only(
-            top: _kSectionTitleTopPadding, bottom: _kSectionTitleBottomPadding),
-        children: [
+    // 下拉刷新由外层 RefreshIndicator（synology_music_view.dart）统一处理，
+    // 其 onRefresh 已对首页走 loadHomeData(force:true) + 清精选缓存；
+    // 此处不再包一层 RefreshIndicator，避免内层拦截手势导致首页刷新退化为
+    // loadTab(home) 空操作。
+    return ListView(
+      controller: _homeScrollController,
+      padding: const EdgeInsets.only(
+          top: _kSectionTitleTopPadding, bottom: _kSectionTitleBottomPadding),
+      children: [
           // 快捷入口
           _buildQuickEntries(scheme),
           const SizedBox(height: _kSpacingXXXXLarge),
@@ -131,13 +131,8 @@ extension _MusicHomeTabBuilders on _SynologyMusicViewState {
                         style: TextStyle(color: scheme.onSurfaceVariant)),
                     const SizedBox(height: _kSpacingLarge),
                     FilledButton.icon(
-                      onPressed: state.isLoading
-                          ? null
-                          : () => ref
-                              .read(synologyMusicProvider.notifier)
-                              .loadTab(
-                                  SynologyMusicTab.values[_tabController.index],
-                                  force: true),
+                      onPressed:
+                          state.isLoading ? null : _refreshCurrentTab,
                       icon: const Icon(Icons.refresh, size: 18),
                       label: const Text('刷新音乐库'),
                     ),
@@ -146,8 +141,7 @@ extension _MusicHomeTabBuilders on _SynologyMusicViewState {
               ),
             ),
         ],
-      ),
-    );
+      );
   }
 
   Widget _buildQuickEntries(ColorScheme scheme) {
@@ -358,15 +352,20 @@ extension _MusicHomeTabBuilders on _SynologyMusicViewState {
 
   void _playRecentPlayback(RecentPlayback record) {
     if (record.mediaType != RecentPlaybackType.song) return;
-    // 从当前歌曲列表中找到匹配的歌曲并播放
+    // 优先从已加载歌曲列表匹配完整歌曲（保留上下文）；未匹配到时（歌曲在分页
+    // 已加载页之外，songs 默认仅前 200 首）按 id 构造最小可播放对象入队，
+    // 与 _playPin 同策略，避免误报「该歌曲已不在当前列表中」导致无法播放。
     final songs = ref.read(synologyMusicProvider).songs;
     final match = songs.where((s) => s.id == record.mediaId).toList();
     if (match.isNotEmpty) {
       ref.read(synologyPlaybackProvider.notifier).playQueue(match, 0);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('该歌曲已不在当前列表中')),
+      final song = AudioSong(
+        id: record.mediaId,
+        title: record.title,
+        tag: AudioSongTag(artist: record.subtitle),
       );
+      ref.read(synologyPlaybackProvider.notifier).playQueue([song], 0);
     }
   }
 

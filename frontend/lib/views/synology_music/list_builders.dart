@@ -38,10 +38,10 @@ extension _MusicListBuilders on _SynologyMusicViewState {
             ),
           ),
           const SizedBox(height: _kSpacingXXXLarge),
+          // 复用首页刷新链路：首页 Tab 的 loadTab(home) 为空操作，
+          // 由 _refreshCurrentTab 路由到 loadHomeData(force:true)
           OutlinedButton.icon(
-            onPressed: () => ref.read(synologyMusicProvider.notifier).loadTab(
-                SynologyMusicTab.values[_tabController.index],
-                force: true),
+            onPressed: _refreshCurrentTab,
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('重试'),
           ),
