@@ -27,7 +27,7 @@ void main() {
 
   testWidgets('删除文件源：弹窗打开后同时显示取消与删除按钮', (tester) async {
     // 预置一个可删除的 SMB 源（local_default 不可删，故用 smb）
-    final src = const FileSource(
+    const src = FileSource(
       id: 'test_smb',
       type: FileSourceType.smb,
       name: '测试SMB',
