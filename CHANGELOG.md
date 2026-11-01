@@ -1,3 +1,11 @@
+## [2.401.82](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.81...v2.401.82) (2026-11-01)
+
+
+### Bug Fixes
+
+* **ui:** 视频库-全屏与播放器 交互审查修复 2 处缺陷并补 2 个回归测试 ([80adf20](https://github.com/1525745393/EmbyTok-Flutter/commit/80adf201246f44c8dc61cc73954b4c3013e64080))
+* **ui:** 视频库-网格与条目 交互审查修复 2 处缺陷并补 4 个回归测试 ([e7a5c2f](https://github.com/1525745393/EmbyTok-Flutter/commit/e7a5c2fe1d8df023a206eccd3e9d752787986712))
+
 ## [2.401.81](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.80...v2.401.81) (2026-11-01)
 
 
