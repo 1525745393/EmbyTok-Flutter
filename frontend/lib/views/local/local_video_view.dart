@@ -1362,6 +1362,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
           ],
         ),
       );
+      ctrl.dispose(); // 弹窗已关闭，释放控制器避免泄漏
       if (newName != null && newName.isNotEmpty && mounted) {
         try {
           await LocalVideoService().renameFile(item, newName);

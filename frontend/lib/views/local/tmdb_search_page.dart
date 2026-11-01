@@ -76,6 +76,8 @@ class _TmdbSearchPageState extends State<TmdbSearchPage> {
   }
 
   Future<void> _select(Map<String, dynamic> result) async {
+    // 防快速连击：结果项在加载遮罩下仍可点，连点会发起两次详情请求并重复落盘
+    if (_loading) return;
     final id = result['id'] as int;
     setState(() => _loading = true);
     try {

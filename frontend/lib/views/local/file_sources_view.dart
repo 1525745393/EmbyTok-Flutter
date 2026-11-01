@@ -193,6 +193,7 @@ class FileSourcesView extends ConsumerWidget {
                               ],
                             ),
                           );
+                          ctrl.dispose(); // 弹窗已关闭，释放控制器避免泄漏
                           if (newName != null && newName.isNotEmpty) {
                             await ref.read(fileSourcesProvider.notifier).update(
                                   s.copyWith(name: newName),
@@ -332,39 +333,54 @@ class FileSourcesView extends ConsumerWidget {
   }
 
   void _confirmDelete(BuildContext context, WidgetRef ref, FileSource s) {
-    showDialog<Widget>(context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('删除文件源'),
-        content: Text('确定删除「${s.name}」？\n该源下的影片将从媒体库移除。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () async {
-              // 清理该源下视频的刮削缓存（分批并发，千级媒体库不串行阻塞）
-              try {
-                final videos = ref.read(localVideoProvider).items;
-                final targets = videos.where((v) => v.sourceId == s.id).toList();
-                const batchSize = 16;
-                for (var i = 0; i < targets.length; i += batchSize) {
-                  final batch = targets.skip(i).take(batchSize).toList();
-                  await Future.wait(batch.map((v) async {
-                    try { await ScrapeMediaStore.delete(v); } catch (e) { debugPrint('删除元数据失败 ${v.name}: $e'); }
-                  }));
-                }
-              } catch (e) { debugPrint('清理源元数据失败: $e'); }
-              // 先等源移除持久化完成再重扫，避免 scan 读到已删源
-              await ref.read(fileSourcesProvider.notifier).remove(s.id);
-              ref.read(localVideoProvider.notifier).refresh();
-              if (context.mounted) Navigator.pop(context);
-            },
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
+    showDialog<Widget>(context: context, builder: (dialogCtx) {
+      // 删除批量清理可能耗时数秒：开始后禁用取消按钮并显示进度，
+      // 否则用户中途取消关闭弹窗后，await 完成处的 Navigator.pop(context)
+      // 会误弹底层"文件源"页面本身（弹窗已不是栈顶路由）。
+      bool busy = false;
+      return StatefulBuilder(
+        builder: (context, setDialog) => AlertDialog(
+          title: const Text('删除文件源'),
+          content: Text('确定删除「${s.name}」？\n该源下的影片将从媒体库移除。'),
+          actions: [
+            if (!busy)
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: const Text('取消'),
+              ),
+            TextButton(
+              onPressed: busy
+                  ? null
+                  : () async {
+                      setDialog(() => busy = true);
+                      // 清理该源下视频的刮削缓存（分批并发，千级媒体库不串行阻塞）
+                      try {
+                        final videos = ref.read(localVideoProvider).items;
+                        final targets = videos.where((v) => v.sourceId == s.id).toList();
+                        const batchSize = 16;
+                        for (var i = 0; i < targets.length; i += batchSize) {
+                          final batch = targets.skip(i).take(batchSize).toList();
+                          await Future.wait(batch.map((v) async {
+                            try { await ScrapeMediaStore.delete(v); } catch (e) { debugPrint('删除元数据失败 ${v.name}: $e'); }
+                          }));
+                        }
+                      } catch (e) { debugPrint('清理源元数据失败: $e'); }
+                      // 先等源移除持久化完成再重扫，避免 scan 读到已删源
+                      await ref.read(fileSourcesProvider.notifier).remove(s.id);
+                      ref.read(localVideoProvider.notifier).refresh();
+                      if (context.mounted) Navigator.pop(dialogCtx);
+                    },
+              child: busy
+                  ? const SizedBox(
+                      width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('删除', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   /// 选择媒体类型：电影 / 电视剧 / 短视频
@@ -404,9 +420,9 @@ class FileSourcesView extends ConsumerWidget {
   }
 
   /// 输入媒体库名称
-  Future<String?> _showNameDialog(BuildContext context, String defaultName) {
+  Future<String?> _showNameDialog(BuildContext context, String defaultName) async {
     final ctrl = TextEditingController(text: defaultName);
-    return showDialog<String>(
+    final result = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('媒体库名称'),
@@ -430,6 +446,8 @@ class FileSourcesView extends ConsumerWidget {
         ],
       ),
     );
+    ctrl.dispose(); // 弹窗已关闭，释放控制器避免泄漏
+    return result;
   }
 
   void _showAddTypeDialog(BuildContext context, WidgetRef ref) {

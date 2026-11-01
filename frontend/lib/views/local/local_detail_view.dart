@@ -35,6 +35,15 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
   /// 相关推荐 future：缓存于 State，避免每次 build 重复请求 TMDB；换片时重建
   Future<List<Map<String, dynamic>>>? _recsFuture;
 
+  /// 演员头像本地文件探测 future 缓存（personId -> future）：
+  /// future 不能内联写在 build 里，否则每次 rebuild（如切换收藏）都会重新 stat，
+  /// 头像会闪回 CDN 图。
+  final Map<int, Future<File?>> _castAvatarFutures = {};
+
+  Future<File?> _castAvatarFuture(int personId) =>
+      _castAvatarFutures.putIfAbsent(
+          personId, () => ScrapeMediaStore.castFileForVideo(personId, widget.item.path));
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -643,7 +652,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                                     height: 64,
                                     child: personId != null && personId > 0
                                         ? FutureBuilder<File?>(
-                                            future: ScrapeMediaStore.castFileForVideo(personId, widget.item.path),
+                                            future: _castAvatarFuture(personId),
                                             builder: (_, snap) {
                                               if (snap.hasData && snap.data != null) {
                                                 return Image.file(snap.data!,

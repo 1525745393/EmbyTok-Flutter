@@ -181,6 +181,7 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已保存')));
       }
     }
+    controller.dispose(); // 弹窗已关闭，释放控制器避免泄漏
   }
 
   Future<void> _clearScrapeCache(BuildContext context, WidgetRef ref) async {

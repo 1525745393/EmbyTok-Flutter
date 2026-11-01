@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:video_player/video_player.dart' show VideoPlayerController;
 
 import '../../models/local_video_item.dart';
 import '../../providers/local_video_provider.dart';
@@ -31,6 +32,11 @@ class LocalPlayPage extends ConsumerStatefulWidget {
 class _LocalPlayPageState extends ConsumerState<LocalPlayPage> {
   late PageController _controller;
   late int _index;
+  /// build 期缓存的当前播放控制器引用。
+  /// dispose 阶段 ref 已不可用（riverpod 2.6 dispose 后 ref.read 抛 StateError，
+  /// 会被下方 catch 静默吞掉，导致"退出时保存当前页位置"从不执行），
+  /// 故在 build 里缓存引用，dispose 兜底保存时改用它。
+  VideoPlayerController? _activeCtrl;
 
   List<LocalVideoItem> get _list =>
       widget.items.isNotEmpty ? widget.items : [widget.item!];
@@ -48,7 +54,9 @@ class _LocalPlayPageState extends ConsumerState<LocalPlayPage> {
   void _savePosition(int index) {
     if (index < 0 || index >= _list.length) return;
     try {
-      final ctrl = ref.read(currentVideoControllerProvider);
+      // 用 build 期缓存的引用，不再 ref.read（onPageChanged 时缓存仍是被离开页的
+      // 控制器；dispose 时缓存是最后一页的控制器，语义与旧实现一致且不抛错）
+      final ctrl = _activeCtrl;
       if (ctrl == null || !ctrl.value.isInitialized) return;
       final hash = _list[index].pathHash;
       safeUnawaited(() async {
@@ -63,7 +71,8 @@ class _LocalPlayPageState extends ConsumerState<LocalPlayPage> {
 
   @override
   void dispose() {
-    // 退出播放页时保存当前页位置
+    // 退出播放页时兜底保存当前页位置（用 build 期缓存的 _activeCtrl，
+    // 此处 ref 已不可用，不能再 ref.read）
     _savePosition(_index);
     _controller.dispose();
     super.dispose();
@@ -72,6 +81,8 @@ class _LocalPlayPageState extends ConsumerState<LocalPlayPage> {
   @override
   Widget build(BuildContext context) {
     final scrapedMap = ref.watch(localVideoProvider).scrapedMap;
+    // 缓存当前页控制器：dispose 阶段无法再 ref.read（见 _activeCtrl 注释）
+    _activeCtrl = ref.watch(currentVideoControllerProvider);
     final list = _list;
     // 自动连播：监听播放结束触发事件，切到下一集（与在线 PlaybackShell 行为一致，
     // batch 26；VideoPageItem 播放结束时 trigger++ 仅触发一次）

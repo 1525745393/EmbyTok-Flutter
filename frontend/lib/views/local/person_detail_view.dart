@@ -27,6 +27,10 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
   Map<String, dynamic>? _details;
   Map<String, dynamic>? _credits;
   bool _loading = true;
+  /// 本地头像文件探测结果缓存：future 不能内联写在 build 里，
+  /// 否则每次 rebuild（如切换收藏）都会重新 stat，头像会闪回 CDN 图。
+  late final Future<File?> _castFileFuture =
+      ScrapeMediaStore.castFile(widget.personId);
 
   @override
   void initState() {
@@ -117,7 +121,7 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                 children: [
                   widget.profilePath != null
                       ? FutureBuilder<File?>(
-                          future: ScrapeMediaStore.castFile(widget.personId),
+                          future: _castFileFuture,
                           builder: (_, snap) {
                             if (snap.hasData && snap.data != null) {
                               return Image.file(snap.data!, fit: BoxFit.cover);
@@ -171,6 +175,17 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                               const SizedBox(height: 12),
                               Text('暂无法获取演员信息',
                                   style: TextStyle(color: Colors.grey[600])),
+                              const SizedBox(height: 12),
+                              // 错误态必须提供真实可用的重试入口，否则只能退出重进；
+                              // 点击即回 loading 态展示进度（_load 内部完成后再切内容/错误态）
+                              TextButton.icon(
+                                icon: const Icon(Icons.refresh, size: 16),
+                                label: const Text('重试'),
+                                onPressed: () {
+                                  setState(() => _loading = true);
+                                  _load();
+                                },
+                              ),
                             ],
                           ),
                         ),

@@ -63,6 +63,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   int _scrapedCount = 0;
   // 多选模式
   final Set<String> _selected = {};
+  /// 扫描请求序号：连续点"重新扫描"时丢弃晚到的过期响应，避免旧扫描结果覆盖新结果
+  int _scanSeq = 0;
 
   @override
   void initState() {
@@ -71,6 +73,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   }
 
   Future<void> _scan() async {
+    final seq = ++_scanSeq;
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -124,31 +128,31 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           items = await LocalDirScanner().scan(paths);
           break;
       }
-      if (mounted) {
-        // 更新扫描状态到 provider
-        ref.read(fileSourcesProvider.notifier).updateScanStatus(
-              widget.source.id,
-              // batch32-F2 空列表仅表示目录无视频，不判连接失败（连接异常走 catch 分支）
-              FileSourceStatus.connected,
-              videoCount: items.length,
-            );
-        final cache = await ScrapeService.loadCache();
-        setState(() {
-          _items = items;
-          _scraped = cache;
-          _loading = false;
-        });
-      }
+      // 过期响应（期间又点了重新扫描）直接丢弃，避免覆盖新结果
+      if (!mounted || seq != _scanSeq) return;
+      // 更新扫描状态到 provider
+      ref.read(fileSourcesProvider.notifier).updateScanStatus(
+            widget.source.id,
+            // batch32-F2 空列表仅表示目录无视频，不判连接失败（连接异常走 catch 分支）
+            FileSourceStatus.connected,
+            videoCount: items.length,
+          );
+      final cache = await ScrapeService.loadCache();
+      if (!mounted || seq != _scanSeq) return;
+      setState(() {
+        _items = items;
+        _scraped = cache;
+        _loading = false;
+      });
     } catch (e, st) {
-      if (mounted) {
-        ref
-            .read(fileSourcesProvider.notifier)
-            .updateScanStatus(widget.source.id, FileSourceStatus.failed);
-        setState(() {
-          _error = '$e\n$st';
-          _loading = false;
-        });
-      }
+      if (!mounted || seq != _scanSeq) return;
+      ref
+          .read(fileSourcesProvider.notifier)
+          .updateScanStatus(widget.source.id, FileSourceStatus.failed);
+      setState(() {
+        _error = '$e\n$st';
+        _loading = false;
+      });
     }
   }
 
@@ -954,6 +958,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         ),
       ),
     );
+    ctrl.dispose(); // 弹窗已关闭，释放控制器避免泄漏
     if (newName == null || newName.isEmpty || newName == oldName) return;
     // 过滤非法文件名字符（与 _sanitizeRegex 保持一致），并拒绝含路径分隔符的输入，防止路径穿越
     final cleanName = newName.replaceAll(_sanitizeRegex, '').trim();
@@ -1851,6 +1856,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           ],
         ),
       );
+      ctrl.dispose(); // 弹窗已关闭，释放控制器避免泄漏
       if (newName != null && newName.isNotEmpty) {
         // batch32-F4 输入可能带了扩展名：剥离后由 renameFile 统一追加 ext，避免双扩展名（与 batch30 预填去扩展名口径一致）
         var finalName = newName;
