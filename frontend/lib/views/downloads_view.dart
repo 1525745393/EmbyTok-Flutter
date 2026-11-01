@@ -27,6 +27,8 @@ class _DownloadsViewState extends ConsumerState<DownloadsView>
   // 已下载批量选择
   final Set<String> _selected = {};
   bool _batchMode = false;
+  /// 批量删除进行中：防止循环 await 期间重复点击并发删除（批次A-F6）
+  bool _batchDeleting = false;
 
   @override
   void initState() {
@@ -79,20 +81,33 @@ class _DownloadsViewState extends ConsumerState<DownloadsView>
             ),
           if (_batchMode)
             TextButton(
-              onPressed: () async {
-                for (final id in _selected) {
-                  await ref
-                      .read(downloadProvider.notifier)
-                      .deleteDownloaded(id);
-                }
-                if (mounted) {
-                  setState(() {
-                    _batchMode = false;
-                    _selected.clear();
-                  });
-                }
-              },
-              child: const Text('删除', style: TextStyle(color: Colors.red)),
+              onPressed: _batchDeleting
+                  ? null
+                  : () async {
+                      setState(() => _batchDeleting = true);
+                      try {
+                        for (final id in _selected) {
+                          await ref
+                              .read(downloadProvider.notifier)
+                              .deleteDownloaded(id);
+                        }
+                      } finally {
+                        if (mounted) {
+                          setState(() {
+                            _batchDeleting = false;
+                            _batchMode = false;
+                            _selected.clear();
+                          });
+                        }
+                      }
+                    },
+              child: _batchDeleting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('删除', style: TextStyle(color: Colors.red)),
             ),
         ],
         bottom: TabBar(

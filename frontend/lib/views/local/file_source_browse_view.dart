@@ -554,6 +554,14 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
 
   /// 刮削某部剧的所有集（TMDB 只搜一次）
   Future<void> _scrapeGroup(String seriesName, List<LocalVideoItem> eps) async {
+    // 与 _scrapeAll 共用本 State 的 _scraping 互斥：整库刮削进行中时
+    // 再点「刮削本剧」会并发执行、互相覆写进度（批次A-F4）
+    if (_scraping) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('已有刮削任务进行中，请等待完成')),
+      );
+      return;
+    }
     setState(() {
       _scraping = true;
       _scrapedCount = 0;

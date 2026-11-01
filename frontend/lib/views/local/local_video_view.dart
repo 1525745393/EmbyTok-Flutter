@@ -34,6 +34,9 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
   final _searchCtrl = TextEditingController();
   String? _browsingFolder; // 正在浏览的文件夹名（null = 全部）
   String? _selectedSourceId; // 选中的文件源 ID（null = 全部）
+  /// 多选批量操作进行中：批量重刮/批量重命名期间禁用底部栏按钮，
+  /// 防止循环 await 期间重复点击并发执行（批次A-F3/F5）
+  bool _batchBusy = false;
   /// 续播位置读取缓存：同一 pathHash 只触发一次异步读，滚动重建不重复读盘、进度条不闪回
   final Map<String, Future<int?>> _resumeFutureCache = {};
 
@@ -84,12 +87,12 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                   TextButton.icon(
                     icon: const Icon(Icons.refresh, color: Colors.blue),
                     label: const Text('重刮'),
-                    onPressed: () => _batchRescrape(state, notifier),
+                    onPressed: _batchBusy ? null : () => _batchRescrape(state, notifier),
                   ),
                   TextButton.icon(
                     icon: const Icon(Icons.auto_fix_high, color: Colors.green),
                     label: const Text('批量重命名'),
-                    onPressed: () => _batchRename(state, notifier),
+                    onPressed: _batchBusy ? null : () => _batchRename(state, notifier),
                   ),
                   TextButton.icon(
                     icon: const Icon(Icons.close, color: Colors.grey),
@@ -678,48 +681,56 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
   /// 搜索底部弹窗
   void _showSearchSheet(
       BuildContext context, LocalVideoState state, LocalVideoNotifier notifier) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: TextField(
-                autofocus: true,
-                decoration: const InputDecoration(
-                  hintText: '搜索本地视频…',
-                  prefixIcon: Icon(Icons.search),
-                  border: OutlineInputBorder(),
-                ),
-                onChanged: notifier.setKeyword,
-              ),
+      // 弹窗必须订阅 provider 实时刷新：若用打开时捕获的 state 快照，
+      // 输入关键词后结果列表停留在旧内容（批次A-F1）
+      builder: (_) => Consumer(
+        builder: (context, ref, _) {
+          final liveState = ref.watch(localVideoProvider);
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
             ),
-            SizedBox(
-              height: 300,
-              child: state.filtered.isEmpty
-                  ? const Center(child: Text('无结果'))
-                  : ListView.builder(
-                      itemCount: state.filtered.length,
-                      itemBuilder: (_, i) {
-                        final it = state.filtered[i];
-                        return ListTile(
-                          title: Text(it.name, maxLines: 1),
-                          onTap: () {
-                            Navigator.pop(context);
-                            _playVideo(it);
-                          },
-                        );
-                      },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: TextField(
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      hintText: '搜索本地视频…',
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(),
                     ),
+                    onChanged: (v) =>
+                        ref.read(localVideoProvider.notifier).setKeyword(v),
+                  ),
+                ),
+                SizedBox(
+                  height: 300,
+                  child: liveState.filtered.isEmpty
+                      ? const Center(child: Text('无结果'))
+                      : ListView.builder(
+                          itemCount: liveState.filtered.length,
+                          itemBuilder: (_, i) {
+                            final it = liveState.filtered[i];
+                            return ListTile(
+                              title: Text(it.name, maxLines: 1),
+                              onTap: () {
+                                Navigator.pop(context);
+                                _playVideo(it);
+                              },
+                            );
+                          },
+                        ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     ).whenComplete(() {
       // 关闭弹窗后清空关键词：输入框本身无 controller，下次打开输入框为空；
@@ -1236,42 +1247,56 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
 
   /// P2#9 批量重新刮削
   Future<void> _batchRescrape(LocalVideoState state, LocalVideoNotifier notifier) async {
+    if (_batchBusy) return;
     final ids = state.selected.toList();
     final items = state.items.where((e) => ids.contains(e.id)).toList();
-    // 清空刮削缓存（而非写入空占位），避免刮削失败后残留空数据导致标题空白且不再自动刮削
-    for (final it in items) {
-      await ScrapeService.removeCacheEntry(it.pathHash);
-    }
-    notifier.exitSelecting();
-    // 先刷新让 scrapedMap 移除这些条目，scrapeMissing 按 containsKey 判断才会重新刮
-    await notifier.refresh();
-    notifier.scrapeMissing();
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已请求重新刮削 ${items.length} 个文件')),
-      );
+    if (items.isEmpty) return;
+    setState(() => _batchBusy = true);
+    try {
+      // 清空刮削缓存（而非写入空占位），避免刮削失败后残留空数据导致标题空白且不再自动刮削
+      for (final it in items) {
+        await ScrapeService.removeCacheEntry(it.pathHash);
+      }
+      notifier.exitSelecting();
+      // 先刷新让 scrapedMap 移除这些条目，scrapeMissing 按 containsKey 判断才会重新刮
+      await notifier.refresh();
+      notifier.scrapeMissing();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('已请求重新刮削 ${items.length} 个文件')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _batchBusy = false);
     }
   }
 
   /// P2#9 批量按刮削重命名
   Future<void> _batchRename(LocalVideoState state, LocalVideoNotifier notifier) async {
+    if (_batchBusy) return;
     final ids = state.selected.toList();
     final items = state.items.where((e) => ids.contains(e.id)).toList();
+    if (items.isEmpty) return;
+    setState(() => _batchBusy = true);
     int ok = 0, fail = 0;
-    for (final it in items) {
-      final s = state.scrapedMap[it.pathHash];
-      if (s == null || s.title.isEmpty) { fail++; continue; }
-      try {
-        await LocalVideoService().renameByScraped(it, s);
-        ok++;
-      } catch (_) { fail++; }
-    }
-    notifier.exitSelecting();
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('批量重命名完成：成功 $ok，失败 $fail')),
-      );
-      notifier.refresh();
+    try {
+      for (final it in items) {
+        final s = state.scrapedMap[it.pathHash];
+        if (s == null || s.title.isEmpty) { fail++; continue; }
+        try {
+          await LocalVideoService().renameByScraped(it, s);
+          ok++;
+        } catch (_) { fail++; }
+      }
+      notifier.exitSelecting();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('批量重命名完成：成功 $ok，失败 $fail')),
+        );
+        notifier.refresh();
+      }
+    } finally {
+      if (mounted) setState(() => _batchBusy = false);
     }
   }
 

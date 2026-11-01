@@ -410,6 +410,9 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
   // 批量选择模式
   bool _selectMode = false;
   final Set<String> _selectedIds = <String>{};
+  /// 批量取消进行中：循环 await toggleFavorite 期间禁止重入，
+  /// 否则并发执行会二次翻转已取消条目（已取消的又被加回）（批次A-F7）
+  bool _bulkBusy = false;
 
   @override
   void initState() {
@@ -529,7 +532,7 @@ List<MediaItem> _filter(List<MediaItem> items) {
   }
 
   Future<void> _bulkUnfavorite() async {
-    if (_selectedIds.isEmpty) return;
+    if (_bulkBusy || _selectedIds.isEmpty) return;
     final notifier = ref.read(favoritesProvider.notifier);
     final state = ref.read(favoritesProvider);
     // 从三组列表中找到对应 MediaItem
@@ -540,50 +543,54 @@ List<MediaItem> _filter(List<MediaItem> items) {
       _exitSelectMode();
       return;
     }
+    setState(() => _bulkBusy = true);
 
     // 捕获 ScaffoldMessenger（在 async gap 之前）
     final messenger = ScaffoldMessenger.of(context);
+    try {
+      // 逐条执行：乐观更新 + SnackBar 合并提示
+      for (final item in targets) {
+        await notifier.toggleFavorite(item);
+      }
+      // batch35-F3 主路径同样校验部分失败（失败条目已回滚，仍在收藏中）
+      final anyFailed = targets.any((e) => !notifier.isFavorite(e.id));
 
-    // 逐条执行：乐观更新 + SnackBar 合并提示
-    for (final item in targets) {
-      await notifier.toggleFavorite(item);
-    }
-    // batch35-F3 主路径同样校验部分失败（失败条目已回滚，仍在收藏中）
-    final anyFailed = targets.any((e) => !notifier.isFavorite(e.id));
+      final n = targets.length;
+      _exitSelectMode();
 
-    final n = targets.length;
-    _exitSelectMode();
-
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(anyFailed ? '部分取消失败，请重试' : '已批量取消收藏 $n 项'),
-        duration: const Duration(seconds: 5),
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: '撤销',
-          onPressed: () async {
-            // 逐条重新收藏（撤销）：仅恢复「已成功取消」的条目。
-            // 批量取消中失败的条目仍处于收藏态（已回滚），若再次 toggle
-            // 会被反方向取消收藏——用户点撤销反而把它从收藏列表移除。
-            for (final item in targets) {
-              if (!notifier.isFavorite(item.id)) {
-                await notifier.toggleFavorite(item);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(anyFailed ? '部分取消失败，请重试' : '已批量取消收藏 $n 项'),
+          duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: '撤销',
+            onPressed: () async {
+              // 逐条重新收藏（撤销）：仅恢复「已成功取消」的条目。
+              // 批量取消中失败的条目仍处于收藏态（已回滚），若再次 toggle
+              // 会被反方向取消收藏——用户点撤销反而把它从收藏列表移除。
+              for (final item in targets) {
+                if (!notifier.isFavorite(item.id)) {
+                  await notifier.toggleFavorite(item);
+                }
               }
-            }
-            // 简单校验：至少一条失败则提示
-            final anyFailed = targets.any((e) => !notifier.isFavorite(e.id));
-            if (anyFailed) {
-              messenger.showSnackBar(
-                const SnackBar(
-                  content: Text('部分撤销失败，请重试'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            }
-          },
+              // 简单校验：至少一条失败则提示
+              final anyFailed = targets.any((e) => !notifier.isFavorite(e.id));
+              if (anyFailed) {
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('部分撤销失败，请重试'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+          ),
         ),
-      ),
-    );
+      );
+    } finally {
+      if (mounted) setState(() => _bulkBusy = false);
+    }
   }
 
   String _recentLabel(String? err) {
@@ -774,7 +781,7 @@ List<MediaItem> _filter(List<MediaItem> items) {
               ),
               const SizedBox(width: 6),
               GestureDetector(
-                onTap: n == 0 ? null : _bulkUnfavorite,
+                onTap: (n == 0 || _bulkBusy) ? null : _bulkUnfavorite,
                 child: Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
