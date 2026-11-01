@@ -1277,6 +1277,10 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
       'itemId': widget.item.id,
       'selectedTrackId': selectedTrackId,
     });
+    // 记录发起请求时的条目 ID：慢网络下旧视频的字幕请求可能晚于新视频
+    // 返回（item 切换后 State 复用，didUpdateWidget 只重建 controller），
+    // 晚到响应必须按 item 丢弃，避免旧视频字幕覆盖新视频字幕（batch 44）
+    final requestItemId = widget.item.id;
     if (!mounted) return;
     if (selectedTrackId == null) {
       AppLogger.debug('字幕：关闭字幕');
@@ -1425,10 +1429,16 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
         'isLocal': selectedTrack.localFilePath != null,
         'cuesCount': cues.length,
       });
-      // 双重检查：避免 dispose 后 setState
-      if (mounted && !_isDisposed) {
+      // 双重检查：dispose 后禁止 setState；item 已切换时丢弃旧响应，
+      // 防止慢网络下旧视频字幕晚到覆盖新视频字幕
+      if (mounted && !_isDisposed && widget.item.id == requestItemId) {
         setState(() {
           _subtitleCues = cues;
+        });
+      } else if (widget.item.id != requestItemId) {
+        AppLogger.debug('字幕响应已过期（item 已切换），丢弃', data: {
+          'requestItemId': requestItemId,
+          'currentItemId': widget.item.id,
         });
       }
     } catch (e) {
@@ -1439,7 +1449,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
         'trackIndex': trackIndex,
         'error': e.toString(),
       });
-      if (mounted && !_isDisposed) {
+      // item 已切换时同样丢弃旧请求的失败清理，避免误清新视频字幕
+      if (mounted && !_isDisposed && widget.item.id == requestItemId) {
         setState(() {
           _subtitleCues = const <SubtitleCue>[];
         });
