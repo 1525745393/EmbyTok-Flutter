@@ -14,6 +14,7 @@ import '../services/artist_info_service.dart';
 import '../services/synology_audio_api.dart';
 import '../utils/logger.dart';
 import 'auth_provider.dart' show secureStorageProvider;
+import 'service_mode_provider.dart';
 import 'syno_accounts_provider.dart';
 
 /// 群晖认证状态
@@ -211,6 +212,9 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
     // 存储操作失败不影响主流程，静默处理
   }
     state = const SynologyAuthState();
+    // 音乐服务模式依赖群晖账号：登出后同步回退视频模式，
+    // 否则后续登录其他模式（Emby/本地）后首页仍按音乐模式渲染（异常）
+    await _ref.read(serviceModeProvider.notifier).setMode(AppServiceMode.video);
   }
 
   /// 会话过期自动续期（PRD #30）：用当前账号保存的密码重新登录拿新 sid。

@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:embytok_flutter/providers/auth_provider.dart'
     show secureStorageProvider;
+import 'package:embytok_flutter/providers/service_mode_provider.dart';
 import 'package:embytok_flutter/providers/synology_auth_provider.dart';
 import 'package:embytok_flutter/services/synology_audio_api.dart';
 
@@ -161,6 +162,29 @@ void main() {
       expect(await mockStorage.read(key: 'synology_sid_secure'), isNull);
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getString('synology_server_url'), isNull);
+    });
+
+    test('logout 后服务模式从音乐回退视频（退出音乐模式后登录其他模式不异常）', () async {
+      final container = buildContainer();
+      addTearDown(container.dispose);
+      // 模拟音乐服务模式（首页按群晖音乐库渲染）
+      await container.read(serviceModeProvider.notifier)
+          .setMode(AppServiceMode.music);
+      expect(container.read(serviceModeProvider), AppServiceMode.music);
+
+      // 登录群晖后退出（对应音乐模式右上角"退出群晖账号"）
+      await container.read(synologyAuthProvider.notifier).login(
+            serverUrl: 'http://192.168.1.6:5000',
+            account: 'admin',
+            password: 'pw',
+          );
+      expect(container.read(synologyAuthProvider).isLoggedIn, isTrue);
+      await container.read(synologyAuthProvider.notifier).logout();
+
+      // 登出后：会话清空 + 服务模式回退视频，
+      // 保证之后登录 Emby/本地等模式首页按视频模式渲染
+      expect(container.read(synologyAuthProvider).isLoggedIn, isFalse);
+      expect(container.read(serviceModeProvider), AppServiceMode.video);
     });
   });
 }
