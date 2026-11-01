@@ -271,6 +271,20 @@ await tester.pumpWidget(
 );
 ```
 
+### 弹窗/页面同名文本 finder 重复命中（findsOneWidget 失败）
+
+底部弹窗（showModalBottomSheet）测试时，`find.text('标题')` 常同时命中
+页面网格卡片 label 与弹窗 ListTile（同名文本），导致 findsOneWidget 失败。
+**修复**：用 `find.descendant` 把 finder 限定到弹窗作用域：
+
+```dart
+final sheet = find.byType(BottomSheet);
+expect(find.descendant(of: sheet, matching: find.text('电影A')), findsOneWidget);
+expect(find.descendant(of: sheet, matching: find.text('剧集B')), findsNothing);
+```
+
+先例：`test/views/batch_a_ui_click_regression_test.dart`（F1 搜索弹窗实时刷新）。
+
 ### 覆盖率报告不准确
 
 确保运行所有测试文件，并检查是否有未测试的代码路径。
