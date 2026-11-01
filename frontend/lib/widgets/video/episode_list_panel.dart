@@ -245,8 +245,22 @@ class _EpisodeListPanelState extends ConsumerState<EpisodeListPanel> {
                       )
                     : _error != null && _episodes.isEmpty
                         ? Center(
-                            child: Text(_error!,
-                                style: const TextStyle(color: Colors.white54)),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(_error!,
+                                    style: const TextStyle(
+                                        color: Colors.white54)),
+                                const SizedBox(height: 12),
+                                TextButton.icon(
+                                  onPressed: _selectedSeasonId != null
+                                      ? () => _loadEpisodes(_selectedSeasonId!)
+                                      : _loadSeasons,
+                                  icon: const Icon(Icons.refresh, size: 16),
+                                  label: const Text('重试'),
+                                ),
+                              ],
+                            ),
                           )
                         : _episodes.isEmpty
                             ? const Center(

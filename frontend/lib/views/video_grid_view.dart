@@ -1,5 +1,5 @@
 // 视频网格视图页面：GridView.builder 实现自适应网格布局
-// - 竖屏：2列 / 横屏：4列
+// - 按宽度自适应列数：<400px 2列 / 400-700px 3列 / 700-1000px 4列 / >=1000px 5列
 // - 点击卡片跳转到视频流对应位置
 
 import 'package:flutter/material.dart';
