@@ -1,3 +1,10 @@
+## [2.401.85](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.84...v2.401.85) (2026-11-01)
+
+
+### Bug Fixes
+
+* **ui:** 视频库-本地播放 消除回归测试新增 analyze info ([77a84e1](https://github.com/1525745393/EmbyTok-Flutter/commit/77a84e1c0ad94c80dd6a2788763d26e014d620b5))
+
 ## [2.401.84](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.83...v2.401.84) (2026-11-01)
 
 
