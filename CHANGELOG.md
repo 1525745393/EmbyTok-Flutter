@@ -1,3 +1,10 @@
+## [2.401.86](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.85...v2.401.86) (2026-11-01)
+
+
+### Bug Fixes
+
+* **ui:** 首页按服务模式实时切换,无需重启生效 ([e67aab7](https://github.com/1525745393/EmbyTok-Flutter/commit/e67aab7054f9a8e79d2c33d3f5e3cd28eea9c6c8))
+
 ## [2.401.85](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.84...v2.401.85) (2026-11-01)
 
 
