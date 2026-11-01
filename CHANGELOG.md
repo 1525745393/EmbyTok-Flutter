@@ -1,3 +1,10 @@
+## [2.401.83](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.82...v2.401.83) (2026-11-01)
+
+
+### Bug Fixes
+
+* **ui:** 音乐库 交互审查修复 2 处缺陷并补 2 个回归测试 ([685e7d4](https://github.com/1525745393/EmbyTok-Flutter/commit/685e7d4cec9dcce61775014047e5dd7f711aeaad))
+
 ## [2.401.82](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.81...v2.401.82) (2026-11-01)
 
 
