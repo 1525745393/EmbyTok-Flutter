@@ -1,3 +1,10 @@
+## [2.401.80](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.79...v2.401.80) (2026-11-01)
+
+
+### Bug Fixes
+
+* **ui:** 全 UI 交互审查修复 8 处缺陷并补 9 个回归测试 ([a3cd093](https://github.com/1525745393/EmbyTok-Flutter/commit/a3cd093333ecca29a01a830af84c13543cedc3c2))
+
 ## [2.401.79](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.78...v2.401.79) (2026-11-01)
 
 
