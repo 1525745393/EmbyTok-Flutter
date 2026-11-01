@@ -13,7 +13,6 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
-import '../services/api_client.dart';
 import '../services/emby_server_api.dart';
 import '../utils/logger.dart';
 import '../utils/memory_pressure_handler.dart';
@@ -30,9 +29,9 @@ import 'views/watchlist_view.dart';
 import 'views/history_view.dart';
 import 'views/local/file_sources_view.dart';
 import 'views/pin_lock_screen.dart';
-import 'views/home_scaffold.dart';
 import 'views/item_detail_view.dart';
 import 'views/login_view.dart';
+import 'views/mode_root.dart';
 import 'views/person_detail_view.dart';
 import 'views/recommend_view.dart';
 import 'views/discover_view.dart';
@@ -50,7 +49,6 @@ import 'views/data_backup_view.dart';
 import 'views/settings_view.dart';
 import 'views/profile_view.dart';
 import 'views/folder_browse_view.dart';
-import 'views/main_view.dart';
 import 'views/synology_music_view.dart';
 import 'views/music/artist_detail_page.dart';
 import 'widgets/performance_overlay.dart';
@@ -286,17 +284,14 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       ),
       // 首页（视频流 + 底部导航）
       // 支持 ?initialId=<itemId>：从网格/搜索/演员详情等入口跳转到指定视频
-      // 服务模式为 music 时，首页直接展示群晖音乐库界面
+      // 服务模式为 music 时，首页直接展示群晖音乐库界面。
+      // ModeRoot 内部 watch serviceModeProvider：切换模式/退出群晖账号后
+      // 首页实时重建（若用 read 一次性读取则需重启 App 才生效）
       GoRoute(
         path: '/',
         builder: (context, state) {
-          final mode =
-              ProviderScope.containerOf(context).read(serviceModeProvider);
-          if (mode == AppServiceMode.music) {
-            return const MainView();
-          }
           final initialId = state.uri.queryParameters['initialId'];
-          return HomeScaffold(initialItemId: initialId);
+          return ModeRoot(initialItemId: initialId);
         },
       ),
       // 搜索：独立路由（深层链接场景），按返回键跳回首页
