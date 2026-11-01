@@ -287,10 +287,13 @@ Future<void> showAudioTrackSelector(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
+    // AudioTrackSelector 每个选项 onTap 都会调用 onClose?.call()，
+    // 此处必须把关闭动作接到路由 pop，否则选中音轨后弹窗不会收起。
     builder: (context) => AudioTrackSelector(
       tracks: tracks,
       selectedIndex: selectedIndex,
       onSelected: onSelected,
+      onClose: () => Navigator.of(context).pop(),
     ),
   );
 }

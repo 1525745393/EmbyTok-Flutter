@@ -546,10 +546,14 @@ Future<void> showSubtitleSelector({
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
+    // SubtitleSelector 每个选项 onTap 都会调用 onClose?.call()，
+    // 此处必须把关闭动作接到路由 pop，否则选中字幕轨道后弹窗不会收起
+    // （与 video_sheet_utils.showSubtitleSelector 的 onClose 行为对齐）。
     builder: (context) => SubtitleSelector(
       tracks: tracks,
       selectedTrackId: selectedTrackId,
       onSelected: onSelected,
+      onClose: () => Navigator.of(context).pop(),
     ),
   );
 }
