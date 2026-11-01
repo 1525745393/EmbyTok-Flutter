@@ -79,6 +79,12 @@ class _NetworkDiagnosticPageState extends State<NetworkDiagnosticPage> {
       ));
     }
 
+    // 异步网络检测期间用户可能已退出页面（widget 已 dispose）。后续三个提前 return
+    // 分支（未配置服务器 / local:// / 地址解析失败）都会执行 setState 收尾 _running，
+    // 这里必须与末尾「if (mounted) setState」一致先判 mounted，否则会在已销毁的
+    // State 上调用 setState 而抛异常。
+    if (!mounted) return;
+
     if (_serverUrl == null || _serverUrl!.isEmpty) {
       _addResult(const _DiagResult(
         label: '服务器连接',

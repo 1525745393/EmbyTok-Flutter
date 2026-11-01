@@ -721,7 +721,12 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
           ],
         ),
       ),
-    );
+    ).whenComplete(() {
+      // 关闭弹窗后清空关键词：输入框本身无 controller，下次打开输入框为空；
+      // 但 provider 里残留的旧 keyword 会让结果列表仍按旧词过滤，
+      // 出现"空输入框却展示上一次搜索结果"的状态不一致。
+      notifier.setKeyword('');
+    });
   }
 
   /// 类型筛选 Chip（P1 #6）

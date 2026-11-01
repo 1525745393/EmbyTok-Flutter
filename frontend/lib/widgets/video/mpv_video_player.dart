@@ -106,15 +106,21 @@ class MpvVideoPlayerState extends State<MpvVideoPlayer> {
   /// 外部调用：恢复播放
   void play() => _player?.play();
 
+  /// media_kit `Player.setVolume` 音量范围为 0~100（默认 100），
+  /// 而本 App 统一句柄（VideoPlayerWidget.setVolume）与 EXO/VLC 一样使用 0.0~1.0。
+  /// 此前直接把 1.0 透传给 media_kit，等价于 1% 音量——未静音时声音几乎听不见，
+  /// 音量滑块也永远拉不满。统一在此做 0~1 → 0~100 换算（VlcVideoPlayerState 同样换算）。
+  static double toMpvVolume(double normalized) =>
+      (normalized.clamp(0.0, 1.0) * 100.0);
+
   /// 外部调用：设置静音
   void setMuted(bool muted) =>
-      _player?.setVolume(muted ? 0.0 : 1.0);
+      _player?.setVolume(muted ? 0.0 : 100.0);
 
-  /// 外部调用：设置音量（0.0 ~ 1.0，media_kit setVolume 接受 double）
+  /// 外部调用：设置音量（0.0 ~ 1.0，内部换算为 media_kit 的 0~100）
   void setVolume(double value) {
     try {
-      final v = value.clamp(0.0, 1.0);
-      _player?.setVolume(v);
+      _player?.setVolume(toMpvVolume(value));
     } catch (e) {
       AppLogger.debug('MPV setVolume 失败', data: {'error': e.toString()});
     }
@@ -175,8 +181,8 @@ class MpvVideoPlayerState extends State<MpvVideoPlayer> {
         await _player!.seek(widget.startPosition);
       }
 
-      // 静音
-      await _player!.setVolume(widget.muted ? 0.0 : 1.0);
+      // 静音（media_kit 音量范围 0~100，见 toMpvVolume）
+      await _player!.setVolume(widget.muted ? 0.0 : 100.0);
 
       // 加载外挂字幕（本地模式 P3）：media_kit 用 setSubtitleTrack(uri) 加载
       for (final subPath in widget.externalSubtitlePaths) {
@@ -228,13 +234,14 @@ class MpvVideoPlayerState extends State<MpvVideoPlayer> {
     if (oldWidget.isCurrentPage != widget.isCurrentPage) {
       if (widget.isCurrentPage) {
         _player!.play();
-        _player!.setVolume(widget.muted ? 0.0 : 1.0);
+        // media_kit 音量范围 0~100，见 toMpvVolume
+        _player!.setVolume(widget.muted ? 0.0 : 100.0);
       } else {
         _player!.pause();
         _player!.setVolume(0.0);
       }
     } else if (oldWidget.muted != widget.muted) {
-      _player!.setVolume(widget.muted ? 0.0 : 1.0);
+      _player!.setVolume(widget.muted ? 0.0 : 100.0);
     }
   }
 

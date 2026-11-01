@@ -106,6 +106,9 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     _tabController.dispose();
     _searchController.dispose();
     _artistScrollController.dispose();
+    // 首页 Tab 的 ListView 绑定此控制器（见 home_tab.dart），与 _artistScrollController
+    // 一并释放，避免 ScrollController 泄漏。
+    _homeScrollController.dispose();
     super.dispose();
   }
 

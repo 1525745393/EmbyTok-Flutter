@@ -55,7 +55,12 @@ class _TmdbSearchPageState extends State<TmdbSearchPage> {
   }
 
   Future<void> _search() async {
-    if (_ctrl.text.trim().isEmpty) return;
+    if (_ctrl.text.trim().isEmpty) {
+      // 清空后提交：同步清空旧结果。原写法直接 return，旧搜索结果
+      // 留在屏幕上，与"空输入框"状态不一致。
+      if (_results.isNotEmpty) setState(() => _results = []);
+      return;
+    }
     final seq = ++_searchSeq;
     setState(() => _loading = true);
     final q = _ctrl.text.trim();

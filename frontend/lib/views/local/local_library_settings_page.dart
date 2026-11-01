@@ -81,7 +81,10 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
               subtitle: Text('当前: ${AppLogger.minLevel.name}'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () async {
-                _showLogLevelPicker(context);
+                // 必须 await 选择器关闭后再 setLocal：用户在底部弹窗选定级别
+                // 才更新 subtitle；原写法未 await，弹窗打开瞬间就用旧级别重建，
+                // 选定后无任何重建，"当前: xxx" 一直停留在旧值。
+                await _showLogLevelPicker(context);
                 setLocal(() {});
               },
             ),
@@ -227,8 +230,9 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
     );
   }
 
-  void _showLogLevelPicker(BuildContext context) {
-    showModalBottomSheet(
+  /// 弹出日志级别选择器，返回弹窗关闭的 Future 供调用方 await 后刷新 UI
+  Future<void> _showLogLevelPicker(BuildContext context) {
+    return showModalBottomSheet(
       context: context,
       builder: (_) => SafeArea(
         child: Column(

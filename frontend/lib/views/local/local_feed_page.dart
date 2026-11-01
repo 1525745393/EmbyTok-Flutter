@@ -20,6 +20,13 @@ class LocalFeedPage extends ConsumerStatefulWidget {
 
 class _LocalFeedPageState extends ConsumerState<LocalFeedPage> {
   final _controller = PageController();
+  // 当前可见页索引：与 feed_view 同一模式，onPageChanged 后必须 setState
+  // 重建 PageView。VideoPageItem 只在 widget.isCurrentPage 变化时才暂停/
+  // 恢复（didUpdateWidget），并不监听 localFeedPlayingIndexProvider。
+  // 原问题：下方硬编码 i == 0（注释误以为"由 onPageChanged 驱动"），
+  // 滑到第 2 页起新页 isCurrentPage 恒 false 不自动播放，而第 1 页
+  // 因 isCurrentPage 仍为 true 音频继续在后台响。
+  int _currentIndex = 0;
 
   @override
   void initState() {
@@ -31,7 +38,15 @@ class _LocalFeedPageState extends ConsumerState<LocalFeedPage> {
 
   @override
   void dispose() {
-    ref.read(localFeedPlayingIndexProvider.notifier).state = -1;
+    // 通知播放链路：本地 feed 页已退出。
+    // widget dispose 阶段 context.mounted 已为 false，riverpod 2.6 的
+    // _assertNotDisposed 会让 ref.read 抛 StateError（与 feed_view.dispose 同类
+    // 问题），用 try/catch 兜底；该 provider 当前无监听方，写不成都不影响行为。
+    try {
+      ref.read(localFeedPlayingIndexProvider.notifier).state = -1;
+    } catch (_) {
+      // 忽略：dispose 阶段 ref 已不可用
+    }
     _controller.dispose();
     super.dispose();
   }
@@ -61,7 +76,11 @@ class _LocalFeedPageState extends ConsumerState<LocalFeedPage> {
       controller: _controller,
       itemCount: items.length,
       physics: const PageScrollPhysics(),
-      onPageChanged: (i) => ref.read(localFeedPlayingIndexProvider.notifier).state = i,
+      onPageChanged: (i) {
+        // setState 重建 PageView，让新页 isCurrentPage=true、旧页=false
+        setState(() => _currentIndex = i);
+        ref.read(localFeedPlayingIndexProvider.notifier).state = i;
+      },
       itemBuilder: (_, i) {
         final m = LocalVideoAdapter.toMediaItem(
           items[i],
@@ -70,7 +89,7 @@ class _LocalFeedPageState extends ConsumerState<LocalFeedPage> {
         return VideoPageItem(
           key: ValueKey(m.id),
           item: m,
-          isCurrentPage: i == 0, // PageView 内部由 onPageChanged 驱动
+          isCurrentPage: i == _currentIndex,
           source: 'local_feed',
         );
       },
