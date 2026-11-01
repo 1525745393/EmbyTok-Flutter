@@ -1,3 +1,10 @@
+## [2.401.81](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.80...v2.401.81) (2026-11-01)
+
+
+### Bug Fixes
+
+* **auth:** 退出群晖账号后服务模式回退视频模式 ([d85abdf](https://github.com/1525745393/EmbyTok-Flutter/commit/d85abdffe5c8203bd97d650fbe239dce66ced892))
+
 ## [2.401.80](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.79...v2.401.80) (2026-11-01)
 
 
