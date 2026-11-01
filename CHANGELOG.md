@@ -1,3 +1,10 @@
+## [2.401.79](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.78...v2.401.79) (2026-11-01)
+
+
+### Bug Fixes
+
+* **music:** 首页艺术家移除契约外 song_count 排序 ([290375b](https://github.com/1525745393/EmbyTok-Flutter/commit/290375b3688983eb56d7ee511a4b4c68e8cf4116))
+
 ## [2.401.78](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.77...v2.401.78) (2026-10-31)
 
 
