@@ -1,3 +1,10 @@
+## [2.401.84](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.83...v2.401.84) (2026-11-01)
+
+
+### Bug Fixes
+
+* **ui:** 视频库-本地播放 交互审查修复 8 处缺陷并补 2 个回归测试 ([282d471](https://github.com/1525745393/EmbyTok-Flutter/commit/282d471c06d3547529152dd8f8dfef2ff1fdbaa8))
+
 ## [2.401.83](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.82...v2.401.83) (2026-11-01)
 
 
