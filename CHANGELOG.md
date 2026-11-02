@@ -1,3 +1,10 @@
+## [2.401.92](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.91...v2.401.92) (2026-11-02)
+
+
+### Bug Fixes
+
+* **auth:** 修复音乐/视频模式登录退出链路异常 ([988afb7](https://github.com/1525745393/EmbyTok-Flutter/commit/988afb78d7372f0ddaabe2486946b4b0a416a156))
+
 ## [2.401.91](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.90...v2.401.91) (2026-11-02)
 
 
