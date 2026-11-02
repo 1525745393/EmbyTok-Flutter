@@ -133,12 +133,10 @@ Future<void> showSpeedControlPanel(
                       }
                       WidgetsBinding.instance.addPostFrameCallback((_) {
                         if (context.mounted) {
-                          final container = ProviderScope.containerOf(
-                              context,
-                              listen: false);
-                          container
-                              .read(playbackRateProvider.notifier)
-                              .state = selectedSpeed;
+                          final container =
+                              ProviderScope.containerOf(context, listen: false);
+                          container.read(playbackRateProvider.notifier).state =
+                              selectedSpeed;
                           if (applied) {
                             // 持久化播放速度，新视频自动应用（仅实际应用成功时）
                             container
@@ -178,7 +176,6 @@ Future<void> showSubtitleSelector(
   List<SubtitleTrack> tracks,
 ) async {
   final container = ProviderScope.containerOf(context, listen: false);
-  final selectedTrackId = container.read(selectedSubtitleProvider);
 
   await showModalBottomSheet<void>(
     context: context,
@@ -186,7 +183,6 @@ Future<void> showSubtitleSelector(
     isScrollControlled: true,
     builder: (sheetContext) => SubtitleSelector(
       tracks: tracks,
-      selectedTrackId: selectedTrackId,
       onSelected: (track) {
         // 先更新 provider，再关闭弹窗
         // 注意：不能用 addPostFrameCallback + Navigator.pop 顺序，
@@ -235,16 +231,19 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
     final container = ProviderScope.containerOf(context);
     final localState = container.read(localVideoProvider);
     final pathHash = item.id.replaceFirst('local_', '');
-    final localItem = localState.items.where((e) => e.pathHash == pathHash).isNotEmpty
-        ? localState.items.firstWhere((e) => e.pathHash == pathHash)
-        : null;
+    final localItem =
+        localState.items.where((e) => e.pathHash == pathHash).isNotEmpty
+            ? localState.items.firstWhere((e) => e.pathHash == pathHash)
+            : null;
     if (localItem != null) {
       Navigator.of(context).push(
-        MaterialPageRoute<Widget>(builder: (_) => LocalDetailPage(
+        MaterialPageRoute<Widget>(
+          builder: (_) => LocalDetailPage(
             item: localItem,
             onPlay: () {
               Navigator.of(context).push(
-                MaterialPageRoute<Widget>(builder: (_) => LocalPlayPage(
+                MaterialPageRoute<Widget>(
+                  builder: (_) => LocalPlayPage(
                     item: localItem,
                   ),
                 ),
@@ -1411,8 +1410,7 @@ class _GenreChipsWrapState extends State<_GenreChipsWrap> {
 
   @override
   Widget build(BuildContext context) {
-    final visible =
-        _expanded ? widget.genres : widget.genres.take(4).toList();
+    final visible = _expanded ? widget.genres : widget.genres.take(4).toList();
     return Wrap(
       spacing: 6,
       runSpacing: 6,
@@ -1433,8 +1431,7 @@ class _GenreChipsWrapState extends State<_GenreChipsWrap> {
         if (widget.genres.length > 4)
           _VideoInfoChip(
             label: '',
-            value:
-                _expanded ? '收起' : '展开全部(${widget.genres.length})',
+            value: _expanded ? '收起' : '展开全部(${widget.genres.length})',
             onTap: () => setState(() => _expanded = !_expanded),
           ),
       ],
@@ -1465,7 +1462,9 @@ Widget _buildTechInfoSection(BuildContext context, MediaItem item) {
   final rows = <Widget>[];
 
   // 播放器引擎
-  final engine = ProviderScope.containerOf(context).read(playerEngineSettingsProvider).defaultEngine;
+  final engine = ProviderScope.containerOf(context)
+      .read(playerEngineSettingsProvider)
+      .defaultEngine;
   final engineNames = {
     PlayerEngine.auto: '自动选择',
     PlayerEngine.exo: 'EXO',
@@ -1479,8 +1478,8 @@ Widget _buildTechInfoSection(BuildContext context, MediaItem item) {
   if (videoStream?.codec != null) {
     final codec = videoStream!.codec!.toUpperCase();
     final profile = videoStream.profile;
-    rows.add(_techRow(context, '视频编码',
-        profile != null ? '$codec ($profile)' : codec));
+    rows.add(_techRow(
+        context, '视频编码', profile != null ? '$codec ($profile)' : codec));
   }
 
   // 分辨率

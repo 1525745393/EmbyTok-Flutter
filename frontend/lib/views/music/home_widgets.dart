@@ -33,7 +33,6 @@ const double kQuickEntrySpacing = 6;
 
 /// 快捷入口数据
 class QuickEntry {
-
   const QuickEntry({
     required this.icon,
     required this.label,
@@ -48,53 +47,59 @@ class QuickEntry {
 
 /// 快捷入口按钮（圆形渐变背景 + 图标 + 文字）
 class QuickEntryButton extends StatelessWidget {
-
   const QuickEntryButton({super.key, required this.entry});
   final QuickEntry entry;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: entry.onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: kQuickEntryButtonSize,
-            height: kQuickEntryButtonSize,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  entry.color.withValues(alpha: 0.9),
-                  entry.color,
+    // 批次C：GestureDetector 无按压反馈 → Material+InkWell 水波纹；
+    // 渐变背景用 Ink 绘制（InkWell 水波纹绘制在 Material 的 InkLayer，
+    // 若用 Container 其背景会画在水波纹之上、削弱点击反馈）
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(kQuickEntryButtonRadius),
+        onTap: entry.onTap,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Ink(
+              width: kQuickEntryButtonSize,
+              height: kQuickEntryButtonSize,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    entry.color.withValues(alpha: 0.9),
+                    entry.color,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(kQuickEntryButtonRadius),
+                boxShadow: [
+                  BoxShadow(
+                    color: entry.color.withValues(alpha: 0.3),
+                    blurRadius: kQuickEntryShadowBlurRadius,
+                    offset: const Offset(0, kQuickEntryShadowOffset),
+                  ),
                 ],
               ),
-              borderRadius: BorderRadius.circular(kQuickEntryButtonRadius),
-              boxShadow: [
-                BoxShadow(
-                  color: entry.color.withValues(alpha: 0.3),
-                  blurRadius: kQuickEntryShadowBlurRadius,
-                  offset: const Offset(0, kQuickEntryShadowOffset),
-                ),
-              ],
+              child: Icon(
+                entry.icon,
+                color: Colors.white,
+                size: kQuickEntryIconSize,
+              ),
             ),
-            child: Icon(
-              entry.icon,
-              color: Colors.white,
-              size: kQuickEntryIconSize,
+            const SizedBox(height: kQuickEntrySpacing),
+            Text(
+              entry.label,
+              style: TextStyle(
+                fontSize: kQuickEntryLabelFontSize,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
-          ),
-          const SizedBox(height: kQuickEntrySpacing),
-          Text(
-            entry.label,
-            style: TextStyle(
-              fontSize: kQuickEntryLabelFontSize,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

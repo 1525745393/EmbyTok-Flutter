@@ -2347,14 +2347,12 @@ Widget _buildErrorState(VideoPlayerController? controller) {
   }
 
   Future<void> _showSubtitleMenu(MediaItem item) async {
-    final selectedSubId = ref.read(selectedSubtitleProvider);
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => SubtitleSelector(
         tracks: item.subtitleTracks,
-        selectedTrackId: selectedSubId,
         onSelected: (track) {
           if (track == null) {
             ref.read(subtitleSettingsProvider.notifier).setLanguage('');

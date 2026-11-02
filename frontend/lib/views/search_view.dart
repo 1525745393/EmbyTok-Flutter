@@ -20,8 +20,16 @@ import '../widgets/person_avatar_image.dart';
 
 /// 热门搜索词（本地推荐，后续可对接服务端热搜 API）
 const List<String> _hotSearches = [
-  '电影', '剧集', '科幻', '动作', '喜剧',
-  '高分', '热门', '新片', '经典', '动画',
+  '电影',
+  '剧集',
+  '科幻',
+  '动作',
+  '喜剧',
+  '高分',
+  '热门',
+  '新片',
+  '经典',
+  '动画',
 ];
 
 class SearchView extends ConsumerStatefulWidget {
@@ -520,8 +528,8 @@ class _SearchViewState extends ConsumerState<SearchView>
             children: _hotSearches
                 .map((kw) => ActionChip(
                       label: Text(kw,
-                          style: TextStyle(
-                              color: scheme.onSurface, fontSize: 13)),
+                          style:
+                              TextStyle(color: scheme.onSurface, fontSize: 13)),
                       onPressed: () {
                         _controller.text = kw;
                         _doSearch(kw);
@@ -674,42 +682,47 @@ class _PersonCard extends ConsumerWidget {
         ? embyAuthHeaders(authState.token!)
         : <String, String>{};
 
-    return GestureDetector(
-      onTap: () {
-        // batch118-F1 与 actors_view 的 extra 契约对齐：路由解析端只读
-        // extra['item']（MediaItem），personId/personName 键会被丢弃导致
-        // 详情页回退时标题为空；personType 缺省时详情页用 _personDetail.type 兜底。
-        final mediaItem = MediaItem(
-          id: person.id,
-          title: person.name,
-          type: 'Person',
-          thumbnailUrl: person.imageUrl,
-        );
-        context.push('/person/${person.id}', extra: {'item': mediaItem});
-      },
-      child: Column(
-        children: [
-          Expanded(
-            child: ClipOval(
-              child: PersonAvatarImage(
-                imageUrl: person.imageUrl,
-                httpHeaders: httpHeaders.isNotEmpty ? httpHeaders : null,
-                size: 80,
-                memCacheWidth: 240,
+    // 批次C：GestureDetector 无按压反馈 → Material+InkWell 水波纹
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          // batch118-F1 与 actors_view 的 extra 契约对齐：路由解析端只读
+          // extra['item']（MediaItem），personId/personName 键会被丢弃导致
+          // 详情页回退时标题为空；personType 缺省时详情页用 _personDetail.type 兜底。
+          final mediaItem = MediaItem(
+            id: person.id,
+            title: person.name,
+            type: 'Person',
+            thumbnailUrl: person.imageUrl,
+          );
+          context.push('/person/${person.id}', extra: {'item': mediaItem});
+        },
+        child: Column(
+          children: [
+            Expanded(
+              child: ClipOval(
+                child: PersonAvatarImage(
+                  imageUrl: person.imageUrl,
+                  httpHeaders: httpHeaders.isNotEmpty ? httpHeaders : null,
+                  size: 80,
+                  memCacheWidth: 240,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            person.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-                color: scheme.onSurface,
-                fontSize: 13,
-                fontWeight: FontWeight.w500),
-          ),
-        ],
+            const SizedBox(height: 6),
+            Text(
+              person.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  color: scheme.onSurface,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -93,21 +93,23 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
 
   /// 三引擎统一播放状态
   bool get _isPlaying =>
-      widget.handle?.isPlaying ??
-      (widget.controller?.value.isPlaying ?? false);
+      widget.handle?.isPlaying ?? (widget.controller?.value.isPlaying ?? false);
 
   /// 三引擎统一播放位置
-  Duration get _position => widget.handle?.currentPosition ??
+  Duration get _position =>
+      widget.handle?.currentPosition ??
       widget.controller?.value.position ??
       Duration.zero;
 
   /// 三引擎统一视频时长
-  Duration get _duration => widget.handle?.totalDuration ??
+  Duration get _duration =>
+      widget.handle?.totalDuration ??
       widget.controller?.value.duration ??
       Duration.zero;
 
   /// 三引擎统一倍速
-  double get _playbackRate => widget.handle?.playbackRate ??
+  double get _playbackRate =>
+      widget.handle?.playbackRate ??
       widget.controller?.value.playbackSpeed ??
       1.0;
 
@@ -264,7 +266,6 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
     await showSubtitleSelector(
       context: context,
       tracks: widget.subtitleTracks,
-      selectedTrackId: ref.read(selectedSubtitleProvider),
       onSelected: (track) {
         if (!mounted) return;
         ref.read(selectedSubtitleProvider.notifier).state = track?.id;
@@ -285,7 +286,8 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
           children: [
             const Padding(
               padding: EdgeInsets.all(16),
-              child: Text('睡眠定时器', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              child: Text('睡眠定时器',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
             if (current.isActive)
               ListTile(
@@ -299,15 +301,19 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
                 },
               ),
             ...minutes.map((m) => ListTile(
-                  leading: Icon(Icons.bedtime, color: Theme.of(context).colorScheme.primary),
+                  leading: Icon(Icons.bedtime,
+                      color: Theme.of(context).colorScheme.primary),
                   title: Text('$m 分钟后暂停'),
                   onTap: () {
-                    ref.read(sleepTimerProvider.notifier).start(Duration(minutes: m));
+                    ref
+                        .read(sleepTimerProvider.notifier)
+                        .start(Duration(minutes: m));
                     Navigator.pop(context);
                   },
                 )),
             ListTile(
-              leading: Icon(Icons.stop_circle, color: Theme.of(context).colorScheme.primary),
+              leading: Icon(Icons.stop_circle,
+                  color: Theme.of(context).colorScheme.primary),
               title: const Text('当前视频结束后暂停'),
               onTap: () {
                 ref.read(sleepTimerProvider.notifier).setStopAfterCurrent();
@@ -352,8 +358,8 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
             },
           )
         : ValueListenableBuilder<int>(
-            valueListenable: widget.handle?.positionMsListenable ??
-                _AlwaysZeroNotifier(),
+            valueListenable:
+                widget.handle?.positionMsListenable ?? _AlwaysZeroNotifier(),
             builder: (context, ms, child) {
               final position = _isSeeking
                   ? (_previewPosition ?? Duration(milliseconds: ms))
@@ -393,8 +399,8 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
             },
           )
         : ValueListenableBuilder<bool>(
-            valueListenable: widget.handle?.isPlayingListenable ??
-                _AlwaysFalseNotifier(),
+            valueListenable:
+                widget.handle?.isPlayingListenable ?? _AlwaysFalseNotifier(),
             builder: (context, isPlaying, child) {
               return IconButton(
                 icon: Icon(
@@ -425,8 +431,8 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
             },
           )
         : ValueListenableBuilder<int>(
-            valueListenable: widget.handle?.positionMsListenable ??
-                _AlwaysZeroNotifier(),
+            valueListenable:
+                widget.handle?.positionMsListenable ?? _AlwaysZeroNotifier(),
             builder: (context, ms, child) {
               return TextButton(
                 onPressed: _showRateMenu,

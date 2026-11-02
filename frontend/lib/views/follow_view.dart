@@ -412,117 +412,127 @@ class _FollowPosterCard extends ConsumerWidget {
       embyServerUrl: auth.embyServerUrl,
       apiKey: auth.token,
     );
-    return GestureDetector(
-      onTap: () {
-        // 追剧数据来自推荐系统（收藏演员新作品），与视频流 items 不同源，
-        // 不依赖 /?initialId= 查找；整列表进入播放页，支持上下滑刷视频
-        ref.read(playbackListProvider.notifier).setPlaybackList(items, item.id);
-        context.push('/play/${item.id}', extra: {
-          'item': item,
-          'items': items,
-          'source': 'follow',
-        });
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: imageUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: imageUrl,
-                          cacheManager: AppImageCacheManager.thumbnail,
-                          fit: BoxFit.cover,
-                          placeholder: (_, __) => Container(
-                            color: scheme.surfaceContainerHighest,
-                            child: const Center(
-                              child: Icon(Icons.movie_outlined, size: 32),
+    // 批次C：GestureDetector 无按压反馈 → Material+InkWell 水波纹（与
+    // video_grid_card 同构；海报图作为 child 绘制，涟漪覆盖其上可见）
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () {
+          // 追剧数据来自推荐系统（收藏演员新作品），与视频流 items 不同源，
+          // 不依赖 /?initialId= 查找；整列表进入播放页，支持上下滑刷视频
+          ref
+              .read(playbackListProvider.notifier)
+              .setPlaybackList(items, item.id);
+          context.push('/play/${item.id}', extra: {
+            'item': item,
+            'items': items,
+            'source': 'follow',
+          });
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: imageUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: imageUrl,
+                            cacheManager: AppImageCacheManager.thumbnail,
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) => Container(
+                              color: scheme.surfaceContainerHighest,
+                              child: const Center(
+                                child: Icon(Icons.movie_outlined, size: 32),
+                              ),
                             ),
-                          ),
-                          errorWidget: (_, __, ___) => Container(
+                            errorWidget: (_, __, ___) => Container(
+                              color: scheme.surfaceContainerHighest,
+                              child: Center(
+                                child: Icon(Icons.broken_image_outlined,
+                                    size: 32, color: scheme.outline),
+                              ),
+                            ),
+                          )
+                        : Container(
                             color: scheme.surfaceContainerHighest,
                             child: Center(
-                              child: Icon(Icons.broken_image_outlined,
+                              child: Icon(Icons.movie_outlined,
                                   size: 32, color: scheme.outline),
                             ),
                           ),
-                        )
-                      : Container(
-                          color: scheme.surfaceContainerHighest,
-                          child: Center(
-                            child: Icon(Icons.movie_outlined,
-                                size: 32, color: scheme.outline),
-                          ),
+                  ),
+                  // 「上次看到」角标（醒目样式 + 服务端进度百分比）
+                  if (isLastWatched)
+                    Positioned(
+                      left: 6,
+                      top: 6,
+                      child: LastWatchedBadge(
+                        progressPercent: item.progressPercent > 0
+                            ? (item.progressPercent * 100).round()
+                            : null,
+                      ),
+                    ),
+                  // 来源标注角标（演员新作 / 剧集更新）
+                  if (nextUpKind != null)
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
                         ),
-                ),
-                // 「上次看到」角标（醒目样式 + 服务端进度百分比）
-                if (isLastWatched)
-                  Positioned(
-                    left: 6,
-                    top: 6,
-                    child: LastWatchedBadge(
-                      progressPercent: item.progressPercent > 0
-                          ? (item.progressPercent * 100).round()
-                          : null,
-                    ),
-                  ),
-                // 来源标注角标（演员新作 / 剧集更新）
-                if (nextUpKind != null)
-                  Positioned(
-                    right: 6,
-                    top: 6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: scheme.primary.withValues(alpha: 0.85),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            nextUpKind == NextUpKind.seriesUpdate
-                                ? Icons.live_tv_outlined
-                                : Icons.person_outline,
-                            size: 10,
-                            color: scheme.onPrimary,
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            nextUpKind == NextUpKind.seriesUpdate ? '剧集' : '演员',
-                            style: TextStyle(
-                              fontSize: 9,
-                              height: 1.2,
+                        decoration: BoxDecoration(
+                          color: scheme.primary.withValues(alpha: 0.85),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              nextUpKind == NextUpKind.seriesUpdate
+                                  ? Icons.live_tv_outlined
+                                  : Icons.person_outline,
+                              size: 10,
                               color: scheme.onPrimary,
-                              fontWeight: FontWeight.w600,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 3),
+                            Text(
+                              nextUpKind == NextUpKind.seriesUpdate
+                                  ? '剧集'
+                                  : '演员',
+                              style: TextStyle(
+                                fontSize: 9,
+                                height: 1.2,
+                                color: scheme.onPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            item.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: scheme.onSurface,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
+            const SizedBox(height: 6),
+            Text(
+              item.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -161,12 +161,10 @@ class _PlayStatsViewState extends ConsumerState<PlayStatsView> {
             _TopSection(
               title: '热门艺术家',
               items: topArtists.take(10).toList(),
-              onTap: (_) {},
             ),
             _TopSection(
               title: '热门专辑',
               items: topAlbums.take(10).toList(),
-              onTap: (_) {},
             ),
             const SizedBox(height: 24),
           ],
@@ -289,11 +287,13 @@ class _TopSection extends StatelessWidget {
   const _TopSection({
     required this.title,
     required this.items,
-    required this.onTap,
+    this.onTap,
   });
   final String title;
   final List<_Counter> items;
-  final void Function(_Counter c) onTap;
+  // 批次C：onTap 可为空——热门艺术家/专辑暂无跳转数据通道时不再传空函数，
+  // 避免「点击有涟漪但无任何动作」的假可点击项
+  final void Function(_Counter c)? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -337,7 +337,7 @@ class _TopSection extends StatelessWidget {
                     style: const TextStyle(fontSize: 12)),
             trailing: Text('${c.count}次',
                 style: const TextStyle(fontSize: 12, color: Colors.grey)),
-            onTap: () => onTap(c),
+            onTap: onTap == null ? null : () => onTap!(c),
           );
         }),
       ],

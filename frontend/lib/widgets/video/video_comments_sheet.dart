@@ -5,6 +5,7 @@
 /// - 若 itemId 为本地刮削视频（local_ 前缀），同时拉取 TMDB 评论展示
 /// - 适配刘海屏 / 底部安全区 / 键盘弹出
 library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -97,7 +98,8 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
 
   Future<List<Map<String, dynamic>>> _fetchTmdbReviews() async {
     // 本地视频：直接用 scraped tmdbId（走 P3 评论缓存）
-    final pathHash = widget.itemId.startsWith('local_') ? widget.itemId.substring(6) : null;
+    final pathHash =
+        widget.itemId.startsWith('local_') ? widget.itemId.substring(6) : null;
     if (pathHash != null) {
       final scraped = ref.read(localVideoProvider).scrapedMap[pathHash];
       if (scraped != null && scraped.tmdbId > 0) {
@@ -110,7 +112,8 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
     if (widget.title == null || widget.title!.isEmpty) return [];
     try {
       if (widget.isTv) {
-        var results = await TmdbService.searchTv(widget.title!, year: widget.year);
+        var results =
+            await TmdbService.searchTv(widget.title!, year: widget.year);
         // 年份不匹配时回退无年份搜索
         if (results.isEmpty && widget.year != null) {
           results = await TmdbService.searchTv(widget.title!);
@@ -121,7 +124,11 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
         var results = await TmdbService.searchMovies(widget.title!);
         // 优先选年份匹配的结果
         if (widget.year != null && results.length > 1) {
-          final matched = results.where((r) => r['release_date']?.toString().startsWith('${widget.year}') == true).toList();
+          final matched = results
+              .where((r) =>
+                  r['release_date']?.toString().startsWith('${widget.year}') ==
+                  true)
+              .toList();
           if (matched.isNotEmpty) results = matched;
         }
         if (results.isEmpty) return [];
@@ -132,7 +139,8 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
     }
   }
 
-  Widget _buildList(ColorScheme scheme, ScrollController scrollController, List<VideoComment> localComments) {
+  Widget _buildList(ColorScheme scheme, ScrollController scrollController,
+      List<VideoComment> localComments) {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _tmdbFuture,
       builder: (_, snap) {
@@ -144,7 +152,11 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
         if (tmdbReviews.isNotEmpty) {
           children.add(Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: Text('TMDB 评论', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: scheme.onSurfaceVariant)),
+            child: Text('TMDB 评论',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurfaceVariant)),
           ));
           // batch152：TMDB 评论全量显示（原 take(10) 截断且无提示，
           // 列表本身可滚动，截断无收益）
@@ -154,7 +166,11 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
         if (localComments.isNotEmpty) {
           children.add(Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-            child: Text('我的评论', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: scheme.onSurfaceVariant)),
+            child: Text('我的评论',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurfaceVariant)),
           ));
           children.addAll(localComments.map((c) => _CommentTile(comment: c)));
         }
@@ -172,7 +188,10 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
             ],
           );
         }
-        return ListView(controller: scrollController, padding: const EdgeInsets.symmetric(vertical: 8), children: children);
+        return ListView(
+            controller: scrollController,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            children: children);
       },
     );
   }
@@ -217,13 +236,17 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
                     ),
                   ],
                   const Spacer(),
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
-                    child: Icon(
+                  // 批次C：GestureDetector 无按压反馈 → IconButton（自带涟漪）
+                  IconButton(
+                    icon: Icon(
                       Icons.close,
                       size: 20,
                       color: scheme.onSurfaceVariant,
                     ),
+                    onPressed: () => Navigator.of(context).pop(),
+                    iconSize: 20,
+                    visualDensity: VisualDensity.compact,
+                    tooltip: '关闭',
                   ),
                 ],
               ),
@@ -339,7 +362,8 @@ class _TmdbReviewTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final author = review['author'] ?? '';
-    final content = (review['content'] ?? '').toString().replaceAll(RegExp(r'\s+'), ' ');
+    final content =
+        (review['content'] ?? '').toString().replaceAll(RegExp(r'\s+'), ' ');
     final rating = review['author_details']?['rating'];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -349,7 +373,8 @@ class _TmdbReviewTile extends StatelessWidget {
           CircleAvatar(
             radius: 16,
             backgroundColor: scheme.surfaceContainerHighest,
-            child: Text(author.isNotEmpty ? author[0].toUpperCase() : '?', style: const TextStyle(fontSize: 14)),
+            child: Text(author.isNotEmpty ? author[0].toUpperCase() : '?',
+                style: const TextStyle(fontSize: 14)),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -357,14 +382,22 @@ class _TmdbReviewTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
-                  Text(author, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: scheme.onSurfaceVariant)),
+                  Text(author,
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: scheme.onSurfaceVariant)),
                   if (rating != null) ...[
                     const SizedBox(width: 8),
-                    Text('★$rating', style: const TextStyle(fontSize: 11, color: Colors.amber)),
+                    Text('★$rating',
+                        style:
+                            const TextStyle(fontSize: 11, color: Colors.amber)),
                   ],
                 ]),
                 const SizedBox(height: 2),
-                Text(content, style: TextStyle(fontSize: 13, height: 1.4, color: scheme.onSurface)),
+                Text(content,
+                    style: TextStyle(
+                        fontSize: 13, height: 1.4, color: scheme.onSurface)),
               ],
             ),
           ),

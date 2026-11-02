@@ -17,16 +17,12 @@ class SubtitleSelector extends ConsumerWidget {
   const SubtitleSelector({
     super.key,
     required this.tracks,
-    this.selectedTrackId,
     this.onSelected,
     this.onClose,
   });
 
   /// 可用的字幕轨道列表
   final List<SubtitleTrack> tracks;
-
-  /// 当前选中的字幕轨道 ID
-  final String? selectedTrackId;
 
   /// 字幕选择回调
   final SubtitleSelectedCallback? onSelected;
@@ -37,6 +33,10 @@ class SubtitleSelector extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    // 批次C：选中态以 selectedSubtitleProvider 为唯一数据源（此前用打开时的
+    // selectedTrackId 参数快照，删除选中字幕时「关闭字幕」选中态不刷新）；
+    // 删除选中字幕时 provider 置 null，此处 watch 触发重建即时联动
+    final selectedId = ref.watch(selectedSubtitleProvider);
     // 读取本地外挂字幕轨道列表
     final localTracks = ref.watch(localSubtitleTracksProvider);
     // 合并服务器字幕和本地字幕
@@ -106,7 +106,7 @@ class SubtitleSelector extends ConsumerWidget {
                     ref: ref,
                     title: '关闭字幕',
                     subtitle: '不显示字幕',
-                    isSelected: selectedTrackId == null,
+                    isSelected: selectedId == null,
                     onTap: () {
                       ref
                           .read(subtitleSettingsProvider.notifier)
@@ -141,7 +141,7 @@ class SubtitleSelector extends ConsumerWidget {
                           context: context,
                           ref: ref,
                           track: track,
-                          isSelected: selectedTrackId == track.id,
+                          isSelected: selectedId == track.id,
                           onTap: () {
                             // 保存偏好语言（语言代码，用于跨视频自动匹配）
                             ref
@@ -176,7 +176,7 @@ class SubtitleSelector extends ConsumerWidget {
                           ref: ref,
                           track: track,
                           isLocal: true,
-                          isSelected: selectedTrackId == track.id,
+                          isSelected: selectedId == track.id,
                           onTap: () {
                             onSelected?.call(track);
                             onClose?.call();
@@ -186,7 +186,7 @@ class SubtitleSelector extends ConsumerWidget {
                                 .read(localSubtitleTracksProvider.notifier)
                                 .remove(track.id);
                             // 如果删除的是当前选中的字幕，关闭字幕
-                            if (selectedTrackId == track.id) {
+                            if (selectedId == track.id) {
                               ref
                                   .read(selectedSubtitleProvider.notifier)
                                   .state = null;
@@ -539,7 +539,6 @@ class SubtitleSelector extends ConsumerWidget {
 Future<void> showSubtitleSelector({
   required BuildContext context,
   required List<SubtitleTrack> tracks,
-  String? selectedTrackId,
   SubtitleSelectedCallback? onSelected,
 }) async {
   await showModalBottomSheet<void>(
@@ -551,7 +550,6 @@ Future<void> showSubtitleSelector({
     // （与 video_sheet_utils.showSubtitleSelector 的 onClose 行为对齐）。
     builder: (context) => SubtitleSelector(
       tracks: tracks,
-      selectedTrackId: selectedTrackId,
       onSelected: onSelected,
       onClose: () => Navigator.of(context).pop(),
     ),
