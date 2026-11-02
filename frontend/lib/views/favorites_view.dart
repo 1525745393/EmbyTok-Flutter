@@ -410,6 +410,7 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
   // 批量选择模式
   bool _selectMode = false;
   final Set<String> _selectedIds = <String>{};
+
   /// 批量取消进行中：循环 await toggleFavorite 期间禁止重入，
   /// 否则并发执行会二次翻转已取消条目（已取消的又被加回）（批次A-F7）
   bool _bulkBusy = false;
@@ -464,7 +465,7 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
   }
 
   // === 合并自 favorites_actions.dart ===
-List<MediaItem> _filter(List<MediaItem> items) {
+  List<MediaItem> _filter(List<MediaItem> items) {
     var result = items;
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
@@ -630,18 +631,22 @@ List<MediaItem> _filter(List<MediaItem> items) {
             ),
           ),
           if (_searchQuery.isNotEmpty)
-            GestureDetector(
-              onTap: () {
+            // 批次C：GestureDetector 无按压反馈 → IconButton（自带涟漪）
+            IconButton(
+              icon: Icon(
+                Icons.cancel,
+                size: _kSearchIconSize,
+                color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+              ),
+              onPressed: () {
                 setState(() {
                   _searchQuery = '';
                   _searchController.clear();
                 });
               },
-              child: Icon(
-                Icons.cancel,
-                size: _kSearchIconSize,
-                color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
-              ),
+              iconSize: _kSearchIconSize,
+              visualDensity: VisualDensity.compact,
+              tooltip: '清空搜索',
             ),
         ],
       ),
@@ -780,33 +785,38 @@ List<MediaItem> _filter(List<MediaItem> items) {
                         ),
               ),
               const SizedBox(width: 6),
-              GestureDetector(
-                onTap: (n == 0 || _bulkBusy) ? null : _bulkUnfavorite,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    color: scheme.error.withValues(alpha: 0.15),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.favorite_border,
-                        color: scheme.error,
-                        size: 14,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '取消收藏',
-                        style: TextStyle(
+              // 批次C：GestureDetector 无按压反馈 → Material+InkWell 水波纹
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: (n == 0 || _bulkBusy) ? null : _bulkUnfavorite,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: scheme.error.withValues(alpha: 0.15),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.favorite_border,
                           color: scheme.error,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                          size: 14,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Text(
+                          '取消收藏',
+                          style: TextStyle(
+                            color: scheme.error,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -833,7 +843,7 @@ List<MediaItem> _filter(List<MediaItem> items) {
   }
 
   // === 合并自 favorites_view_build.dart ===
-Widget _buildPage(BuildContext context) {
+  Widget _buildPage(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final state = ref.watch(favoritesProvider);
 

@@ -346,8 +346,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
       _setupControlHandleListener(next);
       if (mounted) setState(() {});
     });
-    _setupControlHandleListener(
-        ref.read(currentPlayerControlProvider));
+    _setupControlHandleListener(ref.read(currentPlayerControlProvider));
 
     // 监听字幕选择变化，异步加载字幕
     ref.listen<String?>(selectedSubtitleProvider, (previous, next) {
@@ -583,14 +582,31 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('弹幕设置', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                const Text('弹幕设置',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
-                _danmakuSliderRow('字号', fontSize, 10, 40,
-                    (v) => setSheetState(() => fontSize = v), '${fontSize.round()}'),
-                _danmakuSliderRow('透明度', opacity, 0.1, 1.0,
-                    (v) => setSheetState(() => opacity = v), '${(opacity * 100).round()}%'),
-                _danmakuSliderRow('滚动速度', speed, 0.05, 0.6,
-                    (v) => setSheetState(() => speed = v), speed.toStringAsFixed(2)),
+                _danmakuSliderRow(
+                    '字号',
+                    fontSize,
+                    10,
+                    40,
+                    (v) => setSheetState(() => fontSize = v),
+                    '${fontSize.round()}'),
+                _danmakuSliderRow(
+                    '透明度',
+                    opacity,
+                    0.1,
+                    1.0,
+                    (v) => setSheetState(() => opacity = v),
+                    '${(opacity * 100).round()}%'),
+                _danmakuSliderRow(
+                    '滚动速度',
+                    speed,
+                    0.05,
+                    0.6,
+                    (v) => setSheetState(() => speed = v),
+                    speed.toStringAsFixed(2)),
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
@@ -623,7 +639,10 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
       ValueChanged<double> onChanged, String display) {
     return Row(
       children: [
-        SizedBox(width: 64, child: Text(label, style: const TextStyle(fontSize: 13, color: Colors.white70))),
+        SizedBox(
+            width: 64,
+            child: Text(label,
+                style: const TextStyle(fontSize: 13, color: Colors.white70))),
         Expanded(
           child: Slider(
             value: value.clamp(min, max).toDouble(),
@@ -632,7 +651,11 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
             onChanged: onChanged,
           ),
         ),
-        SizedBox(width: 48, child: Text(display, textAlign: TextAlign.right, style: const TextStyle(fontSize: 12, color: Colors.white70))),
+        SizedBox(
+            width: 48,
+            child: Text(display,
+                textAlign: TextAlign.right,
+                style: const TextStyle(fontSize: 12, color: Colors.white70))),
       ],
     );
   }
@@ -704,9 +727,8 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                 gesturesEnabled && playbackUsable ? onLongPressStart : null,
             onLongPressEnd:
                 gesturesEnabled && playbackUsable ? onLongPressEnd : null,
-            onLongPressCancel: gesturesEnabled && playbackUsable
-                ? _onLongPressCancel
-                : null,
+            onLongPressCancel:
+                gesturesEnabled && playbackUsable ? _onLongPressCancel : null,
             onPanStart: gesturesEnabled ? onPanStart : null,
             onPanUpdate: gesturesEnabled ? onPanUpdate : null,
             onPanEnd: gesturesEnabled ? onPanEnd : null,
@@ -747,7 +769,10 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                   ),
 
                 // 弹幕层：叠加在视频上，跟随播放时间滚动
-                if (isControllerReady && !hasError && _danmakuEnabled && _danmakus.isNotEmpty)
+                if (isControllerReady &&
+                    !hasError &&
+                    _danmakuEnabled &&
+                    _danmakus.isNotEmpty)
                   Positioned.fill(
                     child: DanmakuOverlay(
                       positionMs: _positionMsNotifier,
@@ -803,7 +828,10 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
 
         // 底部控制栏：尺寸有效时才显示，避免画面未就绪时显示控制栏
         // batch 28：MPV/VLC 引擎下 controller 为 null，控制走统一句柄，不再要求 EXO controller
-        if (_controlsVisible && isControllerReady && hasValidSize && !_isScreenLocked)
+        if (_controlsVisible &&
+            isControllerReady &&
+            hasValidSize &&
+            !_isScreenLocked)
           _buildBottomBar(controller, playingItem, items),
 
         // 设置面板：尺寸有效时才显示，避免画面未就绪时显示设置面板
@@ -984,7 +1012,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
   }
 
   // === 合并自 fullscreen_controls.dart ===
-void _setupControllerListener(VideoPlayerController? controller) {
+  void _setupControllerListener(VideoPlayerController? controller) {
     if (_watchedController == controller) return;
     _watchedController?.removeListener(_onControllerTick);
     _watchedController = controller;
@@ -1518,7 +1546,7 @@ void _setupControllerListener(VideoPlayerController? controller) {
   }
 
   // === 合并自 fullscreen_builders.dart ===
-Widget _buildErrorState(VideoPlayerController? controller) {
+  Widget _buildErrorState(VideoPlayerController? controller) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1632,7 +1660,8 @@ Widget _buildErrorState(VideoPlayerController? controller) {
                 ),
                 // PRD P1：睡眠定时器入口（与竖屏一致）
                 IconButton(
-                  icon: const Icon(Icons.bedtime, color: Colors.white, size: 24),
+                  icon:
+                      const Icon(Icons.bedtime, color: Colors.white, size: 24),
                   onPressed: _showSleepTimerMenu,
                   tooltip: '睡眠定时器',
                 ),
@@ -1711,7 +1740,8 @@ Widget _buildErrorState(VideoPlayerController? controller) {
                 // 帧预览缩略图：拖动进度条时在进度条上方显示
                 // 使用 throttledPreviewMs 避免每帧发 HTTP 请求（1s 节流）
                 if (_sliderSeekHandler.seekPreviewMs != null)
-                  _buildFramePreview(context, _sliderSeekHandler.throttledPreviewMs!),
+                  _buildFramePreview(
+                      context, _sliderSeekHandler.throttledPreviewMs!),
                 // 进度条：EXO 引擎由 controller 驱动（含缓冲进度条）；MPV/VLC 引擎由
                 // 统一控制句柄位置流驱动（无 EXO buffered 概念，不显示缓冲条）。
                 // 两分支共用 _buildProgressRow，进度计算/时间格式化/拖动逻辑单一路径。
@@ -1820,7 +1850,8 @@ Widget _buildErrorState(VideoPlayerController? controller) {
                     ),
                     // 弹幕设置（P3）：字号/透明度/滚动速度
                     IconButton(
-                      icon: const Icon(Icons.tune, size: 20, color: Colors.white),
+                      icon:
+                          const Icon(Icons.tune, size: 20, color: Colors.white),
                       onPressed: _showDanmakuSettings,
                       tooltip: '弹幕设置',
                     ),
@@ -1830,7 +1861,8 @@ Widget _buildErrorState(VideoPlayerController? controller) {
                       IconButton(
                         icon: const Icon(Icons.list,
                             color: Colors.white, size: 22),
-                        onPressed: () => _showChapterPicker(playingItem, controller),
+                        onPressed: () =>
+                            _showChapterPicker(playingItem, controller),
                         tooltip: '章节',
                       ),
                     IconButton(
@@ -1893,8 +1925,8 @@ Widget _buildErrorState(VideoPlayerController? controller) {
       children: [
         Text(
           _formatDuration(displayPosition),
-          style: const TextStyle(
-              color: Colors.white, fontSize: _kFontSizeSmall),
+          style:
+              const TextStyle(color: Colors.white, fontSize: _kFontSizeSmall),
         ),
         const SizedBox(width: _kSpacingMedium),
         Expanded(
@@ -1940,14 +1972,15 @@ Widget _buildErrorState(VideoPlayerController? controller) {
         const SizedBox(width: _kSpacingMedium),
         Text(
           _formatDuration(duration),
-          style: const TextStyle(
-              color: Colors.white70, fontSize: _kFontSizeSmall),
+          style:
+              const TextStyle(color: Colors.white70, fontSize: _kFontSizeSmall),
         ),
       ],
     );
   }
 
-  Widget _buildSettingsPanel(VideoPlayerController? controller, MediaItem? playingItem) {
+  Widget _buildSettingsPanel(
+      VideoPlayerController? controller, MediaItem? playingItem) {
     // 沉浸式下 SafeArea 失效（padding 被置 0），改用 SafeInsets 避让物理刘海
     final safeInsets = SafeInsets.of(context);
     return Positioned(
@@ -1981,22 +2014,26 @@ Widget _buildErrorState(VideoPlayerController? controller) {
       children: _SettingsTab.values.map((tab) {
         final selected = _settingsTab == tab;
         return Expanded(
-          child: GestureDetector(
-            onTap: () => setState(() => _settingsTab = tab),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: selected ? Colors.white : Colors.transparent,
-                    width: 2,
+          // 批次C：GestureDetector 无按压反馈 → Material+InkWell 水波纹
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => setState(() => _settingsTab = tab),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: selected ? Colors.white : Colors.transparent,
+                      width: 2,
+                    ),
                   ),
                 ),
-              ),
-              child: Icon(
-                _tabIcon(tab),
-                color: selected ? Colors.white : Colors.white54,
-                size: 20,
+                child: Icon(
+                  _tabIcon(tab),
+                  color: selected ? Colors.white : Colors.white54,
+                  size: 20,
+                ),
               ),
             ),
           ),
@@ -2084,7 +2121,8 @@ Widget _buildErrorState(VideoPlayerController? controller) {
                 selected: t.index == selectedIdx,
                 onTap: () {
                   // 切换音轨：player_widget 监听 selectedAudioStreamIndexProvider 重建 controller
-                  ref.read(selectedAudioStreamIndexProvider.notifier).state = t.index;
+                  ref.read(selectedAudioStreamIndexProvider.notifier).state =
+                      t.index;
                   _startHideTimer();
                 },
               ))

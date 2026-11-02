@@ -342,27 +342,35 @@ class _MovieGrid extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(2, 4, 2, 8),
             child: Row(
               children: [
-                GestureDetector(
-                  onTap: onToggleAll,
-                  child: Container(
-                    width: _kSelectCheckboxSize,
-                    height: _kSelectCheckboxSize,
-                    decoration: BoxDecoration(
-                      borderRadius:
-                          BorderRadius.circular(_kSelectCheckboxRadius),
-                      border: Border.all(
-                        color: allSelected
-                            ? scheme.primary
-                            : scheme.outlineVariant,
-                        width: _kSelectCheckboxBorderWidth,
+                // 批次C：GestureDetector 无按压反馈 → Material+InkWell 水波纹；
+                // checkbox 外观用 Ink 绘制（同 QuickEntryButton 先例，
+                // Container 装饰会画在水波纹之上、削弱点击反馈）
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: onToggleAll,
+                    borderRadius: BorderRadius.circular(_kSelectCheckboxRadius),
+                    child: Ink(
+                      width: _kSelectCheckboxSize,
+                      height: _kSelectCheckboxSize,
+                      decoration: BoxDecoration(
+                        borderRadius:
+                            BorderRadius.circular(_kSelectCheckboxRadius),
+                        border: Border.all(
+                          color: allSelected
+                              ? scheme.primary
+                              : scheme.outlineVariant,
+                          width: _kSelectCheckboxBorderWidth,
+                        ),
+                        color:
+                            allSelected ? scheme.primary : Colors.transparent,
                       ),
-                      color: allSelected ? scheme.primary : Colors.transparent,
+                      child: allSelected
+                          ? Icon(Icons.check,
+                              size: _kSelectCheckIconSize,
+                              color: scheme.onPrimary)
+                          : null,
                     ),
-                    child: allSelected
-                        ? Icon(Icons.check,
-                            size: _kSelectCheckIconSize,
-                            color: scheme.onPrimary)
-                        : null,
                   ),
                 ),
                 const SizedBox(width: _kSelectHintSpacing),
