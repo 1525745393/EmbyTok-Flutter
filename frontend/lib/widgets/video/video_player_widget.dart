@@ -88,6 +88,11 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
       GlobalKey<VlcVideoPlayerState>();
   // 使用 ValueNotifier 减少字幕重绘频率（只在跨秒时更新）
   final ValueNotifier<int> _positionMs = ValueNotifier<int>(0);
+
+  // 批次B-F2：播放状态流（MPV/VLC 引擎下 pause 后位置流不再 tick，
+  // 播放/暂停按钮图标改由本流驱动刷新）。EXO 分支按钮直接订阅 controller，
+  // 此流主要服务 MPV/VLC 分支。
+  final ValueNotifier<bool> _isPlayingNotifier = ValueNotifier<bool>(false);
   // 异步加载的字幕 Cues（从 Emby 服务器获取）
   List<SubtitleCue> _subtitleCues = const <SubtitleCue>[];
   // 标记 widget 是否已 dispose，防止异步操作在 dispose 后继续执行
@@ -351,6 +356,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
       _controller?.play();
       _mpvKey.currentState?.play();
       _vlcKey.currentState?.play();
+      // 批次B-F2：同步播放状态流，驱动按钮图标刷新
+      _isPlayingNotifier.value = true;
     } catch (e) {
       AppLogger.debug('play error', data: {'error': e.toString()});
     }
@@ -363,6 +370,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
       _controller?.pause();
       _mpvKey.currentState?.pause();
       _vlcKey.currentState?.pause();
+      // 批次B-F2：同步播放状态流，驱动按钮图标刷新
+      _isPlayingNotifier.value = false;
     } catch (e) {
       AppLogger.debug('pause error', data: {'error': e.toString()});
     }
@@ -455,6 +464,13 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
   @override
   ValueListenable<int>? get positionMsListenable => _positionMs;
 
+  /// 播放状态变化流（三引擎统一）——批次B-F2
+  ///
+  /// MPV/VLC 引擎暂停后位置流不再 tick，播放/暂停按钮图标必须订阅
+  /// 本流而非位置流才能即时刷新（play/pause 与播放结束回调写入）。
+  @override
+  ValueListenable<bool>? get isPlayingListenable => _isPlayingNotifier;
+
   /// 当前音量（三引擎统一）——batch149
   ///
   /// - EXO：实时读取 controller 的 volume
@@ -512,6 +528,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
     } catch (_) {}
     _backgroundReleaseTimer?.cancel();
     _positionMs.dispose();
+    _isPlayingNotifier.dispose();
     _subtitleSubscription?.close();
     _audioTrackSubscription?.close();
     // 先停后释放，给底层 MediaCodec 留出缓冲时间
@@ -641,6 +658,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
               },
               onError: (msg) => retryInitialization(),
               onPlaybackEnded: () {
+                // 批次B-F2：播放结束回到暂停态，同步状态流刷新按钮图标
+                _isPlayingNotifier.value = false;
                 widget.onPlaybackEnded?.call();
               },
             ),
@@ -713,6 +732,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
               // 播放结束转发：VLC 引擎下 ended 副作用依赖此回调（batch 27，
               // 原实现未传，导致 VLC 播放完不连播/不清缓存/不清续播）
               onPlaybackEnded: () {
+                // 批次B-F2：播放结束回到暂停态，同步状态流刷新按钮图标
+                _isPlayingNotifier.value = false;
                 widget.onPlaybackEnded?.call();
               },
             ),

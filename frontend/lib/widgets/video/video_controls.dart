@@ -376,6 +376,8 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
     // 播放/暂停按钮
     // batch 29：EXO 由 controller 驱动；MPV/VLC 由句柄位置流驱动（isPlaying 变化经
     // _onControllerChanged 同步 isPlayingProvider，按钮图标随位置流刷新）。
+    // 批次B-F2：MPV/VLC 暂停后位置流不再 tick，图标不刷新。改订阅
+    // handle.isPlayingListenable 播放状态流（play/pause/播完写入）。
     final playButton = _controllerUsable
         ? ValueListenableBuilder<VideoPlayerValue>(
             valueListenable: controller!,
@@ -390,13 +392,13 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
               );
             },
           )
-        : ValueListenableBuilder<int>(
-            valueListenable: widget.handle?.positionMsListenable ??
-                _AlwaysZeroNotifier(),
-            builder: (context, ms, child) {
+        : ValueListenableBuilder<bool>(
+            valueListenable: widget.handle?.isPlayingListenable ??
+                _AlwaysFalseNotifier(),
+            builder: (context, isPlaying, child) {
               return IconButton(
                 icon: Icon(
-                  _isPlaying ? Icons.pause : Icons.play_arrow,
+                  isPlaying ? Icons.pause : Icons.play_arrow,
                   color: scheme.onSurface,
                   size: isCompact ? 24 : 28,
                 ),
@@ -568,4 +570,9 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
 /// 恒零位置流：handle 或 controller 均不可用时的占位（进度条显示 0，不触发构建错误）
 class _AlwaysZeroNotifier extends ValueNotifier<int> {
   _AlwaysZeroNotifier() : super(0);
+}
+
+/// handle 未提供播放状态流时的占位 notifier（恒定 false，批次B-F2）
+class _AlwaysFalseNotifier extends ValueNotifier<bool> {
+  _AlwaysFalseNotifier() : super(false);
 }

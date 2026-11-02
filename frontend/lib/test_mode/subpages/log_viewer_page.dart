@@ -104,6 +104,11 @@ class _LogViewerPageState extends State<LogViewerPage> {
               final path = await AppLogger.getLogFilePath();
               if (path != null) {
                 await SharePlus.instance.share(ShareParams(files: [XFile(path)]));
+              } else if (context.mounted) {
+                // 批次B-F5：日志文件尚未生成时原实现静默无反馈
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('暂无可导出的日志文件')),
+                );
               }
             },
           ),

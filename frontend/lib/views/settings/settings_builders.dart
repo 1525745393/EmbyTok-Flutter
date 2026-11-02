@@ -348,6 +348,14 @@ extension _SettingsBuilders on SettingsView {
     // 获取音乐库中所有歌手
     try {
       final api = ref.read(synologyAuthProvider.notifier).api;
+      // 批次B-F1：分页遍历全库歌曲可能耗时数秒，期间原实现 UI 无任何变化。
+      // 先弹提示让点击有即时反馈，遍历完成后的「扫描完成/失败」SnackBar 会覆盖它。
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('正在获取歌手列表…'),
+          duration: Duration(seconds: 30),
+        ),
+      );
       // 分页遍历所有歌曲，只收集歌手名，不保留整首歌对象，避免大库 OOM
       final artistSet = <String>{};
       int offset = 0;

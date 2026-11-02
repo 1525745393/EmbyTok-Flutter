@@ -276,6 +276,11 @@ abstract class PlayerControlHandle {
   /// 播放位置变化流（三引擎统一；EXO/MPV/VLC 均写入同一 notifier）。
   /// 全屏页进度条、弹幕、字幕时间轴订阅此流驱动刷新。
   ValueListenable<int>? get positionMsListenable;
+
+  /// 播放状态变化流（三引擎统一；isPlaying 变化时通知）。
+  /// 播放/暂停按钮图标订阅此流驱动刷新——MPV/VLC 下位置流在暂停时不再
+  /// tick，按钮若依赖位置流会在 pause 后图标不刷新（批次B-F2）。
+  ValueListenable<bool>? get isPlayingListenable;
 }
 
 /// 当前正在渲染的 [VideoPlayerWidgetState] 控制句柄

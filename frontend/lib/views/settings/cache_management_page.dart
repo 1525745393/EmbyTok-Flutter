@@ -66,7 +66,12 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
     if (mounted) setState(() => _scanning = false);
   }
 
+  /// 清理进行中：删除大量文件可能耗时数秒，禁用两个清理按钮并转圈，
+  /// 避免重复点击并发清理（批次B-F4）
+  bool _clearing = false;
+
   Future<void> _clearTempCache(BuildContext context) async {
+    setState(() => _clearing = true);
     try {
       final tempDir = await getTemporaryDirectory();
       if (tempDir.existsSync()) {
@@ -84,9 +89,11 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
       AppLogger.error('清理缓存失败', error: e);
     }
     await _scanCache();
+    if (mounted) setState(() => _clearing = false);
   }
 
   Future<void> _clearLogs(BuildContext context) async {
+    setState(() => _clearing = true);
     try {
       final appDocDir = await getApplicationDocumentsDirectory();
       final logDir = Directory('${appDocDir.path}/logs');
@@ -105,6 +112,7 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
       AppLogger.error('清理日志失败', error: e);
     }
     await _scanCache();
+    if (mounted) setState(() => _clearing = false);
   }
 
   @override
@@ -130,8 +138,16 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
                   title: const Text('临时缓存（图片/缩略图/下载）'),
                   subtitle: Text(_formatSize(_imageCacheSize)),
                   trailing: TextButton(
-                    onPressed: () => _clearTempCache(context),
-                    child: const Text('清理'),
+                    onPressed: _clearing
+                        ? null
+                        : () => _clearTempCache(context),
+                    child: _clearing
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('清理'),
                   ),
                 ),
                 ListTile(
@@ -139,8 +155,16 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
                   title: const Text('日志文件'),
                   subtitle: Text(_formatSize(_logSize)),
                   trailing: TextButton(
-                    onPressed: () => _clearLogs(context),
-                    child: const Text('清理'),
+                    onPressed: _clearing
+                        ? null
+                        : () => _clearLogs(context),
+                    child: _clearing
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('清理'),
                   ),
                 ),
                 const Divider(),

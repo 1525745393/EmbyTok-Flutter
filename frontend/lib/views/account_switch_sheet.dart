@@ -133,10 +133,33 @@ class _AccountSheet extends ConsumerWidget {
       ref.read(synologyPlaybackProvider.notifier).stop();
     } catch (_) {}
 
+    // 批次B-F6：读密码/登录/重载音乐库/历史等多跳网络可能耗时数秒，
+    // 原实现确认后 UI 长时间无变化。弹不可关闭的加载对话框作即时反馈。
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 12),
+                Text('正在切换账号…'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
     final pwd =
         await ref.read(synoAccountsProvider.notifier).readPassword(a.accountId);
     if (pwd == null || pwd.isEmpty) {
       if (context.mounted) {
+        Navigator.pop(context); // 关闭加载对话框
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('该账号密码已丢失，请重新添加')));
       }
@@ -155,12 +178,14 @@ class _AccountSheet extends ConsumerWidget {
       await ref.read(playEventsProvider.notifier).reload();
       await ref.read(playlistsProvider.notifier).reload();
       if (context.mounted) {
-        Navigator.pop(context);
+        Navigator.pop(context); // 关闭加载对话框
+        Navigator.pop(context); // 关闭切换 sheet
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('已切换到 ${a.username}')));
       }
     } catch (e) {
       if (context.mounted) {
+        Navigator.pop(context); // 关闭加载对话框
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('切换失败：$e')));
       }

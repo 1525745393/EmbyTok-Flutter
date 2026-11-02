@@ -420,6 +420,10 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   bool _selectionMode = false;
   final Set<String> _selectedIds = {};
 
+  // 批量收藏/取消收藏进行中（批次B-F8）：分批并发网络请求可能耗时数秒，
+  // 期间禁用两个批量按钮并防重入，避免重复触发并发循环。
+  bool _bulkBusy = false;
+
   // 类型筛选（从已加载数据中提取）
   String? _selectedGenre;
   bool _showGenreFilter = false;
@@ -588,6 +592,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
 
   /// 批量收藏（分批并发，每批 5 个）
   Future<void> _batchFavorite() async {
+    if (_bulkBusy) return; // 批次B-F8：防重复点击重入
     final service = ref.read(embytokServiceProvider);
     final favorites = ref.read(favoritesProvider);
     final ids = _selectedIds.where((id) => !favorites.favoriteIds.contains(id)).toList();
@@ -595,30 +600,38 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
       if (mounted) _exitSelectionMode();
       return;
     }
+    setState(() => _bulkBusy = true);
     int ok = 0;
-    for (var i = 0; i < ids.length; i += 5) {
-      final batch = ids.sublist(i, i + 5 > ids.length ? ids.length : i + 5);
-      final results = await Future.wait(batch.map((id) async {
-        try {
-          await service.toggleFavorite(itemId: id, isFavorite: true);
-          return true;
-        } catch (_) {
-          return false;
-        }
-      }));
-      ok += results.where((r) => r).length;
-    }
-    if (mounted) {
-      ref.invalidate(favoritesProvider);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已收藏 $ok/${ids.length} 部影片')),
-      );
-      _exitSelectionMode();
+    try {
+      for (var i = 0; i < ids.length; i += 5) {
+        final batch = ids.sublist(i, i + 5 > ids.length ? ids.length : i + 5);
+        final results = await Future.wait(batch.map((id) async {
+          try {
+            await service.toggleFavorite(itemId: id, isFavorite: true);
+            return true;
+          } catch (_) {
+            return false;
+          }
+        }));
+        ok += results.where((r) => r).length;
+      }
+      if (mounted) {
+        ref.invalidate(favoritesProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('已收藏 $ok/${ids.length} 部影片')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _bulkBusy = false);
+        _exitSelectionMode();
+      }
     }
   }
 
   /// 批量取消收藏（分批并发，每批 5 个）
   Future<void> _batchUnfavorite() async {
+    if (_bulkBusy) return; // 批次B-F8：防重复点击重入
     final service = ref.read(embytokServiceProvider);
     final favorites = ref.read(favoritesProvider);
     final ids = _selectedIds.where((id) => favorites.favoriteIds.contains(id)).toList();
@@ -626,25 +639,32 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
       if (mounted) _exitSelectionMode();
       return;
     }
+    setState(() => _bulkBusy = true);
     int ok = 0;
-    for (var i = 0; i < ids.length; i += 5) {
-      final batch = ids.sublist(i, i + 5 > ids.length ? ids.length : i + 5);
-      final results = await Future.wait(batch.map((id) async {
-        try {
-          await service.toggleFavorite(itemId: id, isFavorite: false);
-          return true;
-        } catch (_) {
-          return false;
-        }
-      }));
-      ok += results.where((r) => r).length;
-    }
-    if (mounted) {
-      ref.invalidate(favoritesProvider);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已取消收藏 $ok/${ids.length} 部影片')),
-      );
-      _exitSelectionMode();
+    try {
+      for (var i = 0; i < ids.length; i += 5) {
+        final batch = ids.sublist(i, i + 5 > ids.length ? ids.length : i + 5);
+        final results = await Future.wait(batch.map((id) async {
+          try {
+            await service.toggleFavorite(itemId: id, isFavorite: false);
+            return true;
+          } catch (_) {
+            return false;
+          }
+        }));
+        ok += results.where((r) => r).length;
+      }
+      if (mounted) {
+        ref.invalidate(favoritesProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('已取消收藏 $ok/${ids.length} 部影片')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _bulkBusy = false);
+        _exitSelectionMode();
+      }
     }
   }
 
@@ -1202,13 +1222,13 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                 IconButton(
                   icon: const Icon(Icons.favorite_border),
                   tooltip: '收藏所选',
-                  onPressed: _batchFavorite,
+                  onPressed: _bulkBusy ? null : _batchFavorite,
                 ),
                 IconButton(
                   icon: const Icon(Icons.favorite),
                   tooltip: '取消收藏所选',
                   color: Colors.red,
-                  onPressed: _batchUnfavorite,
+                  onPressed: _bulkBusy ? null : _batchUnfavorite,
                 ),
               ],
             ),

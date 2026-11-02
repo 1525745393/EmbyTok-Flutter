@@ -6,10 +6,32 @@ part of '../synology_music_view.dart';
 
 extension _MusicSheetsMixin on _SynologyMusicViewState {
   Future<void> _showAlbumSongs(AudioAlbum album) async {
+    // 批次B-F7：加载专辑歌曲为多跳网络，原实现 await 期间无任何反馈。
+    // 先弹不可关闭的加载对话框，完成后关闭再弹歌曲 sheet。
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 12),
+                Text('正在加载歌曲…'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
     try {
       final songs =
           await ref.read(synologyMusicProvider.notifier).loadAlbumSongs(album);
       if (!mounted) return;
+      Navigator.pop(context); // 关闭加载对话框
       await _showSongsSheet(
         title: album.name,
         subtitle: album.artistDisplay,
@@ -19,6 +41,7 @@ extension _MusicSheetsMixin on _SynologyMusicViewState {
       );
     } catch (e) {
       if (!mounted) return;
+      Navigator.pop(context); // 关闭加载对话框
       AppLogger.warn('加载专辑歌曲失败',
           data: {'album': album.name, 'error': e.toString()});
       ScaffoldMessenger.of(context).showSnackBar(
@@ -36,11 +59,33 @@ extension _MusicSheetsMixin on _SynologyMusicViewState {
   }
 
   Future<void> _showPlaylistSongs(AudioPlaylist playlist) async {
+    // 批次B-F7：加载歌单歌曲为多跳网络，原实现 await 期间无任何反馈。
+    // 先弹不可关闭的加载对话框，完成后关闭再弹歌曲 sheet。
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 12),
+                Text('正在加载歌曲…'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
     try {
       final songs = await ref
           .read(synologyMusicProvider.notifier)
           .loadPlaylistSongs(playlist.id);
       if (!mounted) return;
+      Navigator.pop(context); // 关闭加载对话框
       await _showSongsSheet(
         title: playlist.name,
         songs: songs,
@@ -48,6 +93,7 @@ extension _MusicSheetsMixin on _SynologyMusicViewState {
       );
     } catch (e) {
       if (!mounted) return;
+      Navigator.pop(context); // 关闭加载对话框
       AppLogger.warn('加载歌单歌曲失败',
           data: {'playlist': playlist.name, 'error': e.toString()});
       ScaffoldMessenger.of(context).showSnackBar(
