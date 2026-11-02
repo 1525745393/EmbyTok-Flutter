@@ -1,3 +1,11 @@
+## [2.401.98](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.97...v2.401.98) (2026-11-02)
+
+
+### Bug Fixes
+
+* **ui:** U12 状态组件统一第二批 + U18 const 编译修复 ([b735668](https://github.com/1525745393/EmbyTok-Flutter/commit/b73566879203b5ab4256c2455161cda12d331bd4))
+* **ui:** UI审查第一批修复 U8/U17/U18/U21 ([c141f6e](https://github.com/1525745393/EmbyTok-Flutter/commit/c141f6e60287e112622b88a18627905e0a211670))
+
 ## [2.401.97](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.96...v2.401.97) (2026-11-02)
 
 
