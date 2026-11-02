@@ -9,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/local_video_item.dart';
+import '../utils/logger.dart';
 import 'local_dir_scanner.dart';
 import 'scrape_service.dart' show ScrapedMedia, ScrapeService;
 import 'scrape_media_store.dart';
@@ -19,8 +20,17 @@ class LocalVideoService {
 
   /// 已声明的视频扩展名
   static const _videoExt = {
-    '.mp4', '.mkv', '.avi', '.mov', '.webm', '.flv', '.ts', '.m2ts',
-    '.3gp', '.wmv', '.m4v',
+    '.mp4',
+    '.mkv',
+    '.avi',
+    '.mov',
+    '.webm',
+    '.flv',
+    '.ts',
+    '.m2ts',
+    '.3gp',
+    '.wmv',
+    '.m4v',
   };
 
   /// 已声明的字幕扩展名
@@ -71,7 +81,8 @@ class LocalVideoService {
       // 每个路径分页取（photo_manager 每页上限 500），避免一次拉太多或漏掉 500+ 的视频
       var offset = 0;
       while (true) {
-        final assets = await path.getAssetListRange(start: offset, end: offset + 500);
+        final assets =
+            await path.getAssetListRange(start: offset, end: offset + 500);
         if (assets.isEmpty) break;
         // fileSize 是平台通道异步调用，同页 500 条并行取，避免全量刷新被串行拖慢
         final sizes = await Future.wait(assets.map((a) => a.fileSize));
@@ -115,7 +126,8 @@ class LocalVideoService {
 
       for (final dir in dirs) {
         if (!dir.existsSync()) continue;
-        await for (final entity in dir.list(recursive: true, followLinks: false)) {
+        await for (final entity
+            in dir.list(recursive: true, followLinks: false)) {
           if (entity is! File) continue;
           final ext = _ext(entity.path);
           if (!_videoExt.contains(ext)) continue;
@@ -127,8 +139,8 @@ class LocalVideoService {
             final dirName = entity.parent.path;
             final baseName = entity.path.split('/').last.replaceAll(ext, '');
             try {
-              final dirEntities =
-                  dirCache.putIfAbsent(dirName, () => Directory(dirName).listSync());
+              final dirEntities = dirCache.putIfAbsent(
+                  dirName, () => Directory(dirName).listSync());
               for (final e in dirEntities) {
                 if (e is! File) continue;
                 final se = _ext(e.path);
@@ -180,7 +192,12 @@ class LocalVideoService {
     final List<Map<String, dynamic>> sources = raw == null
         ? [
             // 默认：手机媒体库
-            {'id': 'local_default', 'type': 'local', 'name': '手机媒体库', 'enabled': true}
+            {
+              'id': 'local_default',
+              'type': 'local',
+              'name': '手机媒体库',
+              'enabled': true
+            }
           ]
         : (json.decode(raw) as List)
             .map((e) => Map<String, dynamic>.from(e as Map))
@@ -205,10 +222,15 @@ class LocalVideoService {
             final paths = <String>[];
             final rawPaths = cfg['paths']?.toString();
             if (rawPaths != null && rawPaths.isNotEmpty) {
-              paths.addAll(rawPaths.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty));
+              paths.addAll(rawPaths
+                  .split(',')
+                  .map((e) => e.trim())
+                  .where((e) => e.isNotEmpty));
             }
             final oldPath = cfg['path']?.toString();
-            if (oldPath != null && oldPath.isNotEmpty && !paths.contains(oldPath)) {
+            if (oldPath != null &&
+                oldPath.isNotEmpty &&
+                !paths.contains(oldPath)) {
               paths.add(oldPath);
             }
             // 用户指定的媒体类型（movie/tv/short）
@@ -268,7 +290,9 @@ class LocalVideoService {
         await File(item.path).delete();
       }
       // 清理旁置 .nfo/海报/剧照和中央缓存
-      try { await ScrapeMediaStore.delete(item); } catch (_) {}
+      try {
+        await ScrapeMediaStore.delete(item);
+      } catch (_) {}
       // 清理 SharedPreferences：刮削缓存、收藏、续播位置
       try {
         final sp = await SharedPreferences.getInstance();
@@ -278,8 +302,15 @@ class LocalVideoService {
         await sp.remove('local_resume_time_${item.pathHash}');
       } catch (_) {}
       return true;
-    } catch (_) {}
-    return false;
+    } catch (e) {
+      // 失败原因转 bool 上报调用方（批次Q1：不再静默吞错，保留失败线索）
+      AppLogger.warn('删除本地视频失败', data: {
+        'pathHash': item.pathHash,
+        'path': item.path,
+        'error': e.toString(),
+      });
+      return false;
+    }
   }
 
   // ==================== 续播位置 ====================
@@ -388,7 +419,9 @@ class LocalVideoService {
     }
     final oldFile = File(item.path);
     if (!await oldFile.exists()) throw Exception('文件不存在');
-    final ext = item.path.contains('.') ? item.path.substring(item.path.lastIndexOf('.')) : '';
+    final ext = item.path.contains('.')
+        ? item.path.substring(item.path.lastIndexOf('.'))
+        : '';
     final parent = item.path.substring(0, item.path.lastIndexOf('/'));
     final newPath = '$parent/$newName$ext';
     final target = File(newPath);
@@ -398,7 +431,8 @@ class LocalVideoService {
     await _recordRename(item.path, newPath);
     // 双轨落盘：同步重命名视频旁刮削文件（传 pathHash 按实际键族清理旧缓存孤儿）
     try {
-      await ScrapeMediaStore.rename(item.path, newPath, pathHash: item.pathHash);
+      await ScrapeMediaStore.rename(item.path, newPath,
+          pathHash: item.pathHash);
     } catch (_) {}
     // 迁移本地状态：旧 pathHash → 新 pathHash
     // 覆盖刮削缓存、续播位置、续播时间戳、收藏（重命名后用户状态不丢，也不残留脏键）
@@ -465,8 +499,8 @@ class LocalVideoService {
           final v = sp.getInt(key);
           if (v != null) {
             await sp.setInt(
-                key.replaceFirst(
-                    '$_resumePrefix$oldDirPrefix', '$_resumePrefix$newDirPrefix'),
+                key.replaceFirst('$_resumePrefix$oldDirPrefix',
+                    '$_resumePrefix$newDirPrefix'),
                 v);
             await sp.remove(key);
           }
@@ -483,7 +517,8 @@ class LocalVideoService {
           final raw = sp.getString(key);
           if (raw != null) {
             await sp.setString(
-                key.replaceFirst('scrape_$oldDirPrefix', 'scrape_$newDirPrefix'),
+                key.replaceFirst(
+                    'scrape_$oldDirPrefix', 'scrape_$newDirPrefix'),
                 raw);
             await sp.remove(key);
           }
@@ -542,7 +577,12 @@ class LocalVideoService {
       try {
         final oldBase = oldPath.substring(0, oldPath.lastIndexOf('.'));
         final newBase = newPath.substring(0, newPath.lastIndexOf('.'));
-        for (final suffix in ['.nfo', '-poster.jpg', '-backdrop.jpg', '-still.jpg']) {
+        for (final suffix in [
+          '.nfo',
+          '-poster.jpg',
+          '-backdrop.jpg',
+          '-still.jpg'
+        ]) {
           final oldSibling = File('$newBase$suffix');
           if (await oldSibling.exists()) {
             await oldSibling.rename('$oldBase$suffix');
@@ -588,7 +628,8 @@ class LocalVideoService {
       // 优先使用刮削的季集号，其次从文件名提取
       String? se;
       if (s.season != null && s.episode != null) {
-        se = 'S${s.season!.toString().padLeft(2, '0')}E${s.episode!.toString().padLeft(2, '0')}';
+        se =
+            'S${s.season!.toString().padLeft(2, '0')}E${s.episode!.toString().padLeft(2, '0')}';
       } else {
         // 与 ScrapeService.episodeRegex 保持同一套解析（支持 EP01/第X集 等变体）
         final epMatch = ScrapeService.episodeRegex.firstMatch(item.name);
@@ -596,10 +637,15 @@ class LocalVideoService {
           final sNum = epMatch.group(1) ?? epMatch.group(3);
           // batch56-F1：补中文集号组 group(7)（"第一集"），并经 cnToInt 归一后补零——
           // 否则中文集号文件名在兜底分支重命名后集号丢失或出现 "S01E一"
-          final e = epMatch.group(2) ?? epMatch.group(4) ?? epMatch.group(5) ?? epMatch.group(6) ?? epMatch.group(7);
+          final e = epMatch.group(2) ??
+              epMatch.group(4) ??
+              epMatch.group(5) ??
+              epMatch.group(6) ??
+              epMatch.group(7);
           if (e != null) {
             final epNum = ScrapeService.cnToInt(e);
-            se = 'S${(sNum ?? '1').padLeft(2, '0')}E${epNum.toString().padLeft(2, '0')}';
+            se =
+                'S${(sNum ?? '1').padLeft(2, '0')}E${epNum.toString().padLeft(2, '0')}';
           }
         }
       }

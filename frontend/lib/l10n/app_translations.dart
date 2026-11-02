@@ -46,8 +46,13 @@ class AppLocale {
 }
 
 /// 简单翻译字典（key -> {languageCode -> text}）
+///
+/// 批次Q1 警示：本骨架当前是【死代码】——translate() 全库 0 调用、
+/// AppTranslationsDelegate 未注册，业务文案仍硬编码中文（约 3800 处）。
+/// 语言切换目前仅对 Material 内置组件文案生效（AppLocale + app.dart locale）。
+/// 如需让业务文案跟随语言，须先注册 AppTranslationsDelegate 并按页面
+/// 分批迁移高频文案，不要在此骨架内继续追加 key。
 class AppTranslations {
-
   AppTranslations(this.locale) {
     _instance = this;
     _localizedValues = {

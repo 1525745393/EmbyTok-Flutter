@@ -278,30 +278,12 @@ class _MoviePosterCard extends ConsumerWidget {
                 ),
               ),
               const Divider(height: 1),
-              ListTile(
-                leading: Icon(Icons.favorite_border, color: scheme.error),
-                title: Text(_kMenuItemRemoveFavorite,
-                    style: TextStyle(color: scheme.error)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  final notifier = ref.read(favoritesProvider.notifier);
-                  notifier.toggleFavorite(item);
-                  final messenger = ScaffoldMessenger.of(context);
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text(
-                          '$_kSnackBarRemovedPrefix${item.title}$_kSnackBarRemovedSuffix'),
-                      action: SnackBarAction(
-                        label: _kSnackBarUndo,
-                        onPressed: () =>
-                            _undoUnfavorite(messenger, notifier, item),
-                      ),
-                      duration: const Duration(seconds: _kSnackBarDuration),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
-              ),
+              _buildUnfavoriteTile(
+                  ctx: ctx,
+                  stateContext: context,
+                  ref: ref,
+                  item: item,
+                  scheme: scheme),
               ListTile(
                 leading: Icon(Icons.play_arrow, color: scheme.primary),
                 title: const Text(_kMenuItemPlay),

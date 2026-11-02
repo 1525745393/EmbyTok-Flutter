@@ -141,28 +141,12 @@ class _BoxSetTile extends ConsumerWidget {
                 ),
               ),
               const Divider(height: 1),
-              ListTile(
-                leading: Icon(Icons.favorite_border, color: scheme.error),
-                title: Text('取消收藏', style: TextStyle(color: scheme.error)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  final notifier = ref.read(favoritesProvider.notifier);
-                  notifier.toggleFavorite(item);
-                  final messenger = ScaffoldMessenger.of(context);
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text('已取消收藏「${item.title}」'),
-                      action: SnackBarAction(
-                        label: '撤销',
-                        onPressed: () =>
-                            _undoUnfavorite(messenger, notifier, item),
-                      ),
-                      duration: const Duration(seconds: 5),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
-              ),
+              _buildUnfavoriteTile(
+                  ctx: ctx,
+                  stateContext: context,
+                  ref: ref,
+                  item: item,
+                  scheme: scheme),
               ListTile(
                 leading:
                     Icon(Icons.info_outline, color: scheme.onSurfaceVariant),
@@ -278,28 +262,12 @@ class _PersonTile extends ConsumerWidget {
                         fontWeight: FontWeight.w600)),
               ),
               const Divider(height: 1),
-              ListTile(
-                leading: Icon(Icons.favorite_border, color: scheme.error),
-                title: Text('取消收藏', style: TextStyle(color: scheme.error)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  final notifier = ref.read(favoritesProvider.notifier);
-                  notifier.toggleFavorite(item);
-                  final messenger = ScaffoldMessenger.of(context);
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text('已取消收藏「${item.title}」'),
-                      action: SnackBarAction(
-                        label: '撤销',
-                        onPressed: () =>
-                            _undoUnfavorite(messenger, notifier, item),
-                      ),
-                      duration: const Duration(seconds: 5),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
-              ),
+              _buildUnfavoriteTile(
+                  ctx: ctx,
+                  stateContext: context,
+                  ref: ref,
+                  item: item,
+                  scheme: scheme),
               ListTile(
                 leading:
                     Icon(Icons.info_outline, color: scheme.onSurfaceVariant),

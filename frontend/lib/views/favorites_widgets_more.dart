@@ -249,6 +249,42 @@ Future<void> _undoUnfavorite(
   }
 }
 
+/// 「取消收藏 + 撤销 SnackBar」弹层动作统一 builder（批次Q1：原 4 处复制收敛）
+///
+/// 行为与四处原始实现完全一致：pop 弹层 → toggleFavorite 乐观更新 →
+/// 浮层 SnackBar（带撤销 Action，撤销走 [_undoUnfavorite]）。
+Widget _buildUnfavoriteTile({
+  required BuildContext ctx,
+  required BuildContext stateContext,
+  required WidgetRef ref,
+  required MediaItem item,
+  required ColorScheme scheme,
+}) {
+  return ListTile(
+    leading: Icon(Icons.favorite_border, color: scheme.error),
+    title:
+        Text(_kMenuItemRemoveFavorite, style: TextStyle(color: scheme.error)),
+    onTap: () {
+      Navigator.pop(ctx);
+      final notifier = ref.read(favoritesProvider.notifier);
+      notifier.toggleFavorite(item);
+      final messenger = ScaffoldMessenger.of(stateContext);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+              '$_kSnackBarRemovedPrefix${item.title}$_kSnackBarRemovedSuffix'),
+          action: SnackBarAction(
+            label: _kSnackBarUndo,
+            onPressed: () => _undoUnfavorite(messenger, notifier, item),
+          ),
+          duration: const Duration(seconds: _kSnackBarDuration),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    },
+  );
+}
+
 // ============================================================
 // 二级分类详情页（保持原有实现，不改动）
 // FavoritesCategoryView / _GridCard
@@ -621,28 +657,12 @@ class _GridCard extends ConsumerWidget {
                 ),
               ),
               const Divider(height: 1),
-              ListTile(
-                leading: Icon(Icons.favorite_border, color: scheme.error),
-                title: Text('取消收藏', style: TextStyle(color: scheme.error)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  final notifier = ref.read(favoritesProvider.notifier);
-                  notifier.toggleFavorite(item);
-                  final messenger = ScaffoldMessenger.of(context);
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text('已取消收藏「${item.title}」'),
-                      action: SnackBarAction(
-                        label: '撤销',
-                        onPressed: () =>
-                            _undoUnfavorite(messenger, notifier, item),
-                      ),
-                      duration: const Duration(seconds: 5),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
-              ),
+              _buildUnfavoriteTile(
+                  ctx: ctx,
+                  stateContext: context,
+                  ref: ref,
+                  item: item,
+                  scheme: scheme),
               if (category == FavoritesCategory.movie)
                 ListTile(
                   leading: Icon(Icons.play_arrow, color: scheme.primary),

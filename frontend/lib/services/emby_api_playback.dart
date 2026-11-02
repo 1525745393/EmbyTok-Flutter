@@ -341,11 +341,16 @@ mixin _EmbyPlaybackApi on EmbyServerApiBase {
       '/Search/Hints',
       queryParameters: params,
     );
-    final items = resp.data is List
-        ? resp.data as List<dynamic>
-        : (resp.data['SearchHints'] as List<dynamic>?) ??
-            (resp.data['Items'] as List<dynamic>?) ??
-            [];
+    // 批次Q1：守卫式取列表，resp.data 为 null/非对象时不抛 NoSuchMethodError
+    List<dynamic> items = const [];
+    final data = resp.data;
+    if (data is List) {
+      items = data;
+    } else if (data is Map<String, dynamic>) {
+      items = (data['SearchHints'] as List<dynamic>?) ??
+          (data['Items'] as List<dynamic>?) ??
+          const [];
+    }
     return items
         .whereType<Map<String, dynamic>>()
         .map((e) => SearchHint(
@@ -471,9 +476,14 @@ mixin _EmbyPlaybackApi on EmbyServerApiBase {
       path,
       queryParameters: params,
     );
-    final items = resp.data is List
-        ? resp.data as List<dynamic>
-        : (resp.data['Items'] as List<dynamic>?) ?? [];
+    // 批次Q1：守卫式取列表，resp.data 为 null/非对象时不抛 NoSuchMethodError
+    List<dynamic> items = const [];
+    final data = resp.data;
+    if (data is List) {
+      items = data;
+    } else if (data is Map<String, dynamic>) {
+      items = (data['Items'] as List<dynamic>?) ?? const [];
+    }
     return items
         .whereType<Map<String, dynamic>>()
         .map((e) => MediaItem.fromJson(e))

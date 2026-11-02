@@ -27,19 +27,23 @@ class FileSourceBrowseView extends ConsumerStatefulWidget {
   final FileSource source;
 
   @override
-  ConsumerState<FileSourceBrowseView> createState() => _FileSourceBrowseViewState();
+  ConsumerState<FileSourceBrowseView> createState() =>
+      _FileSourceBrowseViewState();
 }
 
 class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   /// 匹配集号：S01E01 / S01.E01 / Season 1 Episode 1 / Episode 01 / E01 / EP01 / 第1集（默认季1）
   /// 统一复用 ScrapeService.episodeRegex，避免多套解析规则产生不一致
   // 预编译常用正则，避免在循环中重复编译
-  static final _seasonDirRegex = RegExp(r'[\/\\](?:[Ss]eason[.\s_-]*\d+|[Ss]\d{1,2}|第[一二三四五六七八九十\d]+季)$', caseSensitive: false);
+  static final _seasonDirRegex = RegExp(
+      r'[\/\\](?:[Ss]eason[.\s_-]*\d+|[Ss]\d{1,2}|第[一二三四五六七八九十\d]+季)$',
+      caseSensitive: false);
   static final _sanitizeRegex = RegExp(r'[\\/:*?"<>|]');
   static final _yearBracketRegex = RegExp(r'\[(\d{4})\]');
   static final _yearParenRegex = RegExp(r'\s*\(\d{4}\)\s*');
   static final _websitePrefixRegex = RegExp(r'^\[[^\]]*\]');
-  static final _yearRegex = RegExp(r'(?:^|[.\s\[\-(])(19\d{2}|20\d{2})(?=[.\s\]\-)_.]|$)');
+  static final _yearRegex =
+      RegExp(r'(?:^|[.\s\[\-(])(19\d{2}|20\d{2})(?=[.\s\]\-)_.]|$)');
   static final _trailingSepRegex = RegExp(r'[.\s\-_]+$');
   static final _chineseRegex = RegExp(r'[\u4e00-\u9fff][\u4e00-\u9fff0-9]*');
 
@@ -49,7 +53,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     if (m == null) return null;
     final s = m.group(1) ?? m.group(3);
     // batch32-F1 对齐 ScrapeService.extractEpisode：补 group(7) 中文数字集号（第X集）
-    final e = m.group(2) ?? m.group(4) ?? m.group(5) ?? m.group(6) ?? m.group(7);
+    final e =
+        m.group(2) ?? m.group(4) ?? m.group(5) ?? m.group(6) ?? m.group(7);
     if (e == null) return null;
     // 中文数字（一~十）与阿拉伯数字统一走 cnToInt，避免与刮削链路解析不一致
     return (s != null ? int.parse(s) : 1, ScrapeService.cnToInt(e));
@@ -63,6 +68,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   int _scrapedCount = 0;
   // 多选模式
   final Set<String> _selected = {};
+
   /// 扫描请求序号：连续点"重新扫描"时丢弃晚到的过期响应，避免旧扫描结果覆盖新结果
   int _scanSeq = 0;
 
@@ -111,7 +117,9 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           break;
         case FileSourceType.local:
           // 手机相册：从已扫描的本地视频中筛选 sourceId 匹配的
-          items = ref.read(localVideoProvider).items
+          items = ref
+              .read(localVideoProvider)
+              .items
               .where((e) => e.sourceId == widget.source.id)
               .toList();
           break;
@@ -120,10 +128,14 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           final paths = <String>[];
           final rawPaths = widget.source.config['paths'];
           if (rawPaths != null && rawPaths.isNotEmpty) {
-            paths.addAll(rawPaths.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty));
+            paths.addAll(rawPaths
+                .split(',')
+                .map((e) => e.trim())
+                .where((e) => e.isNotEmpty));
           }
           final oldPath = widget.source.config['path'] ?? '';
-          if (oldPath.isNotEmpty && !paths.contains(oldPath)) paths.add(oldPath);
+          if (oldPath.isNotEmpty && !paths.contains(oldPath))
+            paths.add(oldPath);
           if (paths.isEmpty) throw Exception('未配置文件夹路径');
           items = await LocalDirScanner().scan(paths);
           break;
@@ -188,8 +200,12 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
             '无法在视频文件夹中看到 .nfo 和海报。',
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('去开启')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('取消')),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('去开启')),
           ],
         ),
       );
@@ -204,12 +220,14 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     });
     ScrapeMediaStore.isScraping.value = true;
     // 仅刮削未刮削的文件：全量重刮会覆盖用户手动匹配/选图的元数据
-    final todo = _items.where((it) => !_scraped.containsKey(it.pathHash)).toList();
+    final todo =
+        _items.where((it) => !_scraped.containsKey(it.pathHash)).toList();
     if (todo.isEmpty) {
       ScrapeMediaStore.isScraping.value = false;
       if (mounted) {
         setState(() => _scraping = false);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('全部已刮削，无需重复刮削')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('全部已刮削，无需重复刮削')));
       }
       return;
     }
@@ -237,15 +255,21 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
             success++;
           } else {
             await ScrapeMediaStore.recordHistory(
-              videoPath: item.path, status: 'failed', error: '未找到匹配结果', sessionId: sessionId);
+                videoPath: item.path,
+                status: 'failed',
+                error: '未找到匹配结果',
+                sessionId: sessionId);
             await _moveToFailedIfEnabled(item.path);
           }
-          } catch (e) {
-            debugPrint('刮削失败 ${item.name}: $e');
-            await ScrapeMediaStore.recordHistory(
-              videoPath: item.path, status: 'failed', error: e.toString(), sessionId: sessionId);
-            await _moveToFailedIfEnabled(item.path);
-          }
+        } catch (e) {
+          debugPrint('刮削失败 ${item.name}: $e');
+          await ScrapeMediaStore.recordHistory(
+              videoPath: item.path,
+              status: 'failed',
+              error: e.toString(),
+              sessionId: sessionId);
+          await _moveToFailedIfEnabled(item.path);
+        }
       }));
       i += concurrency;
       if (!mounted) {
@@ -278,9 +302,15 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       appBar: AppBar(
         title: Text(widget.source.name),
         actions: [
-          IconButton(onPressed: _showHelp, icon: const Icon(Icons.help_outline), tooltip: '使用帮助'),
+          IconButton(
+              onPressed: _showHelp,
+              icon: const Icon(Icons.help_outline),
+              tooltip: '使用帮助'),
           IconButton(onPressed: _scan, icon: const Icon(Icons.refresh)),
-          IconButton(onPressed: _showRenameHistory, icon: const Icon(Icons.history), tooltip: '重命名历史'),
+          IconButton(
+              onPressed: _showRenameHistory,
+              icon: const Icon(Icons.history),
+              tooltip: '重命名历史'),
           IconButton(
             onPressed: _scraping ? null : _scrapeAll,
             icon: _scraping
@@ -298,26 +328,64 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
               icon: const Icon(Icons.more_vert),
               onSelected: _onMovieBatchAction,
               itemBuilder: (_) => [
-                const PopupMenuItem(enabled: false, child: Text('── 刮削前整理 ──', style: TextStyle(fontSize: 12, color: Colors.grey))),
-                const PopupMenuItem(value: 'renameByFolder', child: Row(children: [Icon(Icons.folder, size: 18), SizedBox(width: 8), Text('按文件夹名重命名')])),
-                const PopupMenuItem(enabled: false, child: Text('── 刮削后整理 ──', style: TextStyle(fontSize: 12, color: Colors.grey))),
+                const PopupMenuItem(
+                    enabled: false,
+                    child: Text('── 刮削前整理 ──',
+                        style: TextStyle(fontSize: 12, color: Colors.grey))),
+                const PopupMenuItem(
+                    value: 'renameByFolder',
+                    child: Row(children: [
+                      Icon(Icons.folder, size: 18),
+                      SizedBox(width: 8),
+                      Text('按文件夹名重命名')
+                    ])),
+                const PopupMenuItem(
+                    enabled: false,
+                    child: Text('── 刮削后整理 ──',
+                        style: TextStyle(fontSize: 12, color: Colors.grey))),
                 PopupMenuItem(
                   value: 'organizeMovies',
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(children: [Icon(Icons.folder_special, size: 18), SizedBox(width: 8), Text('整理文件结构')]),
+                      Row(children: [
+                        Icon(Icons.folder_special, size: 18),
+                        SizedBox(width: 8),
+                        Text('整理文件结构')
+                      ]),
                       Padding(
                         padding: EdgeInsets.only(left: 26),
-                        child: Text('（无刮削时自动从文件名提取）', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                        child: Text('（无刮削时自动从文件名提取）',
+                            style: TextStyle(fontSize: 11, color: Colors.grey)),
                       ),
                     ],
                   ),
                 ),
-                const PopupMenuItem(value: 'renameAllMovies', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('按刮削重命名')])),
-                const PopupMenuItem(enabled: false, child: Text('── 其他 ──', style: TextStyle(fontSize: 12, color: Colors.grey))),
-                const PopupMenuItem(value: 'undoRename', child: Row(children: [Icon(Icons.undo, size: 18, color: Colors.orange), SizedBox(width: 8), Text('撤销上次重命名')])),
-                const PopupMenuItem(value: 'renameHistory', child: Row(children: [Icon(Icons.history, size: 18), SizedBox(width: 8), Text('重命名历史')])),
+                const PopupMenuItem(
+                    value: 'renameAllMovies',
+                    child: Row(children: [
+                      Icon(Icons.auto_fix_high, size: 18, color: Colors.green),
+                      SizedBox(width: 8),
+                      Text('按刮削重命名')
+                    ])),
+                const PopupMenuItem(
+                    enabled: false,
+                    child: Text('── 其他 ──',
+                        style: TextStyle(fontSize: 12, color: Colors.grey))),
+                const PopupMenuItem(
+                    value: 'undoRename',
+                    child: Row(children: [
+                      Icon(Icons.undo, size: 18, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Text('撤销上次重命名')
+                    ])),
+                const PopupMenuItem(
+                    value: 'renameHistory',
+                    child: Row(children: [
+                      Icon(Icons.history, size: 18),
+                      SizedBox(width: 8),
+                      Text('重命名历史')
+                    ])),
               ],
             ),
         ],
@@ -332,11 +400,15 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                        const Icon(Icons.error_outline,
+                            size: 48, color: Colors.red),
                         const SizedBox(height: 12),
-                        Text('扫描失败', style: Theme.of(context).textTheme.titleMedium),
+                        Text('扫描失败',
+                            style: Theme.of(context).textTheme.titleMedium),
                         const SizedBox(height: 8),
-                        Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey)),
+                        Text(_error!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.grey)),
                         const SizedBox(height: 16),
                         FilledButton(onPressed: _scan, child: const Text('重试')),
                       ],
@@ -377,7 +449,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
 
   Widget _buildBody() {
     // mediaType=tv 或文件名含 SxxExx 模式时按文件夹分组
-    final hasTvPattern = _items.any((it) => _parseSeasonEpisode(it.name) != null);
+    final hasTvPattern =
+        _items.any((it) => _parseSeasonEpisode(it.name) != null);
     final isTv = widget.source.config['mediaType'] == 'tv' || hasTvPattern;
     // TV 类型按文件夹分组
     if (isTv) {
@@ -386,11 +459,14 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       final groupDir = <String, String>{};
       for (final it in _items) {
         final folder = ScrapeService.extractSeriesName(it.relativePath) ??
-            (it.relativePath?.split('/').where((s) => s.isNotEmpty).last ?? '未分组');
+            (it.relativePath?.split('/').where((s) => s.isNotEmpty).last ??
+                '未分组');
         groups.putIfAbsent(folder, () => []).add(it);
         // 剧根目录：去掉 Season 子目录后缀，避免重命名改错目录
         final rel = it.relativePath ?? '';
-        final m = RegExp(r'[\/\\][Ss]eason\s*\d+[\/\\]?.*$', caseSensitive: false).firstMatch(rel);
+        final m =
+            RegExp(r'[\/\\][Ss]eason\s*\d+[\/\\]?.*$', caseSensitive: false)
+                .firstMatch(rel);
         final rootPath = m != null ? rel.substring(0, m.start) : rel;
         groupDir.putIfAbsent(folder, () => rootPath);
       }
@@ -405,55 +481,114 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
             Card(
               margin: const EdgeInsets.only(bottom: 8),
               child: GestureDetector(
-                onLongPress: () => _showGroupMenu(entry.key, groupDir[entry.key] ?? '', entry.value),
+                onLongPress: () => _showGroupMenu(
+                    entry.key, groupDir[entry.key] ?? '', entry.value),
                 child: ExpansionTile(
-                initiallyExpanded: _expandedFolders.contains(entry.key),
-                onExpansionChanged: (v) {
-                  setState(() {
-                    if (v) {
-                      _expandedFolders.add(entry.key);
-                    } else {
-                      _expandedFolders.remove(entry.key);
-                    }
-                  });
-                },
-                leading: const Icon(Icons.folder, color: Colors.amber),
-                title: Text(entry.key, style: const TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: Text('${entry.value.length}集'),
-                trailing: PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_horiz, size: 20),
-                  onSelected: (v) => _onGroupAction(v, entry.key, groupDir[entry.key] ?? '', entry.value),
-                  itemBuilder: (_) => [
-                    const PopupMenuItem(value: 'scrape', child: Row(children: [Icon(Icons.search, size: 18), SizedBox(width: 8), Text('刮削本剧')])),
-                    const PopupMenuItem(enabled: false, child: Text('── 刮削前整理 ──', style: TextStyle(fontSize: 12, color: Colors.grey))),
-                    const PopupMenuItem(value: 'renameFolder', child: Row(children: [Icon(Icons.drive_file_rename_outline, size: 18), SizedBox(width: 8), Text('重命名文件夹')])),
-                    const PopupMenuItem(enabled: false, child: Text('── 刮削后整理 ──', style: TextStyle(fontSize: 12, color: Colors.grey))),
-                    PopupMenuItem(
-                      value: 'organize',
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(children: [Icon(Icons.folder_special, size: 18), SizedBox(width: 8), Text('整理文件结构')]),
-                          Padding(
-                            padding: EdgeInsets.only(left: 26),
-                            child: Text('（无刮削时用文件夹名）', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                          ),
-                        ],
+                  initiallyExpanded: _expandedFolders.contains(entry.key),
+                  onExpansionChanged: (v) {
+                    setState(() {
+                      if (v) {
+                        _expandedFolders.add(entry.key);
+                      } else {
+                        _expandedFolders.remove(entry.key);
+                      }
+                    });
+                  },
+                  leading: const Icon(Icons.folder, color: Colors.amber),
+                  title: Text(entry.key,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text('${entry.value.length}集'),
+                  trailing: PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_horiz, size: 20),
+                    onSelected: (v) => _onGroupAction(
+                        v, entry.key, groupDir[entry.key] ?? '', entry.value),
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(
+                          value: 'scrape',
+                          child: Row(children: [
+                            Icon(Icons.search, size: 18),
+                            SizedBox(width: 8),
+                            Text('刮削本剧')
+                          ])),
+                      const PopupMenuItem(
+                          enabled: false,
+                          child: Text('── 刮削前整理 ──',
+                              style:
+                                  TextStyle(fontSize: 12, color: Colors.grey))),
+                      const PopupMenuItem(
+                          value: 'renameFolder',
+                          child: Row(children: [
+                            Icon(Icons.drive_file_rename_outline, size: 18),
+                            SizedBox(width: 8),
+                            Text('重命名文件夹')
+                          ])),
+                      const PopupMenuItem(
+                          enabled: false,
+                          child: Text('── 刮削后整理 ──',
+                              style:
+                                  TextStyle(fontSize: 12, color: Colors.grey))),
+                      PopupMenuItem(
+                        value: 'organize',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              Icon(Icons.folder_special, size: 18),
+                              SizedBox(width: 8),
+                              Text('整理文件结构')
+                            ]),
+                            Padding(
+                              padding: EdgeInsets.only(left: 26),
+                              child: Text('（无刮削时用文件夹名）',
+                                  style: TextStyle(
+                                      fontSize: 11, color: Colors.grey)),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const PopupMenuItem(value: 'renameAll', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('一键重命名集数')])),
-                    const PopupMenuItem(value: 'renameFolderScraped', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('按刮削信息重命名文件夹')])),
-                    const PopupMenuItem(enabled: false, child: Text('── 其他 ──', style: TextStyle(fontSize: 12, color: Colors.grey))),
-                    const PopupMenuItem(value: 'undoRename', child: Row(children: [Icon(Icons.undo, size: 18, color: Colors.orange), SizedBox(width: 8), Text('撤销上次重命名')])),
-                    const PopupMenuItem(value: 'renameHistory', child: Row(children: [Icon(Icons.history, size: 18), SizedBox(width: 8), Text('重命名历史')])),
-                  ],
+                      const PopupMenuItem(
+                          value: 'renameAll',
+                          child: Row(children: [
+                            Icon(Icons.auto_fix_high,
+                                size: 18, color: Colors.green),
+                            SizedBox(width: 8),
+                            Text('一键重命名集数')
+                          ])),
+                      const PopupMenuItem(
+                          value: 'renameFolderScraped',
+                          child: Row(children: [
+                            Icon(Icons.auto_fix_high,
+                                size: 18, color: Colors.green),
+                            SizedBox(width: 8),
+                            Text('按刮削信息重命名文件夹')
+                          ])),
+                      const PopupMenuItem(
+                          enabled: false,
+                          child: Text('── 其他 ──',
+                              style:
+                                  TextStyle(fontSize: 12, color: Colors.grey))),
+                      const PopupMenuItem(
+                          value: 'undoRename',
+                          child: Row(children: [
+                            Icon(Icons.undo, size: 18, color: Colors.orange),
+                            SizedBox(width: 8),
+                            Text('撤销上次重命名')
+                          ])),
+                      const PopupMenuItem(
+                          value: 'renameHistory',
+                          child: Row(children: [
+                            Icon(Icons.history, size: 18),
+                            SizedBox(width: 8),
+                            Text('重命名历史')
+                          ])),
+                    ],
+                  ),
+                  children: entry.value.map((it) {
+                    return _buildItemTile(it, indexByHash[it.pathHash] ?? 0);
+                  }).toList(),
                 ),
-                children: entry.value.map((it) {
-                  return _buildItemTile(it, indexByHash[it.pathHash] ?? 0);
-                }).toList(),
               ),
             ),
-          ),
         ],
       );
     }
@@ -464,7 +599,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     );
   }
 
-  void _showGroupMenu(String seriesName, String dirPath, List<LocalVideoItem> eps) async {
+  void _showGroupMenu(
+      String seriesName, String dirPath, List<LocalVideoItem> eps) async {
     final action = await showModalBottomSheet<String>(
       context: context,
       builder: (_) => SafeArea(
@@ -478,7 +614,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
             ),
             const ListTile(
               enabled: false,
-              title: Text('── 刮削前整理 ──', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              title: Text('── 刮削前整理 ──',
+                  style: TextStyle(fontSize: 12, color: Colors.grey)),
             ),
             ListTile(
               leading: const Icon(Icons.drive_file_rename_outline),
@@ -487,12 +624,14 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
             ),
             const ListTile(
               enabled: false,
-              title: Text('── 刮削后整理 ──', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              title: Text('── 刮削后整理 ──',
+                  style: TextStyle(fontSize: 12, color: Colors.grey)),
             ),
             ListTile(
               leading: const Icon(Icons.folder_special),
               title: const Text('整理文件结构'),
-              subtitle: const Text('无刮削时自动从文件名/文件夹名提取', style: TextStyle(fontSize: 11, color: Colors.grey)),
+              subtitle: const Text('无刮削时自动从文件名/文件夹名提取',
+                  style: TextStyle(fontSize: 11, color: Colors.grey)),
               onTap: () => Navigator.pop(context, 'organize'),
             ),
             ListTile(
@@ -507,7 +646,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
             ),
             const ListTile(
               enabled: false,
-              title: Text('── 其他 ──', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              title: Text('── 其他 ──',
+                  style: TextStyle(fontSize: 12, color: Colors.grey)),
             ),
             ListTile(
               leading: const Icon(Icons.undo, color: Colors.orange),
@@ -526,7 +666,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     if (action != null) _onGroupAction(action, seriesName, dirPath, eps);
   }
 
-  Future<void> _onGroupAction(String action, String seriesName, String dirPath, List<LocalVideoItem> eps) async {
+  Future<void> _onGroupAction(String action, String seriesName, String dirPath,
+      List<LocalVideoItem> eps) async {
     switch (action) {
       case 'scrape':
         await _scrapeGroup(seriesName, eps);
@@ -590,7 +731,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       }
       if (mounted) {
         setState(() => _scraping = false);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('未在 TMDB 找到该剧')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('未在 TMDB 找到该剧')));
       }
       return;
     }
@@ -637,7 +779,9 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         // 写每集视频旁 .nfo/-poster.jpg（单集不单独写历史，整剧末尾统一记录）
         await ScrapeMediaStore.save(item, media, logHistory: false);
         // 增量更新主页
-        ref.read(localVideoProvider.notifier).addScrapedEntry(item.pathHash, media);
+        ref
+            .read(localVideoProvider.notifier)
+            .addScrapedEntry(item.pathHash, media);
       } catch (e) {
         debugPrint('单集元数据保存失败 ${item.name}: $e');
         epFail++;
@@ -666,19 +810,25 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     });
     ref.read(localVideoProvider.notifier).refresh();
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('刮削完成：$done 集共享《${base.title}》元数据')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('刮削完成：$done 集共享《${base.title}》元数据')));
     }
     // batch32-F3 重扫本页列表：与 _scrapeAll 一致，移除失败/变更条目
     _scan();
   }
 
   /// 一键重命名某部剧的所有集为 "剧名 S01E01.ext"
-  Future<void> _renameAllEpisodes(String seriesName, List<LocalVideoItem> eps) async {
+  Future<void> _renameAllEpisodes(
+      String seriesName, List<LocalVideoItem> eps) async {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => const AlertDialog(
-        content: Row(children: [CircularProgressIndicator(), SizedBox(width: 16), Text('正在重命名...')]),
+        content: Row(children: [
+          CircularProgressIndicator(),
+          SizedBox(width: 16),
+          Text('正在重命名...')
+        ]),
       ),
     );
     int ok = 0;
@@ -694,7 +844,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           // 没有刮削数据，从文件名提取季集号
           final se = _parseSeasonEpisode(item.name);
           if (se != null) {
-            final seStr = 'S${se.$1.toString().padLeft(2, '0')}E${se.$2.toString().padLeft(2, '0')}';
+            final seStr =
+                'S${se.$1.toString().padLeft(2, '0')}E${se.$2.toString().padLeft(2, '0')}';
             final safe = seriesName.replaceAll(_sanitizeRegex, '').trim();
             await LocalVideoService().renameFile(item, '$safe $seStr');
             ok++;
@@ -711,7 +862,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       final msg = StringBuffer('重命名完成：成功 $ok');
       if (skip > 0) msg.write('，跳过 $skip');
       if (fail > 0) msg.write('，失败 $fail');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg.toString())));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(msg.toString())));
       _scan();
     }
   }
@@ -752,17 +904,23 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                   itemCount: list.length,
                   itemBuilder: (_, i) {
                     final p = list[i];
-                    final oldName = p.oldPath.substring(p.oldPath.lastIndexOf('/') + 1);
-                    final newDir = p.newPath.substring(0, p.newPath.lastIndexOf('/'));
-                    final newName = p.newPath.substring(p.newPath.lastIndexOf('/') + 1);
+                    final oldName =
+                        p.oldPath.substring(p.oldPath.lastIndexOf('/') + 1);
+                    final newDir =
+                        p.newPath.substring(0, p.newPath.lastIndexOf('/'));
+                    final newName =
+                        p.newPath.substring(p.newPath.lastIndexOf('/') + 1);
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 6),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(oldName, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text(oldName,
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.grey)),
                           Text('→ $newDir/$newName',
-                              style: const TextStyle(fontSize: 12, color: Colors.green)),
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.green)),
                         ],
                       ),
                     );
@@ -772,20 +930,26 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
               if (more > 0)
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
-                  child: Text('…还有 $more 项', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  child: Text('…还有 $more 项',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
                 ),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('开始整理')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('开始整理')),
         ],
       ),
     );
   }
 
-  Future<void> _organizeStructure(String seriesName, List<LocalVideoItem> eps) async {
+  Future<void> _organizeStructure(
+      String seriesName, List<LocalVideoItem> eps) async {
     // 标准化文件夹名：[2022] → (2022)
     var safeSeries = seriesName.replaceAll(_yearBracketRegex, r'($1)');
     safeSeries = safeSeries.replaceAll(_sanitizeRegex, '').trim();
@@ -794,7 +958,10 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     var noEpInfo = 0;
     for (final item in eps) {
       final ep = _parseSeasonEpisode(item.name);
-      if (ep == null) { noEpInfo++; continue; }
+      if (ep == null) {
+        noEpInfo++;
+        continue;
+      }
       var parent = item.path.substring(0, item.path.lastIndexOf('/'));
       final seasonMatch = _seasonDirRegex.firstMatch(parent);
       if (seasonMatch != null) continue;
@@ -805,16 +972,20 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       }
       final dot = item.path.lastIndexOf('.');
       final ext = dot > 0 ? item.path.substring(dot) : '';
-      final seStr = 'S${ep.$1.toString().padLeft(2, '0')}E${ep.$2.toString().padLeft(2, '0')}';
+      final seStr =
+          'S${ep.$1.toString().padLeft(2, '0')}E${ep.$2.toString().padLeft(2, '0')}';
       plan.add((
         oldPath: item.path,
-        newPath: '$parent/Season ${ep.$1.toString().padLeft(2, '0')}/$safeSeries - $seStr$ext',
+        newPath:
+            '$parent/Season ${ep.$1.toString().padLeft(2, '0')}/$safeSeries - $seStr$ext',
       ));
     }
     if (plan.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(noEpInfo > 0 ? '所有集数已整理或无法识别集号（$noEpInfo 个跳过）' : '所有集数已在 Season 目录中，无需整理'),
+          content: Text(noEpInfo > 0
+              ? '所有集数已整理或无法识别集号（$noEpInfo 个跳过）'
+              : '所有集数已在 Season 目录中，无需整理'),
         ));
       }
       return;
@@ -835,7 +1006,11 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       context: context,
       barrierDismissible: false,
       builder: (_) => const AlertDialog(
-        content: Row(children: [CircularProgressIndicator(), SizedBox(width: 16), Text('正在整理...')]),
+        content: Row(children: [
+          CircularProgressIndicator(),
+          SizedBox(width: 16),
+          Text('正在整理...')
+        ]),
       ),
     );
     int ok = 0, fail = 0, dup = 0, skip = 0;
@@ -843,7 +1018,10 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     for (final item in eps) {
       try {
         final ep = _parseSeasonEpisode(item.name);
-        if (ep == null) { skip++; continue; }
+        if (ep == null) {
+          skip++;
+          continue;
+        }
         final season = ep.$1;
         var parent = item.path.substring(0, item.path.lastIndexOf('/'));
         // 先判断是否已在 Season X 子文件夹里
@@ -855,7 +1033,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         // 如果父目录名和标准化剧名不一致（如 [2022] vs (2022)），重命名父目录
         final parentName = parent.substring(parent.lastIndexOf('/') + 1);
         if (parentName != safeSeries) {
-          final newParent = parent.substring(0, parent.lastIndexOf('/') + 1) + safeSeries;
+          final newParent =
+              parent.substring(0, parent.lastIndexOf('/') + 1) + safeSeries;
           if (!await Directory(newParent).exists()) {
             await Directory(parent).rename(newParent);
             // 目录改名也入重命名历史，保证撤销整理可恢复目录结构
@@ -863,16 +1042,20 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           }
           parent = newParent;
         }
-        final seasonDir = Directory('$parent/Season ${season.toString().padLeft(2, '0')}');
+        final seasonDir =
+            Directory('$parent/Season ${season.toString().padLeft(2, '0')}');
         if (!await seasonDir.exists()) await seasonDir.create(recursive: true);
         // 父目录可能已被改名，必须用改名后的当前路径定位原文件
-        final curPath = '$parent/${item.path.substring(item.path.lastIndexOf('/') + 1)}';
+        final curPath =
+            '$parent/${item.path.substring(item.path.lastIndexOf('/') + 1)}';
         // item.name 不含扩展名，需从原 path 拼回
         final dot = curPath.lastIndexOf('.');
         final ext = dot > 0 ? curPath.substring(dot) : '';
         // TMDB 标准格式：剧名 - S01E01.ext
-        final seStr = 'S${season.toString().padLeft(2, '0')}E${ep.$2.toString().padLeft(2, '0')}';
-        final newPath = '$parent/Season ${season.toString().padLeft(2, '0')}/$safeSeries - $seStr$ext';
+        final seStr =
+            'S${season.toString().padLeft(2, '0')}E${ep.$2.toString().padLeft(2, '0')}';
+        final newPath =
+            '$parent/Season ${season.toString().padLeft(2, '0')}/$safeSeries - $seStr$ext';
         if (await File(newPath).exists()) {
           dup++;
           dupFiles.add(item.name);
@@ -884,12 +1067,16 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         await LocalVideoService().migrateCachePath(item.path, newPath);
         // 双轨落盘：同步重命名旁置文件并清理沙箱旧元数据
         try {
-          await ScrapeMediaStore.rename(curPath, newPath, pathHash: item.pathHash);
+          await ScrapeMediaStore.rename(curPath, newPath,
+              pathHash: item.pathHash);
           // 同步移动 .actors/ 目录
-          final oldActorsDir = Directory('${curPath.substring(0, dot)}/.actors');
+          final oldActorsDir =
+              Directory('${curPath.substring(0, dot)}/.actors');
           if (await oldActorsDir.exists()) {
-            final newActorsDir = Directory('${newPath.substring(0, newPath.lastIndexOf('.'))}/.actors');
-            if (!await newActorsDir.parent.exists()) await newActorsDir.parent.create(recursive: true);
+            final newActorsDir = Directory(
+                '${newPath.substring(0, newPath.lastIndexOf('.'))}/.actors');
+            if (!await newActorsDir.parent.exists())
+              await newActorsDir.parent.create(recursive: true);
             await oldActorsDir.rename(newActorsDir.path);
           }
         } catch (_) {}
@@ -923,8 +1110,11 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       if (dup > 0) msg.write('，$dup 个重复已跳过');
       if (skip > 0) msg.write('，$skip 个无法识别');
       if (fail > 0) msg.write('，失败 $fail');
-      if (dupFiles.isNotEmpty) msg.write('\n重复：${dupFiles.take(3).join("、")}${dupFiles.length > 3 ? " 等" : ""}');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg.toString())));
+      if (dupFiles.isNotEmpty)
+        msg.write(
+            '\n重复：${dupFiles.take(3).join("、")}${dupFiles.length > 3 ? " 等" : ""}');
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(msg.toString())));
       _scan();
     }
   }
@@ -960,8 +1150,12 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
-            TextButton(onPressed: () => Navigator.pop(context, ctrl.text.trim()), child: const Text('确定')),
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('取消')),
+            TextButton(
+                onPressed: () => Navigator.pop(context, ctrl.text.trim()),
+                child: const Text('确定')),
           ],
         ),
       ),
@@ -970,23 +1164,29 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     if (newName == null || newName.isEmpty || newName == oldName) return;
     // 过滤非法文件名字符（与 _sanitizeRegex 保持一致），并拒绝含路径分隔符的输入，防止路径穿越
     final cleanName = newName.replaceAll(_sanitizeRegex, '').trim();
-    if (cleanName.isEmpty || cleanName.contains('/') || cleanName.contains('\\')) {
+    if (cleanName.isEmpty ||
+        cleanName.contains('/') ||
+        cleanName.contains('\\')) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('文件夹名含非法字符，已过滤后为空')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('文件夹名含非法字符，已过滤后为空')));
       }
       return;
     }
     if (dirPath.isEmpty || dirPath.lastIndexOf('/') < 0) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('无法定位文件夹路径')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('无法定位文件夹路径')));
       }
       return;
     }
     try {
-      final newPath = '${dirPath.substring(0, dirPath.lastIndexOf('/'))}/$cleanName';
+      final newPath =
+          '${dirPath.substring(0, dirPath.lastIndexOf('/'))}/$cleanName';
       if (await Directory(newPath).exists()) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('文件夹 "$cleanName" 已存在')));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('文件夹 "$cleanName" 已存在')));
         }
         return;
       }
@@ -994,27 +1194,34 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       await LocalVideoService().recordRename(dirPath, newPath);
       await LocalVideoService().migrateFolderCache(dirPath, newPath);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('文件夹重命名成功')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('文件夹重命名成功')));
         _scan();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('重命名失败: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('重命名失败: $e')));
       }
     }
   }
 
   /// 按刮削信息重命名剧名文件夹为 "剧名 (年份)"
-  Future<void> _renameFolderByScraped(String seriesName, String dirPath, List<LocalVideoItem> eps) async {
+  Future<void> _renameFolderByScraped(
+      String seriesName, String dirPath, List<LocalVideoItem> eps) async {
     // 从任一集的刮削数据取剧名和年份
     ScrapedMedia? s;
     for (final ep in eps) {
       final candidate = _scraped[ep.pathHash];
-      if (candidate != null) { s = candidate; break; }
+      if (candidate != null) {
+        s = candidate;
+        break;
+      }
     }
     if (s == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('无刮削数据，请先刮削本剧')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('无刮削数据，请先刮削本剧')));
       }
       return;
     }
@@ -1022,7 +1229,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     final newName = s.year != null ? '$safeTitle (${s.year})' : safeTitle;
     if (newName == seriesName) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('文件夹名已正确，无需重命名')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('文件夹名已正确，无需重命名')));
       }
       return;
     }
@@ -1032,31 +1240,39 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         title: const Text('按刮削信息重命名文件夹'),
         content: Text('$seriesName\n→\n$newName\n\n是否继续？'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('确定')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('确定')),
         ],
       ),
     );
     if (confirm != true || !mounted) return;
     if (dirPath.isEmpty || dirPath.lastIndexOf('/') < 0) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('无法定位文件夹路径')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('无法定位文件夹路径')));
       }
       return;
     }
     try {
-      final newPath = '${dirPath.substring(0, dirPath.lastIndexOf('/'))}/$newName';
+      final newPath =
+          '${dirPath.substring(0, dirPath.lastIndexOf('/'))}/$newName';
       if (await Directory(newPath).exists()) throw Exception('目标文件夹已存在');
       await Directory(dirPath).rename(newPath);
       await LocalVideoService().recordRename(dirPath, newPath);
       await LocalVideoService().migrateFolderCache(dirPath, newPath);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('文件夹已重命名为: $newName')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('文件夹已重命名为: $newName')));
         _scan();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('重命名失败: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('重命名失败: $e')));
       }
     }
   }
@@ -1066,12 +1282,14 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     try {
       final newPath = await LocalVideoService().undoLastRename();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('已撤销: ${newPath.split('/').last}')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('已撤销: ${newPath.split('/').last}')));
         _scan();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', ''))));
       }
     }
   }
@@ -1081,13 +1299,18 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Row(children: [Icon(Icons.help_outline), SizedBox(width: 8), Text('使用帮助')]),
+        title: const Row(children: [
+          Icon(Icons.help_outline),
+          SizedBox(width: 8),
+          Text('使用帮助')
+        ]),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('推荐流程', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              const Text('推荐流程',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
               const SizedBox(height: 4),
               Container(
                 padding: const EdgeInsets.all(8),
@@ -1099,21 +1322,27 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                 ),
               ),
               const SizedBox(height: 12),
-              const Text('功能说明', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              const Text('功能说明',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
               const SizedBox(height: 4),
-              const _HelpItem('刮削', '从 TMDB 拉取海报、简介、演员等元数据，写入视频旁的 .nfo 文件和 poster.jpg。'),
+              const _HelpItem(
+                  '刮削', '从 TMDB 拉取海报、简介、演员等元数据，写入视频旁的 .nfo 文件和 poster.jpg。'),
               const _HelpItem('按刮削重命名', '用 TMDB 的标准片名+年份重命名文件。需先刮削，适合电影。'),
               const _HelpItem('按文件夹名重命名', '直接用父文件夹名重命名文件，无需刮削。适合文件夹已命名规范的情况。'),
-              const _HelpItem('整理文件结构（电影）', '把扁平的电影文件移入独立文件夹，自动从文件名提取片名和年份。\n例：[bdys.me]王牌替身.2023.mp4 → 王牌替身 (2023)/王牌替身 (2023).mp4'),
-              const _HelpItem('整理文件结构（电视剧）', '把集数移入 Season X 子文件夹，并改名为标准格式。\n例：虚颜 [2022]/EP08.mp4 → 虚颜 (2022)/Season 01/虚颜 (2022) - S01E08.mp4'),
+              const _HelpItem('整理文件结构（电影）',
+                  '把扁平的电影文件移入独立文件夹，自动从文件名提取片名和年份。\n例：[bdys.me]王牌替身.2023.mp4 → 王牌替身 (2023)/王牌替身 (2023).mp4'),
+              const _HelpItem('整理文件结构（电视剧）',
+                  '把集数移入 Season X 子文件夹，并改名为标准格式。\n例：虚颜 [2022]/EP08.mp4 → 虚颜 (2022)/Season 01/虚颜 (2022) - S01E08.mp4'),
               const _HelpItem('一键重命名集数', '把所有集数改为"剧名 S01E01"格式，不移动目录。'),
               const _HelpItem('重命名文件夹', '修改剧集所在文件夹名称，支持实时路径预览。'),
               const _HelpItem('重新刮削', '长按某个文件，单独重新拉取 TMDB 元数据。适合元数据不完整时补全。'),
-              const _HelpItem('橙色感叹号', '列表标题旁的橙色感叹号表示元数据不完整（缺海报或简介），长按重新刮削可补全。'),
+              const _HelpItem(
+                  '橙色感叹号', '列表标题旁的橙色感叹号表示元数据不完整（缺海报或简介），长按重新刮削可补全。'),
               const _HelpItem('重命名历史', '查看所有重命名记录，支持撤销最近一次操作。'),
               const _HelpItem('多选', '长按文件进入多选模式，可批量重命名或删除。'),
               const SizedBox(height: 12),
-              const Text('支持识别的集号格式', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              const Text('支持识别的集号格式',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
               const SizedBox(height: 4),
               Container(
                 padding: const EdgeInsets.all(8),
@@ -1127,7 +1356,9 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('知道了')),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('知道了')),
         ],
       ),
     );
@@ -1138,7 +1369,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     final history = await LocalVideoService().getRenameHistory();
     if (!mounted) return;
     if (history.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('暂无重命名记录')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('暂无重命名记录')));
       return;
     }
     await showDialog(
@@ -1158,7 +1390,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
               return ListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
-                title: Text('$oldName → $newName', maxLines: 1, overflow: TextOverflow.ellipsis),
+                title: Text('$oldName → $newName',
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
                 trailing: TextButton(
                   onPressed: () async {
                     Navigator.pop(_);
@@ -1170,12 +1403,15 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                       list.removeAt(i);
                       await sp.setStringList('rename_history', list);
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('已撤销: $newName')));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('已撤销: $newName')));
                         _scan();
                       }
                     } catch (ex) {
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('撤销失败: ${ex.toString().replaceFirst('Exception: ', '')}')));
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(
+                                '撤销失败: ${ex.toString().replaceFirst('Exception: ', '')}')));
                       }
                     }
                   },
@@ -1192,12 +1428,14 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
               await sp.setStringList('rename_history', []);
               if (mounted) {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('历史已清空')));
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(const SnackBar(content: Text('历史已清空')));
               }
             },
             child: const Text('清空', style: TextStyle(color: Colors.red)),
           ),
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('关闭')),
+          TextButton(
+              onPressed: () => Navigator.pop(context), child: const Text('关闭')),
         ],
       ),
     );
@@ -1230,7 +1468,11 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       context: context,
       barrierDismissible: false,
       builder: (_) => const AlertDialog(
-        content: Row(children: [CircularProgressIndicator(), SizedBox(width: 16), Text('正在重命名...')]),
+        content: Row(children: [
+          CircularProgressIndicator(),
+          SizedBox(width: 16),
+          Text('正在重命名...')
+        ]),
       ),
     );
     int ok = 0, fail = 0, skip = 0;
@@ -1252,7 +1494,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       final msg = StringBuffer('重命名完成：成功 $ok');
       if (skip > 0) msg.write('，$skip 个未刮削');
       if (fail > 0) msg.write('，失败 $fail');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg.toString())));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(msg.toString())));
       _scan();
     }
   }
@@ -1264,7 +1507,11 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       context: context,
       barrierDismissible: false,
       builder: (_) => const AlertDialog(
-        content: Row(children: [CircularProgressIndicator(), SizedBox(width: 16), Text('正在重命名...')]),
+        content: Row(children: [
+          CircularProgressIndicator(),
+          SizedBox(width: 16),
+          Text('正在重命名...')
+        ]),
       ),
     );
     int ok = 0, fail = 0, skip = 0;
@@ -1273,7 +1520,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         final parent = item.path.substring(0, item.path.lastIndexOf('/'));
         final folderName = parent.substring(parent.lastIndexOf('/') + 1);
         final dot = item.name.lastIndexOf('.');
-        final nameWithoutExt = dot > 0 ? item.name.substring(0, dot) : item.name;
+        final nameWithoutExt =
+            dot > 0 ? item.name.substring(0, dot) : item.name;
         if (folderName.isNotEmpty && folderName != nameWithoutExt) {
           await LocalVideoService().renameFile(item, folderName);
           ok++;
@@ -1289,7 +1537,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       final msg = StringBuffer('按文件夹名重命名：成功 $ok');
       if (skip > 0) msg.write('，跳过 $skip');
       if (fail > 0) msg.write('，失败 $fail');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg.toString())));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(msg.toString())));
       _scan();
     }
   }
@@ -1313,7 +1562,10 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       if (yearMatch.start == 0) {
         // 剥离开头的年份（如 "2023 荒岛求生"）；剥离后为空说明片名即年份（如 "2012"），保留原名不提取
         // 与 ScrapeService.parseFilename 的年份剥离语义保持一致
-        final stripped = name.substring(yearMatch.end).replaceAll(_trailingSepRegex, '').trim();
+        final stripped = name
+            .substring(yearMatch.end)
+            .replaceAll(_trailingSepRegex, '')
+            .trim();
         if (stripped.isEmpty) {
           year = null;
           titlePart = name;
@@ -1420,7 +1672,11 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       context: context,
       barrierDismissible: false,
       builder: (_) => const AlertDialog(
-        content: Row(children: [CircularProgressIndicator(), SizedBox(width: 16), Text('正在整理...')]),
+        content: Row(children: [
+          CircularProgressIndicator(),
+          SizedBox(width: 16),
+          Text('正在整理...')
+        ]),
       ),
     );
     int ok = 0, fail = 0, dup = 0;
@@ -1435,7 +1691,10 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           year = s.year;
         } else {
           final parsed = _parseTitleYear(item.name);
-          if (parsed == null) { fail++; continue; }
+          if (parsed == null) {
+            fail++;
+            continue;
+          }
           title = parsed.$1;
           year = parsed.$2;
         }
@@ -1457,12 +1716,16 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         await LocalVideoService().migrateCachePath(item.path, newPath);
         // 双轨落盘：同步重命名旁置文件并清理沙箱旧元数据
         try {
-          await ScrapeMediaStore.rename(item.path, newPath, pathHash: item.pathHash);
+          await ScrapeMediaStore.rename(item.path, newPath,
+              pathHash: item.pathHash);
           // 同步移动 .actors/ 目录
-          final oldActorsDir = Directory('${item.path.substring(0, dot)}/.actors');
+          final oldActorsDir =
+              Directory('${item.path.substring(0, dot)}/.actors');
           if (await oldActorsDir.exists()) {
-            final newActorsDir = Directory('${newPath.substring(0, newPath.lastIndexOf('.'))}/.actors');
-            if (!await newActorsDir.parent.exists()) await newActorsDir.parent.create(recursive: true);
+            final newActorsDir = Directory(
+                '${newPath.substring(0, newPath.lastIndexOf('.'))}/.actors');
+            if (!await newActorsDir.parent.exists())
+              await newActorsDir.parent.create(recursive: true);
             await oldActorsDir.rename(newActorsDir.path);
           }
         } catch (_) {}
@@ -1489,7 +1752,9 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       final msg = StringBuffer('整理完成：移动 $ok 个文件');
       if (dup > 0) msg.write('，$dup 个重复已跳过');
       if (fail > 0) msg.write('，失败 $fail');
-      if (dupFiles.isNotEmpty) msg.write('\n重复：${dupFiles.take(3).join("、")}${dupFiles.length > 3 ? " 等" : ""}');
+      if (dupFiles.isNotEmpty)
+        msg.write(
+            '\n重复：${dupFiles.take(3).join("、")}${dupFiles.length > 3 ? " 等" : ""}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(msg.toString())),
       );
@@ -1501,7 +1766,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     if (s == null) return item.name;
     // 电视剧单集：显示集号和单集标题，不再只显示剧名
     if (s.type == 'tv' && s.season != null && s.episode != null) {
-      final se = 'S${s.season!.toString().padLeft(2, '0')}E${s.episode!.toString().padLeft(2, '0')}';
+      final se =
+          'S${s.season!.toString().padLeft(2, '0')}E${s.episode!.toString().padLeft(2, '0')}';
       if (s.episodeTitle != null && s.episodeTitle!.isNotEmpty) {
         return '$se · ${s.episodeTitle}';
       }
@@ -1536,7 +1802,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                 borderRadius: BorderRadius.circular(4),
                 child: s?.posterPath != null
                     ? CachedNetworkImage(
-                        imageUrl: TmdbService.posterUrl(s!.posterPath!, size: 'w300'),
+                        imageUrl:
+                            TmdbService.posterUrl(s!.posterPath!, size: 'w300'),
                         fit: BoxFit.cover,
                         // 统一走缩略图缓存管理器 + 限制解码尺寸，避免滚动重建抖动和 OOM
                         cacheManager: AppImageCacheManager.thumbnail,
@@ -1546,15 +1813,20 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                     : Stack(
                         fit: StackFit.expand,
                         children: [
-                          Container(color: Colors.grey[800], child: const Icon(Icons.movie, size: 20)),
+                          Container(
+                              color: Colors.grey[800],
+                              child: const Icon(Icons.movie, size: 20)),
                           if (s != null)
                             Positioned(
                               top: 2,
                               right: 2,
                               child: Container(
                                 padding: const EdgeInsets.all(1),
-                                decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(6)),
-                                child: const Icon(Icons.check, size: 10, color: Colors.white),
+                                decoration: BoxDecoration(
+                                    color: Colors.green,
+                                    borderRadius: BorderRadius.circular(6)),
+                                child: const Icon(Icons.check,
+                                    size: 10, color: Colors.white),
                               ),
                             ),
                         ],
@@ -1563,20 +1835,29 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
             ),
       title: s == null
           ? Row(children: [
-              Expanded(child: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis)),
+              Expanded(
+                  child: Text(item.name,
+                      maxLines: 1, overflow: TextOverflow.ellipsis)),
               const SizedBox(width: 6),
-              Text('未刮削', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+              Text('未刮削',
+                  style: TextStyle(fontSize: 10, color: Colors.grey[500])),
             ])
           : Row(children: [
-              Expanded(child: Text(_itemTitle(s, item), maxLines: 1, overflow: TextOverflow.ellipsis)),
+              Expanded(
+                  child: Text(_itemTitle(s, item),
+                      maxLines: 1, overflow: TextOverflow.ellipsis)),
               // 元数据不完整标记：缺海报或简介
-              if (s.posterPath == null || s.overview == null || s.overview!.isEmpty)
+              if (s.posterPath == null ||
+                  s.overview == null ||
+                  s.overview!.isEmpty)
                 const Padding(
                   padding: EdgeInsets.only(left: 6),
-                  child: Icon(Icons.error_outline, size: 14, color: Colors.orange),
+                  child:
+                      Icon(Icons.error_outline, size: 14, color: Colors.orange),
                 ),
             ]),
-      subtitle: Text(_itemSubtitle(s, item), maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: Text(_itemSubtitle(s, item),
+          maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: selecting ? null : const Icon(Icons.play_arrow, size: 20),
       selected: isSelected,
       selectedTileColor: Colors.pink.withValues(alpha: 0.1),
@@ -1592,7 +1873,9 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         } else {
           Navigator.push(
             context,
-            MaterialPageRoute<Widget>(builder: (_) => LocalPlayPage(items: _items, initialIndex: index)),
+            MaterialPageRoute<Widget>(
+                builder: (_) =>
+                    LocalPlayPage(items: _items, initialIndex: index)),
           );
         }
       },
@@ -1661,13 +1944,15 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       final msg = StringBuffer('批量重命名：成功 $ok');
       if (skip > 0) msg.write('，$skip 个未刮削');
       if (fail > 0) msg.write('，失败 $fail');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg.toString())));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(msg.toString())));
       _scan();
     }
   }
 
   Future<void> _batchDelete() async {
-    final selectedItems = _items.where((i) => _selected.contains(i.pathHash)).toList();
+    final selectedItems =
+        _items.where((i) => _selected.contains(i.pathHash)).toList();
     final count = selectedItems.length;
     final preview = selectedItems.take(3).map((i) => i.name).join('\n');
     final more = count > 3 ? '\n... 等 $count 个文件' : '';
@@ -1677,8 +1962,12 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         title: const Text('批量删除'),
         content: Text('确定删除以下 $count 个文件？\n\n$preview$more\n\n此操作不可撤销。'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('删除')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('删除')),
         ],
       ),
     );
@@ -1686,7 +1975,12 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     int ok = 0, fail = 0;
     for (final item in _items.where((i) => _selected.contains(i.pathHash))) {
       try {
-        await LocalVideoService().delete(item);
+        // 批次Q1：按 delete 返回值计数，失败不再计入成功
+        final deleted = await LocalVideoService().delete(item);
+        if (!deleted) {
+          fail++;
+          continue;
+        }
         // 同步清理刮削旁置文件（.nfo/海报/.actors）与 prefs 缓存，避免孤儿文件残留
         try {
           await ScrapeMediaStore.delete(item);
@@ -1700,7 +1994,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     }
     setState(() => _selected.clear());
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('批量删除：成功 $ok，失败 $fail')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('批量删除：成功 $ok，失败 $fail')));
       _scan();
     }
   }
@@ -1717,14 +2012,17 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
               ListTile(
                 leading: const Icon(Icons.auto_fix_high, color: Colors.green),
                 title: const Text('按刮削信息重命名'),
-                subtitle: Text('→ ${s.title}${s.year != null ? " (${s.year})" : ""}', maxLines: 1),
+                subtitle: Text(
+                    '→ ${s.title}${s.year != null ? " (${s.year})" : ""}',
+                    maxLines: 1),
                 enabled: item.assetId == null,
                 onTap: () => Navigator.pop(context, 'autoRename'),
               ),
             ListTile(
               leading: const Icon(Icons.refresh, color: Colors.blue),
               title: const Text('重新刮削'),
-              subtitle: Text(s != null ? '已有元数据，重新拉取TMDB' : '从未刮削过，拉取TMDB元数据', maxLines: 1),
+              subtitle: Text(s != null ? '已有元数据，重新拉取TMDB' : '从未刮削过，拉取TMDB元数据',
+                  maxLines: 1),
               onTap: () => Navigator.pop(context, 'rescrape'),
             ),
             ListTile(
@@ -1760,14 +2058,20 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           title: const Text('删除文件'),
           content: Text('确定删除 "${item.name}"？\n此操作不可撤销。'),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
-            TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('删除')),
+            TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('取消')),
+            TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('删除')),
           ],
         ),
       );
       if (confirm == true) {
-        try {
-          await LocalVideoService().delete(item);
+        // 批次Q1：delete 返回 bool（失败已被 service 吞转为 false），
+        // 必须检查返回值，避免「删除失败却提示已删除」
+        final ok = await LocalVideoService().delete(item);
+        if (ok) {
           // 同步清理刮削旁置文件（.nfo/海报/.actors）与缓存，避免孤儿残留（与批量删除一致）
           try {
             await ScrapeMediaStore.delete(item);
@@ -1775,13 +2079,14 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
             await sp.remove('scrape_${item.pathHash}');
           } catch (_) {}
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('已删除: ${item.name}')));
+            ScaffoldMessenger.of(context)
+                .showSnackBar(SnackBar(content: Text('已删除: ${item.name}')));
             _scan();
           }
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('删除失败: $e')));
-          }
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('删除失败：文件可能被占用或无权限')),
+          );
         }
       }
       return;
@@ -1792,11 +2097,16 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           context: context,
           barrierDismissible: false,
           builder: (_) => const AlertDialog(
-            content: Row(children: [CircularProgressIndicator(), SizedBox(width: 16), Text('正在刮削...')]),
+            content: Row(children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('正在刮削...')
+            ]),
           ),
         );
         final m = await ScrapeService.scrapeFile(
-          item.pathHash, item.name,
+          item.pathHash,
+          item.name,
           parentDir: item.relativePath,
           mediaTypeHint: widget.source.config['mediaType'],
         );
@@ -1805,20 +2115,25 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         if (m != null) {
           await ScrapeService.saveCache(item.pathHash, m);
           await ScrapeMediaStore.save(item, m);
-          ref.read(localVideoProvider.notifier).addScrapedEntry(item.pathHash, m);
+          ref
+              .read(localVideoProvider.notifier)
+              .addScrapedEntry(item.pathHash, m);
           // 重载刮削缓存，让本页列表立即显示新标题/海报（与 _scrapeAll/_scrapeGroup 一致）
           final cache = await ScrapeService.loadCache();
           if (!mounted) return;
           setState(() => _scraped = cache);
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('刮削成功：${m.title}')));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('刮削成功：${m.title}')));
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('未在 TMDB 找到匹配')));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('未在 TMDB 找到匹配')));
         }
         setState(() {});
       } catch (e) {
         if (mounted) {
           Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('刮削失败: $e')));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('刮削失败: $e')));
         }
       }
       return;
@@ -1827,18 +2142,22 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       try {
         await LocalVideoService().renameByScraped(item, s);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('重命名成功')));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('重命名成功')));
           _scan();
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('重命名失败: $e')));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('重命名失败: $e')));
         }
       }
     } else if (action == 'rename') {
       if (!mounted) return;
       final ctrl = TextEditingController(text: item.name);
-      final ext = item.path.contains('.') ? item.path.substring(item.path.lastIndexOf('.')) : '';
+      final ext = item.path.contains('.')
+          ? item.path.substring(item.path.lastIndexOf('.'))
+          : '';
       final newName = await showDialog<String>(
         context: context,
         builder: (_) => AlertDialog(
@@ -1847,7 +2166,10 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextField(controller: ctrl, autofocus: true, decoration: const InputDecoration(hintText: '新文件名（不含扩展名）')),
+              TextField(
+                  controller: ctrl,
+                  autofocus: true,
+                  decoration: const InputDecoration(hintText: '新文件名（不含扩展名）')),
               const SizedBox(height: 12),
               ValueListenableBuilder(
                 valueListenable: ctrl,
@@ -1859,8 +2181,12 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
-            TextButton(onPressed: () => Navigator.pop(context, ctrl.text.trim()), child: const Text('确定')),
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('取消')),
+            TextButton(
+                onPressed: () => Navigator.pop(context, ctrl.text.trim()),
+                child: const Text('确定')),
           ],
         ),
       );
@@ -1868,12 +2194,15 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       if (newName != null && newName.isNotEmpty) {
         // batch32-F4 输入可能带了扩展名：剥离后由 renameFile 统一追加 ext，避免双扩展名（与 batch30 预填去扩展名口径一致）
         var finalName = newName;
-        if (ext.isNotEmpty && finalName.toLowerCase().endsWith(ext.toLowerCase())) {
-          finalName = finalName.substring(0, finalName.length - ext.length).trim();
+        if (ext.isNotEmpty &&
+            finalName.toLowerCase().endsWith(ext.toLowerCase())) {
+          finalName =
+              finalName.substring(0, finalName.length - ext.length).trim();
         }
         if (finalName.isEmpty) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('文件名不能为空')));
+            ScaffoldMessenger.of(context)
+                .showSnackBar(const SnackBar(content: Text('文件名不能为空')));
           }
           return;
         }
@@ -1888,8 +2217,12 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                 title: const Text('文件已存在'),
                 content: Text('$finalName$ext 已存在，是否覆盖？'),
                 actions: [
-                  TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
-                  TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('覆盖')),
+                  TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('取消')),
+                  TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('覆盖')),
                 ],
               ),
             );
@@ -1897,12 +2230,14 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           }
           await LocalVideoService().renameFile(item, finalName);
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('重命名成功')));
+            ScaffoldMessenger.of(context)
+                .showSnackBar(const SnackBar(content: Text('重命名成功')));
             _scan();
           }
         } catch (e) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('重命名失败: $e')));
+            ScaffoldMessenger.of(context)
+                .showSnackBar(SnackBar(content: Text('重命名失败: $e')));
           }
         }
       }
@@ -1912,7 +2247,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
 
 /// 单部剧的剧集列表页
 class _SeriesEpisodePage extends StatelessWidget {
-  const _SeriesEpisodePage({required this.seriesName, required this.episodes, required this.onMenu});
+  const _SeriesEpisodePage(
+      {required this.seriesName, required this.episodes, required this.onMenu});
   final String seriesName;
   final List<LocalVideoItem> episodes;
   final void Function(String action) onMenu;
@@ -1927,10 +2263,34 @@ class _SeriesEpisodePage extends StatelessWidget {
           PopupMenuButton<String>(
             onSelected: onMenu,
             itemBuilder: (_) => const [
-              PopupMenuItem(value: 'scrape', child: Row(children: [Icon(Icons.search, size: 18), SizedBox(width: 8), Text('刮削本剧')])),
-              PopupMenuItem(value: 'renameAll', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('一键重命名集数')])),
-              PopupMenuItem(value: 'organize', child: Row(children: [Icon(Icons.folder_special, size: 18), SizedBox(width: 8), Text('整理文件结构')])),
-              PopupMenuItem(value: 'renameFolder', child: Row(children: [Icon(Icons.drive_file_rename_outline, size: 18), SizedBox(width: 8), Text('重命名文件夹')])),
+              PopupMenuItem(
+                  value: 'scrape',
+                  child: Row(children: [
+                    Icon(Icons.search, size: 18),
+                    SizedBox(width: 8),
+                    Text('刮削本剧')
+                  ])),
+              PopupMenuItem(
+                  value: 'renameAll',
+                  child: Row(children: [
+                    Icon(Icons.auto_fix_high, size: 18, color: Colors.green),
+                    SizedBox(width: 8),
+                    Text('一键重命名集数')
+                  ])),
+              PopupMenuItem(
+                  value: 'organize',
+                  child: Row(children: [
+                    Icon(Icons.folder_special, size: 18),
+                    SizedBox(width: 8),
+                    Text('整理文件结构')
+                  ])),
+              PopupMenuItem(
+                  value: 'renameFolder',
+                  child: Row(children: [
+                    Icon(Icons.drive_file_rename_outline, size: 18),
+                    SizedBox(width: 8),
+                    Text('重命名文件夹')
+                  ])),
             ],
           ),
         ],
@@ -1942,12 +2302,15 @@ class _SeriesEpisodePage extends StatelessWidget {
         itemBuilder: (_, i) {
           final it = sorted[i];
           return ListTile(
-            leading: Text('${i + 1}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            leading: Text('${i + 1}',
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             title: Text(it.name, maxLines: 1, overflow: TextOverflow.ellipsis),
             trailing: const Icon(Icons.play_arrow),
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute<Widget>(builder: (_) => LocalPlayPage(items: sorted, initialIndex: i),
+              MaterialPageRoute<Widget>(
+                builder: (_) => LocalPlayPage(items: sorted, initialIndex: i),
               ),
             ),
           );
@@ -1968,7 +2331,9 @@ class _HelpItem extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          Text(title,
+              style:
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
           const SizedBox(height: 2),
           Text(desc, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
         ],

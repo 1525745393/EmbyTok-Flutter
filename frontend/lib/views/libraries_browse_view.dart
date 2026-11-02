@@ -166,7 +166,8 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
                 child: Center(
                   child: Text(
                     '暂无未看完的视频，去发现页找找吧',
-                    style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+                    style:
+                        TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
                   ),
                 ),
               );
@@ -337,8 +338,10 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
                       _libraryTabs[index],
                       style: TextStyle(
                         fontSize: 15,
-                        fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
-                        color: selected ? scheme.primary : scheme.onSurfaceVariant,
+                        fontWeight:
+                            selected ? FontWeight.w700 : FontWeight.normal,
+                        color:
+                            selected ? scheme.primary : scheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -370,6 +373,7 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
 class _LibraryItemsList extends ConsumerStatefulWidget {
   const _LibraryItemsList({super.key, required this.library, this.tab = 0});
   final Library library;
+
   /// 子 Tab：0=电影 1=播放记录 2=合集
   final int tab;
 
@@ -595,7 +599,9 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
     if (_bulkBusy) return; // 批次B-F8：防重复点击重入
     final service = ref.read(embytokServiceProvider);
     final favorites = ref.read(favoritesProvider);
-    final ids = _selectedIds.where((id) => !favorites.favoriteIds.contains(id)).toList();
+    final ids = _selectedIds
+        .where((id) => !favorites.favoriteIds.contains(id))
+        .toList();
     if (ids.isEmpty) {
       if (mounted) _exitSelectionMode();
       return;
@@ -634,7 +640,8 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
     if (_bulkBusy) return; // 批次B-F8：防重复点击重入
     final service = ref.read(embytokServiceProvider);
     final favorites = ref.read(favoritesProvider);
-    final ids = _selectedIds.where((id) => favorites.favoriteIds.contains(id)).toList();
+    final ids =
+        _selectedIds.where((id) => favorites.favoriteIds.contains(id)).toList();
     if (ids.isEmpty) {
       if (mounted) _exitSelectionMode();
       return;
@@ -723,7 +730,9 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
 
     if (result == 'play') {
       if (context.mounted) {
-        ref.read(playbackListProvider.notifier).setPlaybackList([item], item.id);
+        ref
+            .read(playbackListProvider.notifier)
+            .setPlaybackList([item], item.id);
         context.push('/play/${item.id}', extra: item);
       }
     } else if (result == 'favorite') {
@@ -783,8 +792,8 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   /// Tab）会立刻返回空列表，FutureBuilder 显示"暂无分类"假空态且不再重建。
   Future<List<String>> _loadServerGenres() {
     if (_serverGenres.isNotEmpty) return Future.value(_serverGenres);
-    return _serverGenresFuture ??= _fetchServerGenres().whenComplete(
-        () => _serverGenresFuture = null);
+    return _serverGenresFuture ??=
+        _fetchServerGenres().whenComplete(() => _serverGenresFuture = null);
   }
 
   Future<List<String>> _fetchServerGenres() async {
@@ -937,7 +946,8 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                   isFolder ? Icons.folder : Icons.movie,
                   color: isFolder ? scheme.primary : scheme.onSurfaceVariant,
                 ),
-                title: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                title: Text(item.title,
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
                 trailing: isFolder ? const Icon(Icons.chevron_right) : null,
                 onTap: () {
                   if (isFolder) {
@@ -956,7 +966,13 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   }
 
   /// batch31-F4 构造当前筛选条件下的 Emby 查询参数（_loadItems / _loadAllItems 共用）
-  ({String? includeItemTypes, String sortBy, String sortOrder, String? playedFilter, bool resumable}) _buildQuery() {
+  ({
+    String? includeItemTypes,
+    String sortBy,
+    String sortOrder,
+    String? playedFilter,
+    bool resumable
+  }) _buildQuery() {
     final libType = widget.library.type;
     String? includeItemTypes;
     if (widget.tab == 2) {
@@ -996,7 +1012,9 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
     if (_isLoading && loadMore) return;
     final myRequestId = ++_requestId; // 递增请求 ID
     final auth = ref.read(authProvider);
-    if (!auth.isAuthenticated || auth.embyServerUrl == null || auth.token == null) {
+    if (!auth.isAuthenticated ||
+        auth.embyServerUrl == null ||
+        auth.token == null) {
       if (myRequestId != _requestId) return; // 已有更新请求
       setState(() {
         _error = '未登录';
@@ -1072,729 +1090,770 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
     if (_isLoading && _items.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (_error != null && _items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: scheme.error),
-            const SizedBox(height: 12),
-            Text('加载失败', style: TextStyle(fontSize: 16, color: scheme.onSurface)),
-            const SizedBox(height: 4),
-            Text('请检查网络后重试', style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant)),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: () => _loadItems(),
-              child: const Text('重试'),
-            ),
-          ],
-        ),
-      );
-    }
-    if (_items.isEmpty) {
-      // batch31-F1 评分筛选纳入可清除条件：仅评分筛选命中空结果时也能就地清除
-      final hasFilter = _selectedGenre != null ||
-          _selectedYear != null ||
-          _filterLabel != '全部' ||
-          _minRating > 0 ||
-          _searchQuery.isNotEmpty;
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.video_library_outlined, size: 48, color: scheme.onSurfaceVariant),
-            const SizedBox(height: 12),
-            Text(
-              _searchQuery.isNotEmpty
-                  ? '未找到相关影片'
-                  : hasFilter
-                      ? '当前筛选条件下无影片'
-                      : '此媒体库暂无内容',
-              style: TextStyle(fontSize: 16, color: scheme.onSurface),
-            ),
-            if (hasFilter) ...[
-              const SizedBox(height: 12),
-              TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _selectedGenre = null;
-                    _selectedYear = null;
-                    _filterLabel = '全部';
-                    _minRating = 0; // batch31-F1 一并清除评分筛选
-                    _showRatingFilter = false;
-                    _searchQuery = '';
-                    _searchController.clear();
-                  });
-                  _loadItems();
-                },
-                icon: const Icon(Icons.clear, size: 16),
-                label: const Text('清除筛选'),
-              ),
-            ],
-          ],
-        ),
-      );
-    }
-
+    if (_error != null && _items.isEmpty) return _buildError();
+    if (_items.isEmpty) return _buildEmpty();
     // 文件夹 Tab：按文件夹结构浏览
     if (widget.tab == 4) {
       return _buildFolderView(scheme);
     }
 
-    // 分类 Tab：显示该库类型列表，点击后显示该类型影片
-    if (widget.tab == 3 && _categoryShowList) {
-      return FutureBuilder<List<String>>(
-        future: _loadServerGenres(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final genres = snapshot.data ?? [];
-          if (genres.isEmpty) {
-            return const Center(child: Text('暂无分类'));
-          }
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-            children: genres.map((g) {
-              return ListTile(
-                leading: const Icon(Icons.label_outline),
-                title: Text(g),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  setState(() {
-                    _selectedGenre = g;
-                    _categoryShowList = false;
-                  });
-                  _loadItems();
-                },
-              );
-            }).toList(),
-          );
-        },
-      );
-    }
-
+    if (widget.tab == 3 && _categoryShowList) return _buildCategoryList();
     return Column(
       children: [
-        // 分类 Tab：已选类型时的返回栏
-        if (widget.tab == 3 && !_categoryShowList)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: () => setState(() {
-                    _categoryShowList = true;
-                    _selectedGenre = null;
-                  }),
-                ),
-                Text(
-                  _selectedGenre ?? '',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
+        if (widget.tab == 3 && !_categoryShowList) _buildCategoryBackBar(),
+        if (_selectionMode) _buildSelectionBar(),
+        if (_showSearch) _buildSearchField(),
+        if (_items.isNotEmpty) _buildToolbar(),
+        if (_items.isNotEmpty && _showGenreFilter) _buildGenreFilterBar(),
+        if (_items.isNotEmpty && _showYearFilter) _buildYearFilterBar(),
+        if (_items.isNotEmpty && _showRatingFilter) _buildRatingFilterBar(),
+        _buildItemsList(),
+      ],
+    );
+  }
+
+  /// 构建错误态
+  Widget _buildError() {
+    final scheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.error_outline, size: 48, color: scheme.error),
+          const SizedBox(height: 12),
+          Text('加载失败', style: TextStyle(fontSize: 16, color: scheme.onSurface)),
+          const SizedBox(height: 4),
+          Text('请检查网络后重试',
+              style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant)),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: () => _loadItems(),
+            child: const Text('重试'),
           ),
-        // 批量选择模式顶部栏
-        if (_selectionMode)
-          Container(
-            color: scheme.primaryContainer.withValues(alpha: 0.3),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  tooltip: '退出选择',
-                  onPressed: _exitSelectionMode,
-                ),
-                Text(
-                  '已选 ${_selectedIds.length}',
-                  style: const TextStyle(fontWeight: FontWeight.w500),
-                ),
-                const Spacer(),
-                TextButton(
-                  onPressed: _selectAll,
-                  child: Text(_selectedIds.length == _items.length
-                      ? '全不选'
-                      : '全选'),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.favorite_border),
-                  tooltip: '收藏所选',
-                  onPressed: _bulkBusy ? null : _batchFavorite,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.favorite),
-                  tooltip: '取消收藏所选',
-                  color: Colors.red,
-                  onPressed: _bulkBusy ? null : _batchUnfavorite,
-                ),
-              ],
-            ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建空态（含清除筛选）
+  Widget _buildEmpty() {
+    final scheme = Theme.of(context).colorScheme;
+    // batch31-F1 评分筛选纳入可清除条件：仅评分筛选命中空结果时也能就地清除
+    final hasFilter = _selectedGenre != null ||
+        _selectedYear != null ||
+        _filterLabel != '全部' ||
+        _minRating > 0 ||
+        _searchQuery.isNotEmpty;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.video_library_outlined,
+              size: 48, color: scheme.onSurfaceVariant),
+          const SizedBox(height: 12),
+          Text(
+            _searchQuery.isNotEmpty
+                ? '未找到相关影片'
+                : hasFilter
+                    ? '当前筛选条件下无影片'
+                    : '此媒体库暂无内容',
+            style: TextStyle(fontSize: 16, color: scheme.onSurface),
           ),
-        // 搜索框（展开时显示）
-        if (_showSearch)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: TextField(
-              controller: _searchController,
-              autofocus: true,
-              decoration: InputDecoration(
-                hintText: '在${widget.library.name}中搜索…',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () {
+          if (hasFilter) ...[
+            const SizedBox(height: 12),
+            TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  _selectedGenre = null;
+                  _selectedYear = null;
+                  _filterLabel = '全部';
+                  _minRating = 0; // batch31-F1 一并清除评分筛选
+                  _showRatingFilter = false;
+                  _searchQuery = '';
+                  _searchController.clear();
+                });
+                _loadItems();
+              },
+              icon: const Icon(Icons.clear, size: 16),
+              label: const Text('清除筛选'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// 分类 Tab 类型列表
+  Widget _buildCategoryList() {
+    return FutureBuilder<List<String>>(
+      future: _loadServerGenres(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final genres = snapshot.data ?? [];
+        if (genres.isEmpty) {
+          return const Center(child: Text('暂无分类'));
+        }
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+          children: genres.map((g) {
+            return ListTile(
+              leading: const Icon(Icons.label_outline),
+              title: Text(g),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                setState(() {
+                  _selectedGenre = g;
+                  _categoryShowList = false;
+                });
+                _loadItems();
+              },
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  /// 构建 categoryBackBar
+  Widget _buildCategoryBackBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => setState(() {
+              _categoryShowList = true;
+              _selectedGenre = null;
+            }),
+          ),
+          Text(
+            _selectedGenre ?? '',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建 selectionBar
+  Widget _buildSelectionBar() {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      color: scheme.primaryContainer.withValues(alpha: 0.3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.close),
+            tooltip: '退出选择',
+            onPressed: _exitSelectionMode,
+          ),
+          Text(
+            '已选 ${_selectedIds.length}',
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+          const Spacer(),
+          TextButton(
+            onPressed: _selectAll,
+            child: Text(_selectedIds.length == _items.length ? '全不选' : '全选'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.favorite_border),
+            tooltip: '收藏所选',
+            onPressed: _bulkBusy ? null : _batchFavorite,
+          ),
+          IconButton(
+            icon: const Icon(Icons.favorite),
+            tooltip: '取消收藏所选',
+            color: Colors.red,
+            onPressed: _bulkBusy ? null : _batchUnfavorite,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建 searchField
+  Widget _buildSearchField() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: TextField(
+        controller: _searchController,
+        autofocus: true,
+        decoration: InputDecoration(
+          hintText: '在${widget.library.name}中搜索…',
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () {
+              setState(() {
+                _showSearch = false;
+                _searchQuery = '';
+                _searchController.clear();
+              });
+              _loadItems();
+            },
+          ),
+          isDense: true,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        onSubmitted: (value) {
+          setState(() => _searchQuery = value.trim());
+          _loadItems();
+        },
+      ),
+    );
+  }
+
+  /// 构建 toolbar
+  Widget _buildToolbar() {
+    final scheme = Theme.of(context).colorScheme;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Row(
+        children: [
+          // 排序选项
+          ..._sortOptions.keys.map((label) {
+            final selected = label == _sortLabel;
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: ChoiceChip(
+                label: Text(label, style: const TextStyle(fontSize: 12)),
+                selected: selected,
+                onSelected: (_) {
+                  if (_sortLabel != label) {
                     setState(() {
-                      _showSearch = false;
-                      _searchQuery = '';
-                      _searchController.clear();
+                      _sortLabel = label;
+                      // 切换排序字段时重置为该字段的默认方向
+                      _sortAscending = _sortOptions[label]!.$2 == 'Ascending';
                     });
                     _loadItems();
-                  },
-                ),
-                isDense: true,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                  }
+                },
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              onSubmitted: (value) {
-                setState(() => _searchQuery = value.trim());
+            );
+          }),
+          // 分隔 + 升序/降序切换（随机排序时无意义，隐藏）
+          if (_sortLabel != '随机')
+            IconButton(
+              icon: Icon(
+                _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                size: 16,
+                color: scheme.onSurfaceVariant,
+              ),
+              tooltip: _sortAscending ? '升序' : '降序',
+              visualDensity: VisualDensity.compact,
+              onPressed: () {
+                setState(() => _sortAscending = !_sortAscending);
                 _loadItems();
               },
             ),
+          // 观看状态筛选
+          ..._filterOptions.map((label) {
+            final selected = label == _filterLabel;
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: ChoiceChip(
+                label: Text(label, style: const TextStyle(fontSize: 12)),
+                selected: selected,
+                onSelected: (_) {
+                  if (_filterLabel != label) {
+                    setState(() => _filterLabel = label);
+                    _loadItems();
+                  }
+                },
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            );
+          }),
+          // 评分筛选按钮（非全部评分时高亮）
+          IconButton(
+            icon: Icon(
+              Icons.star_border,
+              size: 18,
+              color:
+                  _minRating > 0 ? Colors.amber[700] : scheme.onSurfaceVariant,
+            ),
+            tooltip: '评分筛选',
+            visualDensity: VisualDensity.compact,
+            onPressed: () =>
+                setState(() => _showRatingFilter = !_showRatingFilter),
           ),
-        // 合并工具栏：排序 + 观看状态筛选（一行可横向滚动）
-        if (_items.isNotEmpty)
-          SingleChildScrollView(
+          // 视图切换（列表/网格）
+          IconButton(
+            icon: Icon(
+              _viewMode == 0
+                  ? Icons.grid_view
+                  : _viewMode == 1
+                      ? Icons.rectangle
+                      : Icons.view_list,
+              size: 18,
+              color: scheme.onSurfaceVariant,
+            ),
+            tooltip: _viewMode == 0
+                ? '竖版海报'
+                : _viewMode == 1
+                    ? '横版海报'
+                    : '列表视图',
+            onPressed: () => setState(() => _viewMode = (_viewMode + 1) % 3),
+          ),
+          // 网格密度切换（仅竖版网格视图时可用）
+          if (!_isListView && !_useBackdrop)
+            IconButton(
+              icon: Icon(
+                Icons.grid_on,
+                size: 18,
+                color: scheme.onSurfaceVariant,
+              ),
+              tooltip: '切换卡片大小',
+              onPressed: () => setState(() =>
+                  _gridDensity = _gridDensity >= 3 ? 1 : _gridDensity + 1),
+            ),
+          // 搜索
+          IconButton(
+            icon: Icon(
+              _showSearch ? Icons.filter_alt : Icons.search,
+              size: 18,
+              color: scheme.onSurfaceVariant,
+            ),
+            onPressed: () {
+              setState(() => _showSearch = !_showSearch);
+              if (!_showSearch) {
+                _searchQuery = '';
+                _searchController.clear();
+                _loadItems();
+              }
+            },
+          ),
+          // 类型筛选按钮
+          IconButton(
+            icon: Icon(
+              _selectedGenre != null ? Icons.label : Icons.label_outline,
+              size: 18,
+              color: _selectedGenre != null
+                  ? scheme.primary
+                  : scheme.onSurfaceVariant,
+            ),
+            tooltip: _selectedGenre != null ? '类型: $_selectedGenre' : '按类型筛选',
+            onPressed: () =>
+                setState(() => _showGenreFilter = !_showGenreFilter),
+          ),
+          // 年份筛选按钮
+          IconButton(
+            icon: Icon(
+              _selectedYear != null
+                  ? Icons.calendar_today
+                  : Icons.calendar_today_outlined,
+              size: 18,
+              color: _selectedYear != null
+                  ? scheme.primary
+                  : scheme.onSurfaceVariant,
+            ),
+            tooltip: _selectedYear != null ? '年份: $_selectedYear' : '按年份筛选',
+            onPressed: () => setState(() => _showYearFilter = !_showYearFilter),
+          ),
+          // 播放全部（顺序）
+          IconButton(
+            icon: Icon(Icons.play_arrow,
+                size: 18, color: scheme.onSurfaceVariant),
+            tooltip: '播放全部',
+            onPressed: _items.isEmpty ? null : _playAll,
+          ),
+          // 随机播放
+          IconButton(
+            icon: Icon(Icons.shuffle, size: 18, color: scheme.onSurfaceVariant),
+            tooltip: '随机播放',
+            onPressed: _items.isEmpty ? null : _playRandom,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建 genreFilterBar
+  Widget _buildGenreFilterBar() {
+    final scheme = Theme.of(context).colorScheme;
+    return FutureBuilder<List<String>>(
+      future: _loadServerGenres(),
+      builder: (context, snapshot) {
+        // 优先用服务器完整类型列表，fallback 到当前页提取
+        final genres = <String>{};
+        if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+          genres.addAll(snapshot.data!);
+        } else {
+          for (final item in _items) {
+            genres.addAll(item.displayGenres);
+          }
+        }
+        final sorted = genres.toList()..sort();
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+          child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Row(
               children: [
-                // 排序选项
-                ..._sortOptions.keys.map((label) {
-                  final selected = label == _sortLabel;
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 3),
-                    child: ChoiceChip(
-                      label: Text(label, style: const TextStyle(fontSize: 12)),
-                      selected: selected,
-                      onSelected: (_) {
-                        if (_sortLabel != label) {
-                          setState(() {
-                            _sortLabel = label;
-                            // 切换排序字段时重置为该字段的默认方向
-                            _sortAscending = _sortOptions[label]!.$2 == 'Ascending';
-                          });
-                          _loadItems();
-                        }
-                      },
-                      visualDensity: VisualDensity.compact,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                if (_loadingGenres ||
+                    (snapshot.connectionState == ConnectionState.waiting &&
+                        _serverGenres.isEmpty))
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     ),
-                  );
-                }),
-                // 分隔 + 升序/降序切换（随机排序时无意义，隐藏）
-                if (_sortLabel != '随机')
-                  IconButton(
-                    icon: Icon(
-                      _sortAscending
-                          ? Icons.arrow_upward
-                          : Icons.arrow_downward,
-                      size: 16,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                    tooltip: _sortAscending ? '升序' : '降序',
-                    visualDensity: VisualDensity.compact,
-                    onPressed: () {
-                      setState(() => _sortAscending = !_sortAscending);
-                      _loadItems();
-                    },
                   ),
-                // 观看状态筛选
-                ..._filterOptions.map((label) {
-                  final selected = label == _filterLabel;
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 3),
-                    child: ChoiceChip(
-                      label: Text(label, style: const TextStyle(fontSize: 12)),
-                      selected: selected,
-                      onSelected: (_) {
-                        if (_filterLabel != label) {
-                          setState(() => _filterLabel = label);
-                          _loadItems();
-                        }
-                      },
-                      visualDensity: VisualDensity.compact,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  );
-                }),
-                // 评分筛选按钮（非全部评分时高亮）
-                IconButton(
-                  icon: Icon(
-                    Icons.star_border,
-                    size: 18,
-                    color: _minRating > 0
-                        ? Colors.amber[700]
-                        : scheme.onSurfaceVariant,
-                  ),
-                  tooltip: '评分筛选',
-                  visualDensity: VisualDensity.compact,
-                  onPressed: () =>
-                      setState(() => _showRatingFilter = !_showRatingFilter),
-                ),
-                // 视图切换（列表/网格）
-                IconButton(
-                  icon: Icon(
-                    _viewMode == 0
-                        ? Icons.grid_view
-                        : _viewMode == 1
-                            ? Icons.rectangle
-                            : Icons.view_list,
-                    size: 18,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  tooltip: _viewMode == 0
-                      ? '竖版海报'
-                      : _viewMode == 1
-                          ? '横版海报'
-                          : '列表视图',
-                  onPressed: () =>
-                      setState(() => _viewMode = (_viewMode + 1) % 3),
-                ),
-                // 网格密度切换（仅竖版网格视图时可用）
-                if (!_isListView && !_useBackdrop)
-                  IconButton(
-                    icon: Icon(
-                      Icons.grid_on,
-                      size: 18,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                    tooltip: '切换卡片大小',
-                    onPressed: () => setState(() => _gridDensity = _gridDensity >= 3 ? 1 : _gridDensity + 1),
-                  ),
-                // 搜索
-                IconButton(
-                  icon: Icon(
-                    _showSearch ? Icons.filter_alt : Icons.search,
-                    size: 18,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  onPressed: () {
-                    setState(() => _showSearch = !_showSearch);
-                    if (!_showSearch) {
-                      _searchQuery = '';
-                      _searchController.clear();
-                      _loadItems();
-                    }
+                ChoiceChip(
+                  label: const Text('全部', style: TextStyle(fontSize: 12)),
+                  selected: _selectedGenre == null,
+                  onSelected: (_) {
+                    setState(() {
+                      _selectedGenre = null;
+                      _showGenreFilter = false;
+                    });
+                    _loadItems();
                   },
+                  visualDensity: VisualDensity.compact,
                 ),
-                // 类型筛选按钮
-                IconButton(
-                  icon: Icon(
-                    _selectedGenre != null
-                        ? Icons.label
-                        : Icons.label_outline,
-                    size: 18,
-                    color: _selectedGenre != null
-                        ? scheme.primary
-                        : scheme.onSurfaceVariant,
-                  ),
-                  tooltip: _selectedGenre != null ? '类型: $_selectedGenre' : '按类型筛选',
-                  onPressed: () =>
-                      setState(() => _showGenreFilter = !_showGenreFilter),
-                ),
-                // 年份筛选按钮
-                IconButton(
-                  icon: Icon(
-                    _selectedYear != null
-                        ? Icons.calendar_today
-                        : Icons.calendar_today_outlined,
-                    size: 18,
-                    color: _selectedYear != null
-                        ? scheme.primary
-                        : scheme.onSurfaceVariant,
-                  ),
-                  tooltip: _selectedYear != null ? '年份: $_selectedYear' : '按年份筛选',
-                  onPressed: () =>
-                      setState(() => _showYearFilter = !_showYearFilter),
-                ),
-                // 播放全部（顺序）
-                IconButton(
-                  icon: Icon(Icons.play_arrow, size: 18, color: scheme.onSurfaceVariant),
-                  tooltip: '播放全部',
-                  onPressed: _items.isEmpty ? null : _playAll,
-                ),
-                // 随机播放
-                IconButton(
-                  icon: Icon(Icons.shuffle, size: 18, color: scheme.onSurfaceVariant),
-                  tooltip: '随机播放',
-                  onPressed: _items.isEmpty ? null : _playRandom,
-                ),
-              ],
-            ),
-          ),
-        // 类型筛选展开条
-        if (_items.isNotEmpty && _showGenreFilter)
-          FutureBuilder<List<String>>(
-            future: _loadServerGenres(),
-            builder: (context, snapshot) {
-              // 优先用服务器完整类型列表，fallback 到当前页提取
-              final genres = <String>{};
-              if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                genres.addAll(snapshot.data!);
-              } else {
-                for (final item in _items) {
-                  genres.addAll(item.displayGenres);
-                }
-              }
-              final sorted = genres.toList()..sort();
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      if (_loadingGenres ||
-                          (snapshot.connectionState == ConnectionState.waiting &&
-                              _serverGenres.isEmpty))
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8),
-                          child: SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        ),
-                      ChoiceChip(
-                        label: const Text('全部', style: TextStyle(fontSize: 12)),
-                        selected: _selectedGenre == null,
+                ...sorted.map((g) => Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      child: ChoiceChip(
+                        label: Text(g, style: const TextStyle(fontSize: 12)),
+                        selected: _selectedGenre == g,
                         onSelected: (_) {
                           setState(() {
-                            _selectedGenre = null;
+                            _selectedGenre = g;
                             _showGenreFilter = false;
                           });
                           _loadItems();
                         },
                         visualDensity: VisualDensity.compact,
                       ),
-                      ...sorted.map((g) => Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 3),
-                            child: ChoiceChip(
-                              label: Text(g, style: const TextStyle(fontSize: 12)),
-                              selected: _selectedGenre == g,
-                              onSelected: (_) {
-                                setState(() {
-                                  _selectedGenre = g;
-                                  _showGenreFilter = false;
-                                });
-                                _loadItems();
-                              },
-                              visualDensity: VisualDensity.compact,
-                            ),
-                          )),
-                    ],
-                  ),
-                ),
-              );
-            },
+                    )),
+              ],
+            ),
           ),
-        // 年份筛选展开条
-        if (_items.isNotEmpty && _showYearFilter)
-          Builder(builder: (_) {
-            // batch110-F1：年份从已加载分页累积集合生成，随滚动加载更多逐步补全
-            final years = _loadedYears.toList()..sort((a, b) => b.compareTo(a));
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    ChoiceChip(
-                      label: const Text('全部', style: TextStyle(fontSize: 12)),
-                      selected: _selectedYear == null,
+        );
+      },
+    );
+  }
+
+  /// 构建 yearFilterBar
+  Widget _buildYearFilterBar() {
+    return Builder(builder: (_) {
+      // batch110-F1：年份从已加载分页累积集合生成，随滚动加载更多逐步补全
+      final years = _loadedYears.toList()..sort((a, b) => b.compareTo(a));
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              ChoiceChip(
+                label: const Text('全部', style: TextStyle(fontSize: 12)),
+                selected: _selectedYear == null,
+                onSelected: (_) {
+                  setState(() {
+                    _selectedYear = null;
+                    _showYearFilter = false;
+                  });
+                  _loadItems();
+                },
+                visualDensity: VisualDensity.compact,
+              ),
+              ...years.map((y) => Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    child: ChoiceChip(
+                      label: Text('$y', style: const TextStyle(fontSize: 12)),
+                      selected: _selectedYear == y,
                       onSelected: (_) {
                         setState(() {
-                          _selectedYear = null;
+                          _selectedYear = y;
                           _showYearFilter = false;
                         });
                         _loadItems();
                       },
                       visualDensity: VisualDensity.compact,
                     ),
-                    ...years.map((y) => Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 3),
-                          child: ChoiceChip(
-                            label: Text('$y', style: const TextStyle(fontSize: 12)),
-                            selected: _selectedYear == y,
-                            onSelected: (_) {
-                              setState(() {
-                                _selectedYear = y;
-                                _showYearFilter = false;
-                              });
-                              _loadItems();
-                            },
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        )),
-                  ],
+                  )),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  /// 构建 ratingFilterBar
+  Widget _buildRatingFilterBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: _ratingOptions.map((r) {
+            final selected = r == _minRating;
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: ChoiceChip(
+                label: Text(
+                  r == 0 ? '全部评分' : '≥$r分',
+                  style: const TextStyle(fontSize: 12),
                 ),
+                selected: selected,
+                onSelected: (_) {
+                  setState(() {
+                    _minRating = r;
+                    _showRatingFilter = false;
+                  });
+                  _loadItems();
+                },
+                visualDensity: VisualDensity.compact,
               ),
             );
-          }),
-        // 评分筛选展开条
-        if (_items.isNotEmpty && _showRatingFilter)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _ratingOptions.map((r) {
-                  final selected = r == _minRating;
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 3),
-                    child: ChoiceChip(
-                      label: Text(
-                        r == 0 ? '全部评分' : '≥$r分',
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      selected: selected,
-                      onSelected: (_) {
-                        setState(() {
-                          _minRating = r;
-                          _showRatingFilter = false;
-                        });
-                        _loadItems();
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  /// 构建主列表（列表/网格）
+  Widget _buildItemsList() {
+    final scheme = Theme.of(context).colorScheme;
+    return Expanded(
+      child: RefreshIndicator(
+        onRefresh: () => _loadItems(),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            // 底部状态行
+            Widget buildFooter() {
+              // 分页加载更多失败：显示错误+点击重试
+              if (_error != null && _items.isNotEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: TextButton.icon(
+                      onPressed: () {
+                        setState(() => _error = null);
+                        _loadItems(loadMore: true);
                       },
-                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.refresh, size: 16),
+                      label: const Text('加载失败，点击重试'),
                     ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: () => _loadItems(),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final width = constraints.maxWidth;
-                // 底部状态行
-                Widget buildFooter() {
-                  // 分页加载更多失败：显示错误+点击重试
-                  if (_error != null && _items.isNotEmpty) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: TextButton.icon(
-                          onPressed: () {
-                            setState(() => _error = null);
-                            _loadItems(loadMore: true);
-                          },
-                          icon: const Icon(Icons.refresh, size: 16),
-                          label: const Text('加载失败，点击重试'),
-                        ),
-                      ),
-                    );
-                  }
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text(
-                        _isLoading && _hasMore
-                            ? '加载中…'
-                            : _total > 0
-                                ? '已加载 ${_items.length} / $_total 项'
-                                : '共 ${_items.length} 项',
-                        style: TextStyle(
-                          color: scheme.onSurfaceVariant,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  );
-                }
-
-                if (_isListView) {
-                  // 列表视图（对标 Emby Web 列表模式）
-                  return ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                    itemCount: _items.length + 1,
-                    itemBuilder: (context, index) {
-                      if (index >= _items.length) return buildFooter();
-                      final item = _items[index];
-                      final selected = _selectedIds.contains(item.id);
-                      return _LibraryListItem(
-                        item: item,
-                        selected: selected,
-                        selectionMode: _selectionMode,
-                        onTap: _selectionMode
-                            ? () => _toggleSelection(item.id)
-                            : () => context.push('/item/${item.id}', extra: item),
-                        onLongPress: _selectionMode
-                            ? null
-                            : () => _enterSelectionMode(item.id),
-                      );
-                    },
-                  );
-                }
-
-                // 网格视图：根据密度和屏幕宽度计算列数
-                int crossAxisCount;
-                double childRatio;
-                if (_useBackdrop) {
-                  // 横版海报（Backdrop 16:9，对标 Emby Web）
-                  crossAxisCount = 1;
-                  childRatio = 16 / 9.5;
-                } else if (width >= 600) {
-                  crossAxisCount = _gridDensity == 1 ? 3 : _gridDensity == 2 ? 4 : 5;
-                  childRatio = _gridDensity == 1 ? 0.55 : 0.67;
-                } else {
-                  crossAxisCount = _gridDensity == 1 ? 2 : _gridDensity == 2 ? 3 : 4;
-                  childRatio = _gridDensity == 1 ? 0.55 : 0.67;
-                }
-                return GridView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    childAspectRatio: childRatio,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
                   ),
-                  itemCount: _items.length + 1,
-                  itemBuilder: (context, index) {
-                    if (index >= _items.length) return buildFooter();
-                    final item = _items[index];
-                    final selected = _selectedIds.contains(item.id);
-                    // NEW 标签：7天内添加的影片（左上角，与未观看蓝点错开）
-                    final isNew = item.dateCreated != null &&
-                        DateTime.now().difference(item.dateCreated!).inDays <= 7;
+                );
+              }
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    _isLoading && _hasMore
+                        ? '加载中…'
+                        : _total > 0
+                            ? '已加载 ${_items.length} / $_total 项'
+                            : '共 ${_items.length} 项',
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              );
+            }
 
-                    // 横版海报模式（Backdrop 16:9，对标 Emby Web）
-                    if (_useBackdrop) {
-                      final auth = ref.read(authProvider);
-                      final backdrop = item.backdropUrl(
-                        embyServerUrl: auth.embyServerUrl,
-                        apiKey: auth.token,
-                        maxWidth: 1280,
-                      );
-                      return GestureDetector(
-                        onTap: _selectionMode
-                            ? () => _toggleSelection(item.id)
-                            : () => context.push('/item/${item.id}', extra: item),
-                        onLongPress: _selectionMode
-                            ? null
-                            : () => _enterSelectionMode(item.id),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              if (backdrop != null)
-                                CachedNetworkImage(
-                                  imageUrl: backdrop,
-                                  fit: BoxFit.cover,
-                                  cacheManager: AppImageCacheManager.thumbnail,
-                                  errorWidget: (_, __, ___) => Container(
-                                    color: scheme.surfaceContainerHighest,
-                                    child: const Icon(Icons.movie, size: 48),
-                                  ),
-                                )
-                              else
-                                Container(
-                                  color: scheme.surfaceContainerHighest,
-                                  child: const Icon(Icons.movie, size: 48),
-                                ),
-                              // 底部渐变 + 标题
-                              Positioned(
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                child: Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        Colors.transparent,
-                                        Colors.black.withValues(alpha: 0.7),
-                                      ],
-                                    ),
-                                  ),
-                                  child: Text(
-                                    item.title,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
+            if (_isListView) {
+              // 列表视图（对标 Emby Web 列表模式）
+              return ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                itemCount: _items.length + 1,
+                itemBuilder: (context, index) {
+                  if (index >= _items.length) return buildFooter();
+                  final item = _items[index];
+                  final selected = _selectedIds.contains(item.id);
+                  return _LibraryListItem(
+                    item: item,
+                    selected: selected,
+                    selectionMode: _selectionMode,
+                    onTap: _selectionMode
+                        ? () => _toggleSelection(item.id)
+                        : () => context.push('/item/${item.id}', extra: item),
+                    onLongPress: _selectionMode
+                        ? null
+                        : () => _enterSelectionMode(item.id),
+                  );
+                },
+              );
+            }
+
+            // 网格视图：根据密度和屏幕宽度计算列数
+            int crossAxisCount;
+            double childRatio;
+            if (_useBackdrop) {
+              // 横版海报（Backdrop 16:9，对标 Emby Web）
+              crossAxisCount = 1;
+              childRatio = 16 / 9.5;
+            } else if (width >= 600) {
+              crossAxisCount = _gridDensity == 1
+                  ? 3
+                  : _gridDensity == 2
+                      ? 4
+                      : 5;
+              childRatio = _gridDensity == 1 ? 0.55 : 0.67;
+            } else {
+              crossAxisCount = _gridDensity == 1
+                  ? 2
+                  : _gridDensity == 2
+                      ? 3
+                      : 4;
+              childRatio = _gridDensity == 1 ? 0.55 : 0.67;
+            }
+            return GridView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                childAspectRatio: childRatio,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+              ),
+              itemCount: _items.length + 1,
+              itemBuilder: (context, index) {
+                if (index >= _items.length) return buildFooter();
+                final item = _items[index];
+                final selected = _selectedIds.contains(item.id);
+                // NEW 标签：7天内添加的影片（左上角，与未观看蓝点错开）
+                final isNew = item.dateCreated != null &&
+                    DateTime.now().difference(item.dateCreated!).inDays <= 7;
+
+                // 横版海报模式（Backdrop 16:9，对标 Emby Web）
+                if (_useBackdrop) {
+                  final auth = ref.read(authProvider);
+                  final backdrop = item.backdropUrl(
+                    embyServerUrl: auth.embyServerUrl,
+                    apiKey: auth.token,
+                    maxWidth: 1280,
+                  );
+                  return GestureDetector(
+                    onTap: _selectionMode
+                        ? () => _toggleSelection(item.id)
+                        : () => context.push('/item/${item.id}', extra: item),
+                    onLongPress: _selectionMode
+                        ? null
+                        : () => _enterSelectionMode(item.id),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          if (backdrop != null)
+                            CachedNetworkImage(
+                              imageUrl: backdrop,
+                              fit: BoxFit.cover,
+                              cacheManager: AppImageCacheManager.thumbnail,
+                              errorWidget: (_, __, ___) => Container(
+                                color: scheme.surfaceContainerHighest,
+                                child: const Icon(Icons.movie, size: 48),
                               ),
-                              if (selected)
-                                Positioned(
-                                  top: 8,
-                                  right: 8,
-                                  child: Icon(Icons.check_circle,
-                                      color: scheme.primary, size: 24),
-                                ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-
-                    return Stack(
-                      children: [
-                        VideoGridCard(
-                          item: item,
-                          showFavoriteButton: !_selectionMode,
-                          selected: selected,
-                          selectionMode: _selectionMode,
-                          onTap: _selectionMode
-                              ? () => _toggleSelection(item.id)
-                              : () => context.push('/item/${item.id}', extra: item),
-                          onLongPress: _selectionMode
-                              ? null
-                              : () => _enterSelectionMode(item.id),
-                        ),
-                        if (isNew && !_selectionMode)
+                            )
+                          else
+                            Container(
+                              color: scheme.surfaceContainerHighest,
+                              child: const Icon(Icons.movie, size: 48),
+                            ),
+                          // 底部渐变 + 标题
                           Positioned(
-                            right: 6,
-                            top: 6,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 5, vertical: 1),
+                              padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Colors.green[600],
-                                borderRadius: BorderRadius.circular(3),
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.black.withValues(alpha: 0.7),
+                                  ],
+                                ),
                               ),
-                              child: const Text(
-                                'NEW',
-                                style: TextStyle(
+                              child: Text(
+                                item.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
                           ),
-                      ],
-                    );
-                  },
+                          if (selected)
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: Icon(Icons.check_circle,
+                                  color: scheme.primary, size: 24),
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                return Stack(
+                  children: [
+                    VideoGridCard(
+                      item: item,
+                      showFavoriteButton: !_selectionMode,
+                      selected: selected,
+                      selectionMode: _selectionMode,
+                      onTap: _selectionMode
+                          ? () => _toggleSelection(item.id)
+                          : () => context.push('/item/${item.id}', extra: item),
+                      onLongPress: _selectionMode
+                          ? null
+                          : () => _enterSelectionMode(item.id),
+                    ),
+                    if (isNew && !_selectionMode)
+                      Positioned(
+                        right: 6,
+                        top: 6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: Colors.green[600],
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: const Text(
+                            'NEW',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 );
               },
-            ),
-          ),
+            );
+          },
         ),
-      ],
+      ),
     );
   }
 }
@@ -1927,7 +1986,10 @@ class _LibraryCard extends ConsumerWidget {
     } else if (type.contains('music')) {
       gradient = [const Color(0xFF2E7D32), const Color(0xFF1B5E20)];
     } else {
-      gradient = [scheme.surfaceContainerHighest, scheme.surfaceContainerHighest];
+      gradient = [
+        scheme.surfaceContainerHighest,
+        scheme.surfaceContainerHighest
+      ];
     }
     return Container(
       decoration: BoxDecoration(
@@ -1938,7 +2000,8 @@ class _LibraryCard extends ConsumerWidget {
         ),
       ),
       child: Center(
-        child: Icon(_icon, size: 40, color: Colors.white.withValues(alpha: 0.9)),
+        child:
+            Icon(_icon, size: 40, color: Colors.white.withValues(alpha: 0.9)),
       ),
     );
   }
@@ -1995,9 +2058,7 @@ class _LibraryListItem extends ConsumerWidget {
 
     String? thumbUrl;
     final imageTag = item.imageTags?['Primary'];
-    if (imageTag != null &&
-        auth.embyServerUrl != null &&
-        auth.token != null) {
+    if (imageTag != null && auth.embyServerUrl != null && auth.token != null) {
       if (item.id.startsWith('tmdb_')) {
         // TMDB 数据：imageTag 就是 poster_path，直拼 TMDB CDN
         if (imageTag.startsWith('/')) {
@@ -2071,7 +2132,8 @@ class _LibraryListItem extends ConsumerWidget {
                               memCacheWidth: 120,
                               errorWidget: (_, __, ___) => Container(
                                 color: scheme.surfaceContainerHighest,
-                                child: const Icon(Icons.movie_outlined, size: 24),
+                                child:
+                                    const Icon(Icons.movie_outlined, size: 24),
                               ),
                             )
                           : Container(
@@ -2110,7 +2172,8 @@ class _LibraryListItem extends ConsumerWidget {
                               ),
                             if (item.communityRating != null) ...[
                               const SizedBox(width: 8),
-                              Icon(Icons.star, size: 12, color: Colors.amber[700]),
+                              Icon(Icons.star,
+                                  size: 12, color: Colors.amber[700]),
                               const SizedBox(width: 2),
                               Text(
                                 item.communityRating!.toStringAsFixed(1),
@@ -2191,7 +2254,8 @@ class _LibraryListItem extends ConsumerWidget {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 11,
-                              color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                              color: scheme.onSurfaceVariant
+                                  .withValues(alpha: 0.8),
                             ),
                           ),
                         ],
@@ -2203,8 +2267,8 @@ class _LibraryListItem extends ConsumerWidget {
                             child: LinearProgressIndicator(
                               value: item.progressPercent,
                               minHeight: 3,
-                              backgroundColor:
-                                  scheme.onSurfaceVariant.withValues(alpha: 0.2),
+                              backgroundColor: scheme.onSurfaceVariant
+                                  .withValues(alpha: 0.2),
                               valueColor:
                                   AlwaysStoppedAnimation(scheme.primary),
                             ),
@@ -2236,8 +2300,9 @@ class _LibraryListItem extends ConsumerWidget {
                   )
                 : GestureDetector(
                     behavior: HitTestBehavior.translucent,
-                    onTap: () =>
-                        ref.read(favoritesProvider.notifier).toggleFavorite(item),
+                    onTap: () => ref
+                        .read(favoritesProvider.notifier)
+                        .toggleFavorite(item),
                     child: Padding(
                       padding: const EdgeInsets.all(8),
                       child: Icon(

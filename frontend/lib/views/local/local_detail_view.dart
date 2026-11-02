@@ -15,7 +15,8 @@ import 'person_detail_view.dart';
 import '../../widgets/local/local_images.dart';
 
 /// 本地视频详情页（P1 #7）
-class LocalDetailPage extends ConsumerStatefulWidget { // 播放回调（列表页注入）
+class LocalDetailPage extends ConsumerStatefulWidget {
+  // 播放回调（列表页注入）
   const LocalDetailPage({super.key, required this.item, this.onPlay});
   final LocalVideoItem item;
   final VoidCallback? onPlay;
@@ -41,8 +42,8 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
   final Map<int, Future<File?>> _castAvatarFutures = {};
 
   Future<File?> _castAvatarFuture(int personId) =>
-      _castAvatarFutures.putIfAbsent(
-          personId, () => ScrapeMediaStore.castFileForVideo(personId, widget.item.path));
+      _castAvatarFutures.putIfAbsent(personId,
+          () => ScrapeMediaStore.castFileForVideo(personId, widget.item.path));
 
   @override
   Widget build(BuildContext context) {
@@ -77,10 +78,13 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                 tooltip: '重新刮削元数据',
                 onPressed: () async {
                   final messenger = ScaffoldMessenger.of(context);
-                  final oldScraped = ref.read(localVideoProvider).scrapedMap[widget.item.pathHash];
+                  final oldScraped = ref
+                      .read(localVideoProvider)
+                      .scrapedMap[widget.item.pathHash];
                   final oldPosterPath = oldScraped?.posterPath;
                   final oldBackdropPath = oldScraped?.backdropPath;
-                  messenger.showSnackBar(const SnackBar(content: Text('正在重新刮削…')));
+                  messenger
+                      .showSnackBar(const SnackBar(content: Text('正在重新刮削…')));
                   try {
                     final result = await ScrapeService.scrapeFile(
                       widget.item.pathHash,
@@ -93,42 +97,59 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                       try {
                         if (result.tmdbId != null) {
                           if (result.type == 'tv') {
-                            final imgs = await TmdbService.getTvImages(result.tmdbId!);
+                            final imgs =
+                                await TmdbService.getTvImages(result.tmdbId!);
                             allPosters = imgs.posters;
                             allBackdrops = imgs.backdrops;
                           } else {
-                            final imgs = await TmdbService.getMovieImages(result.tmdbId!);
+                            final imgs = await TmdbService.getMovieImages(
+                                result.tmdbId!);
                             allPosters = imgs.posters;
                             allBackdrops = imgs.backdrops;
                           }
                         }
                       } catch (_) {}
                       // 保证当前主图在列表里
-                      if (result.posterPath != null && !allPosters.contains(result.posterPath)) {
+                      if (result.posterPath != null &&
+                          !allPosters.contains(result.posterPath)) {
                         allPosters.insert(0, result.posterPath!);
                       }
-                      if (result.backdropPath != null && !allBackdrops.contains(result.backdropPath)) {
+                      if (result.backdropPath != null &&
+                          !allBackdrops.contains(result.backdropPath)) {
                         allBackdrops.insert(0, result.backdropPath!);
                       }
                       // 有旧数据或有多张候选图 → 弹窗让用户选
-                      if (context.mounted && (oldScraped != null || allPosters.isNotEmpty || allBackdrops.isNotEmpty)) {
+                      if (context.mounted &&
+                          (oldScraped != null ||
+                              allPosters.isNotEmpty ||
+                              allBackdrops.isNotEmpty)) {
                         String selectedPoster = result.posterPath ?? '';
                         String selectedBackdrop = result.backdropPath ?? '';
                         // PageController 必须在弹窗外创建，否则 setD 重建时会重置滚动位置
                         final posterController = PageController(
                           viewportFraction: 0.45,
-                          initialPage: allPosters.isEmpty ? 0 : allPosters.indexOf(selectedPoster).clamp(0, allPosters.length - 1),
+                          initialPage: allPosters.isEmpty
+                              ? 0
+                              : allPosters
+                                  .indexOf(selectedPoster)
+                                  .clamp(0, allPosters.length - 1),
                         );
                         final backdropController = PageController(
                           viewportFraction: 0.8,
-                          initialPage: allBackdrops.isEmpty ? 0 : allBackdrops.indexOf(selectedBackdrop).clamp(0, allBackdrops.length - 1),
+                          initialPage: allBackdrops.isEmpty
+                              ? 0
+                              : allBackdrops
+                                  .indexOf(selectedBackdrop)
+                                  .clamp(0, allBackdrops.length - 1),
                         );
                         final confirmed = await showDialog<bool>(
                           context: context,
                           builder: (_) => StatefulBuilder(
                             builder: (ctx, setD) => AlertDialog(
                               backgroundColor: const Color(0xFF1E1E1E),
-                              title: const Text('刮削完成，滑动选择图片', style: TextStyle(color: Colors.white, fontSize: 16)),
+                              title: const Text('刮削完成，滑动选择图片',
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 16)),
                               content: SizedBox(
                                 width: 320,
                                 height: 420,
@@ -136,42 +157,71 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text('海报（${allPosters.length} 张）',
-                                        style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                        style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 12)),
                                     const SizedBox(height: 4),
                                     SizedBox(
                                       height: 130,
                                       child: allPosters.isEmpty
-                                          ? const Center(child: Icon(Icons.image, color: Colors.grey))
+                                          ? const Center(
+                                              child: Icon(Icons.image,
+                                                  color: Colors.grey))
                                           : PageView.builder(
                                               itemCount: allPosters.length,
                                               controller: posterController,
-                                              onPageChanged: (i) => setD(() => selectedPoster = allPosters[i]),
+                                              onPageChanged: (i) => setD(() =>
+                                                  selectedPoster =
+                                                      allPosters[i]),
                                               itemBuilder: (_, i) {
                                                 final p = allPosters[i];
-                                                final selected = p == selectedPoster;
+                                                final selected =
+                                                    p == selectedPoster;
                                                 return GestureDetector(
                                                   onTap: () {
-                                                    setD(() => selectedPoster = p);
-                                                    posterController.animateToPage(i,
-                                                        duration: const Duration(milliseconds: 200),
-                                                        curve: Curves.easeOut);
+                                                    setD(() =>
+                                                        selectedPoster = p);
+                                                    posterController
+                                                        .animateToPage(i,
+                                                            duration:
+                                                                const Duration(
+                                                                    milliseconds:
+                                                                        200),
+                                                            curve:
+                                                                Curves.easeOut);
                                                   },
                                                   child: Container(
-                                                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                                                    margin: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 4),
                                                     decoration: BoxDecoration(
-                                                      borderRadius: BorderRadius.circular(6),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              6),
                                                       border: Border.all(
-                                                        color: selected ? Colors.pinkAccent : Colors.transparent,
+                                                        color: selected
+                                                            ? Colors.pinkAccent
+                                                            : Colors
+                                                                .transparent,
                                                         width: 2,
                                                       ),
                                                     ),
                                                     child: ClipRRect(
-                                                      borderRadius: BorderRadius.circular(4),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              4),
                                                       child: CachedNetworkImage(
-                                                        imageUrl: TmdbService.posterUrl(p, size: 'w185'),
+                                                        imageUrl: TmdbService
+                                                            .posterUrl(p,
+                                                                size: 'w185'),
                                                         fit: BoxFit.cover,
-                                                        errorWidget: (_, __, ___) =>
-                                                            const Icon(Icons.broken_image, color: Colors.grey),
+                                                        errorWidget: (_, __,
+                                                                ___) =>
+                                                            const Icon(
+                                                                Icons
+                                                                    .broken_image,
+                                                                color: Colors
+                                                                    .grey),
                                                       ),
                                                     ),
                                                   ),
@@ -181,42 +231,71 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                                     ),
                                     const SizedBox(height: 12),
                                     Text('背景图（${allBackdrops.length} 张）',
-                                        style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                        style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 12)),
                                     const SizedBox(height: 4),
                                     SizedBox(
                                       height: 90,
                                       child: allBackdrops.isEmpty
-                                          ? const Center(child: Icon(Icons.image, color: Colors.grey))
+                                          ? const Center(
+                                              child: Icon(Icons.image,
+                                                  color: Colors.grey))
                                           : PageView.builder(
                                               itemCount: allBackdrops.length,
                                               controller: backdropController,
-                                              onPageChanged: (i) => setD(() => selectedBackdrop = allBackdrops[i]),
+                                              onPageChanged: (i) => setD(() =>
+                                                  selectedBackdrop =
+                                                      allBackdrops[i]),
                                               itemBuilder: (_, i) {
                                                 final b = allBackdrops[i];
-                                                final selected = b == selectedBackdrop;
+                                                final selected =
+                                                    b == selectedBackdrop;
                                                 return GestureDetector(
                                                   onTap: () {
-                                                    setD(() => selectedBackdrop = b);
-                                                    backdropController.animateToPage(i,
-                                                        duration: const Duration(milliseconds: 200),
-                                                        curve: Curves.easeOut);
+                                                    setD(() =>
+                                                        selectedBackdrop = b);
+                                                    backdropController
+                                                        .animateToPage(i,
+                                                            duration:
+                                                                const Duration(
+                                                                    milliseconds:
+                                                                        200),
+                                                            curve:
+                                                                Curves.easeOut);
                                                   },
                                                   child: Container(
-                                                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                                                    margin: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 4),
                                                     decoration: BoxDecoration(
-                                                      borderRadius: BorderRadius.circular(6),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              6),
                                                       border: Border.all(
-                                                        color: selected ? Colors.pinkAccent : Colors.transparent,
+                                                        color: selected
+                                                            ? Colors.pinkAccent
+                                                            : Colors
+                                                                .transparent,
                                                         width: 2,
                                                       ),
                                                     ),
                                                     child: ClipRRect(
-                                                      borderRadius: BorderRadius.circular(4),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              4),
                                                       child: CachedNetworkImage(
-                                                        imageUrl: TmdbService.backdropUrl(b, size: 'w300'),
+                                                        imageUrl: TmdbService
+                                                            .backdropUrl(b,
+                                                                size: 'w300'),
                                                         fit: BoxFit.cover,
-                                                        errorWidget: (_, __, ___) =>
-                                                            const Icon(Icons.broken_image, color: Colors.grey),
+                                                        errorWidget: (_, __,
+                                                                ___) =>
+                                                            const Icon(
+                                                                Icons
+                                                                    .broken_image,
+                                                                color: Colors
+                                                                    .grey),
                                                       ),
                                                     ),
                                                   ),
@@ -230,12 +309,15 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.of(ctx).pop(false),
-                                  child: const Text('保留旧图片', style: TextStyle(color: Colors.grey)),
+                                  child: const Text('保留旧图片',
+                                      style: TextStyle(color: Colors.grey)),
                                 ),
                                 ElevatedButton(
-                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.pinkAccent),
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.pinkAccent),
                                   onPressed: () => Navigator.of(ctx).pop(true),
-                                  child: const Text('使用选中图片', style: TextStyle(color: Colors.white)),
+                                  child: const Text('使用选中图片',
+                                      style: TextStyle(color: Colors.white)),
                                 ),
                               ],
                             ),
@@ -250,8 +332,12 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                             type: result.type,
                             title: result.title,
                             year: result.year,
-                            posterPath: selectedPoster.isEmpty ? result.posterPath : selectedPoster,
-                            backdropPath: selectedBackdrop.isEmpty ? result.backdropPath : selectedBackdrop,
+                            posterPath: selectedPoster.isEmpty
+                                ? result.posterPath
+                                : selectedPoster,
+                            backdropPath: selectedBackdrop.isEmpty
+                                ? result.backdropPath
+                                : selectedBackdrop,
                             overview: result.overview,
                             rating: result.rating,
                             genres: result.genres,
@@ -268,51 +354,68 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                             lowConfidence: result.lowConfidence,
                             scrapedAt: result.scrapedAt,
                           );
-                          await ScrapeService.saveCache(widget.item.pathHash, newResult);
+                          await ScrapeService.saveCache(
+                              widget.item.pathHash, newResult);
                           await ScrapeMediaStore.save(widget.item, newResult);
-                          await ScrapeMediaStore.forceOverwriteSiblingImages(widget.item);
-                          final cached = Map<String, ScrapedMedia>.from(ref.read(localVideoProvider).scrapedMap);
+                          await ScrapeMediaStore.forceOverwriteSiblingImages(
+                              widget.item);
+                          final cached = Map<String, ScrapedMedia>.from(
+                              ref.read(localVideoProvider).scrapedMap);
                           cached[widget.item.pathHash] = newResult;
-                          ref.read(localVideoProvider.notifier).updateScrapedMap(cached);
+                          ref
+                              .read(localVideoProvider.notifier)
+                              .updateScrapedMap(cached);
                           if (context.mounted) {
                             // 重刮换片后重置评论/推荐 future，随新 tmdbId 重新加载
                             setState(() {
                               _reviewsFuture = null;
                               _recsFuture = null;
                             });
-                            messenger.showSnackBar(const SnackBar(content: Text('已保存选中的图片')));
+                            messenger.showSnackBar(
+                                const SnackBar(content: Text('已保存选中的图片')));
                           }
                         } else {
                           // 保留旧：只保存元数据不覆盖视频旁图片
-                          await ScrapeService.saveCache(widget.item.pathHash, result);
+                          await ScrapeService.saveCache(
+                              widget.item.pathHash, result);
                           // batch52-F1：磁盘 .nfo/中央 JSON 同步新元数据（不下载图片，尊重"保留旧图片"）
-                          await ScrapeMediaStore.save(widget.item, result, downloadImages: false);
-                          final cached = Map<String, ScrapedMedia>.from(ref.read(localVideoProvider).scrapedMap);
+                          await ScrapeMediaStore.save(widget.item, result,
+                              downloadImages: false);
+                          final cached = Map<String, ScrapedMedia>.from(
+                              ref.read(localVideoProvider).scrapedMap);
                           cached[widget.item.pathHash] = result;
-                          ref.read(localVideoProvider.notifier).updateScrapedMap(cached);
+                          ref
+                              .read(localVideoProvider.notifier)
+                              .updateScrapedMap(cached);
                           if (context.mounted) {
                             // 换片后评论/推荐随新 tmdbId 重新加载
                             setState(() {
                               _reviewsFuture = null;
                               _recsFuture = null;
                             });
-                            messenger.showSnackBar(const SnackBar(content: Text('已保留旧图片')));
+                            messenger.showSnackBar(
+                                const SnackBar(content: Text('已保留旧图片')));
                           }
                         }
                       } else {
                         // 无旧数据也无候选图，直接保存
-                        await ScrapeService.saveCache(widget.item.pathHash, result);
+                        await ScrapeService.saveCache(
+                            widget.item.pathHash, result);
                         await ScrapeMediaStore.save(widget.item, result);
-                        final cached = Map<String, ScrapedMedia>.from(ref.read(localVideoProvider).scrapedMap);
+                        final cached = Map<String, ScrapedMedia>.from(
+                            ref.read(localVideoProvider).scrapedMap);
                         cached[widget.item.pathHash] = result;
-                        ref.read(localVideoProvider.notifier).updateScrapedMap(cached);
+                        ref
+                            .read(localVideoProvider.notifier)
+                            .updateScrapedMap(cached);
                         if (context.mounted) {
                           // 换片后评论/推荐随新 tmdbId 重新加载
                           setState(() {
                             _reviewsFuture = null;
                             _recsFuture = null;
                           });
-                          messenger.showSnackBar(const SnackBar(content: Text('刮削完成')));
+                          messenger.showSnackBar(
+                              const SnackBar(content: Text('刮削完成')));
                         }
                       }
                     } else {
@@ -325,7 +428,8 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                         matchedTitle: widget.item.name,
                         error: '未找到匹配结果',
                       );
-                      messenger.showSnackBar(const SnackBar(content: Text('未找到匹配结果')));
+                      messenger.showSnackBar(
+                          const SnackBar(content: Text('未找到匹配结果')));
                     }
                   } catch (e) {
                     await ScrapeMediaStore.recordHistory(
@@ -346,14 +450,19 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                 fit: StackFit.expand,
                 children: [
                   scraped?.backdropPath != null
-                      ? LocalBackdropImage(item: widget.item, backdropPath: scraped!.backdropPath)
+                      ? LocalBackdropImage(
+                          item: widget.item,
+                          backdropPath: scraped!.backdropPath)
                       : Container(color: scheme.surfaceContainerHighest),
                   DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Colors.black.withValues(alpha: 0.85)],
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.85)
+                        ],
                       ),
                     ),
                   ),
@@ -372,12 +481,16 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                             color: Colors.white,
                             fontSize: 22,
                             fontWeight: FontWeight.w800,
-                            shadows: [Shadow(blurRadius: 4, color: Colors.black54)],
+                            shadows: [
+                              Shadow(blurRadius: 4, color: Colors.black54)
+                            ],
                           ),
                         ),
                         const SizedBox(height: 4),
                         // 电视剧：显示 S01E01 · 单集标题
-                        if (scraped?.type == 'tv' && scraped?.season != null && scraped?.episode != null)
+                        if (scraped?.type == 'tv' &&
+                            scraped?.season != null &&
+                            scraped?.episode != null)
                           Text(
                             'S${scraped!.season!.toString().padLeft(2, '0')}E${scraped.episode!.toString().padLeft(2, '0')}'
                             '${scraped.episodeTitle != null && scraped.episodeTitle!.isNotEmpty ? ' · ${scraped.episodeTitle}' : ''}',
@@ -385,13 +498,16 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                               color: Colors.pinkAccent,
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              shadows: [Shadow(blurRadius: 4, color: Colors.black54)],
+                              shadows: [
+                                Shadow(blurRadius: 4, color: Colors.black54)
+                              ],
                             ),
                           ),
                         const SizedBox(height: 4),
                         Text(
                           '${scraped?.year ?? ''} · ${widget.item.durationLabel}${scraped?.rating != null ? ' · ★${scraped!.rating!.toStringAsFixed(1)}' : ''}',
-                          style: const TextStyle(color: Colors.white70, fontSize: 13),
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 13),
                         ),
                         const SizedBox(height: 12),
                         // 操作行
@@ -401,18 +517,27 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                               future: _resumeFuture,
                               builder: (_, snap) {
                                 final ms = snap.data;
-                                final progress = totalMs > 0 && ms != null ? (ms / totalMs).clamp(0.0, 1.0) : 0.0;
+                                final progress = totalMs > 0 && ms != null
+                                    ? (ms / totalMs).clamp(0.0, 1.0)
+                                    : 0.0;
                                 return ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.white,
                                     foregroundColor: Colors.black87,
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 8),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(20)),
                                   ),
                                   icon: const Icon(Icons.play_arrow, size: 18),
                                   label: Text(
-                                    progress > 0.02 ? '继续观看 ${(progress * 100).round()}%' : '立即播放',
-                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                    progress > 0.02
+                                        ? '继续观看 ${(progress * 100).round()}%'
+                                        : '立即播放',
+                                    style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600),
                                   ),
                                   onPressed: () {
                                     Navigator.pop(context);
@@ -423,8 +548,13 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                             ),
                             const SizedBox(width: 8),
                             IconButton(
-                              onPressed: () => ref.read(localVideoProvider.notifier).toggleFavorite(widget.item.pathHash),
-                              icon: Icon(isFav ? Icons.favorite : Icons.favorite_border,
+                              onPressed: () => ref
+                                  .read(localVideoProvider.notifier)
+                                  .toggleFavorite(widget.item.pathHash),
+                              icon: Icon(
+                                  isFav
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
                                   color: isFav ? Colors.pink : Colors.white),
                               tooltip: isFav ? '取消收藏' : '收藏',
                             ),
@@ -433,10 +563,12 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                               onPressed: () async {
                                 final messenger = ScaffoldMessenger.of(context);
                                 var sharePath = widget.item.path;
-                                if (sharePath.isEmpty && widget.item.assetId != null) {
+                                if (sharePath.isEmpty &&
+                                    widget.item.assetId != null) {
                                   try {
                                     // fromId 可能返回 null（资产已被删除等），需判空后再访问 file
-                                    final entity = await AssetEntity.fromId(widget.item.assetId!);
+                                    final entity = await AssetEntity.fromId(
+                                        widget.item.assetId!);
                                     final file = await entity?.file;
                                     sharePath = file?.path ?? '';
                                   } catch (_) {
@@ -444,14 +576,18 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                                   }
                                 }
                                 if (sharePath.isEmpty) {
-                                  messenger.showSnackBar(const SnackBar(content: Text('该文件暂不支持分享')));
+                                  messenger.showSnackBar(const SnackBar(
+                                      content: Text('该文件暂不支持分享')));
                                   return;
                                 }
                                 await SharePlus.instance.share(
-                                  ShareParams(files: [XFile(sharePath)], subject: widget.item.name),
+                                  ShareParams(
+                                      files: [XFile(sharePath)],
+                                      subject: widget.item.name),
                                 );
                               },
-                              icon: const Icon(Icons.share, color: Colors.white),
+                              icon:
+                                  const Icon(Icons.share, color: Colors.white),
                               tooltip: '分享',
                             ),
                             IconButton(
@@ -460,12 +596,18 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                                   context: context,
                                   builder: (_) => AlertDialog(
                                     title: const Text('删除视频'),
-                                    content: Text('确定删除 ${widget.item.name} 吗？此操作不可恢复。'),
+                                    content: Text(
+                                        '确定删除 ${widget.item.name} 吗？此操作不可恢复。'),
                                     actions: [
-                                      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
                                       TextButton(
-                                        onPressed: () => Navigator.pop(context, true),
-                                        style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                          onPressed: () =>
+                                              Navigator.pop(context, false),
+                                          child: const Text('取消')),
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, true),
+                                        style: TextButton.styleFrom(
+                                            foregroundColor: Colors.red),
                                         child: const Text('删除'),
                                       ),
                                     ],
@@ -473,11 +615,15 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                                 );
                                 if (ok == true) {
                                   // 仅真正删除成功才返回列表；用户取消系统删除确认时不跳页
-                                  final deleted = await ref.read(localVideoProvider.notifier).deleteByIds({widget.item.id});
-                                  if (context.mounted && deleted > 0) Navigator.pop(context);
+                                  final deleted = await ref
+                                      .read(localVideoProvider.notifier)
+                                      .deleteByIds({widget.item.id});
+                                  if (context.mounted && deleted > 0)
+                                    Navigator.pop(context);
                                 }
                               },
-                              icon: const Icon(Icons.delete_outline, color: Colors.white),
+                              icon: const Icon(Icons.delete_outline,
+                                  color: Colors.white),
                               tooltip: '删除',
                             ),
                           ],
@@ -495,373 +641,16 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Primary 海报 + Thumb 缩略图并排（对齐在线）
-                  if (scraped?.posterPath != null)
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 海报（点击放大，本地 .nfo 旁原图优先，无本地回退 CDN）
-                        GestureDetector(
-                          onTap: () => _openImageViewer(
-                            context,
-                            TmdbService.posterUrl(scraped!.posterPath!),
-                            localFile: ScrapeMediaStore.posterFile(widget.item),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: SizedBox(
-                              width: 90,
-                              height: 135,
-                              child: LocalPosterImage(
-                                item: widget.item,
-                                posterPath: scraped!.posterPath,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        // 缩略图（点击放大，本地原图优先）：电视剧优先单集剧照，电影用 backdrop
-                        Expanded(
-                          child: Builder(builder: (_) {
-                            final isTvStill = scraped!.type == 'tv' &&
-                                scraped!.stillPath != null &&
-                                scraped!.stillPath!.isNotEmpty;
-                            final cdnUrl = isTvStill
-                                ? TmdbService.posterUrl(scraped!.stillPath!)
-                                : (scraped!.backdropPath != null
-                                    ? TmdbService.backdropUrl(scraped!.backdropPath!)
-                                    : null);
-                            return GestureDetector(
-                              onTap: cdnUrl != null
-                                  ? () => _openImageViewer(
-                                        context,
-                                        cdnUrl,
-                                        localFile: isTvStill
-                                            ? ScrapeMediaStore.stillFile(widget.item)
-                                            : ScrapeMediaStore.backdropFile(widget.item),
-                                      )
-                                  : null,
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: SizedBox(
-                                  height: 135,
-                                  width: double.infinity,
-                                  child: isTvStill
-                                      ? LocalStillImage(
-                                          item: widget.item,
-                                          stillPath: scraped!.stillPath,
-                                          fit: BoxFit.cover,
-                                        )
-                                      : LocalBackdropImage(
-                                          item: widget.item,
-                                          backdropPath: scraped!.backdropPath,
-                                          fit: BoxFit.cover,
-                                        ),
-                                ),
-                              ),
-                            );
-                          }),
-                        ),
-                      ],
-                    ),
-                  const SizedBox(height: 12),
-                  // 类型标签 + 年份 + 评分 + 时长
-                  if (scraped != null && scraped.genres.isNotEmpty)
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        ...scraped.genres.map((g) => Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: scheme.surfaceContainerHighest,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                g.replaceAll('&amp;', '&').replaceAll('&lt;', '<').replaceAll('&gt;', '>').replaceAll('&quot;', '"'),
-                                style: const TextStyle(fontSize: 11),
-                              ),
-                            )),
-                        if (scraped.year != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: scheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text('${scraped.year}', style: const TextStyle(fontSize: 11)),
-                          ),
-                        if (scraped.rating != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.amber.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Row(mainAxisSize: MainAxisSize.min, children: [
-                              const Icon(Icons.star, size: 12, color: Colors.amber),
-                              const SizedBox(width: 2),
-                              Text(scraped.rating!.toStringAsFixed(1), style: const TextStyle(fontSize: 11)),
-                            ]),
-                          ),
-                      ],
-                    ),
-                  const SizedBox(height: 16),
-                  // 简介（可展开/收起）
-                  if (scraped?.overview != null && scraped!.overview!.isNotEmpty) ...[
-                    _ExpandableOverview(text: scraped.overview!),
-                    const SizedBox(height: 20),
-                  ],
-                  // 演员（横滑头像列表，对齐在线）
-                  if (scraped != null && scraped.cast.isNotEmpty) ...[
-                    const Text('演员', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 120,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: scraped.cast.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 12),
-                        itemBuilder: (_, i) {
-                          final c = scraped.cast[i];
-                          final profile = c['profilePath'];
-                          final personId = int.tryParse(c['id'] ?? '');
-                          return GestureDetector(
-                            onTap: () {
-                              if (personId != null && personId > 0) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute<Widget>(builder: (_) => PersonDetailPage(
-                                      personId: personId,
-                                      name: c['name'] ?? '',
-                                      profilePath: profile,
-                                    ),
-                                  ),
-                                );
-                              } else if (profile != null && profile.isNotEmpty) {
-                                _openImageViewer(context, TmdbService.personUrl(profile));
-                              }
-                            },
-                            child: Column(
-                              children: [
-                                ClipOval(
-                                  child: SizedBox(
-                                    width: 64,
-                                    height: 64,
-                                    child: personId != null && personId > 0
-                                        ? FutureBuilder<File?>(
-                                            future: _castAvatarFuture(personId),
-                                            builder: (_, snap) {
-                                              if (snap.hasData && snap.data != null) {
-                                                return Image.file(snap.data!,
-                                                    fit: BoxFit.cover);
-                                              }
-                                              return _castAvatar(profile, scheme);
-                                            },
-                                          )
-                                        : _castAvatar(profile, scheme),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                SizedBox(
-                                  width: 72,
-                                  child: Text(
-                                    c['name'] ?? '',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(fontSize: 11),
-                                  ),
-                                ),
-                                if ((c['role'] ?? '').isNotEmpty || (c['character'] ?? '').isNotEmpty)
-                                  SizedBox(
-                                    width: 72,
-                                    child: Text(
-                                      c['character'] ?? c['role'] ?? '',
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(fontSize: 9, color: Colors.white54),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                  // 相关推荐
-                  if (scraped != null && scraped.tmdbId > 0) ...[
-                    const SizedBox(height: 20),
-                    const Text('相关推荐', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 180,
-                      child: FutureBuilder<List<Map<String, dynamic>>>(
-                        future: _recsFuture ??= scraped.type == 'tv'
-                            ? TmdbService.getTvRecommendations(scraped.tvId ?? scraped.tmdbId)
-                            : TmdbService.getRecommendations(scraped.tmdbId),
-                        builder: (_, snap) {
-                          if (!snap.hasData || snap.data!.isEmpty) {
-                            return const SizedBox.shrink();
-                          }
-                          final recs = snap.data!.take(10).toList();
-                          return ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: recs.length,
-                            separatorBuilder: (_, __) => const SizedBox(width: 10),
-                            itemBuilder: (_, i) {
-                              final r = recs[i];
-                              final poster = r['poster_path'] as String?;
-                              // 推荐列表按 scraped.type 分流（纯电影/纯剧集），
-                              // 用对应类型的已入库集合判断
-                              final inLibrary =
-                                  (scraped.type == 'tv'
-                                          ? localTvTmdbIds
-                                          : localMovieTmdbIds)
-                                      .contains(r['id']);
-                              return SizedBox(
-                                width: 110,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Stack(
-                                      children: [
-                                        ClipRRect(
-                                          borderRadius: BorderRadius.circular(8),
-                                          child: poster != null
-                                              ? CachedNetworkImage(
-                                                  imageUrl: TmdbService.posterUrl(poster),
-                                                  height: 140, width: 110, fit: BoxFit.cover,
-                                                )
-                                              : Container(height: 140, width: 110, color: Colors.grey[800]),
-                                        ),
-                                        if (inLibrary)
-                                          Positioned(
-                                            top: 4, left: 4,
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                              decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(4)),
-                                              child: const Text('已入库', style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      r['title'] ?? r['name'] ?? '',
-                                      maxLines: 1, overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontSize: 11),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                  // 外部链接（TMDB + IMDb）
-                  if (scraped != null && scraped.tmdbId > 0) ...[
-                    const SizedBox(height: 20),
-                    const Text('外部链接', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        ActionChip(
-                          avatar: const Icon(Icons.link, size: 16),
-                          label: const Text('TheMovieDb'),
-                          onPressed: () => _openTmdbUrl(scraped.tmdbId, scraped.type),
-                        ),
-                        if (scraped.imdbId != null && scraped.imdbId!.isNotEmpty)
-                          ActionChip(
-                            avatar: const Icon(Icons.movie, size: 16),
-                            label: const Text('IMDb'),
-                            onPressed: () async {
-                              await launchUrl(
-                                Uri.parse('https://www.imdb.com/title/${scraped.imdbId}'),
-                                mode: LaunchMode.externalApplication,
-                              );
-                            },
-                          ),
-                      ],
-                    ),
-                  ],
-                  // 加入时间
-                  if (scraped != null && scraped.scrapedAt > 0) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      '加入时间: ${DateTime.fromMillisecondsSinceEpoch(scraped.scrapedAt).toString().substring(0, 16)}',
-                      style: const TextStyle(color: Colors.white54, fontSize: 12),
-                    ),
-                  ],
-                  // TMDB 评论（P3：缓存 future + 失败/为空可手动刷新重试）
-                  if (scraped != null && scraped.tmdbId > 0) ...[
-                    const SizedBox(height: 20),
-                    const Text('评论', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 8),
-                    FutureBuilder<List<Map<String, dynamic>>>(
-                      future: _reviewsFuture ??=
-                          ScrapeService.fetchReviews(scraped.type, scraped.tvId ?? scraped.tmdbId),
-                      builder: (_, snap) {
-                        if (snap.hasError) {
-                          return _retryReviews(scraped, failed: true);
-                        }
-                        if (!snap.hasData || snap.data!.isEmpty) {
-                          return _retryReviews(scraped);
-                        }
-                        return Column(
-                          children: snap.data!.map((r) {
-                            final author = r['author'] ?? '';
-                            final content = r['content'] ?? '';
-                            final rating = r['author_details']?['rating'];
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 10),
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Colors.white10,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.person, size: 14, color: Colors.white54),
-                                      const SizedBox(width: 4),
-                                      Text(author, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                                      if (rating != null) ...[
-                                        const SizedBox(width: 8),
-                                        Text('★$rating', style: const TextStyle(fontSize: 11, color: Colors.amber)),
-                                      ],
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(content, style: const TextStyle(fontSize: 12, color: Colors.white70)),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        );
-                      },
-                    ),
-                  ],
-                  // 媒体信息
-                  const SizedBox(height: 16),
-                  const Text('媒体信息', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  if (scraped != null && scraped.directors.isNotEmpty)
-                    _infoRow('导演', scraped.directors.join(' / ')),
-                  if (scraped != null && scraped.studios.isNotEmpty)
-                    _infoRow('出品', scraped.studios.join(' / ')),
-                  _infoRow('分辨率', widget.item.resolutionLabel),
-                  _infoRow('时长', widget.item.durationLabel),
-                  _infoRow('大小', widget.item.sizeLabel),
+                  ..._buildPosterThumbRow(context, scraped),
+                  ..._buildMetaChips(scraped, scheme),
+                  ..._buildOverviewSection(scraped),
+                  ..._buildCastRow(context, scraped, scheme),
+                  ..._buildRecommendations(
+                      scraped, localTvTmdbIds, localMovieTmdbIds),
+                  ..._buildExternalLinks(context, scraped),
+                  ..._buildAddedAt(scraped),
+                  ..._buildReviews(scraped),
+                  ..._buildMediaInfo(scraped),
                 ],
               ),
             ),
@@ -869,6 +658,450 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
         ],
       ),
     );
+  }
+
+  /// posterThumb
+  List<Widget> _buildPosterThumbRow(
+      BuildContext context, ScrapedMedia? scraped) {
+    if (scraped?.posterPath == null) return const [];
+    return [
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 海报（点击放大，本地 .nfo 旁原图优先，无本地回退 CDN）
+          GestureDetector(
+            onTap: () => _openImageViewer(
+              context,
+              TmdbService.posterUrl(scraped!.posterPath!),
+              localFile: ScrapeMediaStore.posterFile(widget.item),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: SizedBox(
+                width: 90,
+                height: 135,
+                child: LocalPosterImage(
+                  item: widget.item,
+                  posterPath: scraped!.posterPath,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // 缩略图（点击放大，本地原图优先）：电视剧优先单集剧照，电影用 backdrop
+          Expanded(
+            child: Builder(builder: (_) {
+              final isTvStill = scraped!.type == 'tv' &&
+                  scraped!.stillPath != null &&
+                  scraped!.stillPath!.isNotEmpty;
+              final cdnUrl = isTvStill
+                  ? TmdbService.posterUrl(scraped!.stillPath!)
+                  : (scraped!.backdropPath != null
+                      ? TmdbService.backdropUrl(scraped!.backdropPath!)
+                      : null);
+              return GestureDetector(
+                onTap: cdnUrl != null
+                    ? () => _openImageViewer(
+                          context,
+                          cdnUrl,
+                          localFile: isTvStill
+                              ? ScrapeMediaStore.stillFile(widget.item)
+                              : ScrapeMediaStore.backdropFile(widget.item),
+                        )
+                    : null,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SizedBox(
+                    height: 135,
+                    width: double.infinity,
+                    child: isTvStill
+                        ? LocalStillImage(
+                            item: widget.item,
+                            stillPath: scraped!.stillPath,
+                            fit: BoxFit.cover,
+                          )
+                        : LocalBackdropImage(
+                            item: widget.item,
+                            backdropPath: scraped!.backdropPath,
+                            fit: BoxFit.cover,
+                          ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+      const SizedBox(height: 12),
+    ];
+  }
+
+  /// metaChips
+  List<Widget> _buildMetaChips(ScrapedMedia? scraped, ColorScheme scheme) {
+    if (scraped == null || scraped.genres.isEmpty) return const [];
+    return [
+      Wrap(
+        spacing: 6,
+        runSpacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          ...scraped.genres.map((g) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  g
+                      .replaceAll('&amp;', '&')
+                      .replaceAll('&lt;', '<')
+                      .replaceAll('&gt;', '>')
+                      .replaceAll('&quot;', '"'),
+                  style: const TextStyle(fontSize: 11),
+                ),
+              )),
+          if (scraped.year != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child:
+                  Text('${scraped.year}', style: const TextStyle(fontSize: 11)),
+            ),
+          if (scraped.rating != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.star, size: 12, color: Colors.amber),
+                const SizedBox(width: 2),
+                Text(scraped.rating!.toStringAsFixed(1),
+                    style: const TextStyle(fontSize: 11)),
+              ]),
+            ),
+        ],
+      ),
+      const SizedBox(height: 16),
+    ];
+  }
+
+  /// overview
+  List<Widget> _buildOverviewSection(ScrapedMedia? scraped) {
+    if (scraped?.overview == null || scraped!.overview!.isEmpty)
+      return const [];
+    return [
+      _ExpandableOverview(text: scraped.overview!),
+      const SizedBox(height: 20),
+    ];
+  }
+
+  /// cast
+  List<Widget> _buildCastRow(
+      BuildContext context, ScrapedMedia? scraped, ColorScheme scheme) {
+    if (scraped == null || scraped.cast.isEmpty) return const [];
+    return [
+      const Text('演员',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 8),
+      SizedBox(
+        height: 120,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: scraped.cast.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 12),
+          itemBuilder: (_, i) {
+            final c = scraped.cast[i];
+            final profile = c['profilePath'];
+            final personId = int.tryParse(c['id'] ?? '');
+            return GestureDetector(
+              onTap: () {
+                if (personId != null && personId > 0) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute<Widget>(
+                      builder: (_) => PersonDetailPage(
+                        personId: personId,
+                        name: c['name'] ?? '',
+                        profilePath: profile,
+                      ),
+                    ),
+                  );
+                } else if (profile != null && profile.isNotEmpty) {
+                  _openImageViewer(context, TmdbService.personUrl(profile));
+                }
+              },
+              child: Column(
+                children: [
+                  ClipOval(
+                    child: SizedBox(
+                      width: 64,
+                      height: 64,
+                      child: personId != null && personId > 0
+                          ? FutureBuilder<File?>(
+                              future: _castAvatarFuture(personId),
+                              builder: (_, snap) {
+                                if (snap.hasData && snap.data != null) {
+                                  return Image.file(snap.data!,
+                                      fit: BoxFit.cover);
+                                }
+                                return _castAvatar(profile, scheme);
+                              },
+                            )
+                          : _castAvatar(profile, scheme),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    width: 72,
+                    child: Text(
+                      c['name'] ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                  ),
+                  if ((c['role'] ?? '').isNotEmpty ||
+                      (c['character'] ?? '').isNotEmpty)
+                    SizedBox(
+                      width: 72,
+                      child: Text(
+                        c['character'] ?? c['role'] ?? '',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style:
+                            const TextStyle(fontSize: 9, color: Colors.white54),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    ];
+  }
+
+  /// recs
+  List<Widget> _buildRecommendations(ScrapedMedia? scraped,
+      Set<int> localTvTmdbIds, Set<int> localMovieTmdbIds) {
+    if (scraped == null || scraped.tmdbId <= 0) return const [];
+    return [
+      const SizedBox(height: 20),
+      const Text('相关推荐',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 8),
+      SizedBox(
+        height: 180,
+        child: FutureBuilder<List<Map<String, dynamic>>>(
+          future: _recsFuture ??= scraped.type == 'tv'
+              ? TmdbService.getTvRecommendations(scraped.tvId ?? scraped.tmdbId)
+              : TmdbService.getRecommendations(scraped.tmdbId),
+          builder: (_, snap) {
+            if (!snap.hasData || snap.data!.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            final recs = snap.data!.take(10).toList();
+            return ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: recs.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (_, i) {
+                final r = recs[i];
+                final poster = r['poster_path'] as String?;
+                // 推荐列表按 scraped.type 分流（纯电影/纯剧集），
+                // 用对应类型的已入库集合判断
+                final inLibrary =
+                    (scraped.type == 'tv' ? localTvTmdbIds : localMovieTmdbIds)
+                        .contains(r['id']);
+                return SizedBox(
+                  width: 110,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: poster != null
+                                ? CachedNetworkImage(
+                                    imageUrl: TmdbService.posterUrl(poster),
+                                    height: 140,
+                                    width: 110,
+                                    fit: BoxFit.cover,
+                                  )
+                                : Container(
+                                    height: 140,
+                                    width: 110,
+                                    color: Colors.grey[800]),
+                          ),
+                          if (inLibrary)
+                            Positioned(
+                              top: 4,
+                              left: 4,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                    color: Colors.green,
+                                    borderRadius: BorderRadius.circular(4)),
+                                child: const Text('已入库',
+                                    style: TextStyle(
+                                        fontSize: 9,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold)),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        r['title'] ?? r['name'] ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ),
+    ];
+  }
+
+  /// links
+  List<Widget> _buildExternalLinks(
+      BuildContext context, ScrapedMedia? scraped) {
+    if (scraped == null || scraped.tmdbId <= 0) return const [];
+    return [
+      const SizedBox(height: 20),
+      const Text('外部链接',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 8),
+      Wrap(
+        spacing: 8,
+        children: [
+          ActionChip(
+            avatar: const Icon(Icons.link, size: 16),
+            label: const Text('TheMovieDb'),
+            onPressed: () => _openTmdbUrl(scraped.tmdbId, scraped.type),
+          ),
+          if (scraped.imdbId != null && scraped.imdbId!.isNotEmpty)
+            ActionChip(
+              avatar: const Icon(Icons.movie, size: 16),
+              label: const Text('IMDb'),
+              onPressed: () async {
+                await launchUrl(
+                  Uri.parse('https://www.imdb.com/title/${scraped.imdbId}'),
+                  mode: LaunchMode.externalApplication,
+                );
+              },
+            ),
+        ],
+      ),
+    ];
+  }
+
+  /// addedAt
+  List<Widget> _buildAddedAt(ScrapedMedia? scraped) {
+    if (scraped == null || scraped.scrapedAt <= 0) return const [];
+    return [
+      const SizedBox(height: 16),
+      Text(
+        '加入时间: ${DateTime.fromMillisecondsSinceEpoch(scraped.scrapedAt).toString().substring(0, 16)}',
+        style: const TextStyle(color: Colors.white54, fontSize: 12),
+      ),
+    ];
+  }
+
+  /// reviews
+  List<Widget> _buildReviews(ScrapedMedia? scraped) {
+    if (scraped == null || scraped.tmdbId <= 0) return const [];
+    return [
+      const SizedBox(height: 20),
+      const Text('评论',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 8),
+      FutureBuilder<List<Map<String, dynamic>>>(
+        future: _reviewsFuture ??= ScrapeService.fetchReviews(
+            scraped.type, scraped.tvId ?? scraped.tmdbId),
+        builder: (_, snap) {
+          if (snap.hasError) {
+            return _retryReviews(scraped, failed: true);
+          }
+          if (!snap.hasData || snap.data!.isEmpty) {
+            return _retryReviews(scraped);
+          }
+          return Column(
+            children: snap.data!.map((r) {
+              final author = r['author'] ?? '';
+              final content = r['content'] ?? '';
+              final rating = r['author_details']?['rating'];
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white10,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.person,
+                            size: 14, color: Colors.white54),
+                        const SizedBox(width: 4),
+                        Text(author,
+                            style: const TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.w600)),
+                        if (rating != null) ...[
+                          const SizedBox(width: 8),
+                          Text('★$rating',
+                              style: const TextStyle(
+                                  fontSize: 11, color: Colors.amber)),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(content,
+                        style: const TextStyle(
+                            fontSize: 12, color: Colors.white70)),
+                  ],
+                ),
+              );
+            }).toList(),
+          );
+        },
+      ),
+    ];
+  }
+
+  /// mediaInfo
+  List<Widget> _buildMediaInfo(ScrapedMedia? scraped) {
+    return [
+      const SizedBox(height: 16),
+      const Text('媒体信息',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 8),
+      if (scraped != null && scraped.directors.isNotEmpty)
+        _infoRow('导演', scraped.directors.join(' / ')),
+      if (scraped != null && scraped.studios.isNotEmpty)
+        _infoRow('出品', scraped.studios.join(' / ')),
+      _infoRow('分辨率', widget.item.resolutionLabel),
+      _infoRow('时长', widget.item.durationLabel),
+      _infoRow('大小', widget.item.sizeLabel),
+    ];
   }
 
   /// 信息行
@@ -880,9 +1113,12 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
         children: [
           SizedBox(
             width: 70,
-            child: Text(label, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+            child: Text(label,
+                style: const TextStyle(color: Colors.white54, fontSize: 12)),
           ),
-          Expanded(child: Text(value, style: const TextStyle(color: Colors.white, fontSize: 12))),
+          Expanded(
+              child: Text(value,
+                  style: const TextStyle(color: Colors.white, fontSize: 12))),
         ],
       ),
     );
@@ -917,7 +1153,8 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
       return CachedNetworkImage(
         imageUrl: TmdbService.personUrl(profile, size: 'w185'),
         fit: BoxFit.cover,
-        placeholder: (_, __) => Container(color: scheme.surfaceContainerHighest),
+        placeholder: (_, __) =>
+            Container(color: scheme.surfaceContainerHighest),
         errorWidget: (_, __, ___) => Container(
             color: scheme.surfaceContainerHighest,
             child: const Icon(Icons.person, size: 32)),
@@ -937,12 +1174,16 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
   }
 
   /// 全屏查看图片（点击海报/缩略图放大）：本地 .nfo 旁原图优先（更高清），无本地回退 CDN
-  void _openImageViewer(BuildContext context, String url, {Future<File?>? localFile}) {
+  void _openImageViewer(BuildContext context, String url,
+      {Future<File?>? localFile}) {
     Navigator.push(
       context,
-      MaterialPageRoute<Widget>(builder: (_) => Scaffold(
+      MaterialPageRoute<Widget>(
+        builder: (_) => Scaffold(
           backgroundColor: Colors.black,
-          appBar: AppBar(backgroundColor: Colors.transparent, iconTheme: const IconThemeData(color: Colors.white)),
+          appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              iconTheme: const IconThemeData(color: Colors.white)),
           body: Center(
             child: InteractiveViewer(
               child: localFile != null
@@ -950,7 +1191,8 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                       future: localFile,
                       builder: (_, snap) => snap.data != null
                           ? Image.file(snap.data!, fit: BoxFit.contain)
-                          : CachedNetworkImage(imageUrl: url, fit: BoxFit.contain),
+                          : CachedNetworkImage(
+                              imageUrl: url, fit: BoxFit.contain),
                     )
                   : CachedNetworkImage(imageUrl: url, fit: BoxFit.contain),
             ),
@@ -980,7 +1222,8 @@ class _ExpandableOverviewState extends State<_ExpandableOverview> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('简介', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+        const Text('简介',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         Text(
           widget.text,
@@ -991,8 +1234,10 @@ class _ExpandableOverviewState extends State<_ExpandableOverview> {
         if (widget.text.length > 120)
           TextButton(
             onPressed: () => setState(() => _expanded = !_expanded),
-            style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 32)),
-            child: Text(_expanded ? '收起' : '展开', style: const TextStyle(fontSize: 13)),
+            style: TextButton.styleFrom(
+                padding: EdgeInsets.zero, minimumSize: const Size(0, 32)),
+            child: Text(_expanded ? '收起' : '展开',
+                style: const TextStyle(fontSize: 13)),
           ),
       ],
     );
