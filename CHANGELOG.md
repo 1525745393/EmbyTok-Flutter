@@ -1,3 +1,10 @@
+## [2.401.94](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.93...v2.401.94) (2026-11-02)
+
+
+### Bug Fixes
+
+* **security:** backend SSRF 面收敛(scheme 白名单)+ Flutter 插件生成物出库 ([f9223c8](https://github.com/1525745393/EmbyTok-Flutter/commit/f9223c88122b41ad771ee460f989cb90cdb85155))
+
 ## [2.401.93](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.92...v2.401.93) (2026-11-02)
 
 
