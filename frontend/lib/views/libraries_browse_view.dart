@@ -1842,7 +1842,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                             'NEW',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 9,
+                              fontSize: 11,
                               fontWeight: FontWeight.bold,
                             ),
                           ),

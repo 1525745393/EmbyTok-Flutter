@@ -346,7 +346,7 @@ extension _MusicListBuilders on _SynologyMusicViewState {
                         vertical: 1.5, horizontal: 4),
                     child: Text(ch,
                         style: TextStyle(
-                            fontSize: 10,
+                            fontSize: 12,
                             color: scheme.onSurface.withValues(alpha: 0.7))),
                   ),
                 );

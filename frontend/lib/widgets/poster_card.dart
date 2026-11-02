@@ -133,7 +133,7 @@ class PosterCard extends ConsumerWidget {
                                   ? '剧集'
                                   : '演员',
                               style: TextStyle(
-                                fontSize: 9,
+                                fontSize: 11,
                                 height: 1.2,
                                 color: scheme.onPrimary,
                                 fontWeight: FontWeight.w600,

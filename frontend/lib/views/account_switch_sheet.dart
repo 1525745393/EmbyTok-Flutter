@@ -68,7 +68,7 @@ class _AccountSheet extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: const Text('默认',
-                          style: TextStyle(fontSize: 10, color: Colors.orange)),
+                          style: TextStyle(fontSize: 12, color: Colors.orange.shade800)),
                     ),
                 ],
               ),

@@ -146,7 +146,7 @@ class _PressableActionButtonState extends State<PressableActionButton> {
                             : '${widget.badgeCount}',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 11,
                           height: 1.2,
                           color: Theme.of(context).colorScheme.onError,
                           fontWeight: FontWeight.w700,

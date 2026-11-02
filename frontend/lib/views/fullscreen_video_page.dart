@@ -1564,7 +1564,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
           Text(
             controller?.value.errorDescription ?? '网络错误或资源不可用',
             style: const TextStyle(
-                color: Colors.white54, fontSize: _kFontSizeBody),
+                color: Colors.white70, fontSize: _kFontSizeBody),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: _kSpacingXLarge),

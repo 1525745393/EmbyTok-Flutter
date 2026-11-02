@@ -325,7 +325,7 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                                                 ),
                                                 child: const Text('已入库',
                                                     style: TextStyle(
-                                                        fontSize: 9,
+                                                        fontSize: 11,
                                                         color: Colors.white,
                                                         fontWeight:
                                                             FontWeight.bold)),
@@ -348,7 +348,7 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                                                 .substring(0, 4)
                                             : '',
                                         style: TextStyle(
-                                            fontSize: 10,
+                                            fontSize: 12,
                                             color: Colors.grey[500]),
                                       ),
                                     ],
@@ -420,7 +420,7 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                                                 ),
                                                 child: const Text('已入库',
                                                     style: TextStyle(
-                                                        fontSize: 9,
+                                                        fontSize: 11,
                                                         color: Colors.white,
                                                         fontWeight:
                                                             FontWeight.bold)),
@@ -443,7 +443,7 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                                                 .substring(0, 4)
                                             : '',
                                         style: TextStyle(
-                                            fontSize: 10,
+                                            fontSize: 12,
                                             color: Colors.grey[500]),
                                       ),
                                     ],

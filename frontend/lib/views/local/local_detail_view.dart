@@ -879,7 +879,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
                         style:
-                            const TextStyle(fontSize: 9, color: Colors.white54),
+                            const TextStyle(fontSize: 11, color: Colors.white54),
                       ),
                     ),
                 ],
@@ -956,7 +956,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                                     borderRadius: BorderRadius.circular(4)),
                                 child: const Text('已入库',
                                     style: TextStyle(
-                                        fontSize: 9,
+                                        fontSize: 11,
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold)),
                               ),

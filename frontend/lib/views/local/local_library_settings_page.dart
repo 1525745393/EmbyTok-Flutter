@@ -539,7 +539,7 @@ class _ScrapeHistoryPageState extends State<_ScrapeHistoryPage> {
                                       ),
                                       trailing: Text(t,
                                           style: const TextStyle(
-                                              fontSize: 10,
+                                              fontSize: 12,
                                               color: Colors.grey)),
                                       onTap: () => _showEntryDetail(h),
                                     );

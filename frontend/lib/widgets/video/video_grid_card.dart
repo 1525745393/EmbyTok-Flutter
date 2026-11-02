@@ -125,7 +125,7 @@ class VideoGridCard extends ConsumerWidget {
                               item.videoHeight! >= 2160 ? '4K' : 'HD',
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 9,
+                                fontSize: 11,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),

@@ -1088,7 +1088,7 @@ class _ActorCard extends StatelessWidget {
       child: Text(
         personTypeLabelFromCode(type),
         style: TextStyle(
-          fontSize: 9,
+          fontSize: 11,
           fontWeight: FontWeight.w600,
           color: chipColor,
         ),

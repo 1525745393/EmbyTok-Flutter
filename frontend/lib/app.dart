@@ -661,31 +661,37 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       supportedLocales: AppLocale.supportedLocales,
       locale: _locale, // batch41-F1：用户语言（AppLocale.load 读取；null = 跟随系统）
       builder: (context, child) {
-        return AnnotatedRegion<SystemUiOverlayStyle>(
-          value: systemOverlayStyleOf(context),
-          child: AppPerformanceOverlay(
-            child: Column(
-              children: [
-                if (testEnvOverride != null && testEnvOverride.isNotEmpty)
-                  Container(
-                    width: double.infinity,
-                    color: Colors.red,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 3),
-                    child: SafeArea(
-                      bottom: false,
-                      child: Text(
-                        '测试环境: $testEnvOverride',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.center,
+        // UI 审查 U8：系统字体缩放全局限幅（maxScaleFactor 1.3）。
+        // 保留辅助功能大字能力，同时防止大字号撑破固定布局（列表行/角标/控制栏），
+        // 避免全 app 溢出。1.3 为常见可读性上限，布局仍按 textScaler 自适应。
+        return MediaQuery.withClampedTextScaling(
+          maxScaleFactor: 1.3,
+          child: AnnotatedRegion<SystemUiOverlayStyle>(
+            value: systemOverlayStyleOf(context),
+            child: AppPerformanceOverlay(
+              child: Column(
+                children: [
+                  if (testEnvOverride != null && testEnvOverride.isNotEmpty)
+                    Container(
+                      width: double.infinity,
+                      color: Colors.red,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 3),
+                      child: SafeArea(
+                        bottom: false,
+                        child: Text(
+                          '测试环境: $testEnvOverride',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ),
-                  ),
-                Expanded(child: child ?? const SizedBox.shrink()),
-              ],
+                  Expanded(child: child ?? const SizedBox.shrink()),
+                ],
+              ),
             ),
           ),
         );

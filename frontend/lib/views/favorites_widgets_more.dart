@@ -49,7 +49,7 @@ class _MoreTile extends StatelessWidget {
             Text(
               '查看全部',
               style: TextStyle(
-                fontSize: 9.5,
+                fontSize: 11.5,
                 color: scheme.primary,
                 fontWeight: FontWeight.w600,
               ),
@@ -100,7 +100,7 @@ class _MorePersonTile extends StatelessWidget {
           Text(
             '更多',
             style: TextStyle(
-              fontSize: 10.5,
+              fontSize: 12,
               color: scheme.primary,
               fontWeight: FontWeight.w600,
             ),
@@ -131,7 +131,7 @@ class _LoadMoreHint extends StatelessWidget {
             Text(
               '点击加载更多（查看全部完整列表）',
               style: TextStyle(
-                fontSize: 10.5,
+                fontSize: 12,
                 color: scheme.onSurfaceVariant,
               ),
             ),

@@ -212,7 +212,16 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         ),
       );
       if (grant == true) {
-        await LocalVideoService.requestManageExternalStorage();
+        final granted =
+            await LocalVideoService.requestManageExternalStorage();
+        // UI 审查 U21（联动 #7）：申请后按返回值复查权限，未获得时明确
+        // 告知降级行为，避免"静默继续刮削"让用户误以为 .nfo/海报已写入
+        // 视频目录。文案与设置页 local_library_settings_page 降级提示一致。
+        if (mounted && !granted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('未获得存储权限，.nfo 和海报将只写到 App 内部目录'),
+          ));
+        }
       }
     }
 
@@ -1145,7 +1154,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
               const SizedBox(height: 12),
               Text(
                 '$parentPath/$preview',
-                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -1842,7 +1851,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                       maxLines: 1, overflow: TextOverflow.ellipsis)),
               const SizedBox(width: 6),
               Text('未刮削',
-                  style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[700])),
             ])
           : Row(children: [
               Expanded(

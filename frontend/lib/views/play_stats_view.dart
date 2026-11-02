@@ -253,7 +253,7 @@ class _WeekBarChart extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               Text(_fmtDur(d.seconds),
-                  style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                  style: const TextStyle(fontSize: 11, color: Colors.grey)),
               const SizedBox(height: 2),
               Container(
                 width: 16,
@@ -271,7 +271,7 @@ class _WeekBarChart extends StatelessWidget {
               const SizedBox(height: 4),
               Text(weekLabels[d.date.weekday - 1],
                   style: TextStyle(
-                      fontSize: 10,
+                      fontSize: 12,
                       color: isToday
                           ? Theme.of(context).colorScheme.primary
                           : Colors.grey)),

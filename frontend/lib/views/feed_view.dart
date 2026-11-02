@@ -517,7 +517,7 @@ class _FeedViewState extends ConsumerState<FeedView>
     if (items.isEmpty) {
       return const Center(
         child: Text('暂无本地视频，请先在设置里添加文件源并刮削',
-            style: TextStyle(color: Colors.white54)),
+            style: TextStyle(color: Colors.white70)),
       );
     }
     final mediaItems = LocalVideoAdapter.toMediaItems(items, scrapedMap: localState.scrapedMap);
@@ -689,7 +689,7 @@ Widget _buildTopBar(ViewMode viewMode) {
     final mediaItems = LocalVideoAdapter.toMediaItems(items, scrapedMap: localState.scrapedMap);
     if (mediaItems.isEmpty) {
       return const Center(
-        child: Text('暂无本地视频', style: TextStyle(color: Colors.white54)),
+        child: Text('暂无本地视频', style: TextStyle(color: Colors.white70)),
       );
     }
     return GridView.builder(

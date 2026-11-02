@@ -495,7 +495,7 @@ class SubtitleSelector extends ConsumerWidget {
                   '默认',
                   style: TextStyle(
                     color: scheme.primary,
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

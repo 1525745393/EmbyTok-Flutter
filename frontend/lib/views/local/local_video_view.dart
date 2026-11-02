@@ -354,7 +354,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                                 fontSize: 12, fontWeight: FontWeight.w600)),
                         Text('${entry.value.length}集',
                             style: TextStyle(
-                                fontSize: 10, color: Colors.grey[500])),
+                                fontSize: 12, color: Colors.grey[500])),
                       ],
                     ),
                   ),
@@ -917,7 +917,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                       Text(item.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 10)),
+                          style: const TextStyle(fontSize: 12)),
                     ],
                   ),
                 ),
@@ -1070,7 +1070,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                               fontWeight: FontWeight.w600)),
                       Text('${entry.value.length} 个视频',
                           style: const TextStyle(
-                              color: Colors.white70, fontSize: 10)),
+                              color: Colors.white70, fontSize: 12)),
                     ],
                   ),
                 ),
@@ -1703,7 +1703,7 @@ class _GridCardState extends State<_GridCard> {
                         widget.scraped!.rating!.toStringAsFixed(1),
                         style: const TextStyle(
                             color: Colors.amber,
-                            fontSize: 10,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -1726,7 +1726,7 @@ class _GridCardState extends State<_GridCard> {
                           child: Text(
                             '${widget.episodeCount} 集',
                             style: const TextStyle(
-                                color: Colors.white, fontSize: 9),
+                                color: Colors.white, fontSize: 11),
                           ),
                         ),
                         if (widget.missingLabel != null) ...[
@@ -1764,7 +1764,7 @@ class _GridCardState extends State<_GridCard> {
                       child: Text(
                         'S${widget.scraped!.season}E${widget.scraped!.episode}',
                         style:
-                            const TextStyle(color: Colors.white, fontSize: 9),
+                            const TextStyle(color: Colors.white, fontSize: 11),
                       ),
                     ),
                   ),
@@ -1781,7 +1781,7 @@ class _GridCardState extends State<_GridCard> {
                     ),
                     child: Text(
                       widget.item.durationLabel,
-                      style: const TextStyle(color: Colors.white, fontSize: 10),
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
                     ),
                   ),
                 ),
@@ -1800,7 +1800,7 @@ class _GridCardState extends State<_GridCard> {
                       child: Text(
                         widget.item.resolutionLabel,
                         style:
-                            const TextStyle(color: Colors.white70, fontSize: 9),
+                            const TextStyle(color: Colors.white70, fontSize: 11),
                       ),
                     ),
                   ),
@@ -1880,7 +1880,7 @@ class _ResumeProgressState extends State<_ResumeProgress> {
     if (_resumeMs == null || widget.totalMs <= 0) {
       return Text(
           '${Duration(milliseconds: widget.totalMs).inMinutes}:${(Duration(milliseconds: widget.totalMs).inSeconds % 60).toString().padLeft(2, '0')}',
-          style: const TextStyle(fontSize: 10, color: Colors.grey));
+          style: const TextStyle(fontSize: 12, color: Colors.grey));
     }
     final frac = (_resumeMs! / widget.totalMs).clamp(0.0, 1.0);
     return Column(
@@ -1897,7 +1897,7 @@ class _ResumeProgressState extends State<_ResumeProgress> {
         ),
         const SizedBox(height: 2),
         Text('${(frac * 100).toStringAsFixed(0)}%',
-            style: const TextStyle(fontSize: 9, color: Colors.grey)),
+            style: const TextStyle(fontSize: 11, color: Colors.grey)),
       ],
     );
   }

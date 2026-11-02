@@ -81,7 +81,7 @@ class _BoxSetTile extends ConsumerWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        fontSize: 10.5, color: scheme.onSurfaceVariant),
+                        fontSize: 12, color: scheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 5),
                   Row(
@@ -98,7 +98,7 @@ class _BoxSetTile extends ConsumerWidget {
                           child: Text(
                             '★ ${item.displayRating!.toStringAsFixed(1)}',
                             style: TextStyle(
-                              fontSize: 10,
+                              fontSize: 12,
                               color: Colors.amber.shade300,
                               fontWeight: FontWeight.w700,
                             ),
@@ -229,7 +229,7 @@ class _PersonTile extends ConsumerWidget {
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 10.5,
+              fontSize: 12,
               color: scheme.onSurface,
               fontWeight: FontWeight.w600,
               height: 1.2,

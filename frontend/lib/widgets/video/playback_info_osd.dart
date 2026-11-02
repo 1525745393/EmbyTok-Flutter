@@ -96,7 +96,7 @@ class PlaybackInfoOsd extends ConsumerWidget {
           '$engineLabel · $codec · $res · $hdr',
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 10,
+            fontSize: 12,
             fontWeight: FontWeight.w500,
           ),
         ),

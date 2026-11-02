@@ -469,7 +469,7 @@ class _PosterCard extends ConsumerWidget {
                         '播放中',
                         style: TextStyle(
                           color: scheme.onPrimary,
-                          fontSize: 9,
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

@@ -153,7 +153,7 @@ class _GroupSection extends StatelessWidget {
                                 child: Text(
                                   '$count',
                                   style: TextStyle(
-                                    fontSize: 10.5,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                     color: scheme.onSurfaceVariant,
                                   ),
@@ -165,7 +165,7 @@ class _GroupSection extends StatelessWidget {
                           Text(
                             recentLabel,
                             style: TextStyle(
-                              fontSize: 10.5,
+                              fontSize: 12,
                               color: error != null
                                   ? scheme.error
                                   : scheme.onSurfaceVariant,

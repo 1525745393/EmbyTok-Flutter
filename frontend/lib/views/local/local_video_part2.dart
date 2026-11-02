@@ -947,7 +947,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                                 if (runtime != null) '${runtime}m'
                               ].join('  ·  '),
                               style: TextStyle(
-                                  fontSize: 10, color: Colors.grey[500])),
+                                  fontSize: 12, color: Colors.grey[500])),
                         ),
                       if (overview != null && overview.isNotEmpty)
                         Padding(
@@ -956,7 +956,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                  fontSize: 10,
+                                  fontSize: 12,
                                   color: Colors.grey[400],
                                   height: 1.3)),
                         ),
@@ -1033,7 +1033,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                     Text(c['name'] ?? '',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 10)),
+                        style: const TextStyle(fontSize: 12)),
                   ],
                 ),
               ),
