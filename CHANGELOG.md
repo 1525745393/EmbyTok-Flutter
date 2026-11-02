@@ -1,3 +1,10 @@
+## [2.401.96](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.95...v2.401.96) (2026-11-02)
+
+
+### Bug Fixes
+
+* **mobile:** 移动端专项 [#1](https://github.com/1525745393/EmbyTok-Flutter/issues/1) TMDB key 迁安全存储 / [#2](https://github.com/1525745393/EmbyTok-Flutter/issues/2) 401 自动登出 ([82efb92](https://github.com/1525745393/EmbyTok-Flutter/commit/82efb926934d16f59f6404ff87182840d12bf2e6))
+
 ## [2.401.95](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.94...v2.401.95) (2026-11-02)
 
 
