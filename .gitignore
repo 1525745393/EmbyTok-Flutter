@@ -125,3 +125,7 @@ scripts/keystore_base64.txt
 scripts/SECRETS_SUMMARY.md
 *.p12
 *.bks
+
+# Flutter 插件生成物（analyze/test 每次改写，不入库；pubspec.lock 保留）
+.flutter-plugins
+.flutter-plugins-dependencies

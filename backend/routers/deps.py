@@ -1,19 +1,29 @@
 from __future__ import annotations
 
 from typing import Optional
+from urllib.parse import urlparse
 
 from fastapi import Header
 
 from core.config import DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT
 from core.errors import BAD_REQUEST, APIError
 
+_ALLOWED_SCHEMES = ("http", "https")
+
 
 def get_emby_server_url(
     emby_server_url: str = Header(..., alias="X-Emby-Server-Url"),
 ) -> str:
-    """从请求头 X-Emby-Server-Url 获取 Emby 服务器地址"""
+    """从请求头 X-Emby-Server-Url 获取 Emby 服务器地址。
+
+    仅允许显式 http/https scheme（防代理被用作任意地址转发/SSRF 面扩大），
+    缺 scheme、非白名单 scheme 或畸形 URL 一律拒绝。
+    """
     if not emby_server_url:
         raise APIError(BAD_REQUEST, "缺少 X-Emby-Server-Url 请求头")
+    parsed = urlparse(emby_server_url)
+    if parsed.scheme not in _ALLOWED_SCHEMES or not parsed.netloc:
+        raise APIError(BAD_REQUEST, "X-Emby-Server-Url 必须是 http:// 或 https:// 地址")
     return emby_server_url
 
 
