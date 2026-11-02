@@ -1,3 +1,12 @@
+## [2.401.87](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.86...v2.401.87) (2026-11-02)
+
+
+### Bug Fixes
+
+* **ui:** 批次A点击按键UI无实时反馈7项修复+回归测试 ([90166cc](https://github.com/1525745393/EmbyTok-Flutter/commit/90166cc7a90e6ce2cfb82c5603a932f7668e5b14))
+* **ui:** 批次B异步操作无loading反馈修复+回归测试 ([4fbbbb9](https://github.com/1525745393/EmbyTok-Flutter/commit/4fbbbb94ec0a528ec5fb39d83c9dcda28b2809e6))
+* **ui:** 本地播放器字幕加载竞态守卫(item切换后过期响应丢弃) ([f6a5934](https://github.com/1525745393/EmbyTok-Flutter/commit/f6a593417fc2748a85513b941dbbc63eef3abe8d))
+
 ## [2.401.86](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.85...v2.401.86) (2026-11-01)
 
 
