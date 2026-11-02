@@ -1,3 +1,10 @@
+## [2.401.88](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.87...v2.401.88) (2026-11-02)
+
+
+### Bug Fixes
+
+* **ui:** 批次C按压反馈与字幕选中态联动修复+回归测试 ([cf7f65d](https://github.com/1525745393/EmbyTok-Flutter/commit/cf7f65d8800399a425c19cc005ebee120859c8ce))
+
 ## [2.401.87](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.86...v2.401.87) (2026-11-02)
 
 
