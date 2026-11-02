@@ -1,3 +1,10 @@
+## [2.401.93](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.92...v2.401.93) (2026-11-02)
+
+
+### Bug Fixes
+
+* **quality:** 收敛重试双实现为共享 retryWithBackoff + 播放器静默 catch 补日志 ([2d20f13](https://github.com/1525745393/EmbyTok-Flutter/commit/2d20f139b79a9f70c8b7226ad1e9d0042efd39d6))
+
 ## [2.401.92](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.91...v2.401.92) (2026-11-02)
 
 
