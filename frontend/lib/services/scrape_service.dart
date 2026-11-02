@@ -244,7 +244,7 @@ class ScrapeService {
           overview: details['overview'] as String? ?? m.overview,
           rating: (details['vote_average'] as num?)?.toDouble() ?? m.rating,
           genres: (details['genres'] as List?)
-                  ?.map((g) => g['name'] as String)
+                  ?.map((g) => g['name'] as String? ?? '')
                   .toList() ??
               m.genres,
           cast: refreshedCast.isNotEmpty ? refreshedCast : m.cast,
@@ -274,7 +274,7 @@ class ScrapeService {
           overview: details['overview'] as String? ?? m.overview,
           rating: (details['vote_average'] as num?)?.toDouble() ?? m.rating,
           genres: (details['genres'] as List?)
-                  ?.map((g) => g['name'] as String)
+                  ?.map((g) => g['name'] as String? ?? '')
                   .toList() ??
               m.genres,
           cast: refreshedCast.isNotEmpty ? refreshedCast : m.cast,
@@ -517,7 +517,7 @@ class ScrapeService {
     final results = await TmdbService.searchTv(seriesName);
     if (results.isEmpty) return null;
     final first = results.first;
-    final tvId = first['id'] as int;
+    final tvId = first['id'] as int? ?? 0;
     final details = await TmdbService.getTvDetails(tvId);
     final parsed = ParsedName(type: 'tv', title: seriesName);
     return _fromTvDetails(details, first, parsed, tvId);
@@ -648,7 +648,7 @@ class ScrapeService {
       if (results.isEmpty) return null;
       final best = _pickBestTv(results, parsed);
       final first = best.result;
-      final tvId = first['id'] as int;
+      final tvId = first['id'] as int? ?? 0;
       var details = _tvDetailsCache[tvId];
       if (details == null) {
         details = await TmdbService.getTvDetails(tvId);
@@ -709,7 +709,7 @@ class ScrapeService {
           await TmdbService.searchMovies(parsed.title, year: parsed.year);
       if (results.isEmpty) return null;
       final best = _pickBestMovie(results, parsed);
-      final movieId = best.result['id'] as int;
+      final movieId = best.result['id'] as int? ?? 0;
       var details = _movieDetailsCache[movieId];
       if (details == null) {
         details = await TmdbService.getMovieDetails(movieId);
@@ -822,16 +822,17 @@ class ScrapeService {
       backdropPath: d['backdrop_path'] as String?,
       overview: d['overview'] as String?,
       rating: (d['vote_average'] as num?)?.toDouble(),
-      genres:
-          (d['genres'] as List?)?.map((g) => g['name'] as String).toList() ??
-              const [],
+      genres: (d['genres'] as List?)
+              ?.map((g) => g['name'] as String? ?? '')
+              .toList() ??
+          const [],
       cast: _castFromDetails(d),
       directors: ((d['credits']?['crew'] as List?) ?? [])
           .where((c) => c['job'] == 'Director')
-          .map((c) => c['name'] as String)
+          .map((c) => c['name'] as String? ?? '')
           .toList(),
       studios: (d['production_companies'] as List?)
-              ?.map((c) => c['name'] as String)
+              ?.map((c) => c['name'] as String? ?? '')
               .take(5)
               .toList() ??
           const [],
@@ -896,18 +897,19 @@ class ScrapeService {
       backdropPath: d['backdrop_path'] as String?,
       overview: d['overview'] as String?,
       rating: (d['vote_average'] as num?)?.toDouble(),
-      genres:
-          (d['genres'] as List?)?.map((g) => g['name'] as String).toList() ??
-              const [],
+      genres: (d['genres'] as List?)
+              ?.map((g) => g['name'] as String? ?? '')
+              .toList() ??
+          const [],
       cast: _castFromDetails(d),
       directors: ((d['credits']?['crew'] as List?) ?? [])
           .where(
               (c) => c['job'] == 'Director' || c['job'] == 'Executive Producer')
-          .map((c) => c['name'] as String)
+          .map((c) => c['name'] as String? ?? '')
           .toSet()
           .toList(),
       studios: (d['production_companies'] as List?)
-              ?.map((c) => c['name'] as String)
+              ?.map((c) => c['name'] as String? ?? '')
               .take(5)
               .toList() ??
           const [],
