@@ -417,7 +417,7 @@ class SynologyDownloadService {
     try {
       final f = File(path);
       if (await f.exists()) await f.delete();
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('下载文件清理失败', data: {'error': e.toString()}); }
   }
 
   /// 任务写入串行链：所有 load-modify-save 排队执行，
@@ -447,7 +447,7 @@ class SynologyDownloadService {
         if (await f.exists()) {
           try {
             await f.delete();
-          } catch (_) {}
+          } catch (e) { AppLogger.warn('下载文件清理失败', data: {'error': e.toString()}); }
         }
       }
       tasks.removeAt(idx);
@@ -479,7 +479,7 @@ class SynologyDownloadService {
       if (await f.exists()) {
         try {
           await f.delete();
-        } catch (_) {}
+        } catch (e) { AppLogger.warn('下载文件清理失败', data: {'error': e.toString()}); }
       }
     }
     await _saveDownloaded(downloaded);

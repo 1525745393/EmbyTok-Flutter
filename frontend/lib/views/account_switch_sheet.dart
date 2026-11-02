@@ -4,6 +4,7 @@
 // 切换：停止播放 → 用账号密码重新 login → 重载音乐库。
 
 import 'package:flutter/material.dart';
+import '../utils/logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/recent_playbacks_provider.dart';
@@ -131,7 +132,7 @@ class _AccountSheet extends ConsumerWidget {
     // 停止播放
     try {
       ref.read(synologyPlaybackProvider.notifier).stop();
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('停止播放器失败', data: {'error': e.toString()}); }
 
     // 批次B-F6：读密码/登录/重载音乐库/历史等多跳网络可能耗时数秒，
     // 原实现确认后 UI 长时间无变化。弹不可关闭的加载对话框作即时反馈。

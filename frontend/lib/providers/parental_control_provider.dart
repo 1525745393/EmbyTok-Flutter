@@ -1,4 +1,5 @@
 // 家长控制 / 儿童模式 Provider
+import '../utils/logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -51,7 +52,7 @@ class ParentalControlNotifier extends StateNotifier<ParentalControlState> {
         maxRating: prefs.getString(_keyMaxRating),
         hideRestrictedContent: prefs.getBool(_keyHideRestricted) ?? false,
       );
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('读取家长控制配置失败', data: {'error': e.toString()}); }
   }
 
   Future<void> setKidsMode(bool enabled) async {

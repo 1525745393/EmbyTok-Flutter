@@ -722,7 +722,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
         String? sid;
         try {
           sid = await secureStorage.read(key: serverSynoSidKey(server.id));
-        } catch (_) {}
+        } catch (e) { AppLogger.warn('读取 Synology 会话失败', data: {'error': e.toString()}); }
         final synoAuth = ref.read(synologyAuthProvider.notifier);
         if (sid != null && sid.isNotEmpty) {
           await synoAuth.restoreSession(

@@ -518,7 +518,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
             controller.value.isInitialized) {
           await controller.seekTo(Duration(milliseconds: saved));
         }
-      } catch (_) {}
+      } catch (e) { AppLogger.warn('加载缩略图失败', data: {'error': e.toString()}); }
       return;
     }
 
@@ -723,7 +723,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
           try {
             final prefs = await SharedPreferences.getInstance();
             await prefs.setInt('local_resume_$localHash', 0);
-          } catch (_) {}
+          } catch (e) { AppLogger.warn('加载缩略图失败', data: {'error': e.toString()}); }
         }(), context: 'clearLocalResumeOnEnd(itemId:${widget.item.id})');
       }
     } catch (_) {

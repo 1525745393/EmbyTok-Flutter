@@ -663,7 +663,7 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
       try {
         await ScrapeMediaStore.delete(removed);
         await sp.remove('scrape_${removed.pathHash}');
-      } catch (_) {}
+      } catch (e) { AppLogger.warn('本地视频状态操作失败', data: {'error': e.toString()}); }
     }
   }
 

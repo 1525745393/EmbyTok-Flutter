@@ -396,7 +396,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
         final entity = await AssetEntity.fromId(item.assetId!);
         final file = await entity?.file;
         if (file != null) path = file.path;
-      } catch (_) {}
+      } catch (e) { AppLogger.warn('解析媒体文件失败', data: {'error': e.toString()}); }
     }
     if (path.isEmpty) {
       if (mounted) {

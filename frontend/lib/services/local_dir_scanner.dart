@@ -1,5 +1,6 @@
 import 'dart:io';
 import '../../models/local_video_item.dart';
+import '../utils/logger.dart';
 
 /// 本地文件夹扫描器（P0：用户指定目录）
 ///
@@ -45,7 +46,7 @@ class LocalDirScanner {
             isAppDirFile: false, // 共享存储真实文件路径：视频旁 .nfo + 中央目录双写
             relativePath: parent,
           ));
-        } catch (_) {}
+        } catch (e) { AppLogger.warn('本地目录枚举条目构造失败', data: {'error': e.toString()}); }
       }
       if (result.length >= maxFiles) break;
     }

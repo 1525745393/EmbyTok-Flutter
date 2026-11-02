@@ -151,7 +151,7 @@ class LocalVideoService {
                   subtitlePaths.add(e.path);
                 }
               }
-            } catch (_) {}
+            } catch (e) { AppLogger.warn('本地媒体清理/状态迁移失败', data: {'error': e.toString()}); }
             result.add(LocalVideoItem(
               id: 'app_$hash',
               name: baseName,
@@ -243,7 +243,7 @@ class LocalVideoService {
             break;
           // webdav/smb 源的视频通过文件源浏览页单独管理，不合并到首页
         }
-      } catch (_) {}
+      } catch (e) { AppLogger.warn('本地媒体清理/状态迁移失败', data: {'error': e.toString()}); }
     }
     // App 专属目录始终包含（用户下载的视频）
     all.addAll(await _scanAppDir());
@@ -292,7 +292,7 @@ class LocalVideoService {
       // 清理旁置 .nfo/海报/剧照和中央缓存
       try {
         await ScrapeMediaStore.delete(item);
-      } catch (_) {}
+      } catch (e) { AppLogger.warn('本地媒体清理/状态迁移失败', data: {'error': e.toString()}); }
       // 清理 SharedPreferences：刮削缓存、收藏、续播位置
       try {
         final sp = await SharedPreferences.getInstance();
@@ -300,7 +300,7 @@ class LocalVideoService {
         await sp.remove('local_favorite_${item.pathHash}');
         await sp.remove('local_resume_${item.pathHash}');
         await sp.remove('local_resume_time_${item.pathHash}');
-      } catch (_) {}
+      } catch (e) { AppLogger.warn('本地媒体清理/状态迁移失败', data: {'error': e.toString()}); }
       return true;
     } catch (e) {
       // 失败原因转 bool 上报调用方（批次Q1：不再静默吞错，保留失败线索）
@@ -433,7 +433,7 @@ class LocalVideoService {
     try {
       await ScrapeMediaStore.rename(item.path, newPath,
           pathHash: item.pathHash);
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('本地媒体清理/状态迁移失败', data: {'error': e.toString()}); }
     // 迁移本地状态：旧 pathHash → 新 pathHash
     // 覆盖刮削缓存、续播位置、续播时间戳、收藏（重命名后用户状态不丢，也不残留脏键）
     // 新键必须与扫描时的 pathHash 一致：App 目录文件 = app_<md5(path)>，localDir = localdir:<path>
@@ -443,7 +443,7 @@ class LocalVideoService {
           ? 'app_${md5.convert(utf8.encode(newPath)).toString()}'
           : 'localdir:$newPath';
       await _migrateStateByHash(sp, item.pathHash, newPathHash);
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('本地媒体清理/状态迁移失败', data: {'error': e.toString()}); }
     return newPath;
   }
 
@@ -457,7 +457,7 @@ class LocalVideoService {
       list.insert(0, '$oldPath|$newPath');
       if (list.length > 50) list.removeRange(50, list.length);
       await sp.setStringList(_renameHistoryKey, list);
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('本地媒体清理/状态迁移失败', data: {'error': e.toString()}); }
   }
 
   /// 获取最近重命名历史：list of (oldPath, newPath)
@@ -527,7 +527,7 @@ class LocalVideoService {
       // 中央沙箱同步迁移：pathHash 以 localdir:<绝对路径> 命名，目录改名后
       // md5 文件名变化，平移旧名文件到新名，避免中央元数据/图片孤儿残留
       await ScrapeMediaStore.migrateDir(oldDir, newDir);
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('本地媒体清理/状态迁移失败', data: {'error': e.toString()}); }
   }
 
   /// 单个文件移动后，迁移中央缓存从旧路径到新路径
@@ -541,7 +541,7 @@ class LocalVideoService {
         await sp.setString('$prefix$newPath', raw);
         await sp.remove(oldKey);
       }
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('本地媒体清理/状态迁移失败', data: {'error': e.toString()}); }
   }
 
   /// 撤销最近一次重命名（文件或文件夹）
@@ -588,7 +588,7 @@ class LocalVideoService {
             await oldSibling.rename('$oldBase$suffix');
           }
         }
-      } catch (_) {}
+      } catch (e) { AppLogger.warn('本地媒体清理/状态迁移失败', data: {'error': e.toString()}); }
     }
     // 3. 迁移缓存与本地状态：newPathHash → oldPathHash
     //    目录重命名时内部所有文件的缓存也要反向迁移
@@ -602,7 +602,7 @@ class LocalVideoService {
           'app_${md5.convert(utf8.encode(newPath)).toString()}',
           'app_${md5.convert(utf8.encode(oldPath)).toString()}');
       await _migrateStateByHash(sp, 'localdir:$newPath', 'localdir:$oldPath');
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('本地媒体清理/状态迁移失败', data: {'error': e.toString()}); }
     // 4. 清理整理时创建的空目录（从newPath父目录向上最多删3层）
     try {
       var dir = newPath.substring(0, newPath.lastIndexOf('/'));
@@ -614,7 +614,7 @@ class LocalVideoService {
         await d.delete();
         dir = dir.substring(0, dir.lastIndexOf('/'));
       }
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('本地媒体清理/状态迁移失败', data: {'error': e.toString()}); }
   }
 
   /// 根据刮削元数据一键重命名文件

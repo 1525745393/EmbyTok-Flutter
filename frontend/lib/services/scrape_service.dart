@@ -291,7 +291,7 @@ class ScrapeService {
           scrapedAt: DateTime.now().millisecondsSinceEpoch,
         );
       }
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('刮削结果缓存写入失败', data: {'error': e.toString()}); }
     return null;
   }
 

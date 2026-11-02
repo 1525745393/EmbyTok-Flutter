@@ -35,10 +35,10 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
         if (entity is File) {
           try {
             total += await entity.length();
-          } catch (_) {}
+          } catch (e) { AppLogger.warn('统计缓存大小失败', data: {'error': e.toString()}); }
         }
       }
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('统计缓存大小失败', data: {'error': e.toString()}); }
     return total;
   }
 

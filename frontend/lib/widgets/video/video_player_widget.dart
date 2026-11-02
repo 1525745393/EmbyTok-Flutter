@@ -525,7 +525,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
     // 注销统一控制句柄（避免横屏持有已 dispose 的 State）
     try {
       ref.read(currentPlayerControlProvider.notifier).state = null;
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('播放器操作失败', data: {'error': e.toString()}); }
     _backgroundReleaseTimer?.cancel();
     _positionMs.dispose();
     _isPlayingNotifier.dispose();
@@ -1110,7 +1110,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
           onTimeout: () => throw TimeoutException('本地视频初始化超时'),
         );
         if (isCancelled() || _isDisposed) {
-          try { c.dispose(); } catch (_) {}
+          try { c.dispose(); } catch (e) { AppLogger.warn('播放器操作失败', data: {'error': e.toString()}); }
           return;
         }
         c.setLooping(widget.loop);

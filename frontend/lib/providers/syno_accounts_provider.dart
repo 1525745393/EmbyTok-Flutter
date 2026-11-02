@@ -205,7 +205,7 @@ class SynoAccountsNotifier extends StateNotifier<SynoAccountsState> {
   Future<void> remove(String accountId) async {
     try {
       await _secure.delete(key: _pwdKey(accountId));
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('读取 Synology 账号失败', data: {'error': e.toString()}); }
     state = SynoAccountsState(
       accounts: state.accounts.where((a) => a.accountId != accountId).toList(),
       currentAccountId:

@@ -162,7 +162,7 @@ class ScrapeMediaStore {
                 if (!await standard.exists())
                   await standard.writeAsBytes(bytes);
               }
-            } catch (_) {}
+            } catch (e) { AppLogger.warn('刮削存储清理/写入失败', data: {'error': e.toString()}); }
           }
         }
 
@@ -233,7 +233,7 @@ class ScrapeMediaStore {
                       await pidFile.writeAsBytes(bytes);
                     }
                   }
-                } catch (_) {}
+                } catch (e) { AppLogger.warn('刮削存储清理/写入失败', data: {'error': e.toString()}); }
               }());
             }
           }
@@ -323,7 +323,7 @@ class ScrapeMediaStore {
             'stills',
             '-still.jpg'),
       ]);
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('刮削存储清理/写入失败', data: {'error': e.toString()}); }
   }
 
   /// 补下载演员头像：本地没有但有 personId+profilePath 时，后台下载到沙箱和视频旁 .actors/。
@@ -343,7 +343,7 @@ class ScrapeMediaStore {
         File? pidFile;
         try {
           pidFile = File('${actorsDir.path}/$pid.jpg');
-        } catch (_) {}
+        } catch (e) { AppLogger.warn('刮削存储清理/写入失败', data: {'error': e.toString()}); }
         if (await sandboxFile.exists() && await sandboxFile.length() > 0)
           continue;
         if (pidFile != null &&
@@ -366,9 +366,9 @@ class ScrapeMediaStore {
             final nameFile = File('${actorsDir.path}/$safeName.jpg');
             if (!await nameFile.exists()) await nameFile.writeAsBytes(bytes);
           }
-        } catch (_) {}
+        } catch (e) { AppLogger.warn('刮削存储清理/写入失败', data: {'error': e.toString()}); }
       }
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('刮削存储清理/写入失败', data: {'error': e.toString()}); }
   }
 
   // 查找本地图片文件：先视频旁，不存在则回退中央目录
@@ -420,7 +420,7 @@ class ScrapeMediaStore {
       final dir = File(videoPath).parent;
       final f = File('${dir.path}/.actors/$personId.jpg');
       if (await f.exists() && await f.length() > 0) return f;
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('刮削存储清理/写入失败', data: {'error': e.toString()}); }
     return null;
   }
 
@@ -621,7 +621,7 @@ class ScrapeMediaStore {
         if (await f.exists()) {
           try {
             list = jsonDecode(await f.readAsString()) as List<dynamic>;
-          } catch (_) {}
+          } catch (e) { AppLogger.warn('刮削存储清理/写入失败', data: {'error': e.toString()}); }
         }
         list.insert(0, entry);
         if (list.length > _maxHistory) list = list.sublist(0, _maxHistory);
@@ -677,7 +677,7 @@ class ScrapeMediaStore {
       final f = await _historyPath();
       if (await f.exists()) await f.delete();
       historyChanged.value++;
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('刮削存储清理/写入失败', data: {'error': e.toString()}); }
   }
 
   // ---- 下载 ----

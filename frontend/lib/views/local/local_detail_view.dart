@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../utils/logger.dart';
 import '../../utils/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -109,7 +110,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                             allBackdrops = imgs.backdrops;
                           }
                         }
-                      } catch (_) {}
+                      } catch (e) { AppLogger.warn('加载详情失败', data: {'error': e.toString()}); }
                       // 保证当前主图在列表里
                       if (result.posterPath != null &&
                           !allPosters.contains(result.posterPath)) {

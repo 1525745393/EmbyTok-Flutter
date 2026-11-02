@@ -1,6 +1,7 @@
 // 本地视频独立播放页：直接复用 VideoPageItem（与在线 feed 同一组件），
 // 不再自己维护一套 Stack UI，避免与在线版本漂移。
 import 'package:flutter/material.dart';
+import '../../utils/logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart' show VideoPlayerController;
@@ -66,7 +67,7 @@ class _LocalPlayPageState extends ConsumerState<LocalPlayPage> {
         await prefs.setInt('local_resume_time_$hash',
             DateTime.now().millisecondsSinceEpoch);
       }());
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('保存播放记录失败', data: {'error': e.toString()}); }
   }
 
   @override

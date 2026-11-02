@@ -359,7 +359,7 @@ class FavoriteIncludeTypesNotifier extends StateNotifier<Set<String>> {
       if (list != null) {
         state = list.toSet();
       }
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('读取偏好失败', data: {'error': e.toString()}); }
   }
 
   /// 切换某个类型
@@ -376,7 +376,7 @@ class FavoriteIncludeTypesNotifier extends StateNotifier<Set<String>> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList(kStorageKeyFavoriteIncludeTypes, next.toList());
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('读取偏好失败', data: {'error': e.toString()}); }
   }
 }
 

@@ -1,6 +1,7 @@
 // 本地视频列表页：网格/列表切换 + 搜索 + 排序 + 多选删除 + 权限引导
 // 对应 PRD《本地模式》§4.3 / §6
 import 'package:flutter/material.dart';
+import '../../utils/logger.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -1643,7 +1644,7 @@ class _GridCardState extends State<_GridCard> {
         const ThumbnailSize.square(200),
       );
       if (mounted && data != null) setState(() => _thumb = data);
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('缩略图加载失败', data: {'error': e.toString()}); }
   }
 
   @override
@@ -1967,7 +1968,7 @@ class _VideoThumbnailState extends State<_VideoThumbnail> {
         _VideoThumbnail._cachePut(aid, data);
         if (mounted) setState(() => _thumb = data);
       }
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('缩略图加载失败', data: {'error': e.toString()}); }
   }
 
   @override

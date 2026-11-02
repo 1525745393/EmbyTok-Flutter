@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../utils/logger.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -772,7 +773,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                 scrapedAt: media.scrapedAt,
               );
             }
-          } catch (_) {}
+          } catch (e) { AppLogger.warn('文件源操作失败', data: {'error': e.toString()}); }
         } else {
           media = base;
         }
@@ -1080,7 +1081,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
               await newActorsDir.parent.create(recursive: true);
             await oldActorsDir.rename(newActorsDir.path);
           }
-        } catch (_) {}
+        } catch (e) { AppLogger.warn('文件源操作失败', data: {'error': e.toString()}); }
         ok++;
       } catch (_) {
         fail++;
@@ -1104,7 +1105,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           parent = slash > 0 ? parent.substring(0, slash) : '';
         }
       }
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('文件源操作失败', data: {'error': e.toString()}); }
     if (mounted) {
       Navigator.pop(context); // 关闭加载框
       final msg = StringBuffer('整理完成：移动 $ok 个文件');
@@ -1729,7 +1730,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
               await newActorsDir.parent.create(recursive: true);
             await oldActorsDir.rename(newActorsDir.path);
           }
-        } catch (_) {}
+        } catch (e) { AppLogger.warn('文件源操作失败', data: {'error': e.toString()}); }
         ok++;
       } catch (_) {
         fail++;
@@ -1747,7 +1748,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           cleanedDirs.add(parent);
         }
       }
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('文件源操作失败', data: {'error': e.toString()}); }
     if (mounted) {
       Navigator.pop(context); // 关闭加载框
       final msg = StringBuffer('整理完成：移动 $ok 个文件');
@@ -1987,7 +1988,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           await ScrapeMediaStore.delete(item);
           final sp = await SharedPreferences.getInstance();
           await sp.remove('scrape_${item.pathHash}');
-        } catch (_) {}
+        } catch (e) { AppLogger.warn('文件源操作失败', data: {'error': e.toString()}); }
         ok++;
       } catch (_) {
         fail++;
@@ -2078,7 +2079,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
             await ScrapeMediaStore.delete(item);
             final sp = await SharedPreferences.getInstance();
             await sp.remove('scrape_${item.pathHash}');
-          } catch (_) {}
+          } catch (e) { AppLogger.warn('文件源操作失败', data: {'error': e.toString()}); }
           if (mounted) {
             ScaffoldMessenger.of(context)
                 .showSnackBar(SnackBar(content: Text('已删除: ${item.name}')));

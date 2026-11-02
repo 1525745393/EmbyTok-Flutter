@@ -567,7 +567,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
         _danmakuOpacity = (op != null && op >= 0.1 && op <= 1.0) ? op : 1.0;
         _danmakuSpeed = (spd != null && spd >= 0.05 && spd <= 0.6) ? spd : 0.3;
       });
-    } catch (_) {}
+    } catch (e) { AppLogger.warn('弹幕速度读取失败', data: {'error': e.toString()}); }
   }
 
   Future<void> _showDanmakuSettings() async {
