@@ -1,3 +1,10 @@
+## [2.401.91](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.90...v2.401.91) (2026-11-02)
+
+
+### Bug Fixes
+
+* **test:** VideoPageItem dispose 阶段不再 ref.read，修复 CI 7 个测试失败 ([81fb14e](https://github.com/1525745393/EmbyTok-Flutter/commit/81fb14e2ffb2965a0a8a1e0a2e755550070bcc60))
+
 ## [2.401.90](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.89...v2.401.90) (2026-11-02)
 
 
