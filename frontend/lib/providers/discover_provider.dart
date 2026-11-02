@@ -18,6 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../utils/constants.dart';
+import '../utils/json_isolate.dart';
 import '../utils/logger.dart';
 import 'auth_provider.dart';
 import 'cache_providers.dart';
@@ -117,7 +118,7 @@ class DiscoverNotifier extends StateNotifier<DiscoverState> {
       final genreKey = await accountScopedKey(_kStorageGenresKey);
       final rawGenres = prefs.getString(genreKey);
       if (rawGenres != null && rawGenres.isNotEmpty) {
-        final decoded = jsonDecode(rawGenres);
+        final decoded = await decodeJson(rawGenres);
         if (decoded is List<dynamic>) {
           state = state.copyWith(
             selectedGenreIds: decoded.whereType<String>().toList(),
@@ -127,7 +128,7 @@ class DiscoverNotifier extends StateNotifier<DiscoverState> {
       final tagKey = await accountScopedKey(_kStorageTagsKey);
       final rawTags = prefs.getString(tagKey);
       if (rawTags != null && rawTags.isNotEmpty) {
-        final decoded = jsonDecode(rawTags);
+        final decoded = await decodeJson(rawTags);
         if (decoded is List<dynamic>) {
           state = state.copyWith(
             selectedTagIds: decoded.whereType<String>().toList(),
@@ -137,7 +138,7 @@ class DiscoverNotifier extends StateNotifier<DiscoverState> {
       final collectionKey = await accountScopedKey(_kStorageCollectionsKey);
       final rawCollections = prefs.getString(collectionKey);
       if (rawCollections != null && rawCollections.isNotEmpty) {
-        final decoded = jsonDecode(rawCollections);
+        final decoded = await decodeJson(rawCollections);
         if (decoded is List<dynamic>) {
           state = state.copyWith(
             selectedCollectionIds: decoded.whereType<String>().toList(),

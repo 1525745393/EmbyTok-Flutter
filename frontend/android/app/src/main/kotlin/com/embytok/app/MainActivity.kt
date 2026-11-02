@@ -5,6 +5,7 @@ import android.media.audiofx.Equalizer
 import android.os.Build
 import android.os.Bundle
 import android.app.PictureInPictureParams
+import android.content.Intent
 import android.util.Rational
 import android.view.View
 import androidx.core.view.WindowCompat
@@ -36,6 +37,18 @@ class MainActivity : AudioServiceFragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+    }
+
+    /**
+     * 深链热启动（移动端专项 #5）：App 已在运行（launchMode=singleTop）时，
+     * 把 intent 中的 embytok:// URI 转发给 Flutter 导航。
+     * go_router 13 的 GoRouterInformationProvider 监听 navigation channel 的
+     * pushRouteInformation 自动导航；冷启动深链由 FlutterActivity 默认处理。
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        val uri = intent.data?.toString() ?: return
+        flutterEngine?.navigationChannel?.pushRouteInformation(uri)
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {

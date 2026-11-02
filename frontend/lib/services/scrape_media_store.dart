@@ -11,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/local_video_item.dart';
+import '../utils/json_isolate.dart';
 import '../utils/logger.dart';
 import 'scrape_service.dart';
 import 'tmdb_service.dart';
@@ -620,7 +621,7 @@ class ScrapeMediaStore {
         List<dynamic> list = [];
         if (await f.exists()) {
           try {
-            list = jsonDecode(await f.readAsString()) as List<dynamic>;
+            list = (await decodeJson(await f.readAsString())) as List<dynamic>;
           } catch (e) { AppLogger.warn('刮削存储清理/写入失败', data: {'error': e.toString()}); }
         }
         list.insert(0, entry);
@@ -665,7 +666,7 @@ class ScrapeMediaStore {
     try {
       final f = await _historyPath();
       if (!await f.exists()) return [];
-      final list = jsonDecode(await f.readAsString()) as List<dynamic>;
+      final list = (await decodeJson(await f.readAsString())) as List<dynamic>;
       return list.cast<Map<String, dynamic>>();
     } catch (_) {
       return [];
