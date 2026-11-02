@@ -12,6 +12,7 @@ import '../models/audio_models.dart';
 import '../providers/download_provider.dart';
 import '../providers/synology_playback_provider.dart';
 import '../services/synology_download_service.dart';
+import '../widgets/empty_state_card.dart';
 
 class DownloadsView extends ConsumerStatefulWidget {
   const DownloadsView({super.key});
@@ -216,7 +217,11 @@ class _DownloadingTab extends ConsumerWidget {
         .toList();
 
     if (tasks.isEmpty) {
-      return const Center(child: Text('暂无下载任务'));
+      return const EmptyStateCard(
+        icon: Icons.download_outlined,
+        title: '暂无下载任务',
+        subtitle: '下载中的影片会显示在这里',
+      );
     }
 
     return ListView.separated(
@@ -290,18 +295,10 @@ class _DownloadedTab extends ConsumerWidget {
       ..sort((a, b) => b.downloadedAt.compareTo(a.downloadedAt));
 
     if (songs.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.download_done, size: 56, color: Colors.grey),
-            SizedBox(height: 12),
-            Text('还没有下载歌曲'),
-            SizedBox(height: 4),
-            Text('在播放页下载喜欢的歌曲离线听',
-                style: TextStyle(color: Colors.grey, fontSize: 12)),
-          ],
-        ),
+      return const EmptyStateCard(
+        icon: Icons.download_done,
+        title: '还没有下载歌曲',
+        subtitle: '在播放页下载喜欢的歌曲离线听',
       );
     }
 

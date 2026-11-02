@@ -67,7 +67,9 @@ class _AccountSheet extends ConsumerWidget {
                         color: Colors.orange.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: const Text('默认',
+                      // U18：默认服务器角标用 orange800 提升暗黑下可读性；
+                      // shade800 非常量可求值，Text 不能标 const
+                      child: Text('默认',
                           style: TextStyle(fontSize: 12, color: Colors.orange.shade800)),
                     ),
                 ],

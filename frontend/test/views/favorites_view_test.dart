@@ -763,8 +763,9 @@ void main() {
       expect(find.textContaining('没有找到'), findsOneWidget);
       expect(find.text('###不存在###'), findsOneWidget);
       // 核心断言 3：「清空搜索词」按钮出现（提供显式返回路径）
+      // U12 统一后该空态由 EmptyStateCard 渲染，操作按钮为 FilledButton.tonal
       final clearBtn = find.widgetWithText(
-        OutlinedButton,
+        FilledButton,
         '清空搜索词',
       );
       expect(clearBtn, findsOneWidget);

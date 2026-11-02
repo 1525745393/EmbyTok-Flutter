@@ -12,6 +12,9 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 import '../theme/actor_type_colors.dart';
 import '../utils/utils.dart';
+import '../widgets/empty_state_card.dart';
+import '../widgets/error_state_card.dart';
+import '../widgets/loading_state_card.dart';
 import '../widgets/person_avatar_image.dart';
 
 class ActorsView extends ConsumerStatefulWidget {
@@ -544,32 +547,7 @@ Widget _buildSortChip(String label, String mode) {
   }
 
   Widget _buildLoading({String message = '正在加载演员...'}) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 48,
-            height: 48,
-            child: CircularProgressIndicator(
-              strokeWidth: 3,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            message,
-            style: TextStyle(
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withValues(alpha: 0.6),
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-    );
+    return LoadingStateCard(title: message);
   }
 
   Widget _buildEmptyState(
@@ -646,81 +624,20 @@ Widget _buildSortChip(String label, String mode) {
       );
     }
 
-    // 默认空状态
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.people_outline,
-            size: 64,
-            color: scheme.onSurface.withValues(alpha: 0.3),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '暂无演员',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: scheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '请检查 Emby 服务器是否正常',
-            style: TextStyle(
-              fontSize: 14,
-              color: scheme.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-        ],
-      ),
+    // 默认空状态（U12 统一组件）
+    return const EmptyStateCard(
+      icon: Icons.people_outline,
+      title: '暂无演员',
+      subtitle: '请检查 Emby 服务器是否正常',
     );
   }
 
   Widget _buildError(ColorScheme scheme) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.error_outline,
-            color: scheme.error,
-            size: 48,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '加载演员列表失败',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: scheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '请检查 Emby 服务器是否正常运行',
-            style: TextStyle(
-              color: scheme.onSurface.withValues(alpha: 0.6),
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: scheme.primary,
-              foregroundColor: scheme.onPrimary,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-            icon: const Icon(Icons.refresh, size: 18),
-            label: const Text('重试'),
-            onPressed: _onRefresh,
-          ),
-        ],
-      ),
+    return ErrorStateCard(
+      title: '加载演员列表失败',
+      subtitle: '请检查 Emby 服务器是否正常运行',
+      actionLabel: '重试',
+      onAction: _onRefresh,
     );
   }
 

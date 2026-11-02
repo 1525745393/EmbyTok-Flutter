@@ -157,67 +157,12 @@ class _SearchNoResultHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.fromLTRB(18, 26, 18, 20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        border:
-            Border.all(color: scheme.outlineVariant.withValues(alpha: 0.35)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.search_off, size: 56, color: scheme.onSurfaceVariant),
-          const SizedBox(height: 14),
-          Text(
-            '没有找到「$query」',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: scheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '可以换个关键词试试，或直接清空搜索词返回全部收藏',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              height: 1.35,
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              OutlinedButton.icon(
-                onPressed: onClear,
-                icon: const Icon(Icons.clear_all, size: 16),
-                label: const Text('清空搜索词'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: scheme.primary,
-                  side:
-                      BorderSide(color: scheme.primary.withValues(alpha: 0.55)),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  textStyle: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+    return EmptyStateCard(
+      icon: Icons.search_off,
+      title: '没有找到「$query」',
+      subtitle: '可以换个关键词试试，或直接清空搜索词返回全部收藏',
+      actionLabel: '清空搜索词',
+      onAction: onClear,
     );
   }
 }

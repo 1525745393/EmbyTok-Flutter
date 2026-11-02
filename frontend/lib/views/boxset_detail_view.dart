@@ -8,6 +8,9 @@ import 'package:go_router/go_router.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/image_cache_manager.dart';
+import '../widgets/empty_state_card.dart';
+import '../widgets/error_state_card.dart';
+import '../widgets/loading_state_card.dart';
 
 class BoxsetDetailView extends ConsumerStatefulWidget {
 
@@ -171,24 +174,19 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
             ),
 
             if (_loading)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: CircularProgressIndicator(color: scheme.primary),
-                ),
+              const Padding(
+                padding: EdgeInsets.all(32),
+                child: LoadingStateCard(title: '正在加载合集影片...'),
               )
             else if (_error != null)
               _buildError(scheme)
             else if (_children.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(32),
-                child: Center(
-                  child: Text(
-                    '暂无影片',
-                    style: TextStyle(
-                        color: scheme.onSurface.withValues(alpha: 0.5),
-                        fontSize: 14),
-                  ),
+              const Padding(
+                padding: EdgeInsets.all(32),
+                child: EmptyStateCard(
+                  icon: Icons.video_library_outlined,
+                  title: '暂无影片',
+                  subtitle: '该合集还没有影片',
                 ),
               )
             else
@@ -222,30 +220,10 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
   Widget _buildError(ColorScheme scheme) {
     return Padding(
       padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          Icon(Icons.error_outline, color: scheme.error, size: 36),
-          const SizedBox(height: 8),
-          Text(
-            _error ?? '加载失败',
-            style: TextStyle(
-                color: scheme.onSurface.withValues(alpha: 0.7), fontSize: 14),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: scheme.primary,
-              foregroundColor: scheme.onPrimary,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-            icon: const Icon(Icons.refresh, size: 16),
-            label: const Text('重试'),
-            onPressed: _loadChildren,
-          ),
-        ],
+      child: ErrorStateCard(
+        title: _error ?? '加载失败',
+        actionLabel: '重试',
+        onAction: _loadChildren,
       ),
     );
   }
