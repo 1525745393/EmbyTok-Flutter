@@ -15,13 +15,13 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../providers/video_list_provider.dart';
+import 'video_list_provider.dart';
 // 注意：video_playback_controller.dart 定义的 PlaybackState 类与 audio_service 的同名，
 // 这里 hide 掉本项目的 PlaybackState，让 audio_service.PlaybackState 在本文件中可见
 // （用于 playbackState.add(PlaybackState(...))）。playbackStateProvider 的返回类型
 // 仍由类型推断正确解析，访问 .id 字段不受影响。
-import '../providers/video_playback_controller.dart' hide PlaybackState;
-import '../providers/synology_playback_provider.dart';
+import 'video_playback_controller.dart' hide PlaybackState;
+import 'synology_playback_provider.dart';
 import '../utils/logger.dart';
 
 class EmbytokAudioHandler extends BaseAudioHandler with SeekHandler {

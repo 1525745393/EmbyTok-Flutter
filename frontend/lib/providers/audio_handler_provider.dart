@@ -9,7 +9,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../services/embytok_audio_handler.dart';
+import 'embytok_audio_handler.dart';
 
 /// 全局 AudioHandler Provider
 ///

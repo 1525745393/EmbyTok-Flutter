@@ -2,7 +2,6 @@
 
 export 'api_client.dart';
 export 'emby_server_api.dart';
-export 'embytok_audio_handler.dart';
 export 'embytok_service.dart';
 export 'media_server_api.dart';
 export 'synology_audio_api.dart';
