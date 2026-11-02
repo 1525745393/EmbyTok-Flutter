@@ -108,6 +108,19 @@ class ServersView extends ConsumerWidget {
     await ref.read(activeServerIdProvider.notifier).setActive(server.id);
 
     try {
+      // batchF4：跨类型切换前清理对端会话，避免双登录残留——
+      // 切群晖前清 Emby token，切 Emby/Plex 前清群晖 sid；
+      // 同类型切换不清理（新登录覆盖旧会话即可）。
+      if (server.kind == ServerKind.synology) {
+        if (ref.read(authProvider).isAuthenticated) {
+          await ref.read(authProvider.notifier).logout();
+        }
+      } else {
+        if (ref.read(synologyAuthProvider).isLoggedIn) {
+          await ref.read(synologyAuthProvider.notifier).logout();
+        }
+      }
+
       if (server.kind == ServerKind.synology) {
         // 优先用保存的 sid 会话（避免重复输入密码）
         String? sid;
@@ -129,7 +142,9 @@ class ServersView extends ConsumerWidget {
           try {
             await synoAuth.api.getGenres();
           } catch (_) {
-            await synoAuth.logout();
+            // batchF1：失败路径只用 clearInvalidSession()（清状态+持久化，不切服务模式），
+            // 不可调 logout()——logout 会清空登录态并 setMode(video)，切换失败会把用户登出。
+            await synoAuth.clearInvalidSession();
             final password = await _readPassword(secureStorage, server.id);
             if (password == null) {
               messenger.showSnackBar(const SnackBar(

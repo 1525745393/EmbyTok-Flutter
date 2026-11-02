@@ -190,6 +190,28 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
     }
   }
 
+  /// 清除当前群晖会话状态与持久化（不触发服务模式切换）：
+  ///
+  /// 供服务器切换时 sid 失效回退密码登录使用；logout() 会附带
+  /// setMode(video) 的模式副作用，切换场景误用会导致服务模式被切走。
+  Future<void> clearInvalidSession() async {
+    _api.clearSession();
+    state = const SynologyAuthState();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_kSynoServerUrl);
+      await prefs.remove(_kSynoAccount);
+      await prefs.remove(_kSynoSid);
+    } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
+    try {
+      await _secureStorage.delete(key: _kSynoSidSecure);
+    } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
+  }
+
   /// 退出登录
   Future<void> logout() async {
     try {

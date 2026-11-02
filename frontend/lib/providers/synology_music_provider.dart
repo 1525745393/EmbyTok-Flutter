@@ -275,6 +275,13 @@ class SynologyMusicNotifier extends StateNotifier<SynologyMusicState> {
           await _loadHomeOnce();
           return;
         }
+        // batchF6：续期失败（未保存密码/重登失败）落错误状态，引导用户重新登录，
+        // 避免首页停留在加载中/旧数据且无任何提示。
+        state = state.copyWith(
+          isHomeLoaded: true,
+          error: '会话已过期且无法自动续期，请重新登录',
+        );
+        return;
       }
     } catch (e, st) {
       AppLogger.error('加载首页数据失败', error: e, stackTrace: st);

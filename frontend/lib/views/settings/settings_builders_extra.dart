@@ -525,6 +525,38 @@ extension _SettingsBuilders2 on SettingsView {
   // 安全风险提示对话框已并入 _SelfSignedCertificateTileState._toggle（batch41-F2）；
   // _setAllowSelfSignedCertificate 已提升为库顶层函数（batch41-F2 配套）
 
+  /// 本地媒体库模式的退出按钮（batchF3）：
+  /// 与 [local_library_settings_page] 的「退出本地模式」同语义——
+  /// 同时清 localModeProvider 与 authProvider 注入态，守卫才放行跳登录页。
+  Widget _buildLocalModeExitButton(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          icon: Icon(Icons.logout, color: scheme.onError),
+          label: Text(
+            '退出本地模式',
+            style: TextStyle(color: scheme.onError, fontSize: _kFontSizeXLarge),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: scheme.error,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          onPressed: () {
+            ref.read(localModeProvider.notifier).state = false;
+            ref.read(authProvider.notifier).reset();
+            context.go('/login');
+          },
+        ),
+      ),
+    );
+  }
+
   Widget _buildLogoutButton(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(

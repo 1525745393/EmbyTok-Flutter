@@ -172,9 +172,9 @@ extension _SettingsDialogs3 on SettingsView {
     );
   }
 
-  void _showLogoutDialog(BuildContext context, WidgetRef ref) {
+  Future<void> _showLogoutDialog(BuildContext context, WidgetRef ref) async {
     final scheme = Theme.of(context).colorScheme;
-    showDialog<void>(
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: scheme.surface,
@@ -185,25 +185,38 @@ extension _SettingsDialogs3 on SettingsView {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: Text('取消', style: TextStyle(color: scheme.onSurfaceVariant)),
           ),
           ElevatedButton(
-            onPressed: () {
-              // 按服务模式退出对应服务：音乐模式退群晖，视频模式退 Emby
-              if (ref.read(serviceModeProvider) == AppServiceMode.music) {
-                ref.read(synologyAuthProvider.notifier).logout();
-              } else {
-                ref.read(authProvider.notifier).logout();
-              }
-              Navigator.pop(dialogContext);
-            },
+            onPressed: () => Navigator.pop(dialogContext, true),
             style: ElevatedButton.styleFrom(backgroundColor: scheme.error),
             child: Text('退出', style: TextStyle(color: scheme.onError)),
           ),
         ],
       ),
     );
+    if (confirmed != true || !context.mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    // 按服务模式退出对应服务：音乐模式退群晖（先停播放再登出，避免登出后音乐续响），
+    // 视频模式退 Emby；await 确保完成后守卫才跳转，失败给出反馈。
+    try {
+      if (ref.read(serviceModeProvider) == AppServiceMode.music) {
+        await ref.read(synologyPlaybackProvider.notifier).stop();
+        await ref.read(synologyAuthProvider.notifier).logout();
+      } else {
+        await ref.read(authProvider.notifier).logout();
+      }
+      if (context.mounted) {
+        messenger.showSnackBar(const SnackBar(content: Text('已退出登录')));
+      }
+    } catch (e) {
+      AppLogger.error('退出登录失败', error: e);
+      if (context.mounted) {
+        messenger.showSnackBar(SnackBar(content: Text('退出失败：$e')));
+      }
+    }
   }
 
   Future<void> _launchUrl(String url, BuildContext context) async {

@@ -400,7 +400,12 @@ class SettingsView extends ConsumerWidget {
           ],
         ),
       const SizedBox(height: _kSpacingXXLarge),
-      _buildLogoutButton(context, ref),
+      // batchF3：本地模式用独立的「退出本地模式」按钮（清 localMode + auth，
+      // 守卫才真正放行跳登录页）；主「退出登录」只退 authProvider，本地模式下半退出残留。
+      if (ref.watch(localModeProvider))
+        _buildLocalModeExitButton(context, ref)
+      else
+        _buildLogoutButton(context, ref),
       const SizedBox(height: _kSpacingXXXXLarge),
     ];
   }
