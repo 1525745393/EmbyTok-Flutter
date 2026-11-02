@@ -1,3 +1,10 @@
+## [2.401.90](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.89...v2.401.90) (2026-11-02)
+
+
+### Bug Fixes
+
+* **quality:** 批次Q4 scrape_service 11处非可空强转改可空兜底 ([4f2e9c0](https://github.com/1525745393/EmbyTok-Flutter/commit/4f2e9c0060e583fbf700d5ce7d336f3ea6be8448))
+
 ## [2.401.89](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.88...v2.401.89) (2026-11-02)
 
 
