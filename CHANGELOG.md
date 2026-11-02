@@ -1,3 +1,10 @@
+## [2.401.95](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.94...v2.401.95) (2026-11-02)
+
+
+### Bug Fixes
+
+* **quality:** 全仓 52 处空 catch 收敛为 AppLogger.warn(可观测性) ([e7d61f7](https://github.com/1525745393/EmbyTok-Flutter/commit/e7d61f75ddf38300daa20c9d8298ac5fc03becf8)), closes [#14](https://github.com/1525745393/EmbyTok-Flutter/issues/14)
+
 ## [2.401.94](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.93...v2.401.94) (2026-11-02)
 
 

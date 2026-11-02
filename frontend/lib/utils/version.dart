@@ -8,10 +8,10 @@ library;
 /// 语义化版本号 (MAJOR.MINOR.PATCH)
 /// 注意：此文件由 semantic-release prepareCmd 自动维护，
 /// 同步自 pubspec.yaml。以下手动修改仅用于补齐历史遗留错位
-const String embytokVersion = '2.401.94';
+const String embytokVersion = '2.401.95';
 
 /// 构建号（与 Android versionCode / iOS buildNumber 对齐）
-const int embytokBuildNumber = 1994;
+const int embytokBuildNumber = 1995;
 
 /// 完整版本信息
 String get embytokFullVersion => '$embytokVersion+$embytokBuildNumber';
