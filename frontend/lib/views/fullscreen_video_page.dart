@@ -11,6 +11,7 @@
 // 7. 系统亮度：使用 screen_brightness 实现全局亮度调节，退出时恢复原始亮度
 
 import 'dart:async';
+import '../utils/colors.dart';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart' show ValueListenable;
@@ -573,7 +574,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
     var speed = _danmakuSpeed;
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xFF1E1E1E),
+      backgroundColor: surfaceColorL2,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => SafeArea(
           child: Padding(

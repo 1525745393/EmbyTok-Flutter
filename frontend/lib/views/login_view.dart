@@ -3,6 +3,7 @@
 // 安全：密码通过 flutter_secure_storage 加密存储，防重复提交锁
 
 import 'dart:convert';
+import '../utils/colors.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1177,11 +1178,11 @@ Widget _buildServerTypeSelector(ColorScheme scheme) {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: const Color(0xFF2C8EF4).withValues(alpha: 0.15),
+            color: accentBlue.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(8),
           ),
           child: const Icon(Icons.library_music_outlined,
-              size: 18, color: Color(0xFF2C8EF4)),
+              size: 18, color: accentBlue),
         );
       case ServerType.local:
         return Container(

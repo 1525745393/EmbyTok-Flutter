@@ -141,7 +141,7 @@ extension _SettingsBuilders2 on SettingsView {
     final synoAuth = ref.watch(synologyAuthProvider);
     return settingsTapTile(
       icon: Icons.library_music_outlined,
-      iconColor: const Color(0xFF2C8EF4),
+      iconColor: accentBlue,
       title: '群晖音乐',
       subtitle: synoAuth.isLoggedIn
           ? (synoAuth.account ?? '已登录')

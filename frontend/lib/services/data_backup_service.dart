@@ -68,9 +68,9 @@ class DataBackupService {
       return list.map((e) {
         final j = e as Map<String, dynamic>;
         return {
-          'songId': (j['songId'] ?? '') as String,
-          'title': (j['title'] ?? '') as String,
-          'artist': (j['artist'] ?? '') as String,
+          'songId': j['songId'] as String? ?? '',
+          'title': j['title'] as String? ?? '',
+          'artist': j['artist'] as String? ?? '',
         };
       }).toList();
     } catch (_) {
@@ -165,7 +165,8 @@ class DataBackupService {
 
   Future<void> shareTextFile(String fileName, String content) async {
     final f = await _writeTemp(fileName, content);
-    await SharePlus.instance.share(ShareParams(files: [XFile(f.path)], subject: fileName));
+    await SharePlus.instance
+        .share(ShareParams(files: [XFile(f.path)], subject: fileName));
   }
 
   /// 让用户选择一个文本文件，返回内容（取消返回 null）

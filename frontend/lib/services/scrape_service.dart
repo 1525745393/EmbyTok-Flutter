@@ -7,7 +7,6 @@ import 'tmdb_service.dart';
 
 /// 文件名解析结果
 class ParsedName {
-
   const ParsedName({
     required this.type,
     required this.title,
@@ -23,7 +22,8 @@ class ParsedName {
 }
 
 /// 刮削结果
-class ScrapedMedia { // P2#2：年份未精确匹配时标记
+class ScrapedMedia {
+  // P2#2：年份未精确匹配时标记
 
   const ScrapedMedia({
     required this.tmdbId,
@@ -50,9 +50,9 @@ class ScrapedMedia { // P2#2：年份未精确匹配时标记
   });
 
   factory ScrapedMedia.fromJson(Map<String, dynamic> j) => ScrapedMedia(
-        tmdbId: j['tmdbId'] as int,
-        type: j['type'] as String,
-        title: j['title'] as String,
+        tmdbId: (j['tmdbId'] as int?) ?? 0,
+        type: (j['type'] as String?) ?? 'movie',
+        title: (j['title'] as String?) ?? '',
         year: j['year'] as int?,
         posterPath: j['posterPath'] as String?,
         backdropPath: j['backdropPath'] as String?,
@@ -84,7 +84,8 @@ class ScrapedMedia { // P2#2：年份未精确匹配时标记
   final String? overview;
   final double? rating;
   final List<String> genres;
-  final List<Map<String, String>> cast; // {name, role, character, profilePath, id}
+  final List<Map<String, String>>
+      cast; // {name, role, character, profilePath, id}
   final List<String> directors; // 导演
   final List<String> studios; // 出品公司
   final String? imdbId; // IMDb ID
@@ -136,18 +137,21 @@ class ScrapeService {
     if (m == null) return ScrapeStatus.unscraped;
     final overviewOk = m.overview != null && m.overview!.trim().isNotEmpty;
     final posterOk = m.posterPath != null && m.posterPath!.isNotEmpty;
-    if (!overviewOk || !posterOk || m.cast.isEmpty) return ScrapeStatus.incomplete;
+    if (!overviewOk || !posterOk || m.cast.isEmpty)
+      return ScrapeStatus.incomplete;
     return ScrapeStatus.complete;
   }
 
   /// TV 系列详情缓存（同一部剧只拉一次 getTvDetails）
   static final Map<int, Map<String, dynamic>> _tvDetailsCache = {};
   static final Map<int, Map<String, dynamic>> _movieDetailsCache = {};
+
   /// TV 单集详情缓存（key: "$tvId-$season-$episode"），避免同剧多集重复调 API
   static final Map<String, Map<String, dynamic>> _tvEpisodeCache = {};
   static const _maxCacheEntries = 200;
 
-  static void _cachePut(Map<int, Map<String, dynamic>> cache, int key, Map<String, dynamic> value) {
+  static void _cachePut(Map<int, Map<String, dynamic>> cache, int key,
+      Map<String, dynamic> value) {
     if (cache.length >= _maxCacheEntries) {
       cache.remove(cache.keys.first);
     }
@@ -159,8 +163,8 @@ class ScrapeService {
   static final Map<String, List<Map<String, dynamic>>> _reviewsCache = {};
 
   /// 获取 TMDB 评论（带缓存）；[force]=true 绕过缓存重新请求（用户手动刷新/失败重试）
-  static Future<List<Map<String, dynamic>>> fetchReviews(
-      String type, int id, {bool force = false}) async {
+  static Future<List<Map<String, dynamic>>> fetchReviews(String type, int id,
+      {bool force = false}) async {
     final key = '$type:$id';
     if (!force) {
       final cached = _reviewsCache[key];
@@ -202,7 +206,8 @@ class ScrapeService {
   /// 检测 genre 是否全是英文（无中文字符），说明缓存是早期非中文数据。
   static bool needsChineseRefetch(ScrapedMedia m) {
     if (m.genres.isEmpty) return false;
-    final hasChinese = m.genres.any((g) => RegExp(r'[\u4e00-\u9fff]').hasMatch(g));
+    final hasChinese =
+        m.genres.any((g) => RegExp(r'[\u4e00-\u9fff]').hasMatch(g));
     return !hasChinese;
   }
 
@@ -238,7 +243,10 @@ class ScrapeService {
           backdropPath: details['backdrop_path'] as String? ?? m.backdropPath,
           overview: details['overview'] as String? ?? m.overview,
           rating: (details['vote_average'] as num?)?.toDouble() ?? m.rating,
-          genres: (details['genres'] as List?)?.map((g) => g['name'] as String).toList() ?? m.genres,
+          genres: (details['genres'] as List?)
+                  ?.map((g) => g['name'] as String)
+                  .toList() ??
+              m.genres,
           cast: refreshedCast.isNotEmpty ? refreshedCast : m.cast,
           directors: m.directors,
           studios: m.studios,
@@ -265,7 +273,10 @@ class ScrapeService {
           backdropPath: details['backdrop_path'] as String? ?? m.backdropPath,
           overview: details['overview'] as String? ?? m.overview,
           rating: (details['vote_average'] as num?)?.toDouble() ?? m.rating,
-          genres: (details['genres'] as List?)?.map((g) => g['name'] as String).toList() ?? m.genres,
+          genres: (details['genres'] as List?)
+                  ?.map((g) => g['name'] as String)
+                  .toList() ??
+              m.genres,
           cast: refreshedCast.isNotEmpty ? refreshedCast : m.cast,
           directors: m.directors,
           studios: m.studios,
@@ -311,15 +322,21 @@ class ScrapeService {
         final y = int.tryParse(yMatch.group(0)!);
         if (y != null && y <= nowYear) {
           tvYear = y;
-          title = title.replaceAll(RegExp(r'\(?\s*(19|20)\d{2}\s*\)?'), '').trim();
+          title =
+              title.replaceAll(RegExp(r'\(?\s*(19|20)\d{2}\s*\)?'), '').trim();
         }
       }
       return ParsedName(
-          type: 'tv', title: title, year: tvYear, season: season, episode: episode);
+          type: 'tv',
+          title: title,
+          year: tvYear,
+          season: season,
+          episode: episode);
     }
 
     // 剧集：1x01 / 1X01
-    final xMatch = RegExp(r'(?<!\d)(\d{1,2})[xX](\d{1,2})(?!\d)').firstMatch(name);
+    final xMatch =
+        RegExp(r'(?<!\d)(\d{1,2})[xX](\d{1,2})(?!\d)').firstMatch(name);
     if (xMatch != null) {
       final season = int.tryParse(xMatch.group(1)!);
       final episode = int.tryParse(xMatch.group(2)!);
@@ -330,8 +347,8 @@ class ScrapeService {
     }
 
     // 中文剧集：第一季第一集 / 第1季第1集
-    final cnMatch = RegExp(r'第([一二三四五六七八九十\d]+)季第([一二三四五六七八九十\d]+)集')
-        .firstMatch(name);
+    final cnMatch =
+        RegExp(r'第([一二三四五六七八九十\d]+)季第([一二三四五六七八九十\d]+)集').firstMatch(name);
     if (cnMatch != null) {
       final season = cnToInt(cnMatch.group(1)!);
       final episode = cnToInt(cnMatch.group(2)!);
@@ -360,8 +377,9 @@ class ScrapeService {
       caseSensitive: false,
     ).firstMatch(name);
     if (epOnlyMatch != null) {
-      final episode =
-          cnToInt(epOnlyMatch.group(1) ?? epOnlyMatch.group(2) ?? epOnlyMatch.group(3)!);
+      final episode = cnToInt(epOnlyMatch.group(1) ??
+          epOnlyMatch.group(2) ??
+          epOnlyMatch.group(3)!);
       var title = name.substring(0, epOnlyMatch.start).trim();
       title = _cleanNoise(title);
       return ParsedName(type: 'tv', title: title, season: 1, episode: episode);
@@ -382,7 +400,8 @@ class ScrapeService {
         title = name;
       } else if (yearMatch.start == 0) {
         // 剥离开头的年份；剥离后标题为空说明片名即年份（如 2012），保留原名不提取
-        final stripped = name.replaceAll(RegExp(r'^\s*(19|20)\d{2}\s*'), '').trim();
+        final stripped =
+            name.replaceAll(RegExp(r'^\s*(19|20)\d{2}\s*'), '').trim();
         if (stripped.isEmpty) {
           year = null;
           title = name;
@@ -404,13 +423,25 @@ class ScrapeService {
   static int cnToInt(String s) {
     final n = int.tryParse(s);
     if (n != null) return n;
-    const map = {'一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10};
+    const map = {
+      '一': 1,
+      '二': 2,
+      '三': 3,
+      '四': 4,
+      '五': 5,
+      '六': 6,
+      '七': 7,
+      '八': 8,
+      '九': 9,
+      '十': 10
+    };
     if (s.length == 1) return map[s] ?? 1;
     if (s.startsWith('十')) return 10 + (map[s.substring(1)] ?? 0);
     if (s.endsWith('十')) return (map[s.substring(0, 1)] ?? 1) * 10;
     // 几十几（如二十一、三十五）：十位×10 + 个位
     if (s.length >= 2 && s[s.length - 2] == '十') {
-      return (map[s.substring(0, s.length - 2)] ?? 1) * 10 + (map[s[s.length - 1]] ?? 0);
+      return (map[s.substring(0, s.length - 2)] ?? 1) * 10 +
+          (map[s[s.length - 1]] ?? 0);
     }
     return 1;
   }
@@ -419,17 +450,21 @@ class ScrapeService {
   static String _cleanNoise(String s) {
     return s
         .replaceAll(
-            RegExp(r'\b(1080p|1080i|720p|4K|2160p|2160i|480p|REMUX|WEB|HD|SD)\b',
+            RegExp(
+                r'\b(1080p|1080i|720p|4K|2160p|2160i|480p|REMUX|WEB|HD|SD)\b',
                 caseSensitive: false),
             '')
         .replaceAll(
-            RegExp(r'\b(x264|x265|h264|h265|HEVC|HDR|BluRay|BLURAY|AMZN|NF|NETFLIX|DSNP|WEB-DL|WEBDL|WEBRip|Blu-Ray)\b',
+            RegExp(
+                r'\b(x264|x265|h264|h265|HEVC|HDR|BluRay|BLURAY|AMZN|NF|NETFLIX|DSNP|WEB-DL|WEBDL|WEBRip|Blu-Ray)\b',
                 caseSensitive: false),
             '')
-        .replaceAll(RegExp(r'\b(DDP?\d\.?\d?|AAC|AC3|DTS|5\.1|7\.1|Atmos)\b',
-            caseSensitive: false),
+        .replaceAll(
+            RegExp(r'\b(DDP?\d\.?\d?|AAC|AC3|DTS|5\.1|7\.1|Atmos)\b',
+                caseSensitive: false),
             '')
-        .replaceAll(RegExp(r'\b(EP?\d{1,4}|EP\s*\d+)\b', caseSensitive: false), '')
+        .replaceAll(
+            RegExp(r'\b(EP?\d{1,4}|EP\s*\d+)\b', caseSensitive: false), '')
         .replaceAll(RegExp(r'[【】\[\]()（）]'), ' ')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
@@ -440,9 +475,11 @@ class ScrapeService {
   static bool isSeasonDirName(String dirName) {
     if (dirName.isEmpty) return false;
     final seg = dirName;
-    if (RegExp(r'^[Ss]eason[.\s_-]*\d+', caseSensitive: false).hasMatch(seg)) return true;
+    if (RegExp(r'^[Ss]eason[.\s_-]*\d+', caseSensitive: false).hasMatch(seg))
+      return true;
     if (RegExp(r'^第[一二三四五六七八九十\d]+季').hasMatch(seg)) return true;
-    if (RegExp(r'^[Ss]\d{1,2}$', caseSensitive: false).hasMatch(seg)) return true;
+    if (RegExp(r'^[Ss]\d{1,2}$', caseSensitive: false).hasMatch(seg))
+      return true;
     return false;
   }
 
@@ -457,7 +494,10 @@ class ScrapeService {
     while (i >= 0) {
       final seg = segments[i];
       final cleaned = _cleanNoise(seg.replaceAll(RegExp(r'[.\[\]_]'), ' '));
-      if (cleaned.isEmpty) { i--; continue; }
+      if (cleaned.isEmpty) {
+        i--;
+        continue;
+      }
       // 是季文件夹吗？（兼容 Season.1 / Season 1 / S1 / 第1季 等变体，避免被误当剧名）
       if (isSeasonDirName(seg)) {
         i--;
@@ -498,13 +538,18 @@ class ScrapeService {
       // SxxExx: group(1)=season, group(2)=episode；Season X Episode Y: group(3)/(4)
       // E01/EP01: group(5)=episode；第Y集(阿拉伯): group(6)；第Y集(中文): group(7)，season 默认 1
       final s = m.group(1) ?? m.group(3);
-      final e = m.group(2) ?? m.group(4) ?? m.group(5) ?? m.group(6) ?? m.group(7);
+      final e =
+          m.group(2) ?? m.group(4) ?? m.group(5) ?? m.group(6) ?? m.group(7);
       if (e != null) {
         // cnToInt 兼容阿拉伯与中文数字（一~十）
-        return (season: s != null ? int.tryParse(s) ?? 1 : 1, episode: cnToInt(e));
+        return (
+          season: s != null ? int.tryParse(s) ?? 1 : 1,
+          episode: cnToInt(e)
+        );
       }
     }
-    final num = RegExp(r'(?:^|[.\s_-])(\d{1,3})(?:[.\s_-]|$)').firstMatch(filename);
+    final num =
+        RegExp(r'(?:^|[.\s_-])(\d{1,3})(?:[.\s_-]|$)').firstMatch(filename);
     if (num != null) {
       final ep = int.tryParse(num.group(1)!);
       if (ep != null && ep > 0 && ep <= 999) return (season: 1, episode: ep);
@@ -513,7 +558,8 @@ class ScrapeService {
   }
 
   /// 给单集生成缓存条目（复用系列元数据，仅替换季集号）
-  static ScrapedMedia applyEpisodeInfo(ScrapedMedia base, int season, int episode) {
+  static ScrapedMedia applyEpisodeInfo(
+      ScrapedMedia base, int season, int episode) {
     return ScrapedMedia(
       tmdbId: base.tmdbId,
       type: 'tv',
@@ -539,8 +585,7 @@ class ScrapeService {
   /// 刮削单个文件
   /// [parentDir] 父目录路径（用作剧名兜底，自动跳过 Season 文件夹）
   /// [mediaTypeHint] 文件源指定的媒体类型（movie/tv/short）
-  static Future<ScrapedMedia?> scrapeFile(
-      String pathHash, String filename,
+  static Future<ScrapedMedia?> scrapeFile(String pathHash, String filename,
       {String? parentDir, String? mediaTypeHint}) async {
     if (mediaTypeHint == 'short') return null; // 短视频不刮削
     // 从父目录路径提取剧名（跳过 Season 子目录）
@@ -584,7 +629,10 @@ class ScrapeService {
       }
     }
     // 文件名只有 SxxExx（如 S01E01.mp4）时，用父目录剧名兜底
-    if (parsed.type == 'tv' && parsed.title.isEmpty && seriesName != null && seriesName.isNotEmpty) {
+    if (parsed.type == 'tv' &&
+        parsed.title.isEmpty &&
+        seriesName != null &&
+        seriesName.isNotEmpty) {
       parsed = ParsedName(
         type: 'tv',
         title: seriesName,
@@ -595,7 +643,8 @@ class ScrapeService {
     if (parsed.title.isEmpty) return null;
 
     if (parsed.type == 'tv') {
-      final results = await TmdbService.searchTv(parsed.title, year: parsed.year);
+      final results =
+          await TmdbService.searchTv(parsed.title, year: parsed.year);
       if (results.isEmpty) return null;
       final best = _pickBestTv(results, parsed);
       final first = best.result;
@@ -615,7 +664,8 @@ class ScrapeService {
           final epKey = '${tvId}_${parsed.season}_${parsed.episode}';
           var ep = _tvEpisodeCache[epKey];
           if (ep == null) {
-            ep = await TmdbService.getTvEpisodeDetails(tvId, parsed.season!, parsed.episode!);
+            ep = await TmdbService.getTvEpisodeDetails(
+                tvId, parsed.season!, parsed.episode!);
             if (ep.isNotEmpty) {
               if (_tvEpisodeCache.length >= _maxCacheEntries) {
                 _tvEpisodeCache.remove(_tvEpisodeCache.keys.first);
@@ -655,7 +705,8 @@ class ScrapeService {
       }
       return base;
     } else {
-      final results = await TmdbService.searchMovies(parsed.title, year: parsed.year);
+      final results =
+          await TmdbService.searchMovies(parsed.title, year: parsed.year);
       if (results.isEmpty) return null;
       final best = _pickBestMovie(results, parsed);
       final movieId = best.result['id'] as int;
@@ -671,13 +722,26 @@ class ScrapeService {
 
   static ScrapedMedia _copyWithLowConfidence(ScrapedMedia m, bool lc) {
     return ScrapedMedia(
-      tmdbId: m.tmdbId, type: m.type, title: m.title, year: m.year,
-      posterPath: m.posterPath, backdropPath: m.backdropPath,
-      overview: m.overview, rating: m.rating, genres: m.genres,
-      cast: m.cast, directors: m.directors, studios: m.studios,
-      imdbId: m.imdbId, stillPath: m.stillPath, episodeTitle: m.episodeTitle,
-      season: m.season, episode: m.episode, tvId: m.tvId,
-      certification: m.certification, scrapedAt: m.scrapedAt,
+      tmdbId: m.tmdbId,
+      type: m.type,
+      title: m.title,
+      year: m.year,
+      posterPath: m.posterPath,
+      backdropPath: m.backdropPath,
+      overview: m.overview,
+      rating: m.rating,
+      genres: m.genres,
+      cast: m.cast,
+      directors: m.directors,
+      studios: m.studios,
+      imdbId: m.imdbId,
+      stillPath: m.stillPath,
+      episodeTitle: m.episodeTitle,
+      season: m.season,
+      episode: m.episode,
+      tvId: m.tvId,
+      certification: m.certification,
+      scrapedAt: m.scrapedAt,
       lowConfidence: lc,
     );
   }
@@ -685,19 +749,22 @@ class ScrapeService {
   /// 从搜索结果中选最佳匹配：优先年份吻合，其次标题相似
   static ({Map<String, dynamic> result, bool lowConfidence}) _pickBestMovie(
       List<Map<String, dynamic>> results, ParsedName p) {
-    if (results.length == 1) return (result: results.first, lowConfidence: false);
+    if (results.length == 1)
+      return (result: results.first, lowConfidence: false);
     if (p.year == null) return (result: results.first, lowConfidence: false);
     // 优先年份精确匹配
     for (final r in results) {
       final rd = r['release_date'] as String?;
-      if (rd != null && rd.startsWith('${p.year}')) return (result: r, lowConfidence: false);
+      if (rd != null && rd.startsWith('${p.year}'))
+        return (result: r, lowConfidence: false);
     }
     // 容差 ±1 年
     for (final r in results) {
       final rd = r['release_date'] as String?;
       if (rd == null) continue;
       final y = int.tryParse(rd.substring(0, 4));
-      if (y != null && (y - p.year!).abs() <= 1) return (result: r, lowConfidence: false);
+      if (y != null && (y - p.year!).abs() <= 1)
+        return (result: r, lowConfidence: false);
     }
     return (result: results.first, lowConfidence: true);
   }
@@ -705,17 +772,20 @@ class ScrapeService {
   /// TV 版最佳匹配：用 first_air_date 做年份校验
   static ({Map<String, dynamic> result, bool lowConfidence}) _pickBestTv(
       List<Map<String, dynamic>> results, ParsedName p) {
-    if (results.length == 1) return (result: results.first, lowConfidence: false);
+    if (results.length == 1)
+      return (result: results.first, lowConfidence: false);
     if (p.year == null) return (result: results.first, lowConfidence: false);
     for (final r in results) {
       final rd = r['first_air_date'] as String?;
-      if (rd != null && rd.startsWith('${p.year}')) return (result: r, lowConfidence: false);
+      if (rd != null && rd.startsWith('${p.year}'))
+        return (result: r, lowConfidence: false);
     }
     for (final r in results) {
       final rd = r['first_air_date'] as String?;
       if (rd == null) continue;
       final y = int.tryParse(rd.substring(0, 4));
-      if (y != null && (y - p.year!).abs() <= 1) return (result: r, lowConfidence: false);
+      if (y != null && (y - p.year!).abs() <= 1)
+        return (result: r, lowConfidence: false);
     }
     return (result: results.first, lowConfidence: true);
   }
@@ -725,7 +795,9 @@ class ScrapeService {
     if (d.isEmpty) {
       // 用搜索结果兜底
       final rd = searchResult['release_date'] as String?;
-      final tmdbYear = rd != null && rd.length >= 4 ? int.tryParse(rd.substring(0, 4)) : null;
+      final tmdbYear = rd != null && rd.length >= 4
+          ? int.tryParse(rd.substring(0, 4))
+          : null;
       return ScrapedMedia(
         tmdbId: id,
         type: 'movie',
@@ -739,7 +811,8 @@ class ScrapeService {
       );
     }
     final rd = d['release_date'] as String?;
-    final tmdbYear = rd != null && rd.length >= 4 ? int.tryParse(rd.substring(0, 4)) : null;
+    final tmdbYear =
+        rd != null && rd.length >= 4 ? int.tryParse(rd.substring(0, 4)) : null;
     return ScrapedMedia(
       tmdbId: id,
       type: 'movie',
@@ -749,7 +822,9 @@ class ScrapeService {
       backdropPath: d['backdrop_path'] as String?,
       overview: d['overview'] as String?,
       rating: (d['vote_average'] as num?)?.toDouble(),
-      genres: (d['genres'] as List?)?.map((g) => g['name'] as String).toList() ?? const [],
+      genres:
+          (d['genres'] as List?)?.map((g) => g['name'] as String).toList() ??
+              const [],
       cast: _castFromDetails(d),
       directors: ((d['credits']?['crew'] as List?) ?? [])
           .where((c) => c['job'] == 'Director')
@@ -787,7 +862,9 @@ class ScrapeService {
       Map<String, dynamic> searchResult, ParsedName p, int tvId) {
     if (d.isEmpty) {
       final ffd = searchResult['first_air_date'] as String?;
-      final tmdbYear = ffd != null && ffd.length >= 4 ? int.tryParse(ffd.substring(0, 4)) : null;
+      final tmdbYear = ffd != null && ffd.length >= 4
+          ? int.tryParse(ffd.substring(0, 4))
+          : null;
       return ScrapedMedia(
         tmdbId: tvId,
         type: 'tv',
@@ -804,7 +881,9 @@ class ScrapeService {
       );
     }
     final ffd = d['first_air_date'] as String?;
-    final tmdbYear = ffd != null && ffd.length >= 4 ? int.tryParse(ffd.substring(0, 4)) : null;
+    final tmdbYear = ffd != null && ffd.length >= 4
+        ? int.tryParse(ffd.substring(0, 4))
+        : null;
     return ScrapedMedia(
       tmdbId: tvId,
       type: 'tv',
@@ -817,10 +896,13 @@ class ScrapeService {
       backdropPath: d['backdrop_path'] as String?,
       overview: d['overview'] as String?,
       rating: (d['vote_average'] as num?)?.toDouble(),
-      genres: (d['genres'] as List?)?.map((g) => g['name'] as String).toList() ?? const [],
+      genres:
+          (d['genres'] as List?)?.map((g) => g['name'] as String).toList() ??
+              const [],
       cast: _castFromDetails(d),
       directors: ((d['credits']?['crew'] as List?) ?? [])
-          .where((c) => c['job'] == 'Director' || c['job'] == 'Executive Producer')
+          .where(
+              (c) => c['job'] == 'Director' || c['job'] == 'Executive Producer')
           .map((c) => c['name'] as String)
           .toSet()
           .toList(),
@@ -868,7 +950,9 @@ class ScrapeService {
         // 需要刷新时由用户手动重刮（batch 24 保留 scrapedAt 的语义一并保留）。
         // scrapedAt=0 表示旧版本缓存，兼容加载。
         result[key.substring(_prefix.length)] = media;
-      } catch (e) { AppLogger.warn('刮削缓存解析失败', data: {'key': key, 'error': e.toString()}); }
+      } catch (e) {
+        AppLogger.warn('刮削缓存解析失败', data: {'key': key, 'error': e.toString()});
+      }
     }
     _cache = result;
     return Map.of(result);
@@ -879,7 +963,9 @@ class ScrapeService {
     // 详情页重刮、文件源重刮、整剧重刮均不应把"加入时间"漂移成重刮时刻（batch 24）
     final prev = _cache?[pathHash];
     final ScrapedMedia finalMedia;
-    if (prev != null && prev.scrapedAt > 0 && media.scrapedAt != prev.scrapedAt) {
+    if (prev != null &&
+        prev.scrapedAt > 0 &&
+        media.scrapedAt != prev.scrapedAt) {
       finalMedia = ScrapedMedia(
         tmdbId: media.tmdbId,
         type: media.type,

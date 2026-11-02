@@ -7,6 +7,7 @@
 // - 播放控制：模式 / 上一首 / 播放暂停 / 下一首 / 停止
 
 import 'dart:async';
+import '../utils/colors.dart';
 import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -487,10 +488,10 @@ class _FullPlayerSheetState extends ConsumerState<_FullPlayerSheet> {
           // 进度条
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
-              activeTrackColor: const Color(0xFF2C8EF4),
+              activeTrackColor: accentBlue,
               inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
               thumbColor: Colors.white,
-              overlayColor: const Color(0xFF2C8EF4).withValues(alpha: 0.2),
+              overlayColor: accentBlue.withValues(alpha: 0.2),
               trackHeight: 3,
             ),
             child: Slider(
@@ -548,7 +549,7 @@ class _FullPlayerSheetState extends ConsumerState<_FullPlayerSheet> {
                   ),
                   color: state.mode == SynologyPlaybackMode.listLoop
                       ? Colors.white.withValues(alpha: 0.5)
-                      : const Color(0xFF2C8EF4),
+                      : accentBlue,
                   tooltip: '播放模式：${state.mode.label}',
                   onPressed: notifier.cycleMode,
                 ),
@@ -569,7 +570,7 @@ class _FullPlayerSheetState extends ConsumerState<_FullPlayerSheet> {
                             : Icons.play_circle_filled,
                     size: 62,
                   ),
-                  color: const Color(0xFF2C8EF4),
+                  color: accentBlue,
                   tooltip: state.isPlaying ? '暂停' : '播放',
                   onPressed: state.isLoading ? null : notifier.togglePlay,
                 ),

@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../utils/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -146,7 +147,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                           context: context,
                           builder: (_) => StatefulBuilder(
                             builder: (ctx, setD) => AlertDialog(
-                              backgroundColor: const Color(0xFF1E1E1E),
+                              backgroundColor: surfaceColorL2,
                               title: const Text('刮削完成，滑动选择图片',
                                   style: TextStyle(
                                       color: Colors.white, fontSize: 16)),

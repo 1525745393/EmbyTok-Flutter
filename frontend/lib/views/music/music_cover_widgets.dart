@@ -6,6 +6,7 @@
 // 这些组件在主页面和歌手详情弹层中都被使用，因此提取到共享文件中。
 
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../utils/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -231,12 +232,12 @@ class SourceBadge extends StatelessWidget {
           const Color(0xFFD51007).withValues(alpha: 0.12),
         ),
       ArtistInfoSource.synology => (
-          const Color(0xFF2C8EF4),
-          const Color(0xFF2C8EF4).withValues(alpha: 0.12),
+          accentBlue,
+          accentBlue.withValues(alpha: 0.12),
         ),
       ArtistInfoSource.wikipedia => (
-          const Color(0xFF616161),
-          const Color(0xFF616161).withValues(alpha: 0.12),
+          grey700,
+          grey700.withValues(alpha: 0.12),
         ),
       ArtistInfoSource.none => (null, null),
     };

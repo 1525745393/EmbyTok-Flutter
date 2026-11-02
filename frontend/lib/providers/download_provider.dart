@@ -10,7 +10,9 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../models/audio_models.dart';
 import '../services/synology_download_service.dart';
+import '../utils/safe_unawaited.dart';
 import 'synology_auth_provider.dart';
+
 class DownloadState {
   const DownloadState({
     this.tasks = const [],
@@ -50,7 +52,10 @@ class DownloadNotifier extends StateNotifier<DownloadState> {
     // 注入流 URL 解析器：按 songId 取带 _sid 的播放地址
     SynologyDownloadService.instance.streamUrlResolver = (songId) {
       try {
-        return _ref.read(synologyAuthProvider.notifier).api.getStreamUrl(songId);
+        return _ref
+            .read(synologyAuthProvider.notifier)
+            .api
+            .getStreamUrl(songId);
       } catch (_) {
         return null;
       }
@@ -60,14 +65,18 @@ class DownloadNotifier extends StateNotifier<DownloadState> {
     // 的"移动网时由状态监听处理"不符；现行为与注释一致）。
     // connectivity_plus 5.x：onConnectivityChanged 回调为单值 ConnectivityResult
     _connectivitySub = Connectivity().onConnectivityChanged.listen((result) {
-      _wifiOk =
-          result == ConnectivityResult.wifi || result == ConnectivityResult.ethernet;
+      _wifiOk = result == ConnectivityResult.wifi ||
+          result == ConnectivityResult.ethernet;
     });
-    // 启动时读取一次当前状态，避免订阅回调迟迟不来导致门控未知
-    // checkConnectivity 异步，最终状态由订阅流收敛；此处不阻塞初始化
-    try {
-      unawaited(Connectivity().checkConnectivity());
-    } catch (_) {}
+    // 启动时读取一次当前状态，避免订阅回调迟迟不来导致门控未知；
+    // 结果直接落账 _wifiOk（此前丢弃返回值，首启移动网也放行下载）
+    safeUnawaited(
+      Connectivity().checkConnectivity().then((r) {
+        _wifiOk =
+            r == ConnectivityResult.wifi || r == ConnectivityResult.ethernet;
+      }),
+      context: 'DownloadNotifier 启动网络门控',
+    );
     SynologyDownloadService.instance.canDownloadOnNetwork = () => _wifiOk;
     final tasks = await _svc.loadTasks();
     final downloaded = await _svc.loadDownloaded();

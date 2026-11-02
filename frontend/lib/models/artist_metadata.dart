@@ -29,16 +29,16 @@ enum ArtistMetadataSource {
 
 /// 相似歌手模型
 class SimilarArtist {
-
   const SimilarArtist({
     required this.name,
     this.imageUrl,
   });
 
   factory SimilarArtist.fromJson(Map<String, dynamic> json) => SimilarArtist(
-        name: json['name'] as String,
+        name: (json['name'] as String?) ?? '',
         imageUrl: json['imageUrl'] as String?,
       );
+
   /// 歌手名称
   final String name;
 
@@ -56,7 +56,6 @@ class SimilarArtist {
 /// 包含歌手头像、简介、风格标签、听众数、相似歌手等富元数据。
 /// 所有字段均可空（无数据时为 null），UI 层需处理空状态。
 class ArtistMetadata {
-
   const ArtistMetadata({
     required this.name,
     this.musicBrainzId,
@@ -78,14 +77,16 @@ class ArtistMetadata {
   /// 从 JSON 反序列化
   factory ArtistMetadata.fromJson(Map<String, dynamic> json) {
     return ArtistMetadata(
-      name: json['name'] as String,
+      name: (json['name'] as String?) ?? '',
       musicBrainzId: json['musicBrainzId'] as String?,
       imageUrl: json['imageUrl'] as String?,
       imageSmallUrl: json['imageSmallUrl'] as String?,
       bioSummary: json['bioSummary'] as String?,
       bioContent: json['bioContent'] as String?,
       bioLang: json['bioLang'] as String?,
-      tags: (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      tags: (json['tags'] as List<dynamic>?)
+              ?.map((e) => e as String? ?? '')
+              .toList() ??
           const [],
       listeners: json['listeners'] as int?,
       playcount: json['playcount'] as int?,
@@ -114,6 +115,7 @@ class ArtistMetadata {
         source: ArtistMetadataSource.none,
         cachedAt: DateTime.now(),
       );
+
   /// 歌手名称（主键）
   final String name;
 
@@ -272,5 +274,6 @@ class ArtistMetadata {
   }
 
   /// 判断是否为"无数据"标记
-  bool get isEmpty => source == ArtistMetadataSource.none && !hasImage && !hasBio;
+  bool get isEmpty =>
+      source == ArtistMetadataSource.none && !hasImage && !hasBio;
 }

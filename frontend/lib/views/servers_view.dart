@@ -8,6 +8,7 @@
 // 设计参考：Yamby / AudioDock —— 集中管理，列表 + 编辑表单。
 
 import 'package:flutter/material.dart';
+import '../utils/colors.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -511,7 +512,7 @@ class _ServerCard extends StatelessWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   color: (server.kind == ServerKind.synology
-                          ? const Color(0xFF2C8EF4)
+                          ? accentBlue
                           : Colors.deepPurple)
                       .withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
@@ -521,7 +522,7 @@ class _ServerCard extends StatelessWidget {
                       ? Icons.library_music_outlined
                       : Icons.movie_outlined,
                   color: server.kind == ServerKind.synology
-                      ? const Color(0xFF2C8EF4)
+                      ? accentBlue
                       : Colors.deepPurple,
                   size: 22,
                 ),

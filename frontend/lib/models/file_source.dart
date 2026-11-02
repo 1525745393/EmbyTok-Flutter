@@ -2,7 +2,6 @@
 ///
 /// 参考 VidHub 文件源：本地 / SMB / WebDAV 多源管理。
 class FileSource {
-
   const FileSource({
     required this.id,
     required this.type,
@@ -15,19 +14,21 @@ class FileSource {
   });
 
   factory FileSource.fromJson(Map<String, dynamic> json) => FileSource(
-        id: json['id'] as String,
-        type: FileSourceType.values.byName(json['type'] as String),
-        name: json['name'] as String,
+        id: (json['id'] as String?) ?? '',
+        type: FileSourceType.values.byName((json['type'] as String?) ?? ''),
+        name: (json['name'] as String?) ?? '',
         // 防御：config 里可能有旧数据写入的 bool/int，统一转字符串
         config: (json['config'] as Map?)?.map(
               (k, v) => MapEntry(k.toString(), v?.toString() ?? ''),
             ) ??
             const {},
-        status: FileSourceStatus.values.byName(json['status'] as String),
+        status:
+            FileSourceStatus.values.byName((json['status'] as String?) ?? ''),
         videoCount: json['videoCount'] as int? ?? 0,
         lastScanAt: json['lastScanAt'] == null
             ? null
-            : DateTime.parse(json['lastScanAt'] as String),
+            : DateTime.tryParse(json['lastScanAt'] as String? ?? '') ??
+                DateTime.fromMillisecondsSinceEpoch(0),
         enabled: json['enabled'] as bool? ?? true,
       );
   final String id; // UUID

@@ -9,6 +9,7 @@
 // 交互参考主流音乐 App：列表 + 底部播放条 + 分类 Tab。
 
 import 'dart:async';
+import '../utils/colors.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -195,7 +196,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
       end: Alignment.bottomRight,
       colors: isDark
           ? const [Color(0xFF16324F), Color(0xFF1E6FB8)]
-          : const [Color(0xFF2C8EF4), Color(0xFF63B3F8)],
+          : const [accentBlue, Color(0xFF63B3F8)],
     );
     // 渐变上文字统一白色（深色模式同样适用）
     const onGradient = Colors.white;

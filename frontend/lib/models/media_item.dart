@@ -751,9 +751,6 @@ class MediaItem {
     return thumbnailUrl;
   }
 
-  // 带 Emby URL 的副本（便捷构造）
-  MediaItem withEmbyUrls(String embyServerUrl, String apiKey) => this;
-
   // 复制并修改部分字段
   MediaItem copyWith({
     String? id,

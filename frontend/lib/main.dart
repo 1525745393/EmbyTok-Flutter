@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'utils/colors.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -80,7 +81,7 @@ Future<void> main() async {
     AppLogger.error('Widget 构建失败',
         error: details.exception, stackTrace: details.stack);
     return const Material(
-      color: Color(0xFF1A1A1A),
+      color: imagePlaceholderBackground,
       child: Center(
         child: Padding(
           padding: EdgeInsets.all(24),

@@ -17,10 +17,11 @@ class VideoComment {
   });
 
   factory VideoComment.fromJson(Map<String, dynamic> json) => VideoComment(
-        id: json['id'] as String,
-        itemId: json['itemId'] as String,
-        text: json['text'] as String,
-        createdAt: DateTime.parse(json['createdAt'] as String),
+        id: (json['id'] as String?) ?? '',
+        itemId: (json['itemId'] as String?) ?? '',
+        text: (json['text'] as String?) ?? '',
+        createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+            DateTime.fromMillisecondsSinceEpoch(0),
       );
 
   final String id;
@@ -86,7 +87,10 @@ class VideoCommentsNotifier
       createdAt: DateTime.now(),
     );
     final existing = state[itemId] ?? const <VideoComment>[];
-    state = {...state, itemId: [comment, ...existing]};
+    state = {
+      ...state,
+      itemId: [comment, ...existing]
+    };
     await _persist();
   }
 
@@ -122,8 +126,8 @@ class VideoCommentsNotifier
 }
 
 /// 视频本地评论 provider
-final videoCommentsProvider = StateNotifierProvider<
-    VideoCommentsNotifier, Map<String, List<VideoComment>>>((ref) {
+final videoCommentsProvider = StateNotifierProvider<VideoCommentsNotifier,
+    Map<String, List<VideoComment>>>((ref) {
   final notifier = VideoCommentsNotifier();
   // 延迟加载，避免启动路径阻塞
   Future.microtask(notifier.load);

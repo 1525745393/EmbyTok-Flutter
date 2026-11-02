@@ -1,6 +1,7 @@
 // 本地文件优先海报/背景/演员头像组件
 // 本地文件存在 → Image.file；否则 fallback CDN URL
 import 'dart:io';
+import '../../utils/colors.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../models/local_video_item.dart';
@@ -18,7 +19,7 @@ class LocalPosterImage extends StatefulWidget {
     required this.item,
     required this.posterPath,
     this.fit = BoxFit.cover,
-    this.placeholder = const ColoredBox(color: Color(0xFF2A2A2A)),
+    this.placeholder = const ColoredBox(color: surfaceColorL3),
   });
   final LocalVideoItem item;
   final String? posterPath;
@@ -123,7 +124,7 @@ class _LocalBackdropImageState extends State<LocalBackdropImage> {
 
   Widget _placeholderOrCdn() {
     if (widget.backdropPath == null || widget.backdropPath!.isEmpty) {
-      return const ColoredBox(color: Color(0xFF1A1A1A));
+      return const ColoredBox(color: imagePlaceholderBackground);
     }
     return _cdn();
   }
@@ -131,7 +132,7 @@ class _LocalBackdropImageState extends State<LocalBackdropImage> {
   Widget _cdn() => CachedNetworkImage(
         imageUrl: TmdbService.backdropUrl(widget.backdropPath!),
         fit: widget.fit,
-        errorWidget: (_, __, ___) => const ColoredBox(color: Color(0xFF1A1A1A)),
+        errorWidget: (_, __, ___) => const ColoredBox(color: imagePlaceholderBackground),
       );
 }
 
@@ -183,12 +184,12 @@ class _LocalStillImageState extends State<LocalStillImage> {
 
   Widget _cdn() {
     if (widget.stillPath == null || widget.stillPath!.isEmpty) {
-      return const ColoredBox(color: Color(0xFF1A1A1A));
+      return const ColoredBox(color: imagePlaceholderBackground);
     }
     return CachedNetworkImage(
       imageUrl: TmdbService.posterUrl(widget.stillPath!, size: 'w300'),
       fit: widget.fit,
-      errorWidget: (_, __, ___) => const ColoredBox(color: Color(0xFF1A1A1A)),
+      errorWidget: (_, __, ___) => const ColoredBox(color: imagePlaceholderBackground),
     );
   }
 }

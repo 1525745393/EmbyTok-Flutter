@@ -2,12 +2,14 @@
 // 优化：组件提取、配置化、UI 优化、新增功能
 
 import 'dart:async';
+import '../utils/colors.dart';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show LicenseRegistry, kDebugMode;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show Clipboard, ClipboardData, HapticFeedback;
+import 'package:flutter/services.dart'
+    show Clipboard, ClipboardData, HapticFeedback;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:open_filex/open_filex.dart';
@@ -105,301 +107,310 @@ class SettingsView extends ConsumerWidget {
         padding: EdgeInsets.fromLTRB(
             0, 8, 0, 8 + MediaQuery.paddingOf(context).bottom),
         children: [
-          // 本地媒体库模式入口：统一跳转到本地媒体库设置页
-          if (ref.watch(localModeProvider))
-            ListTile(
-              leading: const Icon(Icons.smartphone_outlined, color: Colors.purple),
-              title: const Text('本地媒体库'),
-              subtitle: const Text('文件源管理、扫描、刮削、退出本地模式'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const LocalLibrarySettingsPage()),
-              ),
-            ),
-          // 视频库设置（PR #66：视频流 / 推荐可分别设置；音乐模式隐藏）
-          if (!isMusicMode)
-            _buildSectionEntry(
-              context,
-              ref,
-              '视频库',
-              Icons.video_library_outlined,
-              Colors.deepPurple,
-              '选择媒体库、排除已观看',
-              (context, ref) => [
-                _buildFeedLibraryTile(context, ref),
-                _buildFeedExcludePlayedTile(context, ref),
-              ],
-            ),
-          // 规则筛选（二级页面：推荐/关注/发现 三个 Tab）
-          if (!isMusicMode)
-            _buildSectionEntry(
-              context,
-              ref,
-              '规则筛选',
-              Icons.rule_outlined,
-              Colors.pink,
-              '推荐/关注/发现页的数据源、类型、评分等规则',
-              (context, ref) => [
-                ListTile(
-                  leading: const Icon(Icons.tune_outlined, color: Colors.pink),
-                  title: const Text('规则配置'),
-                  subtitle: const Text('推荐页 / 关注页 / 发现页的筛选规则'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _openRulesPage(context),
-                ),
-              ],
-            ),
-          // 播放设置（音乐模式隐藏：均为视频播放器设置）
-          if (!isMusicMode)
-            _buildSectionEntry(
-              context,
-              ref,
-              '播放',
-              Icons.play_circle_outline,
-              Colors.green,
-              '自动播放、倍速、手势控制',
-              (context, ref) => [
-                _buildAutoPlayTile(context, ref),
-                _buildAutoResumeAfterInterruptionTile(context, ref),
-                _buildFullscreenGestureBackTile(context, ref),
-                _buildPlaybackRateTile(context, ref),
-                _buildGestureControlTile(context, ref),
-              ],
-            ),
-          // 播放器引擎设置（音乐模式隐藏）
-          if (!isMusicMode)
-            _buildSectionEntry(
-              context,
-              ref,
-              '播放器',
-              Icons.movie_outlined,
-              Colors.orange,
-              '引擎选择、硬解、画面缩放、弹幕',
-              (context, ref) => [
-                _buildPlayerEngineTile(context, ref),
-                _buildThirdPartyFallbackTile(context, ref),
-                _buildMpvHwDecTile(context, ref),
-                _buildMpvCacheTile(context, ref),
-                _buildMpvAssStyleTile(context, ref),
-                _buildPlaybackInfoOsdTile(context, ref),
-                _buildAudioOffsetTile(context, ref),
-                _buildVideoFitTile(context, ref),
-                _buildAutoPlayNextTile(context, ref),
-                _buildDanmakuTile(context, ref),
-              ],
-            ),
-          // 字幕设置（音乐模式隐藏）
-          if (!isMusicMode)
-            _buildSectionEntry(
-              context,
-              ref,
-              '字幕',
-              Icons.closed_caption_outlined,
-              Colors.teal,
-              '语言、字号、颜色、位置、时间偏移',
-              (context, ref) => [
-                _buildSubtitleLanguageTile(context, ref),
-                _buildSubtitleSizeTile(context, ref),
-                _buildSubtitleColorTile(context, ref),
-                _buildSubtitlePositionTile(context, ref),
-                _buildSubtitleShadowTile(context, ref),
-                _buildSubtitleTimeOffsetTile(context, ref),
-              ],
-            ),
-          // 外观设置
-          _buildSectionEntry(
-            context,
-            ref,
-            '外观',
-            Icons.palette_outlined,
-            Colors.indigo,
-            '主题、语言、屏幕方向',
-            (context, ref) => [
-              _buildThemeTile(context, ref),
-              _buildLanguageTile(context, ref),
-              if (!isMusicMode) _buildOrientationTile(context, ref),
-              SwitchListTile(
-                secondary: const Icon(Icons.phonelink_setup_outlined, color: Colors.indigo),
-                title: const Text('避开刘海屏'),
-                subtitle: const Text('顶部预留状态栏空间，避免内容被刘海遮挡'),
-                value: ref.watch(notchAvoidanceProvider),
-                onChanged: (v) =>
-                    ref.read(notchAvoidanceProvider.notifier).set(v),
-              ),
-            ],
-          ),
-          // 服务器与账户设置（配置服务器是进入 App 的前提，放在靠前位置）
-          _buildSectionEntry(
-            context,
-            ref,
-            '服务器与账户',
-            Icons.cloud_outlined,
-            Colors.blue,
-            'Emby 服务器、服务模式、账户证书',
-            (context, ref) => [
-              _buildServiceModeSelector(context, ref),
-              _buildServerRegistryTile(context, ref),
-              if (!isMusicMode) ...[
-                _buildServerGroupLabel(
-                    context, ref, '视频数据源', Icons.movie_outlined),
-                _buildServerInfoTile(context, ref),
-              ],
-              _buildServerGroupLabel(
-                  context, ref, '账户', Icons.account_circle_outlined),
-              _buildProfileTile(context, ref),
-              _buildSelfSignedCertificateTile(context, ref),
-            ],
-          ),
-          // 存储与缓存设置
-          _buildSectionEntry(
-            context,
-            ref,
-            '存储与缓存',
-            Icons.storage_outlined,
-            Colors.grey,
-            '缓存管理、日志、重置设置',
-            (context, ref) => [
-              _buildCacheTile(context, ref),
-              _buildCacheManagementTile(context, ref),
-              _buildSmartCacheTile(context, ref),
-              _buildResetSettingsTile(context, ref),
-              _buildExportLogsTile(context, ref),
-              _buildClearLogsTile(context, ref),
-            ],
-          ),
-          // 音乐库设置
-          _buildSectionEntry(
-            context,
-            ref,
-            '音乐库',
-            Icons.library_music_outlined,
-            const Color(0xFF2C8EF4),
-            '群晖 Audio Station、歌手元数据',
-            (context, ref) => [
-              _buildServerGroupLabel(
-                  context, ref, '音乐数据源', Icons.library_music_outlined),
-              _buildSynologyMusicTile(context, ref),
-              _buildLastFmTile(context, ref),
-              _buildNasMetadataSyncTile(context, ref),
-              _buildServerGroupLabel(
-                  context, ref, '歌手元数据', Icons.person_outline),
-              _buildArtistMetadataCacheTile(context, ref),
-              _buildBatchScanTile(context, ref),
-            ],
-          ),
-          // 通用工具
-          _buildSectionEntry(
-            context,
-            ref,
-            '通用工具',
-            Icons.tune,
-            Colors.teal,
-            '观看统计、年度报告、网络诊断、反馈',
-            (context, ref) => [
-              if (!isMusicMode) _buildWatchStatsTile(context, ref),
-              _buildYearReportTile(context, ref),
-              _buildNetworkDiagnosticTile(context, ref),
-              _buildFeedbackTile(context, ref),
-            ],
-          ),
-          // 家长控制
-          _buildSectionEntry(
-            context,
-            ref,
-            '家长控制',
-            Icons.family_restroom,
-            Colors.green,
-            '儿童模式、评分限制、PIN 锁',
-            (context, ref) => [
-              SwitchListTile(
-                title: const Text('儿童模式'),
-                subtitle: const Text('启用后仅显示适合儿童的内容'),
-                value: ref.watch(parentalControlProvider).kidsModeEnabled,
-                onChanged: (v) =>
-                    ref.read(parentalControlProvider.notifier).setKidsMode(v),
-              ),
-              ListTile(
-                leading: const Icon(Icons.star_outline),
-                title: const Text('最高允许评分'),
-                subtitle: Text(
-                    ref.watch(parentalControlProvider).maxRating ?? '不限制'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _showRatingPicker(context, ref),
-              ),
-              SwitchListTile(
-                title: const Text('隐藏受限内容'),
-                subtitle: const Text('隐藏超过评分限制的影片'),
-                value:
-                    ref.watch(parentalControlProvider).hideRestrictedContent,
-                onChanged: (v) => ref
-                    .read(parentalControlProvider.notifier)
-                    .setHideRestricted(v),
-              ),
-              ListTile(
-                leading: const Icon(Icons.timer_outlined),
-                title: const Text('每日观影限时'),
-                subtitle: const Text('限制儿童每日使用时长（预留）'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('观影限时功能即将推出')),
-                  );
-                },
-              ),
-              // PIN 锁
-              ListTile(
-                leading: const Icon(Icons.lock_outline),
-                title: const Text('应用 PIN 锁'),
-                subtitle: Text(
-                    ref.watch(pinLockProvider).isEmpty ? '未设置' : '已启用'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _showPinLockDialog(context, ref),
-              ),
-            ],
-          ),
-          // 关于
-          _buildSectionEntry(
-            context,
-            ref,
-            '关于',
-            Icons.info_outline,
-            Colors.blueGrey,
-            '版本、检查更新、打赏支持',
-            (context, ref) => [
-              _buildAboutTile(context, ref),
-              _buildCheckUpdateTile(context, ref),
-              _buildDownloadMirrorTile(context, ref),
-              _buildDonateTile(context, ref),
-              _buildVersionTile(context, ref),
-            ],
-          ),
-          // 开发者选项（仅开发模式显示）
-          if (kDebugMode)
-            _buildSectionEntry(
-              context,
-              ref,
-              '开发者选项',
-              Icons.developer_mode,
-              Colors.purple,
-              '性能监控等调试工具',
-              (context, ref) => [
-                _buildPerformanceMonitorTile(context, ref),
-              ],
-            ),
-          const SizedBox(height: _kSpacingXXLarge),
-          _buildLogoutButton(context, ref),
-          const SizedBox(height: _kSpacingXXXXLarge),
+          ..._buildBodyList(context, ref, scheme, isMusicMode),
         ],
       ),
     );
+  }
+
+  /// 设置项主体列表：本地媒体库入口 + 视频/音乐等全部分组
+  /// （从 build 抽出，避免 320 行单方法；分组内容顺序与原先完全一致）
+  List<Widget> _buildBodyList(
+    BuildContext context,
+    WidgetRef ref,
+    ColorScheme scheme,
+    bool isMusicMode,
+  ) {
+    return [
+      // 本地媒体库模式入口：统一跳转到本地媒体库设置页
+      if (ref.watch(localModeProvider))
+        ListTile(
+          leading: const Icon(Icons.smartphone_outlined, color: Colors.purple),
+          title: const Text('本地媒体库'),
+          subtitle: const Text('文件源管理、扫描、刮削、退出本地模式'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const LocalLibrarySettingsPage()),
+          ),
+        ),
+      // 视频库设置（PR #66：视频流 / 推荐可分别设置；音乐模式隐藏）
+      if (!isMusicMode)
+        _buildSectionEntry(
+          context,
+          ref,
+          '视频库',
+          Icons.video_library_outlined,
+          Colors.deepPurple,
+          '选择媒体库、排除已观看',
+          (context, ref) => [
+            _buildFeedLibraryTile(context, ref),
+            _buildFeedExcludePlayedTile(context, ref),
+          ],
+        ),
+      // 规则筛选（二级页面：推荐/关注/发现 三个 Tab）
+      if (!isMusicMode)
+        _buildSectionEntry(
+          context,
+          ref,
+          '规则筛选',
+          Icons.rule_outlined,
+          Colors.pink,
+          '推荐/关注/发现页的数据源、类型、评分等规则',
+          (context, ref) => [
+            ListTile(
+              leading: const Icon(Icons.tune_outlined, color: Colors.pink),
+              title: const Text('规则配置'),
+              subtitle: const Text('推荐页 / 关注页 / 发现页的筛选规则'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _openRulesPage(context),
+            ),
+          ],
+        ),
+      // 播放设置（音乐模式隐藏：均为视频播放器设置）
+      if (!isMusicMode)
+        _buildSectionEntry(
+          context,
+          ref,
+          '播放',
+          Icons.play_circle_outline,
+          Colors.green,
+          '自动播放、倍速、手势控制',
+          (context, ref) => [
+            _buildAutoPlayTile(context, ref),
+            _buildAutoResumeAfterInterruptionTile(context, ref),
+            _buildFullscreenGestureBackTile(context, ref),
+            _buildPlaybackRateTile(context, ref),
+            _buildGestureControlTile(context, ref),
+          ],
+        ),
+      // 播放器引擎设置（音乐模式隐藏）
+      if (!isMusicMode)
+        _buildSectionEntry(
+          context,
+          ref,
+          '播放器',
+          Icons.movie_outlined,
+          Colors.orange,
+          '引擎选择、硬解、画面缩放、弹幕',
+          (context, ref) => [
+            _buildPlayerEngineTile(context, ref),
+            _buildThirdPartyFallbackTile(context, ref),
+            _buildMpvHwDecTile(context, ref),
+            _buildMpvCacheTile(context, ref),
+            _buildMpvAssStyleTile(context, ref),
+            _buildPlaybackInfoOsdTile(context, ref),
+            _buildAudioOffsetTile(context, ref),
+            _buildVideoFitTile(context, ref),
+            _buildAutoPlayNextTile(context, ref),
+            _buildDanmakuTile(context, ref),
+          ],
+        ),
+      // 字幕设置（音乐模式隐藏）
+      if (!isMusicMode)
+        _buildSectionEntry(
+          context,
+          ref,
+          '字幕',
+          Icons.closed_caption_outlined,
+          Colors.teal,
+          '语言、字号、颜色、位置、时间偏移',
+          (context, ref) => [
+            _buildSubtitleLanguageTile(context, ref),
+            _buildSubtitleSizeTile(context, ref),
+            _buildSubtitleColorTile(context, ref),
+            _buildSubtitlePositionTile(context, ref),
+            _buildSubtitleShadowTile(context, ref),
+            _buildSubtitleTimeOffsetTile(context, ref),
+          ],
+        ),
+      // 外观设置
+      _buildSectionEntry(
+        context,
+        ref,
+        '外观',
+        Icons.palette_outlined,
+        Colors.indigo,
+        '主题、语言、屏幕方向',
+        (context, ref) => [
+          _buildThemeTile(context, ref),
+          _buildLanguageTile(context, ref),
+          if (!isMusicMode) _buildOrientationTile(context, ref),
+          SwitchListTile(
+            secondary: const Icon(Icons.phonelink_setup_outlined,
+                color: Colors.indigo),
+            title: const Text('避开刘海屏'),
+            subtitle: const Text('顶部预留状态栏空间，避免内容被刘海遮挡'),
+            value: ref.watch(notchAvoidanceProvider),
+            onChanged: (v) => ref.read(notchAvoidanceProvider.notifier).set(v),
+          ),
+        ],
+      ),
+      // 服务器与账户设置（配置服务器是进入 App 的前提，放在靠前位置）
+      _buildSectionEntry(
+        context,
+        ref,
+        '服务器与账户',
+        Icons.cloud_outlined,
+        Colors.blue,
+        'Emby 服务器、服务模式、账户证书',
+        (context, ref) => [
+          _buildServiceModeSelector(context, ref),
+          _buildServerRegistryTile(context, ref),
+          if (!isMusicMode) ...[
+            _buildServerGroupLabel(context, ref, '视频数据源', Icons.movie_outlined),
+            _buildServerInfoTile(context, ref),
+          ],
+          _buildServerGroupLabel(
+              context, ref, '账户', Icons.account_circle_outlined),
+          _buildProfileTile(context, ref),
+          _buildSelfSignedCertificateTile(context, ref),
+        ],
+      ),
+      // 存储与缓存设置
+      _buildSectionEntry(
+        context,
+        ref,
+        '存储与缓存',
+        Icons.storage_outlined,
+        Colors.grey,
+        '缓存管理、日志、重置设置',
+        (context, ref) => [
+          _buildCacheTile(context, ref),
+          _buildCacheManagementTile(context, ref),
+          _buildSmartCacheTile(context, ref),
+          _buildResetSettingsTile(context, ref),
+          _buildExportLogsTile(context, ref),
+          _buildClearLogsTile(context, ref),
+        ],
+      ),
+      // 音乐库设置
+      _buildSectionEntry(
+        context,
+        ref,
+        '音乐库',
+        Icons.library_music_outlined,
+        accentBlue,
+        '群晖 Audio Station、歌手元数据',
+        (context, ref) => [
+          _buildServerGroupLabel(
+              context, ref, '音乐数据源', Icons.library_music_outlined),
+          _buildSynologyMusicTile(context, ref),
+          _buildLastFmTile(context, ref),
+          _buildNasMetadataSyncTile(context, ref),
+          _buildServerGroupLabel(context, ref, '歌手元数据', Icons.person_outline),
+          _buildArtistMetadataCacheTile(context, ref),
+          _buildBatchScanTile(context, ref),
+        ],
+      ),
+      // 通用工具
+      _buildSectionEntry(
+        context,
+        ref,
+        '通用工具',
+        Icons.tune,
+        Colors.teal,
+        '观看统计、年度报告、网络诊断、反馈',
+        (context, ref) => [
+          if (!isMusicMode) _buildWatchStatsTile(context, ref),
+          _buildYearReportTile(context, ref),
+          _buildNetworkDiagnosticTile(context, ref),
+          _buildFeedbackTile(context, ref),
+        ],
+      ),
+      // 家长控制
+      _buildSectionEntry(
+        context,
+        ref,
+        '家长控制',
+        Icons.family_restroom,
+        Colors.green,
+        '儿童模式、评分限制、PIN 锁',
+        (context, ref) => [
+          SwitchListTile(
+            title: const Text('儿童模式'),
+            subtitle: const Text('启用后仅显示适合儿童的内容'),
+            value: ref.watch(parentalControlProvider).kidsModeEnabled,
+            onChanged: (v) =>
+                ref.read(parentalControlProvider.notifier).setKidsMode(v),
+          ),
+          ListTile(
+            leading: const Icon(Icons.star_outline),
+            title: const Text('最高允许评分'),
+            subtitle:
+                Text(ref.watch(parentalControlProvider).maxRating ?? '不限制'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showRatingPicker(context, ref),
+          ),
+          SwitchListTile(
+            title: const Text('隐藏受限内容'),
+            subtitle: const Text('隐藏超过评分限制的影片'),
+            value: ref.watch(parentalControlProvider).hideRestrictedContent,
+            onChanged: (v) =>
+                ref.read(parentalControlProvider.notifier).setHideRestricted(v),
+          ),
+          ListTile(
+            leading: const Icon(Icons.timer_outlined),
+            title: const Text('每日观影限时'),
+            subtitle: const Text('限制儿童每日使用时长（预留）'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('观影限时功能即将推出')),
+              );
+            },
+          ),
+          // PIN 锁
+          ListTile(
+            leading: const Icon(Icons.lock_outline),
+            title: const Text('应用 PIN 锁'),
+            subtitle: Text(ref.watch(pinLockProvider).isEmpty ? '未设置' : '已启用'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showPinLockDialog(context, ref),
+          ),
+        ],
+      ),
+      // 关于
+      _buildSectionEntry(
+        context,
+        ref,
+        '关于',
+        Icons.info_outline,
+        Colors.blueGrey,
+        '版本、检查更新、打赏支持',
+        (context, ref) => [
+          _buildAboutTile(context, ref),
+          _buildCheckUpdateTile(context, ref),
+          _buildDownloadMirrorTile(context, ref),
+          _buildDonateTile(context, ref),
+          _buildVersionTile(context, ref),
+        ],
+      ),
+      // 开发者选项（仅开发模式显示）
+      if (kDebugMode)
+        _buildSectionEntry(
+          context,
+          ref,
+          '开发者选项',
+          Icons.developer_mode,
+          Colors.purple,
+          '性能监控等调试工具',
+          (context, ref) => [
+            _buildPerformanceMonitorTile(context, ref),
+          ],
+        ),
+      const SizedBox(height: _kSpacingXXLarge),
+      _buildLogoutButton(context, ref),
+      const SizedBox(height: _kSpacingXXXXLarge),
+    ];
   }
 
   /// 打开规则筛选二级页面（推荐/关注/发现 三个 Tab）
   void _openRulesPage(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute<Widget>(builder: (_) => DefaultTabController(
+      MaterialPageRoute<Widget>(
+        builder: (_) => DefaultTabController(
           length: 3,
           child: Scaffold(
             appBar: AppBar(
@@ -675,7 +686,8 @@ class SettingsView extends ConsumerWidget {
       trailing: const Icon(Icons.chevron_right),
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute<Widget>(builder: (_) => NetworkDiagnosticPage(serverUrl: serverUrl),
+        MaterialPageRoute<Widget>(
+          builder: (_) => NetworkDiagnosticPage(serverUrl: serverUrl),
         ),
       ),
     );
@@ -722,10 +734,12 @@ class SettingsView extends ConsumerWidget {
               },
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: ratings.map((r) => RadioListTile<String>(
-                      title: Text(r),
-                      value: r,
-                    )).toList(),
+                children: ratings
+                    .map((r) => RadioListTile<String>(
+                          title: Text(r),
+                          value: r,
+                        ))
+                    .toList(),
               ),
             ),
             ListTile(
@@ -745,15 +759,14 @@ class SettingsView extends ConsumerWidget {
   Future<void> _showPinLockDialog(BuildContext context, WidgetRef ref) async {
     final currentPin = ref.read(pinLockProvider);
     final controller = TextEditingController();
-    await showDialog<Widget>(context: context,
+    await showDialog<Widget>(
+      context: context,
       builder: (context) => AlertDialog(
         title: Text(currentPin.isEmpty ? '设置 PIN 锁' : '修改/关闭 PIN 锁'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(currentPin.isEmpty
-                ? '输入 4 位数字 PIN'
-                : '输入当前 PIN 以验证'),
+            Text(currentPin.isEmpty ? '输入 4 位数字 PIN' : '输入当前 PIN 以验证'),
             const SizedBox(height: 16),
             TextField(
               controller: controller,
@@ -820,7 +833,8 @@ class SettingsView extends ConsumerWidget {
 
   Future<void> _showSetNewPinDialog(BuildContext context, WidgetRef ref) async {
     final controller = TextEditingController();
-    await showDialog<Widget>(context: context,
+    await showDialog<Widget>(
+      context: context,
       builder: (context) => AlertDialog(
         title: const Text('输入新 PIN'),
         content: TextField(

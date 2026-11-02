@@ -5,6 +5,12 @@ import 'package:flutter/material.dart';
 /// 主色：粉紫色（用于按钮、强调色、收藏图标等）
 const Color primaryPink = Color(0xFFE91E63);
 
+/// 业务蓝：Emby/媒体库强调色（登录、服务器、全屏播放器进度等）
+const Color accentBlue = Color(0xFF2C8EF4);
+
+/// 图片占位/加载失败底色
+const Color imagePlaceholderBackground = Color(0xFF1A1A1A);
+
 /// 历史页图标色：浅粉色
 const Color historyPink = Color(0xFFFF5983);
 

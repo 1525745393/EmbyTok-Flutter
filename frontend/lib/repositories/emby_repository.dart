@@ -10,6 +10,7 @@ import 'package:dio/dio.dart';
 import '../models/models.dart';
 import '../services/embytok_service.dart';
 import 'media_repository.dart';
+import '../utils/logger.dart';
 
 /// Emby 媒体仓库实现
 ///
@@ -421,8 +422,10 @@ class EmbyRepository implements MediaRepository {
           serverUrl: serverUrl,
           token: token,
         );
-      } catch (_) {
-        return const <MediaItem>[];
+      } catch (e) {
+        if (e is AppError && e.statusCode == 404) return const <MediaItem>[];
+        AppLogger.warn('获取推荐电影失败（非 404）', data: {'error': e.toString()});
+        rethrow;
       }
     }
 
@@ -434,8 +437,10 @@ class EmbyRepository implements MediaRepository {
           serverUrl: serverUrl,
           token: token,
         );
-      } catch (_) {
-        return const <MediaItem>[];
+      } catch (e) {
+        if (e is AppError && e.statusCode == 404) return const <MediaItem>[];
+        AppLogger.warn('获取推荐剧集失败（非 404）', data: {'error': e.toString()});
+        rethrow;
       }
     }
 
@@ -464,9 +469,13 @@ class EmbyRepository implements MediaRepository {
         serverUrl: serverUrl,
         token: token,
       );
-    } catch (_) {
-      // 老版本 Emby / Jellyfin 无此端点：横幅静默不显示，不影响推荐流
-      return const <NativeRecGroup>[];
+    } catch (e) {
+      if (e is AppError && e.statusCode == 404) {
+        // 老版本 Emby / Jellyfin 无此端点：横幅静默不显示，不影响推荐流
+        return const <NativeRecGroup>[];
+      }
+      AppLogger.warn('获取推荐分组失败（非 404）', data: {'error': e.toString()});
+      rethrow;
     }
   }
 

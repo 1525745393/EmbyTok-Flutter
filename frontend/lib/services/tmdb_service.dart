@@ -4,6 +4,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../l10n/app_translations.dart';
+import '../utils/logger.dart';
 
 class TmdbService {
   static const String _defaultKey = '21e1b8e8a506b3247bbdeba79611c5e5';
@@ -47,27 +49,47 @@ class TmdbService {
   static String personUrl(String path, {String size = 'h632'}) =>
       '$_imgBase/$size$path';
 
+  /// 当前 UI 语言对应的 TMDB language 参数（zh→zh-CN，en→en-US；未保存则跟随系统）
+  static Future<String> _currentLanguage() async {
+    final loc = await AppLocale.load();
+    return loc?.languageCode == 'en' ? 'en-US' : 'zh-CN';
+  }
+
   /// 获取演员详情
   static Future<Map<String, dynamic>?> getPersonDetails(int personId) async {
     if (!isConfigured) return null;
+    final lang = await _currentLanguage();
     try {
       final r = await http
-          .get(Uri.parse('$_base/person/$personId?api_key=$_apiKey&language=zh-CN'))
+          .get(Uri.parse(
+              '$_base/person/$personId?api_key=$_apiKey&language=$lang'))
           .timeout(const Duration(seconds: 8));
-      if (r.statusCode == 200) return jsonDecode(r.body) as Map<String, dynamic>;
-    } catch (_) {}
+      if (r.statusCode == 200)
+        return jsonDecode(r.body) as Map<String, dynamic>;
+    } catch (e) {
+      AppLogger.warn('TMDB 演员接口失败（网络/超时），已 rethrow 触发错误态',
+          data: {'error': e.toString()});
+      rethrow;
+    }
     return null;
   }
 
   /// 获取演员作品（combined credits，电影+电视剧）
   static Future<Map<String, dynamic>?> getPersonCredits(int personId) async {
     if (!isConfigured) return null;
+    final lang = await _currentLanguage();
     try {
       final r = await http
-          .get(Uri.parse('$_base/person/$personId/combined_credits?api_key=$_apiKey&language=zh-CN'))
+          .get(Uri.parse(
+              '$_base/person/$personId/combined_credits?api_key=$_apiKey&language=$lang'))
           .timeout(const Duration(seconds: 8));
-      if (r.statusCode == 200) return jsonDecode(r.body) as Map<String, dynamic>;
-    } catch (_) {}
+      if (r.statusCode == 200)
+        return jsonDecode(r.body) as Map<String, dynamic>;
+    } catch (e) {
+      AppLogger.warn('TMDB 演员接口失败（网络/超时），已 rethrow 触发错误态',
+          data: {'error': e.toString()});
+      rethrow;
+    }
     return null;
   }
 
@@ -83,7 +105,7 @@ class TmdbService {
       if (r1.statusCode == 200) {
         final data = jsonDecode(r1.body);
         for (final g in data['genres'] ?? []) {
-          results[g['id'] as int] = g['name'] as String;
+          results[(g['id'] as int?) ?? 0] = (g['name'] as String?) ?? '';
         }
       }
       // 剧集类型
@@ -93,7 +115,7 @@ class TmdbService {
       if (r2.statusCode == 200) {
         final data = jsonDecode(r2.body);
         for (final g in data['genres'] ?? []) {
-          results[g['id'] as int] = g['name'] as String;
+          results[(g['id'] as int?) ?? 0] = (g['name'] as String?) ?? '';
         }
       }
       return results;
@@ -104,8 +126,9 @@ class TmdbService {
 
   /// 搜索影片
   static Future<List<Map<String, dynamic>>> searchMovies(String query,
-      {int? year, String language = 'zh-CN'}) async {
+      {int? year, String? language}) async {
     if (!isConfigured || query.isEmpty) return [];
+    final lang = language ?? await _currentLanguage();
     try {
       final encoded = Uri.encodeQueryComponent(query);
       List<Map<String, dynamic>> results;
@@ -115,7 +138,7 @@ class TmdbService {
           final yp = '&year=$year';
           final r = await http
               .get(Uri.parse(
-                  '$_base/search/movie?api_key=$_apiKey&query=$encoded$yp&language=$language&include_adult=false'))
+                  '$_base/search/movie?api_key=$_apiKey&query=$encoded$yp&language=$lang&include_adult=false'))
               .timeout(const Duration(seconds: 6));
           if (r.statusCode == 200) {
             final data = jsonDecode(r.body);
@@ -130,7 +153,7 @@ class TmdbService {
       }
       final r = await http
           .get(Uri.parse(
-              '$_base/search/movie?api_key=$_apiKey&query=$encoded&language=$language&include_adult=false'))
+              '$_base/search/movie?api_key=$_apiKey&query=$encoded&language=$lang&include_adult=false'))
           .timeout(const Duration(seconds: 6));
       if (r.statusCode != 200) return [];
       final data = jsonDecode(r.body);
@@ -147,10 +170,11 @@ class TmdbService {
   static Future<List<Map<String, dynamic>>> getRecommendations(
       int movieId) async {
     if (!isConfigured) return [];
+    final lang = await _currentLanguage();
     try {
       final r = await http
           .get(Uri.parse(
-              '$_base/movie/$movieId/recommendations?api_key=$_apiKey&language=zh-CN'))
+              '$_base/movie/$movieId/recommendations?api_key=$_apiKey&language=$lang'))
           .timeout(const Duration(seconds: 6));
       if (r.statusCode != 200) return [];
       final data = jsonDecode(r.body);
@@ -165,10 +189,11 @@ class TmdbService {
   static Future<List<Map<String, dynamic>>> getTvRecommendations(
       int tvId) async {
     if (!isConfigured) return [];
+    final lang = await _currentLanguage();
     try {
       final r = await http
           .get(Uri.parse(
-              '$_base/tv/$tvId/recommendations?api_key=$_apiKey&language=zh-CN'))
+              '$_base/tv/$tvId/recommendations?api_key=$_apiKey&language=$lang'))
           .timeout(const Duration(seconds: 6));
       if (r.statusCode != 200) return [];
       final data = jsonDecode(r.body);
@@ -186,10 +211,11 @@ class TmdbService {
   static Future<List<Map<String, dynamic>>> getPersonMovieCredits(
       int personId) async {
     if (!isConfigured) return [];
+    final lang = await _currentLanguage();
     try {
       final r = await http
           .get(Uri.parse(
-              '$_base/person/$personId/combined_credits?api_key=$_apiKey&language=zh-CN'))
+              '$_base/person/$personId/combined_credits?api_key=$_apiKey&language=$lang'))
           .timeout(const Duration(seconds: 6));
       if (r.statusCode != 200) return [];
       final data = jsonDecode(r.body);
@@ -206,6 +232,7 @@ class TmdbService {
   static Future<List<Map<String, dynamic>>> searchTv(String query,
       {int? year}) async {
     if (!isConfigured || query.isEmpty) return [];
+    final lang = await _currentLanguage();
     try {
       final encoded = Uri.encodeQueryComponent(query);
       List<Map<String, dynamic>> results;
@@ -215,7 +242,7 @@ class TmdbService {
           final yp = '&first_air_date_year=$year';
           final r = await http
               .get(Uri.parse(
-                  '$_base/search/tv?api_key=$_apiKey&query=$encoded$yp&language=zh-CN'))
+                  '$_base/search/tv?api_key=$_apiKey&query=$encoded$yp&language=$lang'))
               .timeout(const Duration(seconds: 6));
           if (r.statusCode == 200) {
             final data = jsonDecode(r.body);
@@ -231,7 +258,7 @@ class TmdbService {
       // 第二次：去掉年份重试（避免首播日期不精确导致漏搜）
       final r = await http
           .get(Uri.parse(
-              '$_base/search/tv?api_key=$_apiKey&query=$encoded&language=zh-CN'))
+              '$_base/search/tv?api_key=$_apiKey&query=$encoded&language=$lang'))
           .timeout(const Duration(seconds: 6));
       if (r.statusCode != 200) return [];
       final data = jsonDecode(r.body);
@@ -247,10 +274,11 @@ class TmdbService {
   /// 电影详情（含演职员）
   static Future<Map<String, dynamic>> getMovieDetails(int movieId) async {
     if (!isConfigured) return {};
+    final lang = await _currentLanguage();
     try {
       final r = await http
           .get(Uri.parse(
-              '$_base/movie/$movieId?api_key=$_apiKey&append_to_response=credits,external_ids,release_dates&language=zh-CN'))
+              '$_base/movie/$movieId?api_key=$_apiKey&append_to_response=credits,external_ids,release_dates&language=$lang'))
           .timeout(const Duration(seconds: 6));
       if (r.statusCode != 200) return {};
       return jsonDecode(r.body) as Map<String, dynamic>;
@@ -262,10 +290,11 @@ class TmdbService {
   /// 剧集详情（含演职员）
   static Future<Map<String, dynamic>> getTvDetails(int tvId) async {
     if (!isConfigured) return {};
+    final lang = await _currentLanguage();
     try {
       final r = await http
           .get(Uri.parse(
-              '$_base/tv/$tvId?api_key=$_apiKey&append_to_response=credits,external_ids,content_ratings&language=zh-CN'))
+              '$_base/tv/$tvId?api_key=$_apiKey&append_to_response=credits,external_ids,content_ratings&language=$lang'))
           .timeout(const Duration(seconds: 6));
       if (r.statusCode != 200) return {};
       return jsonDecode(r.body) as Map<String, dynamic>;
@@ -278,10 +307,11 @@ class TmdbService {
   static Future<Map<String, dynamic>> getTvEpisodeDetails(
       int tvId, int season, int episode) async {
     if (!isConfigured) return {};
+    final lang = await _currentLanguage();
     try {
       final r = await http
           .get(Uri.parse(
-              '$_base/tv/$tvId/season/$season/episode/$episode?api_key=$_apiKey&language=zh-CN'))
+              '$_base/tv/$tvId/season/$season/episode/$episode?api_key=$_apiKey&language=$lang'))
           .timeout(const Duration(seconds: 6));
       if (r.statusCode != 200) return {};
       return jsonDecode(r.body) as Map<String, dynamic>;
@@ -296,23 +326,28 @@ class TmdbService {
   }
 
   /// 获取电影全部海报和背景图（用户选择用哪张）
-  static Future<({List<String> posters, List<String> backdrops})> getMovieImages(int movieId) async {
+  static Future<({List<String> posters, List<String> backdrops})>
+      getMovieImages(int movieId) async {
     if (!isConfigured) return (posters: <String>[], backdrops: <String>[]);
     try {
       final r = await http
-          .get(Uri.parse('$_base/movie/$movieId/images?api_key=$_apiKey&include_image_language=zh,en,null'))
+          .get(Uri.parse(
+              '$_base/movie/$movieId/images?api_key=$_apiKey&include_image_language=zh,en,null'))
           .timeout(const Duration(seconds: 6));
-      if (r.statusCode != 200) return (posters: <String>[], backdrops: <String>[]);
+      if (r.statusCode != 200)
+        return (posters: <String>[], backdrops: <String>[]);
       final data = jsonDecode(r.body) as Map<String, dynamic>;
       final posters = <String>[
         for (final m in (data['posters'] as List? ?? []))
-          if (((m as Map<String, dynamic>)['file_path'] as String? ?? '').isNotEmpty)
-            m['file_path'] as String,
+          if (((m as Map<String, dynamic>)['file_path'] as String? ?? '')
+              .isNotEmpty)
+            (m['file_path'] as String?) ?? '',
       ];
       final backdrops = <String>[
         for (final m in (data['backdrops'] as List? ?? []))
-          if (((m as Map<String, dynamic>)['file_path'] as String? ?? '').isNotEmpty)
-            m['file_path'] as String,
+          if (((m as Map<String, dynamic>)['file_path'] as String? ?? '')
+              .isNotEmpty)
+            (m['file_path'] as String?) ?? '',
       ];
       return (posters: posters, backdrops: backdrops);
     } catch (_) {
@@ -321,23 +356,28 @@ class TmdbService {
   }
 
   /// 获取电视剧全部海报和背景图
-  static Future<({List<String> posters, List<String> backdrops})> getTvImages(int tvId) async {
+  static Future<({List<String> posters, List<String> backdrops})> getTvImages(
+      int tvId) async {
     if (!isConfigured) return (posters: <String>[], backdrops: <String>[]);
     try {
       final r = await http
-          .get(Uri.parse('$_base/tv/$tvId/images?api_key=$_apiKey&include_image_language=zh,en,null'))
+          .get(Uri.parse(
+              '$_base/tv/$tvId/images?api_key=$_apiKey&include_image_language=zh,en,null'))
           .timeout(const Duration(seconds: 6));
-      if (r.statusCode != 200) return (posters: <String>[], backdrops: <String>[]);
+      if (r.statusCode != 200)
+        return (posters: <String>[], backdrops: <String>[]);
       final data = jsonDecode(r.body) as Map<String, dynamic>;
       final posters = <String>[
         for (final m in (data['posters'] as List? ?? []))
-          if (((m as Map<String, dynamic>)['file_path'] as String? ?? '').isNotEmpty)
-            m['file_path'] as String,
+          if (((m as Map<String, dynamic>)['file_path'] as String? ?? '')
+              .isNotEmpty)
+            (m['file_path'] as String?) ?? '',
       ];
       final backdrops = <String>[
         for (final m in (data['backdrops'] as List? ?? []))
-          if (((m as Map<String, dynamic>)['file_path'] as String? ?? '').isNotEmpty)
-            m['file_path'] as String,
+          if (((m as Map<String, dynamic>)['file_path'] as String? ?? '')
+              .isNotEmpty)
+            (m['file_path'] as String?) ?? '',
       ];
       return (posters: posters, backdrops: backdrops);
     } catch (_) {
@@ -348,12 +388,14 @@ class TmdbService {
   /// 影片评论（reviews，按 total_pages 分页聚合，上限 3 页防滥用）
   static Future<List<Map<String, dynamic>>> getMovieReviews(int movieId) async {
     if (!isConfigured) return [];
+    final lang = await _currentLanguage();
     final reviews = <Map<String, dynamic>>[];
     var page = 1;
     while (true) {
       try {
         final r = await http
-            .get(Uri.parse('$_base/movie/$movieId/reviews?api_key=$_apiKey&language=zh-CN&page=$page'))
+            .get(Uri.parse(
+                '$_base/movie/$movieId/reviews?api_key=$_apiKey&language=$lang&page=$page'))
             .timeout(const Duration(seconds: 6));
         if (r.statusCode != 200) break;
         final data = jsonDecode(r.body);
@@ -375,9 +417,11 @@ class TmdbService {
     final reviews = <Map<String, dynamic>>[];
     var page = 1;
     while (true) {
+      final lang = await _currentLanguage();
       try {
         final r = await http
-            .get(Uri.parse('$_base/tv/$tvId/reviews?api_key=$_apiKey&language=zh-CN&page=$page'))
+            .get(Uri.parse(
+                '$_base/tv/$tvId/reviews?api_key=$_apiKey&language=$lang&page=$page'))
             .timeout(const Duration(seconds: 6));
         if (r.statusCode != 200) break;
         final data = jsonDecode(r.body);

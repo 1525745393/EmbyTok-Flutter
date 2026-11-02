@@ -255,324 +255,11 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
     }
     return;
   }
-  final type = item.type;
-  final year = item.displayYear;
-  final duration = item.formattedDuration;
-  final rating = item.displayRating;
-  final genres = item.displayGenres;
-  final studios = item.studioNames;
-  final overview = item.overview;
-  final people = item.people;
-  final scheme = Theme.of(context).colorScheme;
-  final seriesName = item.seriesName;
-  final isEpisode =
-      type == 'Episode' || (seriesName != null && seriesName.isNotEmpty);
-
-  // 用 Emby Primary 海报（带认证 token），构造完整图片 URL
-  final container = ProviderScope.containerOf(context);
-  final auth = container.read(authProvider);
-  final posterUrl = item.thumbnailUrlWithAuth(
-    auth.embyServerUrl,
-    auth.token,
-    maxWidth: 500,
-  );
-  // 高清版 Primary 海报（用于全屏查看）
-  final posterUrlHiRes = item.thumbnailUrlWithAuth(
-    auth.embyServerUrl,
-    auth.token,
-    maxWidth: 1280,
-  );
-  final backdropUrl = item.backdropUrl(
-    embyServerUrl: auth.embyServerUrl,
-    apiKey: auth.token,
-    maxWidth: 1280,
-  );
-  // Emby Thumb 横版缩略图（用于详情页右侧展示）
-  final thumbUrl = item.imageUrl(
-    'Thumb',
-    embyServerUrl: auth.embyServerUrl,
-    apiKey: auth.token,
-    maxWidth: 600,
-  );
-  // 高清版 Thumb（用于全屏查看）
-  final thumbUrlHiRes = item.imageUrl(
-    'Thumb',
-    embyServerUrl: auth.embyServerUrl,
-    apiKey: auth.token,
-    maxWidth: 1280,
-  );
-  final httpHeaders = auth.token != null && auth.token!.isNotEmpty
-      ? embyAuthHeaders(auth.token!)
-      : <String, String>{};
-
-  List<Person>? actors;
-  List<Person>? directors;
-  if (people != null && people.isNotEmpty) {
-    actors =
-        people.where((p) => p.type.toLowerCase() == 'actor').take(5).toList();
-    directors = people
-        .where((p) => p.type.toLowerCase().contains('director'))
-        .take(3)
-        .toList();
-  }
-
   showModalBottomSheet<void>(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
-    builder: (context) {
-      return DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        minChildSize: 0.3,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (context, scrollController) {
-          return ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            child: Container(
-              decoration: BoxDecoration(
-                color: scheme.surface.withValues(alpha: 0.95),
-              ),
-              child: Stack(
-                children: [
-                  // 背景模糊海报（用 Emby backdrop + BackdropFilter 真正模糊）
-                  if (backdropUrl != null)
-                    Positioned.fill(
-                      child: Image.network(
-                        backdropUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                      ),
-                    ),
-                  // 真正模糊
-                  if (backdropUrl != null)
-                    Positioned.fill(
-                      child: RepaintBoundary(
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                          child: Container(
-                            color: scheme.surface.withValues(alpha: 0.3),
-                          ),
-                        ),
-                      ),
-                    ),
-                  // 深色遮罩
-                  Positioned.fill(
-                    child: Container(
-                      color: scheme.surface.withValues(alpha: 0.7),
-                    ),
-                  ),
-                  // 内容
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-                    child: ListView(
-                      controller: scrollController,
-                      children: [
-                        Center(
-                          child: Container(
-                            width: 40,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: scheme.onSurface.withValues(alpha: 0.14),
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        // 封面海报 + 视频缩略图（Emby Primary 竖版 + Thumb 横版）
-                        if (posterUrl != null || thumbUrl != null)
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // 左侧：Primary 竖版海报（2:3）
-                              if (posterUrl != null)
-                                GestureDetector(
-                                  onTap: () => showFullScreenImageViewer(
-                                    context,
-                                    posterUrlHiRes ?? posterUrl,
-                                    headers: httpHeaders.isNotEmpty
-                                        ? httpHeaders
-                                        : null,
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: CachedNetworkImage(
-                                      imageUrl: posterUrl,
-                                      httpHeaders: httpHeaders.isNotEmpty
-                                          ? httpHeaders
-                                          : null,
-                                      width: 110,
-                                      height: 165,
-                                      fit: BoxFit.cover,
-                                      placeholder: (_, __) => Container(
-                                        width: 110,
-                                        height: 165,
-                                        color: scheme.onSurface
-                                            .withValues(alpha: 0.1),
-                                        child: const Center(
-                                            child: CircularProgressIndicator()),
-                                      ),
-                                      errorWidget: (_, __, ___) => Container(
-                                        width: 110,
-                                        height: 165,
-                                        color: scheme.onSurface
-                                            .withValues(alpha: 0.1),
-                                        child: Icon(Icons.movie,
-                                            size: 40,
-                                            color: scheme.onSurfaceVariant),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              if (posterUrl != null && thumbUrl != null)
-                                const SizedBox(width: 12),
-                              // 右侧：Thumb 横版视频缩略图
-                              if (thumbUrl != null)
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () => showFullScreenImageViewer(
-                                      context,
-                                      thumbUrlHiRes ?? thumbUrl,
-                                      headers: httpHeaders.isNotEmpty
-                                          ? httpHeaders
-                                          : null,
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: CachedNetworkImage(
-                                        imageUrl: thumbUrl,
-                                        httpHeaders: httpHeaders.isNotEmpty
-                                            ? httpHeaders
-                                            : null,
-                                        height: 165,
-                                        fit: BoxFit.cover,
-                                        placeholder: (_, __) => Container(
-                                          height: 165,
-                                          color: scheme.onSurface
-                                              .withValues(alpha: 0.1),
-                                          child: const Center(
-                                              child:
-                                                  CircularProgressIndicator()),
-                                        ),
-                                        errorWidget: (_, __, ___) => Container(
-                                          height: 165,
-                                          color: scheme.onSurface
-                                              .withValues(alpha: 0.1),
-                                          child: Icon(Icons.image,
-                                              size: 40,
-                                              color: scheme.onSurfaceVariant),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        const SizedBox(height: 16),
-                        // 标题 + 收藏 + 分享
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(item.title,
-                                  style: TextStyle(
-                                      color: scheme.onSurface,
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w700)),
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.share,
-                                  color: scheme.onSurfaceVariant, size: 20),
-                              onPressed: () {
-                                final url =
-                                    '${auth.embyServerUrl}/web/index.html#!/details?id=${item.id}';
-                                Clipboard.setData(ClipboardData(text: url));
-                                final messenger = ScaffoldMessenger.of(context);
-                                Navigator.pop(context);
-                                messenger.showSnackBar(
-                                  const SnackBar(content: Text('分享链接已复制到剪贴板')),
-                                );
-                              },
-                            ),
-                            _FavoriteButton(item: item),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        _InfoActionRow(item: item),
-                        const SizedBox(height: 8),
-                        _VideoInfoSubtitle(
-                          type: type,
-                          year: year,
-                          isEpisode: isEpisode,
-                          seriesName: item.seriesName,
-                          season: item.parentIndexNumber,
-                          episode: item.indexNumber,
-                        ),
-                        const SizedBox(height: 20),
-                        _VideoInfoRowItems(
-                          item: item,
-                          duration: duration,
-                          rating: rating,
-                          genres: genres,
-                          studios: studios,
-                        ),
-                        const SizedBox(height: 24),
-                        if (overview != null && overview.isNotEmpty) ...[
-                          const _VideoInfoSectionLabel('简介'),
-                          const SizedBox(height: 8),
-                          _OverviewExpandable(text: overview),
-                          const SizedBox(height: 24),
-                        ],
-                        // 技术参数：视频编码/分辨率/HDR/杜比/音频编码（PRD 播放前媒体信息卡）
-                        _buildTechInfoSection(context, item),
-                        if (actors != null && actors.isNotEmpty) ...[
-                          const _VideoInfoSectionLabel('主演'),
-                          const SizedBox(height: 8),
-                          _PersonChipList(people: actors),
-                          const SizedBox(height: 24),
-                        ],
-                        if (directors != null && directors.isNotEmpty) ...[
-                          const _VideoInfoSectionLabel('导演'),
-                          const SizedBox(height: 8),
-                          _PersonChipList(people: directors),
-                          const SizedBox(height: 24),
-                        ],
-                        // 剧集导航：上一集 / 下一集
-                        if (isEpisode && item.seriesId != null)
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              OutlinedButton.icon(
-                                onPressed: () {
-                                  final c = ProviderScope.containerOf(context);
-                                  _navigateToEpisode(context, c, item, -1);
-                                },
-                                icon: const Icon(Icons.skip_previous),
-                                label: const Text('上一集'),
-                              ),
-                              OutlinedButton.icon(
-                                onPressed: () {
-                                  final c = ProviderScope.containerOf(context);
-                                  _navigateToEpisode(context, c, item, 1);
-                                },
-                                icon: const Icon(Icons.skip_next),
-                                label: const Text('下一集'),
-                              ),
-                            ],
-                          ),
-                        const SizedBox(height: 16),
-                        // 相似推荐
-                        _SimilarSection(itemId: item.id),
-                        const SizedBox(height: 16),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    },
+    builder: (context) => _buildVideoInfoSheetBody(context, item),
   );
 }
 
@@ -1587,5 +1274,319 @@ Widget _techRow(BuildContext context, String label, String value,
         ),
       ],
     ),
+  );
+}
+
+/// 视频信息面板内容（数据派生 + 可拖拽面板；从 showVideoInfoSheet 抽出，减少单函数长度）
+Widget _buildVideoInfoSheetBody(BuildContext context, MediaItem item) {
+  final type = item.type;
+  final year = item.displayYear;
+  final duration = item.formattedDuration;
+  final rating = item.displayRating;
+  final genres = item.displayGenres;
+  final studios = item.studioNames;
+  final overview = item.overview;
+  final people = item.people;
+  final scheme = Theme.of(context).colorScheme;
+  final seriesName = item.seriesName;
+  final isEpisode =
+      type == 'Episode' || (seriesName != null && seriesName.isNotEmpty);
+
+  // 用 Emby Primary 海报（带认证 token），构造完整图片 URL
+  final container = ProviderScope.containerOf(context);
+  final auth = container.read(authProvider);
+  final posterUrl = item.thumbnailUrlWithAuth(
+    auth.embyServerUrl,
+    auth.token,
+    maxWidth: 500,
+  );
+  // 高清版 Primary 海报（用于全屏查看）
+  final posterUrlHiRes = item.thumbnailUrlWithAuth(
+    auth.embyServerUrl,
+    auth.token,
+    maxWidth: 1280,
+  );
+  final backdropUrl = item.backdropUrl(
+    embyServerUrl: auth.embyServerUrl,
+    apiKey: auth.token,
+    maxWidth: 1280,
+  );
+  // Emby Thumb 横版缩略图（用于详情页右侧展示）
+  final thumbUrl = item.imageUrl(
+    'Thumb',
+    embyServerUrl: auth.embyServerUrl,
+    apiKey: auth.token,
+    maxWidth: 600,
+  );
+  // 高清版 Thumb（用于全屏查看）
+  final thumbUrlHiRes = item.imageUrl(
+    'Thumb',
+    embyServerUrl: auth.embyServerUrl,
+    apiKey: auth.token,
+    maxWidth: 1280,
+  );
+  final httpHeaders = auth.token != null && auth.token!.isNotEmpty
+      ? embyAuthHeaders(auth.token!)
+      : <String, String>{};
+
+  List<Person>? actors;
+  List<Person>? directors;
+  if (people != null && people.isNotEmpty) {
+    actors =
+        people.where((p) => p.type.toLowerCase() == 'actor').take(5).toList();
+    directors = people
+        .where((p) => p.type.toLowerCase().contains('director'))
+        .take(3)
+        .toList();
+  }
+
+  return DraggableScrollableSheet(
+    initialChildSize: 0.7,
+    minChildSize: 0.3,
+    maxChildSize: 0.9,
+    expand: false,
+    builder: (context, scrollController) {
+      return ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        child: Container(
+          decoration: BoxDecoration(
+            color: scheme.surface.withValues(alpha: 0.95),
+          ),
+          child: Stack(
+            children: [
+              // 背景模糊海报（用 Emby backdrop + BackdropFilter 真正模糊）
+              if (backdropUrl != null)
+                Positioned.fill(
+                  child: Image.network(
+                    backdropUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
+                ),
+              // 真正模糊
+              if (backdropUrl != null)
+                Positioned.fill(
+                  child: RepaintBoundary(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                      child: Container(
+                        color: scheme.surface.withValues(alpha: 0.3),
+                      ),
+                    ),
+                  ),
+                ),
+              // 深色遮罩
+              Positioned.fill(
+                child: Container(
+                  color: scheme.surface.withValues(alpha: 0.7),
+                ),
+              ),
+              // 内容
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                child: ListView(
+                  controller: scrollController,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: scheme.onSurface.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // 封面海报 + 视频缩略图（Emby Primary 竖版 + Thumb 横版）
+                    if (posterUrl != null || thumbUrl != null)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 左侧：Primary 竖版海报（2:3）
+                          if (posterUrl != null)
+                            GestureDetector(
+                              onTap: () => showFullScreenImageViewer(
+                                context,
+                                posterUrlHiRes ?? posterUrl,
+                                headers:
+                                    httpHeaders.isNotEmpty ? httpHeaders : null,
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: CachedNetworkImage(
+                                  imageUrl: posterUrl,
+                                  httpHeaders: httpHeaders.isNotEmpty
+                                      ? httpHeaders
+                                      : null,
+                                  width: 110,
+                                  height: 165,
+                                  fit: BoxFit.cover,
+                                  placeholder: (_, __) => Container(
+                                    width: 110,
+                                    height: 165,
+                                    color:
+                                        scheme.onSurface.withValues(alpha: 0.1),
+                                    child: const Center(
+                                        child: CircularProgressIndicator()),
+                                  ),
+                                  errorWidget: (_, __, ___) => Container(
+                                    width: 110,
+                                    height: 165,
+                                    color:
+                                        scheme.onSurface.withValues(alpha: 0.1),
+                                    child: Icon(Icons.movie,
+                                        size: 40,
+                                        color: scheme.onSurfaceVariant),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          if (posterUrl != null && thumbUrl != null)
+                            const SizedBox(width: 12),
+                          // 右侧：Thumb 横版视频缩略图
+                          if (thumbUrl != null)
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => showFullScreenImageViewer(
+                                  context,
+                                  thumbUrlHiRes ?? thumbUrl,
+                                  headers: httpHeaders.isNotEmpty
+                                      ? httpHeaders
+                                      : null,
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: CachedNetworkImage(
+                                    imageUrl: thumbUrl,
+                                    httpHeaders: httpHeaders.isNotEmpty
+                                        ? httpHeaders
+                                        : null,
+                                    height: 165,
+                                    fit: BoxFit.cover,
+                                    placeholder: (_, __) => Container(
+                                      height: 165,
+                                      color: scheme.onSurface
+                                          .withValues(alpha: 0.1),
+                                      child: const Center(
+                                          child: CircularProgressIndicator()),
+                                    ),
+                                    errorWidget: (_, __, ___) => Container(
+                                      height: 165,
+                                      color: scheme.onSurface
+                                          .withValues(alpha: 0.1),
+                                      child: Icon(Icons.image,
+                                          size: 40,
+                                          color: scheme.onSurfaceVariant),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    const SizedBox(height: 16),
+                    // 标题 + 收藏 + 分享
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(item.title,
+                              style: TextStyle(
+                                  color: scheme.onSurface,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700)),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.share,
+                              color: scheme.onSurfaceVariant, size: 20),
+                          onPressed: () {
+                            final url =
+                                '${auth.embyServerUrl}/web/index.html#!/details?id=${item.id}';
+                            Clipboard.setData(ClipboardData(text: url));
+                            final messenger = ScaffoldMessenger.of(context);
+                            Navigator.pop(context);
+                            messenger.showSnackBar(
+                              const SnackBar(content: Text('分享链接已复制到剪贴板')),
+                            );
+                          },
+                        ),
+                        _FavoriteButton(item: item),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _InfoActionRow(item: item),
+                    const SizedBox(height: 8),
+                    _VideoInfoSubtitle(
+                      type: type,
+                      year: year,
+                      isEpisode: isEpisode,
+                      seriesName: item.seriesName,
+                      season: item.parentIndexNumber,
+                      episode: item.indexNumber,
+                    ),
+                    const SizedBox(height: 20),
+                    _VideoInfoRowItems(
+                      item: item,
+                      duration: duration,
+                      rating: rating,
+                      genres: genres,
+                      studios: studios,
+                    ),
+                    const SizedBox(height: 24),
+                    if (overview != null && overview.isNotEmpty) ...[
+                      const _VideoInfoSectionLabel('简介'),
+                      const SizedBox(height: 8),
+                      _OverviewExpandable(text: overview),
+                      const SizedBox(height: 24),
+                    ],
+                    // 技术参数：视频编码/分辨率/HDR/杜比/音频编码（PRD 播放前媒体信息卡）
+                    _buildTechInfoSection(context, item),
+                    if (actors != null && actors.isNotEmpty) ...[
+                      const _VideoInfoSectionLabel('主演'),
+                      const SizedBox(height: 8),
+                      _PersonChipList(people: actors),
+                      const SizedBox(height: 24),
+                    ],
+                    if (directors != null && directors.isNotEmpty) ...[
+                      const _VideoInfoSectionLabel('导演'),
+                      const SizedBox(height: 8),
+                      _PersonChipList(people: directors),
+                      const SizedBox(height: 24),
+                    ],
+                    // 剧集导航：上一集 / 下一集
+                    if (isEpisode && item.seriesId != null)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              final c = ProviderScope.containerOf(context);
+                              _navigateToEpisode(context, c, item, -1);
+                            },
+                            icon: const Icon(Icons.skip_previous),
+                            label: const Text('上一集'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              final c = ProviderScope.containerOf(context);
+                              _navigateToEpisode(context, c, item, 1);
+                            },
+                            icon: const Icon(Icons.skip_next),
+                            label: const Text('下一集'),
+                          ),
+                        ],
+                      ),
+                    const SizedBox(height: 16),
+                    // 相似推荐
+                    _SimilarSection(itemId: item.id),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
   );
 }

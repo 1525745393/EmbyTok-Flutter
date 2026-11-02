@@ -28,7 +28,8 @@ class DanmakuService {
   static Future<List<Map<String, dynamic>>> searchEpisodes(String title) async {
     try {
       final r = await http
-          .get(Uri.parse('$_base/search/episodes?anime=${Uri.encodeComponent(title)}'))
+          .get(Uri.parse(
+              '$_base/search/episodes?anime=${Uri.encodeComponent(title)}'))
           .timeout(const Duration(seconds: 8));
       if (r.statusCode != 200) return [];
       final data = jsonDecode(r.body);
@@ -61,31 +62,35 @@ class DanmakuService {
       final data = jsonDecode(r.body);
       if (data['success'] != true) return [];
       final comments = data['comments'] as List? ?? [];
-      return comments.map((c) {
-        // batch64-F1：按官方 v2 schema 解析——comments 为对象数组 {cid, p, m}
-        // p = "出现时间,模式,颜色,用户ID"（CSV）；m = 弹幕内容。
-        // 旧实现读 c['time']/c['mode']/c['color']/c['text'] 全为 null，
-        // 导致 text 恒空被过滤，弹幕源实际不显示任何弹幕。
-        if (c is Map) {
-          final p = c['p']?.toString() ?? '';
-          final parts = p.split(',');
-          final time =
-              parts.isNotEmpty ? (double.tryParse(parts[0]) ?? 0.0) : 0.0;
-          final mode = parts.length > 1 ? (int.tryParse(parts[1]) ?? 1) : 1;
-          final color =
-              parts.length > 2 ? (int.tryParse(parts[2]) ?? 0xFFFFFF) : 0xFFFFFF;
-          final text = c['m']?.toString() ?? '';
-          if (text.isEmpty) return null;
-          return DanmakuItem(
-            time: time,
-            text: text,
-            color: '#${color.toRadixString(16).padLeft(6, '0')}',
-            type: mode, // 1=滚动 4=底部 5=顶部（与官方 mode 一致）
-            size: 25, // API 无字号字段，用默认值
-          );
-        }
-        return null;
-      }).whereType<DanmakuItem>().toList();
+      return comments
+          .map((c) {
+            // batch64-F1：按官方 v2 schema 解析——comments 为对象数组 {cid, p, m}
+            // p = "出现时间,模式,颜色,用户ID"（CSV）；m = 弹幕内容。
+            // 旧实现读 c['time']/c['mode']/c['color']/c['text'] 全为 null，
+            // 导致 text 恒空被过滤，弹幕源实际不显示任何弹幕。
+            if (c is Map) {
+              final p = c['p']?.toString() ?? '';
+              final parts = p.split(',');
+              final time =
+                  parts.isNotEmpty ? (double.tryParse(parts[0]) ?? 0.0) : 0.0;
+              final mode = parts.length > 1 ? (int.tryParse(parts[1]) ?? 1) : 1;
+              final color = parts.length > 2
+                  ? (int.tryParse(parts[2]) ?? 0xFFFFFF)
+                  : 0xFFFFFF;
+              final text = c['m']?.toString() ?? '';
+              if (text.isEmpty) return null;
+              return DanmakuItem(
+                time: time,
+                text: text,
+                color: '#${color.toRadixString(16).padLeft(6, '0')}',
+                type: mode, // 1=滚动 4=底部 5=顶部（与官方 mode 一致）
+                size: 25, // API 无字号字段，用默认值
+              );
+            }
+            return null;
+          })
+          .whereType<DanmakuItem>()
+          .toList();
     } catch (_) {
       return [];
     }
@@ -102,7 +107,7 @@ class DanmakuService {
       final epTitle = ep['episodeTitle']?.toString() ?? '';
       // 集号匹配：第X集、X、EPX
       if (_matchEpisodeNumber(epTitle, episode)) {
-        return getComments(ep['episodeId'] as int);
+        return getComments((ep['episodeId'] as int?) ?? 0);
       }
     }
     // 回退：取第一个作品的第 episode 集。
@@ -111,12 +116,12 @@ class DanmakuService {
     // 取第一个作品内的第 episode 集。
     final byAnime = <int, List<Map<String, dynamic>>>{};
     for (final ep in eps) {
-      byAnime.putIfAbsent(ep['animeId'] as int, () => []).add(ep);
+      byAnime.putIfAbsent((ep['animeId'] as int?) ?? 0, () => []).add(ep);
     }
     if (byAnime.isNotEmpty) {
       final firstAnime = byAnime.values.first;
       if (firstAnime.length >= episode) {
-        return getComments(firstAnime[episode - 1]['episodeId'] as int);
+        return getComments((firstAnime[episode - 1]['episodeId'] as int?) ?? 0);
       }
     }
     return [];
@@ -132,7 +137,8 @@ class DanmakuService {
     if (epMatch != null && int.parse(epMatch.group(1)!) == target) return true;
     // 纯数字
     final numMatch = RegExp(r'^0*(\d+)$').firstMatch(s.trim());
-    if (numMatch != null && int.parse(numMatch.group(1)!) == target) return true;
+    if (numMatch != null && int.parse(numMatch.group(1)!) == target)
+      return true;
     return false;
   }
 }

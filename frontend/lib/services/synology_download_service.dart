@@ -26,7 +26,6 @@ enum DownloadStatus { waiting, downloading, paused, failed, completed }
 
 /// 单个下载任务
 class DownloadTask {
-
   DownloadTask({
     required this.songId,
     required this.title,
@@ -109,7 +108,6 @@ class DownloadTask {
 
 /// 已下载歌曲条目
 class DownloadedSong {
-
   DownloadedSong({
     required this.songId,
     required this.path,
@@ -151,7 +149,12 @@ class SynologyDownloadService {
   static const String _kTasksKey = 'download_tasks_v1';
   static const String _kDownloadedKey = 'downloaded_songs_v1';
 
-  final Dio _dio = Dio();
+  /// connectTimeout=10s / receiveTimeout=30s（相邻数据间隔超时，长下载安全）：
+  /// 下载中途掉线/对端卡死时 future 不会永久挂起，避免任务僵尸停在 downloading
+  final Dio _dio = Dio(BaseOptions(
+    connectTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 30),
+  ));
   final Map<String, CancelToken> _cancelTokens = {};
   Directory? _dir;
 

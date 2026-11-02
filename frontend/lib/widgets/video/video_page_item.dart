@@ -385,6 +385,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     _playSessionId = null;
     _hasNotifiedEnded = false;
     _hasStoppedReported = false;
+    // 注销睡眠定时器全局回调，避免其长期持有已 dispose 的 State 闭包
+    ref.read(sleepTimerProvider.notifier).setOnTimeout(() {});
     _disposed = true;
     super.dispose();
   }
@@ -429,6 +431,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     if (url == null || !url.startsWith('http')) return null;
     return url;
   }
+
   String? _authToken() {
     if (_disposed) return _cachedToken;
     return _cachedToken ?? ref.read(authProvider).token;
@@ -469,7 +472,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   }
 
   // === 合并自 video_page_item_actions.dart ===
-void _resetInfoHideTimer() {
+  void _resetInfoHideTimer() {
     _infoHideTimer?.cancel();
     if (!mounted) return;
     setState(() => _isInfoVisible = true);
@@ -504,7 +507,9 @@ void _resetInfoHideTimer() {
         final saved = prefs.getInt('local_resume_$localPathHash') ??
             prefs.getInt('local_resume_${widget.item.id}') ??
             0;
-        if (saved > 5000 && controller != null && controller.value.isInitialized) {
+        if (saved > 5000 &&
+            controller != null &&
+            controller.value.isInitialized) {
           await controller.seekTo(Duration(milliseconds: saved));
         }
       } catch (_) {}
@@ -588,72 +593,72 @@ void _resetInfoHideTimer() {
   void _onVideoChanged() {
     if (!mounted) return;
     try {
-    final controller = _videoController;
-    if (controller == null) return;
-    // 播放状态：仅在变化时同步 Provider（避免每帧 setState 等效操作）
-    final isPlaying = controller.value.isPlaying;
-    if (ref.read(isPlayingProvider) != isPlaying) {
-      ref.read(isPlayingProvider.notifier).state = isPlaying;
-      // 播放状态变化时触发暂停上报（原 _onVideoChangedForReport 逻辑）
-      if (!isPlaying) _reportPlaybackProgress(isPauseEvent: true);
-    }
-    // 位置：仅在跨秒时写入 Provider，减少级联重建
-    final posSec = controller.value.position.inSeconds;
-    if (posSec != _lastPositionSecond) {
-      _lastPositionSecond = posSec;
-      ref.read(currentPositionProvider.notifier).state =
-          controller.value.position;
-    }
-
-    // 本地文件：播放位置节流保存续播（batch38-F2）
-    // 原实现由 feed_view._buildLocalPageView.onPageChanged 在切页时读全局
-    // currentVideoControllerProvider 保存——但滚动切换时新页 didUpdateWidget 已把
-    // provider 覆盖为新页 controller，导致旧页 hash 配新页位置错位写入，破坏旧页续播。
-    // 改为「谁播谁存」：本页播放中按秒节流写 local_resume_<pathHash> 与
-    // local_resume_time_<pathHash>，与上方本地续播读取（local_resume_$localPathHash）
-    // 同 key 对称；seek 后退（位置回跳）同样触发保存。
-    if (widget.item.isLocalFile && posSec != _lastLocalSavedSecond) {
-      final delta = (posSec - _lastLocalSavedSecond).abs();
-      if (_lastLocalSavedSecond < 0 || delta >= 5) {
-        _lastLocalSavedSecond = posSec;
-        final localHash = widget.item.id.startsWith('local_')
-            ? widget.item.id.substring('local_'.length)
-            : widget.item.id;
-        unawaited(_saveLocalResume(localHash, posSec));
+      final controller = _videoController;
+      if (controller == null) return;
+      // 播放状态：仅在变化时同步 Provider（避免每帧 setState 等效操作）
+      final isPlaying = controller.value.isPlaying;
+      if (ref.read(isPlayingProvider) != isPlaying) {
+        ref.read(isPlayingProvider.notifier).state = isPlaying;
+        // 播放状态变化时触发暂停上报（原 _onVideoChangedForReport 逻辑）
+        if (!isPlaying) _reportPlaybackProgress(isPauseEvent: true);
       }
-    }
-
-    // 本地文件源：初始化完成后回填真实时长/分辨率到媒体库
-    // （localDir/App 目录扫描时未取元数据，详情页/排序/进度条需要真实值），
-    // 仅在初始化且时长可用时写一次，避免每帧重复回写。
-    if (widget.item.isLocalFile && !_localMetaWritten) {
-      final v = controller.value;
-      if (v.isInitialized && v.duration > Duration.zero) {
-        _localMetaWritten = true;
-        final pathHash = widget.item.id.startsWith('local_')
-            ? widget.item.id.substring('local_'.length)
-            : widget.item.id;
-        ref.read(localVideoProvider.notifier).updateItemMeta(
-              pathHash,
-              duration: v.duration,
-              width: v.size.width.round(),
-              height: v.size.height.round(),
-            );
+      // 位置：仅在跨秒时写入 Provider，减少级联重建
+      final posSec = controller.value.position.inSeconds;
+      if (posSec != _lastPositionSecond) {
+        _lastPositionSecond = posSec;
+        ref.read(currentPositionProvider.notifier).state =
+            controller.value.position;
       }
-    }
 
-    if (!_hasNotifiedEnded) {
-      final pos = controller.value.position;
-      final dur = controller.value.duration;
-      // 播放结束判定：仅当真实播完（position >= duration 且时长有效）才执行一次结束副作用。
-      // 原实现缺少该判定，导致 ended 副作用随每次位置变化每帧执行：
-      // 在线缓存失效风暴、播放中 item 每帧从列表移除、autoPlayNext 开启时每帧触发翻页——batch 26 修复。
-      // batch 27：副作用统一收敛到 _handlePlaybackEnded()，MPV/VLC 引擎经 onPlaybackEnded 复用同一路径。
-      if (pos >= dur && dur > Duration.zero) {
-        _hasNotifiedEnded = true;
-        _handlePlaybackEnded();
+      // 本地文件：播放位置节流保存续播（batch38-F2）
+      // 原实现由 feed_view._buildLocalPageView.onPageChanged 在切页时读全局
+      // currentVideoControllerProvider 保存——但滚动切换时新页 didUpdateWidget 已把
+      // provider 覆盖为新页 controller，导致旧页 hash 配新页位置错位写入，破坏旧页续播。
+      // 改为「谁播谁存」：本页播放中按秒节流写 local_resume_<pathHash> 与
+      // local_resume_time_<pathHash>，与上方本地续播读取（local_resume_$localPathHash）
+      // 同 key 对称；seek 后退（位置回跳）同样触发保存。
+      if (widget.item.isLocalFile && posSec != _lastLocalSavedSecond) {
+        final delta = (posSec - _lastLocalSavedSecond).abs();
+        if (_lastLocalSavedSecond < 0 || delta >= 5) {
+          _lastLocalSavedSecond = posSec;
+          final localHash = widget.item.id.startsWith('local_')
+              ? widget.item.id.substring('local_'.length)
+              : widget.item.id;
+          unawaited(_saveLocalResume(localHash, posSec));
+        }
       }
-    }
+
+      // 本地文件源：初始化完成后回填真实时长/分辨率到媒体库
+      // （localDir/App 目录扫描时未取元数据，详情页/排序/进度条需要真实值），
+      // 仅在初始化且时长可用时写一次，避免每帧重复回写。
+      if (widget.item.isLocalFile && !_localMetaWritten) {
+        final v = controller.value;
+        if (v.isInitialized && v.duration > Duration.zero) {
+          _localMetaWritten = true;
+          final pathHash = widget.item.id.startsWith('local_')
+              ? widget.item.id.substring('local_'.length)
+              : widget.item.id;
+          ref.read(localVideoProvider.notifier).updateItemMeta(
+                pathHash,
+                duration: v.duration,
+                width: v.size.width.round(),
+                height: v.size.height.round(),
+              );
+        }
+      }
+
+      if (!_hasNotifiedEnded) {
+        final pos = controller.value.position;
+        final dur = controller.value.duration;
+        // 播放结束判定：仅当真实播完（position >= duration 且时长有效）才执行一次结束副作用。
+        // 原实现缺少该判定，导致 ended 副作用随每次位置变化每帧执行：
+        // 在线缓存失效风暴、播放中 item 每帧从列表移除、autoPlayNext 开启时每帧触发翻页——batch 26 修复。
+        // batch 27：副作用统一收敛到 _handlePlaybackEnded()，MPV/VLC 引擎经 onPlaybackEnded 复用同一路径。
+        if (pos >= dur && dur > Duration.zero) {
+          _hasNotifiedEnded = true;
+          _handlePlaybackEnded();
+        }
+      }
     } catch (_) {
       // dispose 阶段 ProviderScope 已释放，忽略
     }
@@ -689,9 +694,7 @@ void _resetInfoHideTimer() {
       // History 中已播放条目会更新，需失效以反映最新观看进度
       if (serverUrl != null && token != null) {
         try {
-          ref
-              .read(cacheControllerProvider)
-              .invalidateResume(serverUrl, token);
+          ref.read(cacheControllerProvider).invalidateResume(serverUrl, token);
           ref
               .read(cacheControllerProvider)
               .invalidateItemDetail(widget.item.id, serverUrl);
@@ -830,7 +833,8 @@ void _resetInfoHideTimer() {
       } else {
         return;
       }
-      final isPlaying = handle?.isPlaying ?? controller?.value.isPlaying ?? false;
+      final isPlaying =
+          handle?.isPlaying ?? controller?.value.isPlaying ?? false;
       ref.read(isPlayingProvider.notifier).state = isPlaying;
       // 暂停时显示▶播放图标，不自动隐藏（用户需要点击恢复播放）
       if (!ref.read(isAutoPlayProvider)) {
@@ -853,7 +857,8 @@ void _resetInfoHideTimer() {
       text = '${item.title}\n（来自 EmbyTok）';
     }
     try {
-      await SharePlus.instance.share(ShareParams(text: text, subject: item.title));
+      await SharePlus.instance
+          .share(ShareParams(text: text, subject: item.title));
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -901,8 +906,8 @@ void _resetInfoHideTimer() {
         token: token,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('已删除'), duration: _kSnackBarDuration));
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('已删除'), duration: _kSnackBarDuration));
         // 从视频列表中移除当前 item，避免用户反向滑回已删除的视频
         ref.read(videoListProvider.notifier).removeItem(widget.item.id);
         widget.onVideoEnded?.call();
@@ -928,15 +933,15 @@ void _resetInfoHideTimer() {
   }
 
   // === 合并自 video_page_item_build.dart ===
-Widget _buildPage(BuildContext context) {
+  Widget _buildPage(BuildContext context) {
     final authState = ref.watch(authProvider);
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
     // batch 29：统一控制句柄（MPV/VLC 引擎下 EXO controller 不可用，feed 页控制走 handle）
     final controlHandle = ref.watch(currentPlayerControlProvider);
-    final controlUsable = (_videoController != null &&
-            _videoController!.value.isInitialized) ||
-        (controlHandle?.isReady ?? false);
+    final controlUsable =
+        (_videoController != null && _videoController!.value.isInitialized) ||
+            (controlHandle?.isReady ?? false);
     // 使用 select 仅监听当前 item 的就绪状态，避免其他 item 就绪状态变化时触发重建
     final isReady =
         ref.watch(videoReadyProvider.select((s) => s.contains(widget.item.id)));
@@ -1218,7 +1223,8 @@ Widget _buildPage(BuildContext context) {
               widget.item.id,
               title: widget.item.title,
               year: widget.item.year,
-              isTv: widget.item.type == 'Series' || widget.item.type == 'Episode',
+              isTv:
+                  widget.item.type == 'Series' || widget.item.type == 'Episode',
             ),
             onSpeedTap: () => sheet_utils.showSpeedControlPanel(
               context,
@@ -1234,16 +1240,14 @@ Widget _buildPage(BuildContext context) {
               chapters: widget.item.chapters ?? [],
               onSeek: (seconds) {
                 // batch 29：统一句柄优先，MPV/VLC 在线分支章节点击可跳转
-                final target = Duration(
-                    milliseconds: (seconds * 1000).round());
+                final target = Duration(milliseconds: (seconds * 1000).round());
                 ref.read(currentPlayerControlProvider)?.seekTo(target);
                 _videoController?.seekTo(target);
               },
             ),
             onWatchlistTap: () async {
               final notifier = ref.read(watchlistNotifierProvider.notifier);
-              final localOverride =
-                  notifier.localOverride(widget.item.id);
+              final localOverride = notifier.localOverride(widget.item.id);
               final current = localOverride ??
                   (widget.item.userData?.isWatchlisted ?? false);
               try {

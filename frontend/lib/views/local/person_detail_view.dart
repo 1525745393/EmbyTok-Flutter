@@ -8,7 +8,6 @@ import 'dart:io';
 
 /// 演员详情页（本地模式，基于 TMDB）
 class PersonDetailPage extends ConsumerStatefulWidget {
-
   const PersonDetailPage({
     super.key,
     required this.personId,
@@ -27,6 +26,7 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
   Map<String, dynamic>? _details;
   Map<String, dynamic>? _credits;
   bool _loading = true;
+
   /// 本地头像文件探测结果缓存：future 不能内联写在 build 里，
   /// 否则每次 rebuild（如切换收藏）都会重新 stat，头像会闪回 CDN 图。
   late final Future<File?> _castFileFuture =
@@ -65,17 +65,14 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
     final bio = _details?['biography'] as String?;
     final birthday = _details?['birthday'] as String?;
     final place = _details?['place_of_birth'] as String?;
-    final alsoKnown = (_details?['also_known_as'] as List?)?.cast<String>() ?? [];
+    final alsoKnown =
+        (_details?['also_known_as'] as List?)?.cast<String>() ?? [];
 
     final castList = (_credits?['cast'] as List?) ?? [];
-    final movies = castList
-        .where((c) => c['media_type'] == 'movie')
-        .toList()
+    final movies = castList.where((c) => c['media_type'] == 'movie').toList()
       ..sort((a, b) => ((b['vote_count'] as num?) ?? 0)
           .compareTo((a['vote_count'] as num?) ?? 0));
-    final tvs = castList
-        .where((c) => c['media_type'] == 'tv')
-        .toList()
+    final tvs = castList.where((c) => c['media_type'] == 'tv').toList()
       ..sort((a, b) => ((b['vote_count'] as num?) ?? 0)
           .compareTo((a['vote_count'] as num?) ?? 0));
 
@@ -94,103 +91,137 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          SliverAppBar(
-            expandedHeight: 280,
-            pinned: true,
-            actions: [
-              Consumer(
-                builder: (_, ref, __) {
-                  final isFav = ref
-                      .watch(localVideoProvider)
-                      .favoriteActorIds
-                      .contains('${widget.personId}');
-                  return IconButton(
-                    icon: Icon(isFav ? Icons.favorite : Icons.favorite_border,
-                        color: isFav ? Colors.pink : Colors.white),
-                    tooltip: isFav ? '取消收藏' : '收藏演员',
-                    onPressed: () => ref
-                        .read(localVideoProvider.notifier)
-                        .toggleFavoriteActor('${widget.personId}'),
-                  );
-                },
+          ..._buildSlivers(
+            scheme: scheme,
+            bio: bio,
+            birthday: birthday,
+            place: place,
+            alsoKnown: alsoKnown,
+            movies: movies,
+            tvs: tvs,
+            localMovieTmdbIds: localMovieTmdbIds,
+            localTvTmdbIds: localTvTmdbIds,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 详情页 slivers：SliverAppBar + 信息/作品区（从 build 抽出，减少单方法长度）
+  List<Widget> _buildSlivers({
+    required ColorScheme scheme,
+    required String? bio,
+    required String? birthday,
+    required String? place,
+    required List<String> alsoKnown,
+    required List<dynamic> movies,
+    required List<dynamic> tvs,
+    required Set<int> localMovieTmdbIds,
+    required Set<int> localTvTmdbIds,
+  }) {
+    return [
+      SliverAppBar(
+        expandedHeight: 280,
+        pinned: true,
+        actions: [
+          Consumer(
+            builder: (_, ref, __) {
+              final isFav = ref
+                  .watch(localVideoProvider)
+                  .favoriteActorIds
+                  .contains('${widget.personId}');
+              return IconButton(
+                icon: Icon(isFav ? Icons.favorite : Icons.favorite_border,
+                    color: isFav ? Colors.pink : Colors.white),
+                tooltip: isFav ? '取消收藏' : '收藏演员',
+                onPressed: () => ref
+                    .read(localVideoProvider.notifier)
+                    .toggleFavoriteActor('${widget.personId}'),
+              );
+            },
+          ),
+        ],
+        flexibleSpace: FlexibleSpaceBar(
+          background: Stack(
+            fit: StackFit.expand,
+            children: [
+              widget.profilePath != null
+                  ? FutureBuilder<File?>(
+                      future: _castFileFuture,
+                      builder: (_, snap) {
+                        if (snap.hasData && snap.data != null) {
+                          return Image.file(snap.data!, fit: BoxFit.cover);
+                        }
+                        return CachedNetworkImage(
+                          imageUrl: TmdbService.personUrl(widget.profilePath!,
+                              size: 'h632'),
+                          fit: BoxFit.cover,
+                        );
+                      },
+                    )
+                  : Container(color: scheme.surfaceContainerHighest),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.85)
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 16,
+                child: Text(
+                  _details?['name'] as String? ?? widget.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
             ],
-            flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  widget.profilePath != null
-                      ? FutureBuilder<File?>(
-                          future: _castFileFuture,
-                          builder: (_, snap) {
-                            if (snap.hasData && snap.data != null) {
-                              return Image.file(snap.data!, fit: BoxFit.cover);
-                            }
-                            return CachedNetworkImage(
-                              imageUrl: TmdbService.personUrl(widget.profilePath!, size: 'h632'),
-                              fit: BoxFit.cover,
-                            );
-                          },
-                        )
-                      : Container(color: scheme.surfaceContainerHighest),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Colors.black.withValues(alpha: 0.85)],
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 16,
-                    right: 16,
-                    bottom: 16,
-                    child: Text(
-                      _details?['name'] as String? ?? widget.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ),
-          SliverToBoxAdapter(
-            child: _loading
-                ? const Padding(
-                    padding: EdgeInsets.all(40),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                : (_details == null && _credits == null)
-                    ? Padding(
-                        padding: const EdgeInsets.all(40),
-                        child: Center(
-                          child: Column(
-                            children: [
-                              const Icon(Icons.person_off, size: 48, color: Colors.grey),
-                              const SizedBox(height: 12),
-                              Text('暂无法获取演员信息',
-                                  style: TextStyle(color: Colors.grey[600])),
-                              const SizedBox(height: 12),
-                              // 错误态必须提供真实可用的重试入口，否则只能退出重进；
-                              // 点击即回 loading 态展示进度（_load 内部完成后再切内容/错误态）
-                              TextButton.icon(
-                                icon: const Icon(Icons.refresh, size: 16),
-                                label: const Text('重试'),
-                                onPressed: () {
-                                  setState(() => _loading = true);
-                                  _load();
-                                },
-                              ),
-                            ],
+        ),
+      ),
+      SliverToBoxAdapter(
+        child: _loading
+            ? const Padding(
+                padding: EdgeInsets.all(40),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            : (_details == null && _credits == null)
+                ? Padding(
+                    padding: const EdgeInsets.all(40),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          const Icon(Icons.person_off,
+                              size: 48, color: Colors.grey),
+                          const SizedBox(height: 12),
+                          Text('暂无法获取演员信息',
+                              style: TextStyle(color: Colors.grey[600])),
+                          const SizedBox(height: 12),
+                          // 错误态必须提供真实可用的重试入口，否则只能退出重进；
+                          // 点击即回 loading 态展示进度（_load 内部完成后再切内容/错误态）
+                          TextButton.icon(
+                            icon: const Icon(Icons.refresh, size: 16),
+                            label: const Text('重试'),
+                            onPressed: () {
+                              setState(() => _loading = true);
+                              _load();
+                            },
                           ),
-                        ),
-                      )
-                    : Padding(
+                        ],
+                      ),
+                    ),
+                  )
+                : Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -201,61 +232,81 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                             spacing: 12,
                             children: [
                               if (birthday != null)
-                                Text(birthday, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                                Text(birthday,
+                                    style: TextStyle(
+                                        fontSize: 13, color: Colors.grey[600])),
                               if (place != null)
-                                Text(place, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                                Text(place,
+                                    style: TextStyle(
+                                        fontSize: 13, color: Colors.grey[600])),
                             ],
                           ),
                         if (alsoKnown.isNotEmpty) ...[
                           const SizedBox(height: 8),
                           Text('别名: ${alsoKnown.take(3).join("、")}',
-                              style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.grey[500])),
                         ],
                         const SizedBox(height: 16),
                         // 简介
                         if (bio != null && bio.isNotEmpty) ...[
-                          const Text('简介', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                          const Text('简介',
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w700)),
                           const SizedBox(height: 8),
                           Text(
                             bio,
-                            style: TextStyle(fontSize: 13, color: Colors.grey[700], height: 1.6),
+                            style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[700],
+                                height: 1.6),
                           ),
                           const SizedBox(height: 24),
                         ],
                         // 电影
                         if (movies.isNotEmpty) ...[
                           Text('电影（${movies.length}）',
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w700)),
                           const SizedBox(height: 12),
                           SizedBox(
                             height: 200,
                             child: ListView.separated(
                               scrollDirection: Axis.horizontal,
                               itemCount: movies.take(20).length,
-                              separatorBuilder: (_, __) => const SizedBox(width: 10),
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(width: 10),
                               itemBuilder: (_, i) {
                                 final m = movies[i] as Map<String, dynamic>;
                                 final poster = m['poster_path'] as String?;
-                                final inLibrary = localMovieTmdbIds.contains(m['id']);
+                                final inLibrary =
+                                    localMovieTmdbIds.contains(m['id']);
                                 return SizedBox(
                                   width: 110,
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Stack(
                                         children: [
                                           ClipRRect(
-                                            borderRadius: BorderRadius.circular(6),
+                                            borderRadius:
+                                                BorderRadius.circular(6),
                                             child: poster != null
                                                 ? CachedNetworkImage(
-                                                    imageUrl: TmdbService.posterUrl(poster, size: 'w185'),
+                                                    imageUrl:
+                                                        TmdbService.posterUrl(
+                                                            poster,
+                                                            size: 'w185'),
                                                     height: 150,
                                                     fit: BoxFit.cover,
                                                   )
                                                 : Container(
                                                     height: 150,
-                                                    color: scheme.surfaceContainerHighest,
-                                                    child: const Icon(Icons.movie),
+                                                    color: scheme
+                                                        .surfaceContainerHighest,
+                                                    child:
+                                                        const Icon(Icons.movie),
                                                   ),
                                           ),
                                           if (inLibrary)
@@ -263,12 +314,21 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                                               top: 4,
                                               left: 4,
                                               child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 2),
                                                 decoration: BoxDecoration(
                                                   color: Colors.green,
-                                                  borderRadius: BorderRadius.circular(4),
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
                                                 ),
-                                                child: const Text('已入库', style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)),
+                                                child: const Text('已入库',
+                                                    style: TextStyle(
+                                                        fontSize: 9,
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.bold)),
                                               ),
                                             ),
                                         ],
@@ -281,10 +341,15 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                                         style: const TextStyle(fontSize: 11),
                                       ),
                                       Text(
-                                        (m['release_date'] as String? ?? '').isNotEmpty
-                                            ? m['release_date'].toString().substring(0, 4)
+                                        (m['release_date'] as String? ?? '')
+                                                .isNotEmpty
+                                            ? m['release_date']
+                                                .toString()
+                                                .substring(0, 4)
                                             : '',
-                                        style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.grey[500]),
                                       ),
                                     ],
                                   ),
@@ -297,36 +362,45 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                         // 电视剧
                         if (tvs.isNotEmpty) ...[
                           Text('电视剧（${tvs.length}）',
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w700)),
                           const SizedBox(height: 12),
                           SizedBox(
                             height: 200,
                             child: ListView.separated(
                               scrollDirection: Axis.horizontal,
                               itemCount: tvs.take(20).length,
-                              separatorBuilder: (_, __) => const SizedBox(width: 10),
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(width: 10),
                               itemBuilder: (_, i) {
                                 final t = tvs[i] as Map<String, dynamic>;
                                 final poster = t['poster_path'] as String?;
-                                final inLibrary = localTvTmdbIds.contains(t['id']);
+                                final inLibrary =
+                                    localTvTmdbIds.contains(t['id']);
                                 return SizedBox(
                                   width: 110,
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Stack(
                                         children: [
                                           ClipRRect(
-                                            borderRadius: BorderRadius.circular(6),
+                                            borderRadius:
+                                                BorderRadius.circular(6),
                                             child: poster != null
                                                 ? CachedNetworkImage(
-                                                    imageUrl: TmdbService.posterUrl(poster, size: 'w185'),
+                                                    imageUrl:
+                                                        TmdbService.posterUrl(
+                                                            poster,
+                                                            size: 'w185'),
                                                     height: 150,
                                                     fit: BoxFit.cover,
                                                   )
                                                 : Container(
                                                     height: 150,
-                                                    color: scheme.surfaceContainerHighest,
+                                                    color: scheme
+                                                        .surfaceContainerHighest,
                                                     child: const Icon(Icons.tv),
                                                   ),
                                           ),
@@ -335,12 +409,21 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                                               top: 4,
                                               left: 4,
                                               child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 2),
                                                 decoration: BoxDecoration(
                                                   color: Colors.green,
-                                                  borderRadius: BorderRadius.circular(4),
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
                                                 ),
-                                                child: const Text('已入库', style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)),
+                                                child: const Text('已入库',
+                                                    style: TextStyle(
+                                                        fontSize: 9,
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.bold)),
                                               ),
                                             ),
                                         ],
@@ -353,10 +436,15 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                                         style: const TextStyle(fontSize: 11),
                                       ),
                                       Text(
-                                        (t['first_air_date'] as String? ?? '').isNotEmpty
-                                            ? t['first_air_date'].toString().substring(0, 4)
+                                        (t['first_air_date'] as String? ?? '')
+                                                .isNotEmpty
+                                            ? t['first_air_date']
+                                                .toString()
+                                                .substring(0, 4)
                                             : '',
-                                        style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.grey[500]),
                                       ),
                                     ],
                                   ),
@@ -368,9 +456,7 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                       ],
                     ),
                   ),
-          ),
-        ],
       ),
-    );
+    ];
   }
 }

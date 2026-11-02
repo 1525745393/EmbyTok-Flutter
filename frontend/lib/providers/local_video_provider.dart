@@ -21,18 +21,19 @@ final localVideoServiceProvider = Provider<LocalVideoService>(
 
 /// 排序方式
 enum LocalVideoSort {
-  modifiedDesc,  // 修改时间倒序（默认）
-  nameAsc,       // 名称 A→Z
-  durationDesc,  // 时长倒序
-  sizeDesc,      // 文件大小倒序
-  ratingDesc,    // 评分高到低（需刮削）
+  modifiedDesc, // 修改时间倒序（默认）
+  nameAsc, // 名称 A→Z
+  durationDesc, // 时长倒序
+  sizeDesc, // 文件大小倒序
+  ratingDesc, // 评分高到低（需刮削）
 }
 
 /// 视图模式
 enum LocalVideoViewMode { grid, list }
 
 /// 本地视频列表状态
-class LocalVideoState { // 类型筛选（P1 #6）：null=全部/movie/tv/none
+class LocalVideoState {
+  // 类型筛选（P1 #6）：null=全部/movie/tv/none
 
   const LocalVideoState({
     this.items = const [],
@@ -63,11 +64,11 @@ class LocalVideoState { // 类型筛选（P1 #6）：null=全部/movie/tv/none
   final LocalVideoSort sort;
   final LocalVideoViewMode viewMode;
   final String keyword;
-  final bool selecting;        // 多选模式
-  final Set<String> selected;   // 已选 id
+  final bool selecting; // 多选模式
+  final Set<String> selected; // 已选 id
   final String? error;
   final List<String> recentHashes; // 最近播放 pathHash（按时间倒序）
-  final bool groupByFolder;        // 是否按文件夹分组
+  final bool groupByFolder; // 是否按文件夹分组
   final Set<String> favoriteHashes; // 已收藏 pathHash（P3）
   final Set<String> favoriteActorIds; // 已收藏演员 TMDB id
   final Map<String, ScrapedMedia> scrapedMap; // 刮削结果 pathHash→media（刮削 P0）
@@ -129,16 +130,14 @@ class LocalVideoState { // 类型筛选（P1 #6）：null=全部/movie/tv/none
   /// 最近播放的视频项（按时间倒序，与 items 求交集）
   List<LocalVideoItem> get recentItems {
     final map = {for (final e in items) e.id: e};
-    return recentHashes
-        .map((h) => map[h])
-        .whereType<LocalVideoItem>()
-        .toList();
+    return recentHashes.map((h) => map[h]).whereType<LocalVideoItem>().toList();
   }
 
   /// 最近添加的视频（P1）：按修改时间倒序，取前 10 个，排除已在"继续观看"中的
   List<LocalVideoItem> get recentlyAdded {
     final playing = recentHashes.toSet();
-    final list = [...items]..sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
+    final list = [...items]
+      ..sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
     return list.where((e) => !playing.contains(e.pathHash)).take(10).toList();
   }
 
@@ -191,10 +190,10 @@ class LocalVideoState { // 类型筛选（P1 #6）：null=全部/movie/tv/none
       case LocalVideoSort.ratingDesc:
         // 评分高到低，无评分排最后
         list = [...list]..sort((a, b) {
-          final ra = scrapedMap[a.pathHash]?.rating ?? -1;
-          final rb = scrapedMap[b.pathHash]?.rating ?? -1;
-          return rb.compareTo(ra);
-        });
+            final ra = scrapedMap[a.pathHash]?.rating ?? -1;
+            final rb = scrapedMap[b.pathHash]?.rating ?? -1;
+            return rb.compareTo(ra);
+          });
         break;
     }
     return list;
@@ -223,7 +222,8 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
     final ps = await LocalVideoService.currentPermission();
     final sp = await SharedPreferences.getInstance();
     final favActors = sp.getStringList('favorite_actors')?.toSet() ?? {};
-    state = state.copyWith(items: cached, permission: ps, favoriteActorIds: favActors);
+    state = state.copyWith(
+        items: cached, permission: ps, favoriteActorIds: favActors);
     if (ps.hasAccess) {
       refresh();
     }
@@ -288,9 +288,11 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
           final central = cached[it.pathHash];
           if (central != null) {
             unawaited(ScrapeMediaStore.backfillSibling(it.path, central));
-            unawaited(ScrapeMediaStore.backfillImages(it.path, it.pathHash, central));
+            unawaited(
+                ScrapeMediaStore.backfillImages(it.path, it.pathHash, central));
             if (central.cast.isNotEmpty) {
-              unawaited(ScrapeMediaStore.backfillCastAvatars(it.path, central.cast));
+              unawaited(
+                  ScrapeMediaStore.backfillCastAvatars(it.path, central.cast));
             }
           }
           return;
@@ -318,7 +320,8 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
               'id': match['id']!,
             if (nc['profilePath'] != null && nc['profilePath']!.isNotEmpty)
               'profilePath': nc['profilePath']!
-            else if (match?['profilePath'] != null && match!['profilePath']!.isNotEmpty)
+            else if (match?['profilePath'] != null &&
+                match!['profilePath']!.isNotEmpty)
               'profilePath': match['profilePath']!,
           });
         }
@@ -335,10 +338,15 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
           backdropPath: nfo.backdropPath ?? prev?.backdropPath,
           overview: nfo.overview ?? prev?.overview,
           rating: nfo.rating ?? prev?.rating,
-          genres: nfo.genres.isNotEmpty ? nfo.genres : (prev?.genres ?? const []),
+          genres:
+              nfo.genres.isNotEmpty ? nfo.genres : (prev?.genres ?? const []),
           cast: mergedCast,
-          directors: nfo.directors.isNotEmpty ? nfo.directors : (prev?.directors ?? const []),
-          studios: nfo.studios.isNotEmpty ? nfo.studios : (prev?.studios ?? const []),
+          directors: nfo.directors.isNotEmpty
+              ? nfo.directors
+              : (prev?.directors ?? const []),
+          studios: nfo.studios.isNotEmpty
+              ? nfo.studios
+              : (prev?.studios ?? const []),
           imdbId: nfo.imdbId ?? prev?.imdbId,
           stillPath: nfo.stillPath ?? prev?.stillPath,
           episodeTitle: nfo.episodeTitle ?? prev?.episodeTitle,
@@ -357,7 +365,8 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
         // 旧 .nfo 补全：把合并后的数据写回 .nfo（一次性迁移）
         unawaited(ScrapeMediaStore.backfillSibling(it.path, merged));
         // 补下载海报/背景/剧照到视频旁（旧视频清了 App 数据后沙箱图丢失）
-        unawaited(ScrapeMediaStore.backfillImages(it.path, it.pathHash, merged));
+        unawaited(
+            ScrapeMediaStore.backfillImages(it.path, it.pathHash, merged));
         // 补下载演员头像到本地（旧视频刮削时没下载，合并后有了 id/profilePath）
         if (merged.cast.isNotEmpty) {
           unawaited(ScrapeMediaStore.backfillCastAvatars(it.path, merged.cast));
@@ -390,7 +399,8 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
                 scrapedAt: merged.scrapedAt,
               );
               state = state.copyWith(scrapedMap: Map.unmodifiable(cached));
-              unawaited(ScrapeMediaStore.backfillCastAvatars(it.path, showCast));
+              unawaited(
+                  ScrapeMediaStore.backfillCastAvatars(it.path, showCast));
             }
           }());
         }
@@ -406,6 +416,7 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
           }());
         }
       }
+
       for (var start = 0; start < pathItems.length; start += 16) {
         final end =
             start + 16 > pathItems.length ? pathItems.length : start + 16;
@@ -486,15 +497,19 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
           } else {
             failed[item.pathHash] = '未找到匹配';
             await ScrapeMediaStore.recordHistory(
-              videoPath: item.path, status: 'failed',
-              error: '未找到匹配', sessionId: 'auto');
+                videoPath: item.path,
+                status: 'failed',
+                error: '未找到匹配',
+                sessionId: 'auto');
             fail++;
           }
         } catch (e) {
           failed[item.pathHash] = e.toString();
           await ScrapeMediaStore.recordHistory(
-            videoPath: item.path, status: 'failed',
-            error: e.toString(), sessionId: 'auto');
+              videoPath: item.path,
+              status: 'failed',
+              error: e.toString(),
+              sessionId: 'auto');
           fail++;
         }
         done++;
@@ -503,10 +518,14 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
           // 会把 _doRefresh 后台 fetchShowCast 补拉的演员结果覆盖回旧值（无 cast）
           final merged = Map<String, ScrapedMedia>.from(state.scrapedMap)
             ..addAll(cached);
-          state = state.copyWith(scrapedMap: merged, scrapeDone: done, failedMap: Map.unmodifiable(failed));
+          state = state.copyWith(
+              scrapedMap: merged,
+              scrapeDone: done,
+              failedMap: Map.unmodifiable(failed));
         }
       }
     }
+
     await Future.wait(List.generate(concurrency, (_) => worker()));
     if (_mounted) {
       state = state.copyWith(scraping: false, scrapeOk: ok, scrapeFail: fail);
@@ -551,15 +570,19 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
           } else {
             failed[item.pathHash] = '未找到匹配';
             await ScrapeMediaStore.recordHistory(
-              videoPath: item.path, status: 'failed',
-              error: '未找到匹配', sessionId: sessionId);
+                videoPath: item.path,
+                status: 'failed',
+                error: '未找到匹配',
+                sessionId: sessionId);
             fail++;
           }
         } catch (e) {
           failed[item.pathHash] = e.toString();
           await ScrapeMediaStore.recordHistory(
-            videoPath: item.path, status: 'failed',
-            error: e.toString(), sessionId: sessionId);
+              videoPath: item.path,
+              status: 'failed',
+              error: e.toString(),
+              sessionId: sessionId);
           fail++;
         }
         done++;
@@ -567,10 +590,14 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
           // batch57-F1：同 scrapeMissing——合并更新而非整体覆盖，保留后台补拉的演员结果
           final merged = Map<String, ScrapedMedia>.from(state.scrapedMap)
             ..addAll(cached);
-          state = state.copyWith(scrapedMap: merged, scrapeDone: done, failedMap: Map.unmodifiable(failed));
+          state = state.copyWith(
+              scrapedMap: merged,
+              scrapeDone: done,
+              failedMap: Map.unmodifiable(failed));
         }
       }
     }
+
     await Future.wait(List.generate(concurrency, (_) => worker()));
     if (_mounted) {
       state = state.copyWith(scraping: false, scrapeOk: ok, scrapeFail: fail);
@@ -583,6 +610,7 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
   Future<void> toggleFavorite(String pathHash) async {
     final svc = _ref.read(localVideoServiceProvider);
     final nowFav = !state.favoriteHashes.contains(pathHash);
+    final oldFavs = state.favoriteHashes;
     final favs = Set<String>.from(state.favoriteHashes);
     if (nowFav) {
       favs.add(pathHash);
@@ -592,7 +620,11 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
     state = state.copyWith(favoriteHashes: favs);
     try {
       await svc.setFavorite(pathHash, nowFav);
-    } catch (_) {}
+    } catch (e) {
+      AppLogger.warn('切换本地收藏失败，已回滚（下次启动不会残留假收藏）',
+          data: {'error': e.toString()});
+      state = state.copyWith(favoriteHashes: oldFavs);
+    }
   }
 
   /// 切换本地收藏演员（TMDB id）
@@ -660,6 +692,7 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
       jsonEncode(updated.map((e) => e.toJson()).toList()),
     );
   }
+
   void setSort(LocalVideoSort s) => state = state.copyWith(sort: s);
   void setTypeFilter(String? t) => state = state.copyWith(typeFilter: t);
   void toggleGroupByFolder() =>
@@ -669,8 +702,7 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
             ? LocalVideoViewMode.list
             : LocalVideoViewMode.grid,
       );
-  void setViewMode(LocalVideoViewMode m) =>
-      state = state.copyWith(viewMode: m);
+  void setViewMode(LocalVideoViewMode m) => state = state.copyWith(viewMode: m);
 
   /// 全选当前 filtered（P2 #12）
   void selectAll() {
@@ -678,8 +710,10 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
     state = state.copyWith(selected: ids);
   }
 
-  void enterSelecting() => state = state.copyWith(selecting: true, selected: {});
-  void exitSelecting() => state = state.copyWith(selecting: false, selected: {});
+  void enterSelecting() =>
+      state = state.copyWith(selecting: true, selected: {});
+  void exitSelecting() =>
+      state = state.copyWith(selecting: false, selected: {});
 
   /// 外部刮削完成后更新 scrapedMap（替代直接 .state = 赋值）
   void updateScrapedMap(Map<String, ScrapedMedia> map) {
@@ -692,6 +726,7 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
     updated[pathHash] = media;
     state = state.copyWith(scrapedMap: updated);
   }
+
   void toggleSelected(String id) {
     final s = {...state.selected};
     if (s.contains(id)) {
@@ -719,7 +754,9 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
     final deletedIds = <String>{};
     const batchSize = 8;
     for (var start = 0; start < targets.length; start += batchSize) {
-      final end = start + batchSize > targets.length ? targets.length : start + batchSize;
+      final end = start + batchSize > targets.length
+          ? targets.length
+          : start + batchSize;
       await Future.wait(targets.sublist(start, end).map((item) async {
         try {
           if (await svc.delete(item)) {
