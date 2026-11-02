@@ -10,17 +10,18 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/artist_metadata.dart';
 import '../../services/deezer_service.dart';
 import '../../services/lastfm_service.dart';
+import '../../utils/colors.dart';
 import '../../utils/logger.dart';
 
 /// 歌手搜索结果项
 class ArtistSearchResult {
-
   const ArtistSearchResult({
     required this.name,
     this.imageUrl,
     required this.source,
     this.extraInfo,
   });
+
   /// 歌手名称
   final String name;
 
@@ -49,13 +50,13 @@ class ArtistSearchResult {
 /// );
 /// ```
 class ArtistSearchPicker extends ConsumerStatefulWidget {
-
   const ArtistSearchPicker({
     super.key,
     required this.searchQuery,
     this.lastFmService,
     required this.deezerService,
   });
+
   /// 搜索关键词（通常是歌手名）
   final String searchQuery;
 
@@ -133,7 +134,8 @@ class _ArtistSearchPickerState extends ConsumerState<ArtistSearchPicker> {
   /// 搜索 Deezer（返回多个匹配结果）
   Future<List<ArtistSearchResult>> _searchDeezer(String query) async {
     try {
-      final results = await widget.deezerService.searchArtists(query, limit: 10);
+      final results =
+          await widget.deezerService.searchArtists(query, limit: 10);
       return results
           .map((info) => ArtistSearchResult(
                 name: info.name,
@@ -196,7 +198,8 @@ class _ArtistSearchPickerState extends ConsumerState<ArtistSearchPicker> {
               ),
               // 标题
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   children: [
                     Expanded(
@@ -285,8 +288,9 @@ class _ArtistSearchPickerState extends ConsumerState<ArtistSearchPicker> {
       contentPadding: const EdgeInsets.symmetric(vertical: 8),
       leading: CircleAvatar(
         radius: 28,
-        backgroundImage:
-            result.imageUrl != null ? CachedNetworkImageProvider(result.imageUrl!) : null,
+        backgroundImage: result.imageUrl != null
+            ? CachedNetworkImageProvider(result.imageUrl!)
+            : null,
         backgroundColor: scheme.surfaceContainerHighest,
         child: result.imageUrl != null
             ? null
@@ -360,7 +364,7 @@ class _ArtistSearchPickerState extends ConsumerState<ArtistSearchPicker> {
   Color _getSourceColor(ArtistMetadataSource source) {
     switch (source) {
       case ArtistMetadataSource.lastFm:
-        return const Color(0xFFD51007); // Last.fm 红色
+        return lastfmRed; // Last.fm 红色
       case ArtistMetadataSource.deezer:
         return const Color(0xFF00C7F2); // Deezer 青色
       case ArtistMetadataSource.wikipedia:

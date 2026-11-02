@@ -1,7 +1,5 @@
 // 从 favorites_view.dart 拆分（part 文件，无行为变化）
 
-// 从 favorites_view.dart 拆分（part 文件，无行为变化）
-
 part of 'favorites_view.dart';
 
 // ==================== 收藏页辅助组件 ====================

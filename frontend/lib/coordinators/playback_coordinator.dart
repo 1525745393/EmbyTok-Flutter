@@ -37,7 +37,6 @@ import '../utils/logger.dart';
 ///   需要读写 Provider 状态（read/notifier.state）以及监听变化
 /// - WidgetRef 完整支持这些操作，无需绕道 Ref
 class PlaybackCoordinator {
-
   PlaybackCoordinator(this._ref,
       {bool Function(int targetIndex)? onPageIndexReady})
       : _onPageIndexReady = onPageIndexReady;
@@ -154,17 +153,12 @@ class PlaybackCoordinator {
 
   // ==================== 视图切换协调 ====================
 
-  /// 处理 feed ↔ grid 视图切换的播放协调
-  ///
-  /// 返回值：
-  /// - 'pause'：需要暂停视频
-  /// - 'resume'：需要恢复播放
-  /// - null：无需操作
+  /// 处理 feed ↔ grid 视图切换的播放协调：feed→grid 暂停，grid→feed 恢复。
   ///
   /// 注意：系统栏显隐是 UI 层职责，本方法不处理。
   /// 三引擎统一：优先经 currentPlayerControlProvider（MPV/VLC 引擎下 EXO
   /// controller 为 null/隐藏实例，直调 pause/play 无效），无句柄时回退 EXO。
-  String? handleViewModeChange(ViewMode prev, ViewMode next) {
+  void handleViewModeChange(ViewMode prev, ViewMode next) {
     final handle = _ref.read(currentPlayerControlProvider);
     if (prev == ViewMode.feed && next == ViewMode.grid) {
       // 切到网格：暂停视频
@@ -176,7 +170,6 @@ class PlaybackCoordinator {
           controller.pause();
         }
       }
-      return 'pause';
     } else if (prev == ViewMode.grid && next == ViewMode.feed) {
       // 切回视频流：恢复播放
       if (handle != null) {
@@ -187,9 +180,7 @@ class PlaybackCoordinator {
           controller.play();
         }
       }
-      return 'resume';
     }
-    return null;
   }
 
   // ==================== 路由跳转辅助 ====================

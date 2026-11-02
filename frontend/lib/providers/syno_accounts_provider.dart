@@ -81,9 +81,7 @@ Future<String> accountScopedKey(String base) async {
   try {
     final prefs = await SharedPreferences.getInstance();
     final acct = prefs.getString(_kCurrentKey);
-    return acct == null || acct.isEmpty
-        ? '${base}__default'
-        : '${base}__$acct';
+    return acct == null || acct.isEmpty ? '${base}__default' : '${base}__$acct';
   } catch (_) {
     return '${base}__default';
   }
@@ -140,12 +138,17 @@ class SynoAccountsNotifier extends StateNotifier<SynoAccountsState> {
     if (existing.isNotEmpty) {
       // 更新密码（可能改了密码），并切为当前
       try {
-        await _secure.write(key: _pwdKey(existing.first.accountId), value: password);
-      } catch (_) {}
+        await _secure.write(
+            key: _pwdKey(existing.first.accountId), value: password);
+      } catch (e) {
+        // 密码写入失败：账号仍可登录（密码将走重新输入），记录失败供排查
+        AppLogger.warn('更新账号密码写入安全存储失败', data: {'error': e.toString()});
+      }
       await setCurrent(existing.first.accountId);
       return existing.first;
     }
-    final id = '${serverUrl.hashCode}_${username.hashCode}_${DateTime.now().millisecondsSinceEpoch}';
+    final id =
+        '${serverUrl.hashCode}_${username.hashCode}_${DateTime.now().millisecondsSinceEpoch}';
     final account = SynoAccount(
       accountId: id,
       serverUrl: serverUrl,
@@ -155,7 +158,10 @@ class SynoAccountsNotifier extends StateNotifier<SynoAccountsState> {
     // 密码存安全存储
     try {
       await _secure.write(key: _pwdKey(id), value: password);
-    } catch (_) {}
+    } catch (e) {
+      // 密码写入失败：账号仍入列表，但后续自动登录会缺少凭据，记录失败供排查
+      AppLogger.warn('新账号密码写入安全存储失败', data: {'error': e.toString()});
+    }
     state = SynoAccountsState(
       accounts: [...state.accounts, account],
       currentAccountId: state.currentAccountId ?? id,
@@ -190,7 +196,8 @@ class SynoAccountsNotifier extends StateNotifier<SynoAccountsState> {
     final list = state.accounts
         .map((a) => a.copyWith(isDefault: a.accountId == accountId))
         .toList();
-    state = SynoAccountsState(accounts: list, currentAccountId: state.currentAccountId);
+    state = SynoAccountsState(
+        accounts: list, currentAccountId: state.currentAccountId);
     await _persist();
   }
 
@@ -201,9 +208,8 @@ class SynoAccountsNotifier extends StateNotifier<SynoAccountsState> {
     } catch (_) {}
     state = SynoAccountsState(
       accounts: state.accounts.where((a) => a.accountId != accountId).toList(),
-      currentAccountId: state.currentAccountId == accountId
-          ? null
-          : state.currentAccountId,
+      currentAccountId:
+          state.currentAccountId == accountId ? null : state.currentAccountId,
     );
     await _persist();
   }

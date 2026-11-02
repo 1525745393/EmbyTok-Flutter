@@ -85,12 +85,12 @@ class DownloadNotifier extends StateNotifier<DownloadState> {
   }
 
   void _refresh() {
-    () async {
+    safeUnawaited(() async {
       final tasks = await _svc.loadTasks();
       final downloaded = await _svc.loadDownloaded();
       if (!mounted) return;
       state = DownloadState(tasks: tasks, downloaded: downloaded);
-    }();
+    }(), context: 'DownloadNotifier._refresh');
   }
 
   /// 加入下载队列

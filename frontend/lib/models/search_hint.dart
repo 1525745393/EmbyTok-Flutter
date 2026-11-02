@@ -1,6 +1,5 @@
 // 搜索建议模型：Emby SearchHints
-class SearchHint { // 如果是剧集/集数
-
+class SearchHint {
   const SearchHint({
     required this.id,
     required this.name,

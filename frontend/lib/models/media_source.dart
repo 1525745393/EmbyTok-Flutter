@@ -1,6 +1,5 @@
 // 媒体源与媒体流：播放信息（音轨/字幕轨）
-class MediaSource { // 播放需要的请求头（如 X-Emby-Token）
-
+class MediaSource {
   const MediaSource({
     required this.id,
     required this.name,
@@ -70,7 +69,7 @@ class MediaSource { // 播放需要的请求头（如 X-Emby-Token）
   final int? size; // 文件大小（字节）
   final int? bitrate; // 比特率（bps）
   final List<MediaStream> mediaStreams;
-  final Map<String, String>? httpHeaders;
+  final Map<String, String>? httpHeaders; // 播放需要的请求头（如 X-Emby-Token）
 
   // 判断是否为横屏视频（宽度大于高度）
   bool get isLandscape {
@@ -99,8 +98,7 @@ class MediaSource { // 播放需要的请求头（如 X-Emby-Token）
   }
 }
 
-class MediaStream { // 视频高度
-
+class MediaStream {
   const MediaStream({
     required this.index,
     required this.type,
@@ -153,8 +151,7 @@ class MediaStream { // 视频高度
       // 音频声道数
       channels: (json['Channels'] as int?) ?? (json['channels'] as int?),
       // 音频采样率
-      sampleRate:
-          (json['SampleRate'] as int?) ?? (json['sample_rate'] as int?),
+      sampleRate: (json['SampleRate'] as int?) ?? (json['sample_rate'] as int?),
       // 码率
       bitrate: (json['Bitrate'] as int?) ?? (json['bitrate'] as int?),
       // 轨道标题
@@ -175,7 +172,7 @@ class MediaStream { // 视频高度
   final String? deliveryUrl; // 字幕轨的外部 URL
   final String? codec; // 编码
   final int? width; // 视频宽度
-  final int? height;
+  final int? height; // 视频高度
   final String? profile; // 编码 Profile
   final String? videoRangeType; // 动态范围 SDR/HDR10/HLG/DOVI
   final int? channels; // 音频声道数

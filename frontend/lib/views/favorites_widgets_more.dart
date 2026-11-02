@@ -2,6 +2,8 @@
 
 part of 'favorites_view.dart';
 
+// 本文件含：收藏列表查看更多条目 _MoreTile、取消收藏确认弹层 _UndoUnfavoriteBar 等。
+
 class _MoreTile extends StatelessWidget {
   const _MoreTile({
     required this.remaining,

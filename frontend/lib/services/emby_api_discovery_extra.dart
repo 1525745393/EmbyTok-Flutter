@@ -3,6 +3,7 @@
 part of 'emby_server_api.dart';
 
 // ==================== _EmbyDiscoveryApi2 ====================
+// 方法域：继续观看(getResumeItems)、后续分页(getNextPage) 等发现页查询。
 
 mixin _EmbyDiscoveryApi2 on EmbyServerApiBase {
   Future<PaginatedResponse<MediaItem>> getResumeItems({

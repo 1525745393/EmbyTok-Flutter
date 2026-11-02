@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../utils/logger.dart';
+
 /// 支持的语言
 class AppLocale {
   static const supportedLocales = [
@@ -28,7 +30,9 @@ class AppLocale {
           return Locale(parts[0], parts[1]);
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      AppLogger.warn('读取语言偏好失败', data: {'error': e.toString()});
+    }
     return null;
   }
 

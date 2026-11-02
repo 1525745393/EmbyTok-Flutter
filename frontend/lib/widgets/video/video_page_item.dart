@@ -734,14 +734,15 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     // 如果来自预加载会话，则复用其 playSessionId，保证预加载和播放使用同一个会话
     // 空字符串视为无效，生成新的会话 ID
     final preloadedId = widget.preloadedSession?.playSessionId;
-    _playSessionId = (preloadedId != null && preloadedId.isNotEmpty)
+    final sessionId = (preloadedId != null && preloadedId.isNotEmpty)
         ? preloadedId
         : _newPlaySessionId();
+    _playSessionId = sessionId;
     _safeReport(
       () => _service.reportPlaybackStart(
         itemId: widget.item.id,
         mediaSourceId: widget.item.id,
-        playSessionId: _playSessionId!,
+        playSessionId: sessionId,
         playMethod: 'DirectPlay',
         serverUrl: _authServerUrl(),
         token: _authToken(),
@@ -975,8 +976,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     if (widget.item.isLocalFile) {
       final pathHash = widget.item.id.replaceFirst('local_', '');
       final scraped = ref.read(localVideoProvider).scrapedMap[pathHash];
-      if (scraped?.posterPath != null && scraped!.posterPath!.isNotEmpty) {
-        posterUrl = 'https://image.tmdb.org/t/p/w500${scraped.posterPath}';
+      final posterPath = scraped?.posterPath;
+      if (posterPath != null && posterPath.isNotEmpty) {
+        posterUrl = 'https://image.tmdb.org/t/p/w500$posterPath';
       }
     }
     final posterHeaders = widget.item.authHeaders(token);

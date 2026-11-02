@@ -105,9 +105,14 @@ class ArtistMetadata {
     );
   }
 
-  /// 从 JSON 字符串反序列化
-  factory ArtistMetadata.fromJsonString(String jsonString) =>
-      ArtistMetadata.fromJson(jsonDecode(jsonString) as Map<String, dynamic>);
+  /// 从 JSON 字符串反序列化；缓存内容非对象（空体/损坏）时返回空元数据
+  factory ArtistMetadata.fromJsonString(String jsonString) {
+    final decoded = jsonDecode(jsonString);
+    if (decoded is! Map<String, dynamic>) {
+      return ArtistMetadata.empty('');
+    }
+    return ArtistMetadata.fromJson(decoded);
+  }
 
   /// 创建无数据的空元数据（用于缓存"无简介"标记）
   factory ArtistMetadata.empty(String name) => ArtistMetadata(

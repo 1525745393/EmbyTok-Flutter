@@ -157,7 +157,7 @@ extension _SettingsBuilders2 on SettingsView {
     final configured = (keyAsync.valueOrNull ?? '').isNotEmpty;
     return settingsTapTile(
       icon: Icons.graphic_eq,
-      iconColor: const Color(0xFFD51007),
+      iconColor: lastfmRed,
       title: 'Last.fm 补充',
       subtitle:
           configured ? '已配置：歌手头像/简介优先用 Last.fm' : '配置 API Key，补充歌手图与简介（免费）',
@@ -298,7 +298,8 @@ extension _SettingsBuilders2 on SettingsView {
   void _handleVersionTap(BuildContext context) {
     _versionTapCount++;
     _versionTapResetTimer?.cancel();
-    _versionTapResetTimer = Timer(const Duration(milliseconds: kTestModeTapResetMs), () {
+    _versionTapResetTimer =
+        Timer(const Duration(milliseconds: kTestModeTapResetMs), () {
       _versionTapCount = 0;
     });
     HapticFeedback.lightImpact();
@@ -320,7 +321,10 @@ extension _SettingsBuilders2 on SettingsView {
     } else {
       final remaining = kTestModeTapThreshold - _versionTapCount;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('再点 $remaining 次${isAppTestMode ? '' : '（测试模式仅 debug 可用）'}'), duration: const Duration(milliseconds: 800)),
+        SnackBar(
+            content: Text(
+                '再点 $remaining 次${isAppTestMode ? '' : '（测试模式仅 debug 可用）'}'),
+            duration: const Duration(milliseconds: 800)),
       );
     }
   }
@@ -336,7 +340,8 @@ extension _SettingsBuilders2 on SettingsView {
           icon: Icons.analytics_outlined,
           iconColor: Colors.purple,
           title: '性能监控面板',
-          subtitle: enabled ? '已开启：悬浮显示内存/FPS/重建次数/API 请求' : '已关闭：开发调试用，不影响发布版本',
+          subtitle:
+              enabled ? '已开启：悬浮显示内存/FPS/重建次数/API 请求' : '已关闭：开发调试用，不影响发布版本',
           value: enabled,
           onChanged: (value) {
             if (value) {
@@ -464,11 +469,11 @@ extension _SettingsBuilders2 on SettingsView {
             sid: sid,
           );
         } else {
-          final password = await secureStorage.read(
-              key: 'server_password_${server.id}');
+          final password =
+              await secureStorage.read(key: 'server_password_${server.id}');
           if (password == null) {
-            messenger.showSnackBar(const SnackBar(
-                content: Text('未保存该服务器的密码，请编辑后重试')));
+            messenger.showSnackBar(
+                const SnackBar(content: Text('未保存该服务器的密码，请编辑后重试')));
             return;
           }
           await synoAuth.login(
@@ -478,11 +483,11 @@ extension _SettingsBuilders2 on SettingsView {
           );
         }
       } else {
-        final password = await secureStorage.read(
-            key: 'server_password_${server.id}');
+        final password =
+            await secureStorage.read(key: 'server_password_${server.id}');
         if (password == null) {
-          messenger.showSnackBar(const SnackBar(
-              content: Text('未保存该服务器的密码，请编辑后重试')));
+          messenger
+              .showSnackBar(const SnackBar(content: Text('未保存该服务器的密码，请编辑后重试')));
           return;
         }
         await ref.read(authProvider.notifier).login(
@@ -495,8 +500,7 @@ extension _SettingsBuilders2 on SettingsView {
       await registry.touch(server.id);
       await ref.read(activeServerIdProvider.notifier).setActive(server.id);
       if (context.mounted) {
-        messenger.showSnackBar(
-            SnackBar(content: Text('已切换到「${server.name}」')));
+        messenger.showSnackBar(SnackBar(content: Text('已切换到「${server.name}」')));
       }
     } catch (e) {
       AppLogger.error('切换服务器失败，保持原服务器', data: {
@@ -622,8 +626,10 @@ class _MirrorPickerDialogState extends State<_MirrorPickerDialog> {
                         ? '连接失败'
                         : '${_results['direct'] ?? -1}ms'),
                     secondary: _results['direct'] == -1
-                        ? Icon(Icons.error_outline, color: scheme.error, size: 18)
-                        : const Icon(Icons.check_circle, color: Colors.green, size: 18),
+                        ? Icon(Icons.error_outline,
+                            color: scheme.error, size: 18)
+                        : const Icon(Icons.check_circle,
+                            color: Colors.green, size: 18),
                     onChanged: (v) async {
                       await widget.svc.setPreferredMirror(v);
                       if (mounted) Navigator.pop(context);
@@ -643,9 +649,11 @@ class _MirrorPickerDialogState extends State<_MirrorPickerDialog> {
                       title: Text(_mirrorLabel(m)),
                       subtitle: Text(label),
                       secondary: ms < 0
-                          ? Icon(Icons.error_outline, color: scheme.error, size: 18)
+                          ? Icon(Icons.error_outline,
+                              color: scheme.error, size: 18)
                           : ms < 300
-                              ? Icon(Icons.check_circle, color: Colors.green, size: 18)
+                              ? Icon(Icons.check_circle,
+                                  color: Colors.green, size: 18)
                               : null,
                       onChanged: (v) async {
                         await widget.svc.setPreferredMirror(v);
@@ -790,9 +798,7 @@ class _NasMetadataSyncTileState extends ConsumerState<_NasMetadataSyncTile> {
       icon: Icons.cloud_sync_outlined,
       iconColor: Colors.teal,
       title: 'NAS 元数据同步',
-      subtitle: _enabled
-          ? '已开启：歌手简介/头像同步到群晖，多设备共享'
-          : '开启后同步到 NAS（需先登录群晖）',
+      subtitle: _enabled ? '已开启：歌手简介/头像同步到群晖，多设备共享' : '开启后同步到 NAS（需先登录群晖）',
       value: _enabled,
       onChanged: _toggle,
       helpText:
@@ -842,9 +848,8 @@ class _DownloadMirrorTileState extends ConsumerState<_DownloadMirrorTile> {
       future: _preferredFuture,
       builder: (_, snap) {
         final preferred = snap.data;
-        final subtitle = preferred == null
-            ? '自动选择（推荐）'
-            : '当前：${_mirrorLabel(preferred)}';
+        final subtitle =
+            preferred == null ? '自动选择（推荐）' : '当前：${_mirrorLabel(preferred)}';
         return settingsTapTile(
           icon: Icons.download_outlined,
           iconColor: Colors.teal,
@@ -877,7 +882,8 @@ class _SelfSignedCertificateTile extends StatefulWidget {
       _SelfSignedCertificateTileState();
 }
 
-class _SelfSignedCertificateTileState extends State<_SelfSignedCertificateTile> {
+class _SelfSignedCertificateTileState
+    extends State<_SelfSignedCertificateTile> {
   bool _allow = false;
   bool _loaded = false;
 
@@ -906,8 +912,7 @@ class _SelfSignedCertificateTileState extends State<_SelfSignedCertificateTile> 
         builder: (dialogContext) => AlertDialog(
           title: Row(
             children: [
-              Icon(Icons.warning_amber_rounded,
-                  color: scheme.error, size: 24),
+              Icon(Icons.warning_amber_rounded, color: scheme.error, size: 24),
               const SizedBox(width: 8),
               const Text('安全风险提示'),
             ],
@@ -950,8 +955,7 @@ class _SelfSignedCertificateTileState extends State<_SelfSignedCertificateTile> 
       icon: Icons.security_outlined,
       iconColor: Colors.orange,
       title: '允许自签名证书',
-      subtitle:
-          _allow ? '已允许：可连接自签名证书的内网服务器（存在安全风险）' : '已禁用：严格校验 SSL 证书（推荐）',
+      subtitle: _allow ? '已允许：可连接自签名证书的内网服务器（存在安全风险）' : '已禁用：严格校验 SSL 证书（推荐）',
       value: _allow,
       onChanged: _toggle,
       helpText:

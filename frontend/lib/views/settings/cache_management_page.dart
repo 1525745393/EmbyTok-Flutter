@@ -29,7 +29,8 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
     if (!dir.existsSync()) return 0;
     int total = 0;
     try {
-      await for (final entity in dir.list(recursive: true, followLinks: false)) {
+      await for (final entity
+          in dir.list(recursive: true, followLinks: false)) {
         if (entity is File) {
           try {
             total += await entity.length();
@@ -74,16 +75,19 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
     setState(() => _clearing = true);
     try {
       final tempDir = await getTemporaryDirectory();
+      var fail = 0;
       if (tempDir.existsSync()) {
         await for (final entity in tempDir.list(recursive: false)) {
           try {
             entity.deleteSync(recursive: true);
-          } catch (_) {}
+          } catch (_) {
+            fail++;
+          }
         }
       }
       if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('临时缓存已清理')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(fail > 0 ? '部分缓存清理失败（$fail 项）' : '临时缓存已清理')));
       }
     } catch (e) {
       AppLogger.error('清理缓存失败', error: e);
@@ -97,16 +101,19 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
     try {
       final appDocDir = await getApplicationDocumentsDirectory();
       final logDir = Directory('${appDocDir.path}/logs');
+      var fail = 0;
       if (logDir.existsSync()) {
         await for (final entity in logDir.list(recursive: false)) {
           try {
             entity.deleteSync();
-          } catch (_) {}
+          } catch (_) {
+            fail++;
+          }
         }
       }
       if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('日志已清理')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(fail > 0 ? '部分日志清理失败（$fail 项）' : '日志已清理')));
       }
     } catch (e) {
       AppLogger.error('清理日志失败', error: e);
@@ -138,9 +145,8 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
                   title: const Text('临时缓存（图片/缩略图/下载）'),
                   subtitle: Text(_formatSize(_imageCacheSize)),
                   trailing: TextButton(
-                    onPressed: _clearing
-                        ? null
-                        : () => _clearTempCache(context),
+                    onPressed:
+                        _clearing ? null : () => _clearTempCache(context),
                     child: _clearing
                         ? const SizedBox(
                             width: 18,
@@ -155,9 +161,7 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
                   title: const Text('日志文件'),
                   subtitle: Text(_formatSize(_logSize)),
                   trailing: TextButton(
-                    onPressed: _clearing
-                        ? null
-                        : () => _clearLogs(context),
+                    onPressed: _clearing ? null : () => _clearLogs(context),
                     child: _clearing
                         ? const SizedBox(
                             width: 18,
@@ -172,8 +176,7 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
                   padding: const EdgeInsets.all(16),
                   child: Text(
                     '清理缓存不会影响登录状态和播放记录。图片缓存清理后，下次浏览时会重新加载。',
-                    style: TextStyle(
-                        fontSize: 12, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ),
               ],

@@ -10,6 +10,7 @@ const Color accentBlue = Color(0xFF2C8EF4);
 
 /// 图片占位/加载失败底色
 const Color imagePlaceholderBackground = Color(0xFF1A1A1A);
+const Color lastfmRed = Color(0xFFD51007);
 
 /// 历史页图标色：浅粉色
 const Color historyPink = Color(0xFFFF5983);

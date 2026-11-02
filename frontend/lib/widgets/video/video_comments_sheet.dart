@@ -13,6 +13,7 @@ import '../../providers/video_comments_provider.dart';
 import '../../providers/local_video_provider.dart';
 import '../../services/tmdb_service.dart';
 import '../../services/scrape_service.dart';
+import '../../utils/logger.dart';
 
 /// 打开视频评论弹层
 /// [title]/[year]/[isTv] 用于在线 Emby 视频按标题搜索 TMDB 获取评论
@@ -134,7 +135,8 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
         if (results.isEmpty) return [];
         return ScrapeService.fetchReviews('movie', results.first['id'] as int);
       }
-    } catch (_) {
+    } catch (e) {
+      AppLogger.warn('拉取视频评论失败', data: {'error': e.toString()});
       return [];
     }
   }

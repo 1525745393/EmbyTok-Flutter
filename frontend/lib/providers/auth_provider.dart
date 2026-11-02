@@ -15,7 +15,6 @@ import 'embytok_service_provider.dart';
 
 // 认证状态类
 class AuthState {
-
   const AuthState({
     this.isAuthenticated = false,
     this.user,
@@ -69,7 +68,6 @@ final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {
 
 // 认证 Notifier
 class AuthNotifier extends StateNotifier<AuthState> {
-
   AuthNotifier(this._ref) : super(const AuthState()) {
     _service = _ref.read(embytokServiceProvider);
     _secureStorage = _ref.read(secureStorageProvider);
@@ -90,8 +88,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       try {
         token = await _secureStorage.read(key: kStorageKeyAccessToken);
       } catch (_) {
-      // 存储操作失败不影响主流程，静默处理
-    }
+        // 缓存失效失败不影响登出主流程，静默处理
+      }
 
       // 旧数据迁移：如果安全存储中没有，从旧配置中读取并迁移
       if (token == null || token.isEmpty) {
@@ -111,8 +109,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
               AppLogger.info('完成 token 从明文存储迁移到安全存储');
             }
           } catch (e) {
-            AppLogger.warn('token 明文迁移失败，忽略旧数据',
-                data: {'error': e.toString()});
+            AppLogger.warn('token 明文迁移失败，忽略旧数据', data: {'error': e.toString()});
           }
         }
       }
@@ -132,8 +129,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
             accessToken: token ?? '',
           );
         } catch (e) {
-          AppLogger.warn('用户信息解析失败，使用空用户对象',
-              data: {'error': e.toString()});
+          AppLogger.warn('用户信息解析失败，使用空用户对象', data: {'error': e.toString()});
         }
       }
 

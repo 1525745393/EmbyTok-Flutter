@@ -3,6 +3,7 @@
 part of 'emby_server_api.dart';
 
 // ==================== _EmbyDiscoveryApi3 ====================
+// 方法域：剧集(getEpisodes) 等按 ID 的详情查询。
 
 mixin _EmbyDiscoveryApi3 on EmbyServerApiBase {
   Future<PaginatedResponse<MediaItem>> getEpisodes(

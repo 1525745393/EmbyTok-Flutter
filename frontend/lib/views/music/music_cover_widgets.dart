@@ -40,7 +40,6 @@ const double kCoverFontSizeXXLarge = 30;
 
 /// 歌曲封面组件
 class SongCover extends ConsumerWidget {
-
   const SongCover({super.key, required this.songId, required this.size});
   final String songId;
   final double size;
@@ -81,7 +80,6 @@ class SongCover extends ConsumerWidget {
 
 /// 专辑封面组件
 class AlbumCover extends ConsumerWidget {
-
   const AlbumCover({super.key, required this.album});
   final AudioAlbum album;
 
@@ -121,7 +119,6 @@ class AlbumCover extends ConsumerWidget {
 /// 优先加载 NAS 歌手图（cover.cgi + artist_name）；无图/加载失败时
 /// 回退为「渐变背景 + 歌手名首字母」（QQ音乐/酷狗风格）。
 class ArtistAvatar extends ConsumerStatefulWidget {
-
   const ArtistAvatar({super.key, required this.artistName, required this.size});
   final String artistName;
   final double size;
@@ -214,8 +211,8 @@ class _ArtistAvatarState extends ConsumerState<ArtistAvatar> {
 
 /// 数据出处小标签
 class SourceBadge extends StatelessWidget {
-
-  const SourceBadge({super.key, required this.source, required this.imageSource});
+  const SourceBadge(
+      {super.key, required this.source, required this.imageSource});
   final ArtistInfoSource source;
   final ArtistInfoSource imageSource;
 
@@ -228,8 +225,8 @@ class SourceBadge extends StatelessWidget {
     if (shown == null) return const SizedBox.shrink();
     final (color, bg) = switch (shown) {
       ArtistInfoSource.lastfm => (
-          const Color(0xFFD51007),
-          const Color(0xFFD51007).withValues(alpha: 0.12),
+          lastfmRed,
+          lastfmRed.withValues(alpha: 0.12),
         ),
       ArtistInfoSource.synology => (
           accentBlue,
@@ -250,8 +247,10 @@ class SourceBadge extends StatelessWidget {
       ),
       child: Text(
         shown.label,
-        style:
-            TextStyle(fontSize: kCoverFontSizeTiny, color: color, fontWeight: FontWeight.w600),
+        style: TextStyle(
+            fontSize: kCoverFontSizeTiny,
+            color: color,
+            fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -263,7 +262,6 @@ class SourceBadge extends StatelessWidget {
 
 /// 歌手搜索结果条目：头像 + 名字 + 简介 + 出处标签
 class ArtistSearchTile extends ConsumerWidget {
-
   const ArtistSearchTile({
     super.key,
     required this.artist,
