@@ -6,7 +6,7 @@ import '../utils/colors.dart';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show LicenseRegistry, kDebugMode;
+import 'package:flutter/foundation.dart' show LicenseRegistry;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'
     show Clipboard, ClipboardData, HapticFeedback;
@@ -39,7 +39,6 @@ import '../utils/donate_colors.dart';
 import '../utils/formatters.dart' show formatBytes;
 import '../utils/lanzou_url.dart';
 import '../utils/logger.dart';
-import '../utils/performance_monitor.dart';
 import '../test_mode/test_mode_switch.dart';
 import '../widgets/library_selector.dart';
 import 'music/artist_batch_scan_dialog.dart';
@@ -365,19 +364,6 @@ class SettingsView extends ConsumerWidget {
           _buildVersionTile(context, ref),
         ],
       ),
-      // 开发者选项（仅开发模式显示）
-      if (kDebugMode)
-        _buildSectionEntry(
-          context,
-          ref,
-          '开发者选项',
-          Icons.developer_mode,
-          Colors.purple,
-          '性能监控等调试工具',
-          (context, ref) => [
-            _buildPerformanceMonitorTile(context, ref),
-          ],
-        ),
       const SizedBox(height: _kSpacingXXLarge),
       // batchF3：本地模式用独立的「退出本地模式」按钮（清 localMode + auth，
       // 守卫才真正放行跳登录页）；主「退出登录」只退 authProvider，本地模式下半退出残留。

@@ -230,41 +230,6 @@ extension _SettingsBuilders2 on SettingsView {
     }
   }
 
-  Widget _buildPerformanceMonitorTile(BuildContext context, WidgetRef ref) {
-    // PerformanceMonitor 是全局单例而非响应式 provider，受控 Switch 的 value
-    // 不会因 enable()/disable() 自动重建，点击后会弹回（批次A-F2）。
-    // 用 StatefulBuilder 让本 tile 在 onChanged 后立即重建，反映新状态。
-    return StatefulBuilder(
-      builder: (context, setState) {
-        final enabled = PerformanceMonitor.instance.enabled;
-        return settingsSwitchTile(
-          icon: Icons.analytics_outlined,
-          iconColor: Colors.purple,
-          title: '性能监控面板',
-          subtitle:
-              enabled ? '已开启：悬浮显示内存/FPS/重建次数/API 请求' : '已关闭：开发调试用，不影响发布版本',
-          value: enabled,
-          onChanged: (value) {
-            if (value) {
-              PerformanceMonitor.instance.enable();
-            } else {
-              PerformanceMonitor.instance.disable();
-            }
-            setState(() {}); // 立即重建本 tile，反映新开关状态
-            // 提示用户
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(value ? '性能监控面板已开启' : '性能监控面板已关闭'),
-                duration: const Duration(seconds: 2),
-              ),
-            );
-          },
-          helpText: '开启后显示实时性能监控（帧率、内存占用等）。\n\n· 调试用，日常可关闭\n· 开启会略微增加系统开销',
-        );
-      },
-    );
-  }
-
   /// 本地媒体库模式的退出按钮（batchF3）：
   /// 与 [local_library_settings_page] 的「退出本地模式」同语义——
   /// 同时清 localModeProvider 与 authProvider 注入态，守卫才放行跳登录页。
