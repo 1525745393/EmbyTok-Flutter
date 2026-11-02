@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../widgets/loading_state_card.dart';
 import '../services/equalizer_service.dart';
 
 class EqualizerView extends ConsumerStatefulWidget {
@@ -41,7 +42,7 @@ class _EqualizerViewState extends ConsumerState<EqualizerView> {
       appBar: AppBar(title: const Text('均衡器')),
       body: SafeArea(
         child: !_inited
-            ? const Center(child: CircularProgressIndicator())
+            ? LoadingStateCard.generic()
             : !_available
                 ? const Center(
                     child: Padding(

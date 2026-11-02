@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../models/local_video_item.dart';
+import '../../widgets/loading_state_card.dart';
 import 'local_play_page.dart';
 
 /// 取路径最后一段作为文件名（替代 path 包）
@@ -53,8 +54,22 @@ class _LocalDirectoryBrowserViewState extends State<LocalDirectoryBrowserView> {
   static const String _rootPath = '/storage/emulated/0';
   // 视频扩展名
   static const _videoExts = {
-    '.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.ts', '.m2ts',
-    '.webm', '.m4v', '.mpg', '.mpeg', '.3gp', '.rmvb', '.rm', '.asf',
+    '.mp4',
+    '.mkv',
+    '.avi',
+    '.mov',
+    '.wmv',
+    '.flv',
+    '.ts',
+    '.m2ts',
+    '.webm',
+    '.m4v',
+    '.mpg',
+    '.mpeg',
+    '.3gp',
+    '.rmvb',
+    '.rm',
+    '.asf',
   };
 
   String _currentPath = _rootPath;
@@ -168,7 +183,8 @@ class _LocalDirectoryBrowserViewState extends State<LocalDirectoryBrowserView> {
     );
     Navigator.push(
       context,
-      MaterialPageRoute<Widget>(builder: (_) => LocalPlayPage(items: [item]),
+      MaterialPageRoute<Widget>(
+        builder: (_) => LocalPlayPage(items: [item]),
       ),
     );
   }
@@ -196,7 +212,8 @@ class _LocalDirectoryBrowserViewState extends State<LocalDirectoryBrowserView> {
                     isCurrent: segments.isEmpty,
                   ),
                   for (var i = 0; i < segments.length; i++) ...[
-                    const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
+                    const Icon(Icons.chevron_right,
+                        size: 16, color: Colors.grey),
                     _Crumb(
                       label: segments[i],
                       onTap: () {
@@ -224,7 +241,7 @@ class _LocalDirectoryBrowserViewState extends State<LocalDirectoryBrowserView> {
   }
 
   Widget _buildBody() {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) return LoadingStateCard.generic();
     if (_error != null) {
       return Center(
         child: Column(
@@ -255,7 +272,8 @@ class _LocalDirectoryBrowserViewState extends State<LocalDirectoryBrowserView> {
         return ListTile(
           leading: Icon(
             e.isDir ? Icons.folder : Icons.play_circle_outline,
-            color: e.isDir ? Colors.amber : Theme.of(context).colorScheme.primary,
+            color:
+                e.isDir ? Colors.amber : Theme.of(context).colorScheme.primary,
           ),
           title: Text(e.name, maxLines: 2, overflow: TextOverflow.ellipsis),
           subtitle: e.isDir
@@ -265,7 +283,9 @@ class _LocalDirectoryBrowserViewState extends State<LocalDirectoryBrowserView> {
                   style: const TextStyle(fontSize: 12),
                 ),
           onTap: widget.pickMode
-              ? (e.isDir ? () => _openDir(e.path) : null) // 选择目录模式：视频文件不可点（不进播放页）
+              ? (e.isDir
+                  ? () => _openDir(e.path)
+                  : null) // 选择目录模式：视频文件不可点（不进播放页）
               : () => e.isDir ? _openDir(e.path) : _playVideo(e),
         );
       },
@@ -319,7 +339,8 @@ class _Crumb extends StatelessWidget {
         label,
         style: TextStyle(
           fontSize: 13,
-          color: isCurrent ? Theme.of(context).colorScheme.primary : Colors.grey,
+          color:
+              isCurrent ? Theme.of(context).colorScheme.primary : Colors.grey,
           fontWeight: isCurrent ? FontWeight.w600 : FontWeight.normal,
         ),
       ),

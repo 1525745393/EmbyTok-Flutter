@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../../widgets/loading_state_card.dart';
 import '../../utils/logger.dart';
 
 class CacheManagementPage extends StatefulWidget {
@@ -128,7 +129,7 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('缓存管理')),
       body: _scanning
-          ? const Center(child: CircularProgressIndicator())
+          ? LoadingStateCard.generic()
           : ListView(
               children: [
                 Padding(

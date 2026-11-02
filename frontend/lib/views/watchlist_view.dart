@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/providers.dart';
+import '../widgets/loading_state_card.dart';
 import '../utils/image_cache_manager.dart';
 
 class WatchlistView extends ConsumerWidget {
@@ -19,7 +20,7 @@ class WatchlistView extends ConsumerWidget {
         title: const Text('稍后观看'),
       ),
       body: watchlistAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => LoadingStateCard.generic(),
         error: (e, _) => Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,

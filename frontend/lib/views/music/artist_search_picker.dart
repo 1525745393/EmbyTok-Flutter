@@ -11,6 +11,7 @@ import '../../models/artist_metadata.dart';
 import '../../services/deezer_service.dart';
 import '../../services/lastfm_service.dart';
 import '../../utils/colors.dart';
+import '../../widgets/loading_state_card.dart';
 import '../../utils/logger.dart';
 
 /// 歌手搜索结果项
@@ -245,9 +246,7 @@ class _ArtistSearchPickerState extends ConsumerState<ArtistSearchPicker> {
   /// 构建内容区域
   Widget _buildContent(ColorScheme scheme, ScrollController controller) {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return LoadingStateCard.generic();
     }
 
     if (_error != null) {

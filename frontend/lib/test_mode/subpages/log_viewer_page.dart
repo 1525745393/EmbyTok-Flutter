@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../widgets/loading_state_card.dart';
 import '../../utils/logger.dart';
 
 /// 日志查看器子页面
@@ -41,9 +42,11 @@ class _LogViewerPageState extends State<LogViewerPage> {
 
   List<String> get _filtered {
     return _logs.where((l) {
-      if (_filterLevel != null && !l.contains('[${_levelTag(_filterLevel!)}]')) return false;
+      if (_filterLevel != null && !l.contains('[${_levelTag(_filterLevel!)}]'))
+        return false;
       if (_filterTag != null && !l.contains('[$_filterTag]')) return false;
-      if (_search.isNotEmpty && !l.toLowerCase().contains(_search.toLowerCase())) return false;
+      if (_search.isNotEmpty &&
+          !l.toLowerCase().contains(_search.toLowerCase())) return false;
       return true;
     }).toList();
   }
@@ -103,7 +106,8 @@ class _LogViewerPageState extends State<LogViewerPage> {
             onPressed: () async {
               final path = await AppLogger.getLogFilePath();
               if (path != null) {
-                await SharePlus.instance.share(ShareParams(files: [XFile(path)]));
+                await SharePlus.instance
+                    .share(ShareParams(files: [XFile(path)]));
               } else if (context.mounted) {
                 // 批次B-F5：日志文件尚未生成时原实现静默无反馈
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -182,7 +186,8 @@ class _LogViewerPageState extends State<LogViewerPage> {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               child: Row(
                 children: [
-                  const Text('模块:', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  const Text('模块:',
+                      style: TextStyle(fontSize: 11, color: Colors.grey)),
                   const SizedBox(width: 6),
                   ChoiceChip(
                     label: const Text('全部'),
@@ -202,13 +207,14 @@ class _LogViewerPageState extends State<LogViewerPage> {
             ),
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator())
+                ? LoadingStateCard.generic()
                 : filtered.isEmpty
                     ? const Center(child: Text('暂无日志'))
                     : ListView.builder(
                         itemCount: filtered.length,
                         itemBuilder: (_, i) => Container(
-                          color: _levelColor(filtered[i]).withValues(alpha: 0.05),
+                          color:
+                              _levelColor(filtered[i]).withValues(alpha: 0.05),
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 4),
                           child: Text(

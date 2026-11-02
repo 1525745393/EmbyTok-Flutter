@@ -18,6 +18,7 @@ import '../../providers/providers.dart';
 import '../../services/artist_info_service.dart';
 import '../../services/lastfm_service.dart';
 import '../../utils/image_cache_manager.dart';
+import '../../widgets/loading_state_card.dart';
 import 'music_cover_widgets.dart';
 
 // ===== 歌手详情弹层常量 =====
@@ -50,8 +51,8 @@ const double kArtistSpacingXXXLarge = 16;
 /// 点搜索按钮进入歌手搜索模式：输入关键词 → 结果以
 /// 「头像 + 简介 + 出处」列表展示，点选后切换当前歌手并加载其歌曲。
 class ArtistDetailSheet extends ConsumerStatefulWidget {
-
-  const ArtistDetailSheet({super.key, 
+  const ArtistDetailSheet({
+    super.key,
     required this.artist,
     required this.initialSongs,
   });
@@ -200,7 +201,8 @@ class ArtistDetailSheetState extends ConsumerState<ArtistDetailSheet> {
                       child: Text(
                         '该歌手暂无歌曲',
                         style: TextStyle(
-                            color: scheme.onSurfaceVariant, fontSize: kArtistFontSizeBody),
+                            color: scheme.onSurfaceVariant,
+                            fontSize: kArtistFontSizeBody),
                       ),
                     )
                   : ListView.builder(
@@ -350,7 +352,8 @@ class ArtistDetailSheetState extends ConsumerState<ArtistDetailSheet> {
           const SizedBox(height: kArtistSpacingXXLarge),
           Text(
             '输入歌手名，搜索头像与简介',
-            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: kArtistFontSizeBody),
+            style: TextStyle(
+                color: scheme.onSurfaceVariant, fontSize: kArtistFontSizeBody),
           ),
         ],
       ),
@@ -361,8 +364,8 @@ class ArtistDetailSheetState extends ConsumerState<ArtistDetailSheet> {
 /// 歌手资料来源选择器：展示当前歌手在各数据源的
 /// 头像/简介候选（含出处），点选采用并持久化。
 class ArtistSourcePicker extends ConsumerStatefulWidget {
-
-  const ArtistSourcePicker({super.key, 
+  const ArtistSourcePicker({
+    super.key,
     required this.artistName,
     required this.onAdopted,
   });
@@ -430,7 +433,7 @@ class ArtistSourcePickerState extends ConsumerState<ArtistSourcePicker> {
       builder: (context, snapshot) {
         final bundle = snapshot.data;
         if (bundle == null) {
-          return const Center(child: CircularProgressIndicator());
+          return LoadingStateCard.generic();
         }
         final lastfm = bundle.lastfm;
         final wiki = bundle.wiki;
@@ -552,13 +555,13 @@ class ArtistSourcePickerState extends ConsumerState<ArtistSourcePicker> {
     String dimension,
     ArtistInfoResult result,
   ) async {
-    await ref.read(artistInfoCacheProvider)
+    await ref
+        .read(artistInfoCacheProvider)
         .saveOverride(widget.artistName, result);
     widget.onAdopted();
     if (!ref.context.mounted) return;
-    final source = dimension == '头像'
-        ? result.imageSource.label
-        : result.bioSource.label;
+    final source =
+        dimension == '头像' ? result.imageSource.label : result.bioSource.label;
     ScaffoldMessenger.of(ref.context).showSnackBar(SnackBar(
       content: Text('已采用 $source 的$dimension'),
       duration: const Duration(seconds: 1),
@@ -569,7 +572,6 @@ class ArtistSourcePickerState extends ConsumerState<ArtistSourcePicker> {
 
 /// 各数据源拉取结果集合
 class ArtistSourceBundle {
-
   const ArtistSourceBundle({this.lastfm, this.wiki, this.synoUrl});
   final LastFmArtistInfo? lastfm;
   final ArtistInfo? wiki;
@@ -578,7 +580,6 @@ class ArtistSourceBundle {
 
 /// 分区标题
 class SourceSectionTitle extends StatelessWidget {
-
   const SourceSectionTitle(this.title, this.scheme, {super.key});
   final String title;
   final ColorScheme scheme;
@@ -601,7 +602,6 @@ class SourceSectionTitle extends StatelessWidget {
 
 /// 分区空提示
 class SourceEmptyHint extends StatelessWidget {
-
   const SourceEmptyHint(this.text, this.scheme, {super.key});
   final String text;
   final ColorScheme scheme;
@@ -612,7 +612,8 @@ class SourceEmptyHint extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Text(
         text,
-        style: TextStyle(fontSize: kArtistFontSizeSmall, color: scheme.onSurfaceVariant),
+        style: TextStyle(
+            fontSize: kArtistFontSizeSmall, color: scheme.onSurfaceVariant),
       ),
     );
   }
@@ -620,8 +621,8 @@ class SourceEmptyHint extends StatelessWidget {
 
 /// 头像来源候选卡
 class AvatarSourceCard extends StatelessWidget {
-
-  const AvatarSourceCard({super.key, 
+  const AvatarSourceCard({
+    super.key,
     required this.imageUrl,
     required this.source,
     required this.hint,
@@ -677,8 +678,8 @@ class AvatarSourceCard extends StatelessWidget {
 
 /// 简介来源候选卡
 class BioSourceCard extends StatelessWidget {
-
-  const BioSourceCard({super.key, 
+  const BioSourceCard({
+    super.key,
     required this.bio,
     required this.source,
     required this.onTap,
@@ -713,7 +714,9 @@ class BioSourceCard extends StatelessWidget {
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-                fontSize: kArtistFontSizeSmall, height: 1.4, color: scheme.onSurfaceVariant),
+                fontSize: kArtistFontSizeSmall,
+                height: 1.4,
+                color: scheme.onSurfaceVariant),
           ),
         ),
         trailing:

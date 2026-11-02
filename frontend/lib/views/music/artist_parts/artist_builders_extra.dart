@@ -131,7 +131,7 @@ extension _ArtistBuilders2 on _ArtistDetailPageState {
                       return _buildAlbumCard(context, scheme, album);
                     },
                   ),
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => LoadingStateCard.generic(),
             error: (e, s) => const Center(child: Text('加载失败')),
           ),
         ),
@@ -398,7 +398,7 @@ extension _ArtistBuilders2 on _ArtistDetailPageState {
           },
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => LoadingStateCard.generic(),
       error: (e, s) => const Center(child: Text('加载失败')),
     );
   }

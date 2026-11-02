@@ -24,6 +24,7 @@ import '../../providers/synology_playback_provider.dart';
 import '../../utils/html_parser.dart';
 import 'artist_metadata_editor.dart';
 import 'artist_search_picker.dart';
+import '../../widgets/loading_state_card.dart';
 import 'mini_player_bar.dart';
 part 'artist_parts/artist_builders_extra.dart';
 
@@ -236,7 +237,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
   /// 格式化时长
 
   // === 合并自 artist_builders.dart ===
-Widget _buildContent(
+  Widget _buildContent(
     BuildContext context,
     ColorScheme scheme,
     ArtistMetadata metadata,
@@ -635,7 +636,8 @@ Widget _buildContent(
           // 分享（次要按钮）
           OutlinedButton.icon(
             onPressed: () {
-              SharePlus.instance.share(ShareParams(text: '歌手：$_artistName\n\n来自 EmbyTok 音乐APP'));
+              SharePlus.instance.share(
+                  ShareParams(text: '歌手：$_artistName\n\n来自 EmbyTok 音乐APP'));
             },
             icon: const Icon(Icons.share),
             label: const Text('分享'),
@@ -768,7 +770,7 @@ Widget _buildContent(
   }
 
   // === 合并自 artist_actions.dart ===
-Future<void> _loadFavoriteStatus() async {
+  Future<void> _loadFavoriteStatus() async {
     final prefs = await SharedPreferences.getInstance();
     final favorites = prefs.getStringList('favorite_artists') ?? [];
     if (mounted) {
@@ -819,7 +821,8 @@ Future<void> _loadFavoriteStatus() async {
     if (selected != null && context.mounted) {
       // 跳转到选中的歌手详情页
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute<Widget>(builder: (context) => ArtistDetailPage(artistName: selected.name),
+        MaterialPageRoute<Widget>(
+          builder: (context) => ArtistDetailPage(artistName: selected.name),
         ),
       );
     }
@@ -1028,7 +1031,7 @@ Future<void> _loadFavoriteStatus() async {
                           );
                         },
                       ),
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => LoadingStateCard.generic(),
                 error: (e, s) => const Center(child: Text('加载失败')),
               ),
             ),

@@ -13,6 +13,7 @@ import '../../providers/video_comments_provider.dart';
 import '../../providers/local_video_provider.dart';
 import '../../services/tmdb_service.dart';
 import '../../services/scrape_service.dart';
+import '../loading_state_card.dart';
 import '../../utils/logger.dart';
 
 /// 打开视频评论弹层
@@ -147,7 +148,7 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
       future: _tmdbFuture,
       builder: (_, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return LoadingStateCard.generic();
         }
         final tmdbReviews = snap.data ?? [];
         final children = <Widget>[];

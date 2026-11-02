@@ -3,6 +3,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../../widgets/loading_state_card.dart';
 import 'package:path_provider/path_provider.dart';
 
 class SandboxBrowserPage extends StatefulWidget {
@@ -67,7 +68,7 @@ class _SandboxBrowserPageState extends State<SandboxBrowserPage> {
         title: Text(_currentDir?.path.split('/').last ?? '沙盒浏览器'),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? LoadingStateCard.generic()
           : _error != null
               ? Center(child: Text('错误: $_error'))
               : ListView.builder(
@@ -77,7 +78,8 @@ class _SandboxBrowserPageState extends State<SandboxBrowserPage> {
                     final name = e.path.split('/').last;
                     final isDir = e is Directory;
                     return ListTile(
-                      leading: Icon(isDir ? Icons.folder : Icons.insert_drive_file),
+                      leading:
+                          Icon(isDir ? Icons.folder : Icons.insert_drive_file),
                       title: Text(name, style: const TextStyle(fontSize: 13)),
                       subtitle: isDir
                           ? null

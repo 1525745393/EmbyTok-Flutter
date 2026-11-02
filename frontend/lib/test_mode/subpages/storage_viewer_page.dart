@@ -1,6 +1,7 @@
 // 存储查看器：展示 shared_preferences 所有 key-value，支持删除单个 key
 
 import 'package:flutter/material.dart';
+import '../../widgets/loading_state_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageViewerPage extends StatefulWidget {
@@ -23,8 +24,10 @@ class _StorageViewerPageState extends State<StorageViewerPage> {
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _prefs = Map<String, Object?>.from(prefs.getKeys().fold<Map<String, Object?>>(
-        {}, (m, k) {
+      _prefs =
+          Map<String, Object?>.from(prefs.getKeys().fold<Map<String, Object?>>(
+        {},
+        (m, k) {
           m[k] = prefs.get(k);
           return m;
         },
@@ -53,15 +56,13 @@ class _StorageViewerPageState extends State<StorageViewerPage> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? LoadingStateCard.generic()
           : ListView.builder(
               itemCount: keys.length,
               itemBuilder: (_, i) {
                 final key = keys[i];
                 final value = _prefs[key];
-                final str = value == null
-                    ? 'null'
-                    : value.toString();
+                final str = value == null ? 'null' : value.toString();
                 final display =
                     str.length > 120 ? '${str.substring(0, 120)}...' : str;
                 return ExpansionTile(

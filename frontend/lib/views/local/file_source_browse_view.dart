@@ -17,6 +17,7 @@ import '../../utils/image_cache_manager.dart';
 import '../../services/smb_scanner.dart';
 import '../../services/tmdb_service.dart';
 import '../../services/webdav_scanner.dart';
+import '../../widgets/loading_state_card.dart';
 import 'local_play_page.dart';
 
 /// 源内浏览页（P1 第三批 + P0 增强）
@@ -392,7 +393,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       ),
       bottomNavigationBar: _buildSelectionBar(),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? LoadingStateCard.generic()
           : _error != null
               ? Center(
                   child: Padding(

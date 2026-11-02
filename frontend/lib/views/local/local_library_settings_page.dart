@@ -14,6 +14,7 @@ import '../../services/scrape_media_store.dart';
 import '../../services/tmdb_service.dart';
 import '../../utils/logger.dart';
 import '../../test_mode/subpages/log_viewer_page.dart';
+import '../../widgets/loading_state_card.dart';
 import 'file_sources_view.dart';
 
 class LocalLibrarySettingsPage extends ConsumerWidget {
@@ -31,7 +32,8 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
         children: [
           const _SectionTitle('文件源'),
           ListTile(
-            leading: const Icon(Icons.folder_special_outlined, color: Colors.purple),
+            leading:
+                const Icon(Icons.folder_special_outlined, color: Colors.purple),
             title: const Text('文件源管理'),
             subtitle: Text('$enabledCount 个启用源 · $totalVideos 个视频'),
             trailing: const Icon(Icons.chevron_right),
@@ -128,8 +130,12 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
             '• 如没有此开关 → 在应用信息页找"权限"→"文件和媒体"→ 允许访问所有文件',
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('去开启')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('取消')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('去开启')),
           ],
         ),
       );
@@ -170,15 +176,19 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
-          TextButton(onPressed: () => Navigator.pop(ctx, controller.text), child: const Text('保存')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, controller.text),
+              child: const Text('保存')),
         ],
       ),
     );
     if (result != null) {
       await TmdbService.setUserKey(result);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已保存')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('已保存')));
       }
     }
     controller.dispose(); // 弹窗已关闭，释放控制器避免泄漏
@@ -191,8 +201,12 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
         title: const Text('清除刮削缓存？'),
         content: const Text('将删除 App 内保存的 TMDB 元数据、海报和演员头像。视频旁的 .nfo 文件不会被删除。'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('清除')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('清除')),
         ],
       ),
     );
@@ -202,7 +216,8 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
       await ScrapeMediaStore.clearCentral();
       await ref.read(localVideoProvider.notifier).refresh();
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('刮削缓存已清除')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('刮削缓存已清除')));
       }
     } catch (e) {
       AppLogger.error('清除刮削缓存失败', error: e);
@@ -216,7 +231,8 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
         title: const Text('退出本地模式'),
         content: const Text('确定退出本地媒体库模式并返回登录页？'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(context), child: const Text('取消')),
           TextButton(
             onPressed: () {
               ref.read(localModeProvider.notifier).state = false;
@@ -241,15 +257,21 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
           children: [
             const Padding(
               padding: EdgeInsets.all(16),
-              child: Text('日志级别', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              child: Text('日志级别',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
             for (final level in LogLevel.values)
               ListTile(
-                title: Text(level == LogLevel.debug ? '调试（最详细）'
-                    : level == LogLevel.info ? '信息'
-                    : level == LogLevel.warn ? '警告（默认）'
-                    : '错误'),
-                trailing: AppLogger.minLevel == level ? const Icon(Icons.check, color: Colors.pink) : null,
+                title: Text(level == LogLevel.debug
+                    ? '调试（最详细）'
+                    : level == LogLevel.info
+                        ? '信息'
+                        : level == LogLevel.warn
+                            ? '警告（默认）'
+                            : '错误'),
+                trailing: AppLogger.minLevel == level
+                    ? const Icon(Icons.check, color: Colors.pink)
+                    : null,
                 onTap: () {
                   AppLogger.setMinLevel(level);
                   Navigator.pop(context);
@@ -277,7 +299,8 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Text(
         title,
-        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey[600]),
+        style: TextStyle(
+            fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey[600]),
       ),
     );
   }
@@ -301,7 +324,8 @@ class _MoveFailedSwitchState extends State<_MoveFailedSwitch> {
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
-    if (mounted) setState(() => _value = prefs.getBool('move_failed_enabled') ?? false);
+    if (mounted)
+      setState(() => _value = prefs.getBool('move_failed_enabled') ?? false);
   }
 
   @override
@@ -353,7 +377,11 @@ class _ScrapeHistoryPageState extends State<_ScrapeHistoryPage> {
 
   Future<void> _load() async {
     final h = await ScrapeMediaStore.loadHistory();
-    if (mounted) setState(() { _history = h; _loading = false; });
+    if (mounted)
+      setState(() {
+        _history = h;
+        _loading = false;
+      });
   }
 
   @override
@@ -380,8 +408,13 @@ class _ScrapeHistoryPageState extends State<_ScrapeHistoryPage> {
                   title: const Text('清空刮削记录？'),
                   content: const Text('将删除全部刮削历史记录，此操作不可恢复。'),
                   actions: [
-                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
-                    TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('清空', style: TextStyle(color: Colors.red))),
+                    TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('取消')),
+                    TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('清空',
+                            style: TextStyle(color: Colors.red))),
                   ],
                 ),
               );
@@ -394,18 +427,20 @@ class _ScrapeHistoryPageState extends State<_ScrapeHistoryPage> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? LoadingStateCard.generic()
           : Column(
               children: [
                 if (ScrapeMediaStore.isScraping.value)
                   Container(
                     width: double.infinity,
                     color: Colors.blue.withValues(alpha: 0.1),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
                     child: const Row(
                       children: [
                         SizedBox(
-                          width: 16, height: 16,
+                          width: 16,
+                          height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
                         SizedBox(width: 12),
@@ -432,14 +467,21 @@ class _ScrapeHistoryPageState extends State<_ScrapeHistoryPage> {
                             itemCount: groupKeys.length,
                             itemBuilder: (_, gi) {
                               final list = groups[groupKeys[gi]]!;
-                              final okCount = list.where((h) => h['status'] == 'success').length;
+                              final okCount = list
+                                  .where((h) => h['status'] == 'success')
+                                  .length;
                               final failCount = list.length - okCount;
-                              final firstTime = DateTime.tryParse(list.last['time'] ?? '');
-                              final lastTime = DateTime.tryParse(list.first['time'] ?? '');
-                              final duration = (firstTime != null && lastTime != null)
-                                  ? lastTime.difference(firstTime)
-                                  : null;
-                              final rate = list.isEmpty ? 0 : (okCount / list.length * 100).round();
+                              final firstTime =
+                                  DateTime.tryParse(list.last['time'] ?? '');
+                              final lastTime =
+                                  DateTime.tryParse(list.first['time'] ?? '');
+                              final duration =
+                                  (firstTime != null && lastTime != null)
+                                      ? lastTime.difference(firstTime)
+                                      : null;
+                              final rate = list.isEmpty
+                                  ? 0
+                                  : (okCount / list.length * 100).round();
                               final gkey = groupKeys[gi];
                               final groupLabel = switch (gkey) {
                                 'auto' => '后台自动刮削',
@@ -448,36 +490,57 @@ class _ScrapeHistoryPageState extends State<_ScrapeHistoryPage> {
                                 _ => '批量刮削',
                               };
                               return Card(
-                                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                margin: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 6),
                                 child: ExpansionTile(
                                   leading: Icon(
                                     gkey == 'auto'
                                         ? Icons.cloud_download_outlined
-                                        : (failCount == 0 ? Icons.check_circle : Icons.warning),
+                                        : (failCount == 0
+                                            ? Icons.check_circle
+                                            : Icons.warning),
                                     color: gkey == 'auto'
                                         ? Colors.blue
-                                        : (failCount == 0 ? Colors.green : Colors.orange),
+                                        : (failCount == 0
+                                            ? Colors.green
+                                            : Colors.orange),
                                   ),
-                                  title: Text('$groupLabel · ${list.length} 个文件 · 成功 $okCount · 失败 $failCount'),
+                                  title: Text(
+                                      '$groupLabel · ${list.length} 个文件 · 成功 $okCount · 失败 $failCount'),
                                   subtitle: Text(
                                     '${firstTime?.toString().substring(0, 16) ?? ''} · 成功率 $rate%'
                                     '${duration != null ? ' · 耗时 ${duration.inSeconds}s' : ''}',
-                                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                    style: const TextStyle(
+                                        fontSize: 11, color: Colors.grey),
                                   ),
                                   children: list.map((h) {
                                     final ok = h['status'] == 'success';
-                                    final t = DateTime.tryParse(h['time'] ?? '')?.toString().substring(11, 19) ?? '';
+                                    final t = DateTime.tryParse(h['time'] ?? '')
+                                            ?.toString()
+                                            .substring(11, 19) ??
+                                        '';
                                     return ListTile(
                                       dense: true,
-                                      leading: Icon(ok ? Icons.check : Icons.close,
-                                          size: 16, color: ok ? Colors.green : Colors.red),
-                                      title: Text(h['file'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
+                                      leading: Icon(
+                                          ok ? Icons.check : Icons.close,
+                                          size: 16,
+                                          color:
+                                              ok ? Colors.green : Colors.red),
+                                      title: Text(h['file'] ?? '',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis),
                                       subtitle: Text(
-                                        ok ? '${h['title'] ?? ''} (${h['year'] ?? ''})' : (h['error'] ?? '失败'),
-                                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                                        ok
+                                            ? '${h['title'] ?? ''} (${h['year'] ?? ''})'
+                                            : (h['error'] ?? '失败'),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(fontSize: 11),
                                       ),
-                                      trailing: Text(t, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                                      trailing: Text(t,
+                                          style: const TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.grey)),
                                       onTap: () => _showEntryDetail(h),
                                     );
                                   }).toList(),
@@ -502,14 +565,16 @@ class _ScrapeHistoryPageState extends State<_ScrapeHistoryPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _row('状态', h['status'] == 'success' ? '成功' : '失败'),
-            if (h['title'] != null) _row('匹配', '${h['title']} (${h['year'] ?? ''})'),
+            if (h['title'] != null)
+              _row('匹配', '${h['title']} (${h['year'] ?? ''})'),
             if (h['error'] != null) _row('错误', h['error']),
             _row('路径', h['path'] ?? ''),
             _row('时间', h['time'] ?? ''),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('关闭')),
+          TextButton(
+              onPressed: () => Navigator.pop(context), child: const Text('关闭')),
         ],
       ),
     );
@@ -523,7 +588,8 @@ class _ScrapeHistoryPageState extends State<_ScrapeHistoryPage> {
         children: [
           SizedBox(
             width: 48,
-            child: Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            child: Text(label,
+                style: const TextStyle(fontSize: 12, color: Colors.grey)),
           ),
           Expanded(
             child: Text(value, style: const TextStyle(fontSize: 13)),

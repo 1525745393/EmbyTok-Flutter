@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../widgets/loading_state_card.dart';
 import '../widgets/video/video_grid_card.dart';
 
 class GenreItemsView extends ConsumerStatefulWidget {
@@ -146,7 +147,7 @@ class _GenreItemsViewState extends ConsumerState<GenreItemsView> {
       );
     }
     if (_items.isEmpty && _isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return LoadingStateCard.generic();
     }
     if (_items.isEmpty) {
       return RefreshIndicator(
@@ -193,7 +194,7 @@ class _GenreItemsViewState extends ConsumerState<GenreItemsView> {
               ),
             );
           }
-          return const Center(child: CircularProgressIndicator());
+          return LoadingStateCard.generic();
         }
         final item = _items[index];
         return VideoGridCard(

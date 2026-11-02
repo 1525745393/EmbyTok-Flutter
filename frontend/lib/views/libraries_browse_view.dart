@@ -15,6 +15,7 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/image_cache_manager.dart';
 import '../utils/logger.dart';
+import '../widgets/loading_state_card.dart';
 import '../widgets/video/video_grid_card.dart';
 
 class LibrariesBrowseView extends ConsumerStatefulWidget {
@@ -62,7 +63,7 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
     final librariesAsync = ref.watch(libraryListProvider);
 
     return librariesAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => LoadingStateCard.generic(),
       error: (e, _) => Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -863,7 +864,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
 
   Widget _buildFolderView(ColorScheme scheme) {
     if (_folderLoading && _folderItems.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return LoadingStateCard.generic();
     }
     if (_folderError != null && _folderItems.isEmpty) {
       return Center(
@@ -1088,7 +1089,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     if (_isLoading && _items.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return LoadingStateCard.generic();
     }
     if (_error != null && _items.isEmpty) return _buildError();
     if (_items.isEmpty) return _buildEmpty();
@@ -1189,7 +1190,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
       future: _loadServerGenres(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return LoadingStateCard.generic();
         }
         final genres = snapshot.data ?? [];
         if (genres.isEmpty) {

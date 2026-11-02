@@ -63,8 +63,7 @@ extension _MusicListBuilders on _SynologyMusicViewState {
       padding: const EdgeInsets.symmetric(vertical: 4),
       shrinkWrap: shrinkWrap,
       physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
-      itemCount:
-          songs.length + (paginated && musicState.hasMoreSongs ? 1 : 0),
+      itemCount: songs.length + (paginated && musicState.hasMoreSongs ? 1 : 0),
       itemBuilder: (context, index) {
         // 触底加载更多（搜索结果列表不分页，paginated=false 不渲染加载槽）
         if (index >= songs.length) {
@@ -332,10 +331,8 @@ extension _MusicListBuilders on _SynologyMusicViewState {
                     // 主轴间距），取代固定 96 估算，避免索引导航系统性偏移
                     final availWidth =
                         MediaQuery.sizeOf(context).width - 12 - 32;
-                    final cellWidth =
-                        availWidth / _kArtistGridCrossAxisCount;
-                    final rowHeight = cellWidth /
-                            _kArtistGridChildAspectRatio +
+                    final cellWidth = availWidth / _kArtistGridCrossAxisCount;
+                    final rowHeight = cellWidth / _kArtistGridChildAspectRatio +
                         _kArtistGridMainAxisSpacing;
                     final row = idx ~/ _kArtistGridCrossAxisCount;
                     _artistScrollController.animateTo(
@@ -454,7 +451,7 @@ extension _MusicListBuilders on _SynologyMusicViewState {
 
   Widget _buildSearchResult(SynologyMusicState state, ColorScheme scheme) {
     if (state.isLoading && state.searchResult == null) {
-      return const Center(child: CircularProgressIndicator());
+      return LoadingStateCard.generic();
     }
     final result = state.searchResult;
     if (result == null ||

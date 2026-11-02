@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 
 import '../models/audio_models.dart';
 import '../providers/synology_auth_provider.dart';
+import '../widgets/loading_state_card.dart';
 import '../providers/synology_playback_provider.dart';
 
 class FolderBrowseView extends ConsumerStatefulWidget {
@@ -139,7 +140,7 @@ class _FolderBrowseViewState extends ConsumerState<FolderBrowseView> {
 
   Widget _buildBody(ColorScheme scheme) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return LoadingStateCard.generic();
     }
     if (_error != null) {
       return Center(
