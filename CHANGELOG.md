@@ -1,3 +1,10 @@
+## [2.401.97](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.96...v2.401.97) (2026-11-02)
+
+
+### Bug Fixes
+
+* **mobile:** deep link hot-start forwarding + isolate big JSON parsing ([#5](https://github.com/1525745393/EmbyTok-Flutter/issues/5)/[#3](https://github.com/1525745393/EmbyTok-Flutter/issues/3)) ([b03a479](https://github.com/1525745393/EmbyTok-Flutter/commit/b03a4792e02eb1ce0a820ed75b4a4f82456aba6a)), closes [#11](https://github.com/1525745393/EmbyTok-Flutter/issues/11)
+
 ## [2.401.96](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.95...v2.401.96) (2026-11-02)
 
 
