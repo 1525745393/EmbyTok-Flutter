@@ -3,14 +3,14 @@
 // 也可以先调用 setupAuth 后使用无参方法。这样既有灵活性又便于 Provider 使用。
 // 业务逻辑（字幕缓存、播放上报重试等）保留在此层，纯 API 调用委托给 _api。
 
-import 'dart:io';
-import 'dart:math';
+import 'dart:io'; // part 文件 embytok_playback_api.dart 使用 File
 
 import 'package:dio/dio.dart';
 
 import '../models/models.dart';
 import '../utils/logger.dart';
 import '../utils/memory_cache.dart';
+import '../utils/retry.dart';
 import 'api_client.dart';
 import 'emby_server_api.dart';
 import 'media_server_api.dart';
@@ -106,40 +106,6 @@ abstract class EmbytokServiceBase {
   // 从云端获取续播位置
 
   /// 删除指定的媒体项（调用 Emby DELETE /Items/{itemId}）
-
-  // 指数退避重试：用于播放上报等关键操作
-  // - maxAttempts: 最多重试次数（含首次），默认 3 次
-  // - delayMs: 初始延迟毫秒数，每次翻倍，带 50% 抖动
-  Future<void> _retry(
-    Future<void> Function() fn, {
-    int maxAttempts = 3,
-    int initialDelayMs = 1000,
-    String operationName = 'operation',
-  }) async {
-    var attempt = 0;
-    var delay = initialDelayMs;
-    final random = Random();
-    while (true) {
-      attempt++;
-      try {
-        await fn();
-        return; // 成功
-      } catch (e) {
-        if (attempt >= maxAttempts) {
-          AppLogger.warn('$operationName 失败（$maxAttempts 次尝试均失败）',
-              data: {'error': e.toString()});
-          rethrow;
-        }
-        // 指数退避 + 50% 随机抖动，避免多设备同时重试产生雪崩
-        final jitter = (delay * 0.5 * random.nextDouble()).toInt();
-        final waitMs = delay + jitter;
-        AppLogger.debug('$operationName 第 $attempt 次失败，${waitMs}ms 后重试',
-            data: {'error': e.toString()});
-        await Future<void>.delayed(Duration(milliseconds: waitMs));
-        delay *= 2;
-      }
-    }
-  }
 }
 
 /// 业务门面：查询/收藏/播放方法分别在 embytok_query/favorites/playback_api.dart

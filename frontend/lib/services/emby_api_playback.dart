@@ -237,7 +237,7 @@ mixin _EmbyPlaybackApi on EmbyServerApiBase {
       if (volumeLevel != null) 'VolumeLevel': volumeLevel,
     };
     try {
-      await _retry(
+      await retryWithBackoff(
         () => _apiClient.post<dynamic>(
           '/Sessions/Playing',
           data: body,
@@ -312,7 +312,7 @@ mixin _EmbyPlaybackApi on EmbyServerApiBase {
       'PlaySessionId': effectiveSessionId,
     };
     try {
-      await _retry(
+      await retryWithBackoff(
         () => _apiClient.post<dynamic>(
           '/Sessions/Playing/Stopped',
           data: body,

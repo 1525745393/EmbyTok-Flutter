@@ -149,7 +149,7 @@ mixin EmbytokPlaybackApi on EmbytokServiceBase {
     String? token,
   }) async {
     try {
-      await _retry(
+      await retryWithBackoff(
         () => _api.reportPlaybackStart(
           itemId: itemId,
           mediaSourceId: mediaSourceId,
@@ -205,7 +205,7 @@ mixin EmbytokPlaybackApi on EmbytokServiceBase {
     String? token,
   }) async {
     try {
-      await _retry(
+      await retryWithBackoff(
         () => _api.reportPlaybackStopped(
           itemId: itemId,
           positionTicks: positionTicks,

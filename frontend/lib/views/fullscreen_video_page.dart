@@ -442,8 +442,9 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
     if (wasForeground && !isForeground) {
       try {
         controller?.pause();
-      } catch (_) {
-        // 操作失败不影响主流程，静默处理
+      } catch (e) {
+        // 切后台暂停失败不影响主流程，但记录日志以便问题可观测
+        AppLogger.warn('切后台暂停播放失败', data: {'error': e.toString()});
       }
     }
 
@@ -455,8 +456,9 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
           if (mounted) {
             try {
               controller?.play();
-            } catch (_) {
-              // 操作失败不影响主流程，静默处理
+            } catch (e) {
+              // 回前台续播失败不影响主流程，但记录日志以便问题可观测
+              AppLogger.warn('回前台恢复播放失败', data: {'error': e.toString()});
             }
           }
         },
