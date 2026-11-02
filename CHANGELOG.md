@@ -1,3 +1,10 @@
+## [2.401.89](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.88...v2.401.89) (2026-11-02)
+
+
+### Bug Fixes
+
+* **ui:** 批次C补充无涟漪按钮修复(收藏页清空搜索/全选/批量取消/全屏设置tab) ([91f2d6b](https://github.com/1525745393/EmbyTok-Flutter/commit/91f2d6b7deadb67d756d87e4a9231cd3f0cdfb71))
+
 ## [2.401.88](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.87...v2.401.88) (2026-11-02)
 
 
