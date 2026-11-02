@@ -27,6 +27,9 @@ abstract class EmbytokServiceBase {
 
   final MediaServerApi _api;
 
+  /// 底层 HTTP 客户端（供 auth 层注入 401 登出等全局行为）
+  ApiClient get apiClient => _api.apiClient;
+
   // 字幕缓存：LRU + TTL，max 50 条，30 分钟过期
   final MemoryCache<List<SubtitleCue>> _subtitleCache =
       MemoryCache<List<SubtitleCue>>(maxSize: 50);

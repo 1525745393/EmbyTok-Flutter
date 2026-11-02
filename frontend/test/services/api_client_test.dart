@@ -250,6 +250,36 @@ void main() {
         expect(err.message, 'Token 已过期');
       });
 
+      test('401 触发 onUnauthorized 回调（移动端专项 #2）', () async {
+        dioAdapter.onGet('/unauthorized-cb', (server) => server.reply(401, {}));
+        var fired = 0;
+        apiClient.onUnauthorized = () => fired++;
+
+        Object? caught;
+        try {
+          await apiClient.get('/unauthorized-cb');
+          fail('Expected AppError to be thrown');
+        } catch (e) {
+          caught = e;
+        }
+        expect(caught, isA<AppError>());
+        expect(fired, 1, reason: '401 应触发一次登出回调');
+      });
+
+      test('非 401 错误不触发 onUnauthorized 回调（防误登出）', () async {
+        dioAdapter.onGet('/forbidden-no-cb', (server) => server.reply(403, {}));
+        var fired = 0;
+        apiClient.onUnauthorized = () => fired++;
+
+        try {
+          await apiClient.get('/forbidden-no-cb');
+          fail('Expected AppError to be thrown');
+        } catch (_) {
+          // 预期抛出 AppError
+        }
+        expect(fired, 0, reason: '403 不应触发登出回调');
+      });
+
       test('403 错误返回中文提示', () async {
         dioAdapter.onGet('/forbidden', (server) => server.reply(403, {}));
 

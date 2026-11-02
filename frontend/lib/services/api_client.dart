@@ -48,6 +48,12 @@ class ApiClient {
   final Dio _dio;
   String? _token;
 
+  /// 收到 401 时回调（由持有者注入，如 auth 层登出）。
+  ///
+  /// 注意：登录页服务器探测等临时 ApiClient 实例不注入此回调，
+  /// 避免「未登录访问受保护接口」被误判为登出事件。
+  void Function()? onUnauthorized;
+
   /// 全局配置：是否允许自签名证书（在 App 启动时加载）
   ///
   /// 所有 ApiClient 实例在创建时读取此配置，
@@ -263,6 +269,9 @@ class ApiClient {
     detail = htmlDecode(detail);
 
     if (status == 401) {
+      // 触发全局登出回调（如 token 过期自动回登录页）；回调由持有者
+      // 保证幂等（AuthNotifier.logout 有防重入），多次 401 并发安全。
+      onUnauthorized?.call();
       return AppError(
         type: ErrorType.unauthorized,
         message: detail.isNotEmpty ? detail : '登录已失效，请重新登录',

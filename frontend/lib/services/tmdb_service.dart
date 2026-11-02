@@ -2,7 +2,9 @@
 // 用于演示模式获取真实影片元数据和海报
 // API key 优先级：设置页用户配置 > --dart-define > 内置默认（仅演示）
 import 'dart:convert';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:meta/meta.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/app_translations.dart';
 import '../utils/logger.dart';
@@ -10,24 +12,61 @@ import '../utils/logger.dart';
 class TmdbService {
   static const String _defaultKey = '21e1b8e8a506b3247bbdeba79611c5e5';
   static const String _spKey = 'tmdb_api_key';
+  static final FlutterSecureStorage _secure = const FlutterSecureStorage();
   static String? _userKey;
 
   /// 用户在设置页配置的 key（运行时加载）
+  ///
+  /// 移动端专项 #1：改存 FlutterSecureStorage（Keychain/Keystore），
+  /// 迁移时删除旧 SharedPreferences 明文键。
   static Future<void> setUserKey(String key) async {
     _userKey = key.trim().isEmpty ? null : key.trim();
-    final sp = await SharedPreferences.getInstance();
     if (_userKey == null) {
-      await sp.remove(_spKey);
+      await _secure.delete(key: _spKey);
     } else {
-      await sp.setString(_spKey, _userKey!);
+      await _secure.write(key: _spKey, value: _userKey!);
     }
+    await _removeLegacyPlainKey();
   }
 
   static Future<String?> getUserKey() async {
     if (_userKey != null) return _userKey;
-    final sp = await SharedPreferences.getInstance();
-    _userKey = sp.getString(_spKey);
+    try {
+      _userKey = await _secure.read(key: _spKey);
+    } catch (e) {
+      AppLogger.warn('读取 TMDB key 失败', data: {'error': e.toString()});
+    }
+    if (_userKey != null) return _userKey;
+    // 旧版明文迁移：读取 SharedPreferences 中的旧值写入安全存储后删除
+    try {
+      final sp = await SharedPreferences.getInstance();
+      final legacy = sp.getString(_spKey);
+      if (legacy != null && legacy.isNotEmpty) {
+        await _secure.write(key: _spKey, value: legacy);
+        _userKey = legacy;
+        await sp.remove(_spKey);
+        AppLogger.info('TMDB key 已从明文存储迁移到安全存储');
+      }
+    } catch (e) {
+      AppLogger.warn('TMDB key 明文迁移失败，忽略旧数据', data: {'error': e.toString()});
+    }
     return _userKey;
+  }
+
+  /// 删除 SharedPreferences 中的旧明文键（幂等，key 不存在时无操作）
+  static Future<void> _removeLegacyPlainKey() async {
+    try {
+      final sp = await SharedPreferences.getInstance();
+      await sp.remove(_spKey);
+    } catch (_) {
+      // 清理旧明文失败不影响主流程
+    }
+  }
+
+  /// 仅测试用：重置内存缓存，模拟冷启动读取路径
+  @visibleForTesting
+  static void resetForTest() {
+    _userKey = null;
   }
 
   static String get _apiKey {

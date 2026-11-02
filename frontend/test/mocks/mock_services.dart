@@ -4,11 +4,20 @@
 import 'package:dio/dio.dart';
 import 'package:mockito/mockito.dart';
 import 'package:embytok_flutter/models/models.dart';
+import 'package:embytok_flutter/services/api_client.dart';
 import 'package:embytok_flutter/services/embytok_service.dart';
 
 /// EmbytokService 的 Mock 实现
 /// 注意：只覆盖测试实际需要的方法，其他方法继承自 EmbytokService
 class MockEmbytokService extends Mock implements EmbytokService {
+  // 移动端专项 #2：AuthNotifier 构造时注入 401 登出回调，
+  // 提供真实 ApiClient 桩避免非空 getter 返回 null 报类型错误
+  @override
+  ApiClient get apiClient => super.noSuchMethod(
+        Invocation.getter(#apiClient),
+        returnValue: ApiClient(),
+        returnValueForMissingStub: ApiClient(),
+      );
   // ============================
   // 登录
   // ============================

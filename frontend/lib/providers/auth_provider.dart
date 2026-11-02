@@ -71,11 +71,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
   AuthNotifier(this._ref) : super(const AuthState()) {
     _service = _ref.read(embytokServiceProvider);
     _secureStorage = _ref.read(secureStorageProvider);
+    // 移动端专项 #2：Emby API 返回 401（token 过期/失效）时自动登出，
+    // GoRouter redirect 基于 isAuthenticated 会随即跳回登录页。
+    // 仅「已登录态」触发：登录页密码错误等 401 属于凭证校验失败，
+    // 未登录时不应触发登出（否则会清掉登录错误提示）。
+    // 登录页服务器探测等临时 ApiClient 未注入此回调，不受影响。
+    // 测试环境 mock service 的 apiClient 可能为 null，防御性跳过。
+    final apiClient = _service.apiClient;
+    if (apiClient != null) {
+      apiClient.onUnauthorized = () {
+        if (state.isAuthenticated) {
+          logout();
+        }
+      };
+    }
     _loadFromStorage();
   }
   final Ref _ref;
   late final EmbytokService _service;
   late final FlutterSecureStorage _secureStorage;
+  bool _loggingOut = false;
 
   // 从本地存储恢复登录状态
   Future<void> _loadFromStorage() async {
@@ -199,29 +214,36 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   // 退出登录：清除本地 Token 和内存缓存
   Future<void> logout() async {
-    AppLogger.info('用户登出');
-    // 清除安全存储中的敏感信息
+    // 防重入：并发多个 401 会并发触发回调，登出只需执行一次
+    if (_loggingOut) return;
+    _loggingOut = true;
     try {
-      await _secureStorage.delete(key: kStorageKeyAccessToken);
-    } catch (_) {
-      // 存储操作失败不影响主流程，静默处理
+      AppLogger.info('用户登出');
+      // 清除安全存储中的敏感信息
+      try {
+        await _secureStorage.delete(key: kStorageKeyAccessToken);
+      } catch (_) {
+        // 存储操作失败不影响主流程，静默处理
+      }
+      // 清除 SharedPreferences
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(kStorageKeyEmbyServerUrl);
+        await prefs.remove(kStorageKeyUser);
+        await prefs.remove(kStorageKeyConfig);
+      } catch (_) {
+        // 存储操作失败不影响主流程，静默处理
+      }
+      // 登出时清除所有内存缓存，避免账号切换后数据污染
+      try {
+        _ref.read(cacheControllerProvider).invalidateAll();
+      } catch (_) {
+        // 存储操作失败不影响主流程，静默处理
+      }
+      state = const AuthState();
+    } finally {
+      _loggingOut = false;
     }
-    // 清除 SharedPreferences
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(kStorageKeyEmbyServerUrl);
-      await prefs.remove(kStorageKeyUser);
-      await prefs.remove(kStorageKeyConfig);
-    } catch (_) {
-      // 存储操作失败不影响主流程，静默处理
-    }
-    // 登出时清除所有内存缓存，避免账号切换后数据污染
-    try {
-      _ref.read(cacheControllerProvider).invalidateAll();
-    } catch (_) {
-      // 存储操作失败不影响主流程，静默处理
-    }
-    state = const AuthState();
   }
 
   /// 进入本地媒体库模式：注入 mock 登录状态

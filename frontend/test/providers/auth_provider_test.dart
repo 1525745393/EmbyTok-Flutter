@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:embytok_flutter/models/models.dart';
 import 'package:embytok_flutter/providers/auth_provider.dart';
 import 'package:embytok_flutter/providers/embytok_service_provider.dart';
+import 'package:embytok_flutter/services/api_client.dart';
 import 'package:embytok_flutter/utils/constants.dart';
 
 import '../mocks/mock_services.dart';
@@ -159,6 +160,55 @@ void main() {
         username: 'testuser',
         password: 'password',
       )).called(1);
+    });
+
+    test('移动端专项#2：已登录态触发 onUnauthorized 自动登出', () async {
+      // 固定同一个 ApiClient 桩，AuthNotifier 构造时注入回调
+      final apiClient = ApiClient();
+      when(mockService.apiClient).thenReturn(apiClient);
+
+      const testUser = User(
+        id: 'user-123',
+        name: 'testuser',
+        accessToken: 'test-token',
+      );
+      when(mockService.login(
+        embyServerUrl: anyNamed('embyServerUrl'),
+        username: anyNamed('username'),
+        password: anyNamed('password'),
+      )).thenAnswer((_) async => testUser);
+
+      container = createContainer();
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      final notifier = container.read(authProvider.notifier);
+      await notifier.login('http://emby.example.com', 'testuser', 'password',
+          backendUrl: 'http://backend.example.com');
+      expect(container.read(authProvider).isAuthenticated, true);
+
+      // 模拟 Emby API 返回 401 → 自动登出
+      apiClient.onUnauthorized?.call();
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      expect(container.read(authProvider).isAuthenticated, false,
+          reason: '401 应自动登出并回到未登录态');
+      expect(container.read(authProvider).user, isNull);
+    });
+
+    test('移动端专项#2：未登录态 401 不触发登出（登录失败防护）', () async {
+      final apiClient = ApiClient();
+      when(mockService.apiClient).thenReturn(apiClient);
+
+      container = createContainer();
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // 未登录（登录页密码错误等 401 场景）时回调不应清空状态
+      apiClient.onUnauthorized?.call();
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      expect(container.read(authProvider).isAuthenticated, false);
+      expect(container.read(authProvider).error, isNull,
+          reason: '未登录时 401 不应触发登出，保留登录错误提示');
     });
 
     test('login() 失败：error 包含错误信息', () async {
