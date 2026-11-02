@@ -199,6 +199,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   ProviderSubscription<bool>? _isPlayingSubscription;
   ProviderSubscription<bool>? _isAutoPlaySubscription;
 
+  // dispose 阶段不能再用 ref.read（ProviderScope 可能已释放）：
+  // 缓存睡眠定时器 notifier 引用，供 initState 注册与 dispose 注销回调
+  late final SleepTimerNotifier _sleepTimerNotifier =
+      ref.read(sleepTimerProvider.notifier);
+
   @override
   void initState() {
     super.initState();
@@ -210,7 +215,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     WakelockPlus.enable();
 
     // 注册睡眠定时器超时回调：倒计时结束时暂停播放
-    ref.read(sleepTimerProvider.notifier).setOnTimeout(() {
+    _sleepTimerNotifier.setOnTimeout(() {
       if (mounted && _videoController?.value.isPlaying == true) {
         _videoController?.pause();
       }
@@ -386,7 +391,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     _hasNotifiedEnded = false;
     _hasStoppedReported = false;
     // 注销睡眠定时器全局回调，避免其长期持有已 dispose 的 State 闭包
-    ref.read(sleepTimerProvider.notifier).setOnTimeout(() {});
+    // 用 initState 缓存的 notifier（dispose 阶段不能再 ref.read）
+    _sleepTimerNotifier.setOnTimeout(() {});
     _disposed = true;
     super.dispose();
   }

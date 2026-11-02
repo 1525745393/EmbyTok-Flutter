@@ -431,6 +431,10 @@ class _FakePlayerControlHandle implements PlayerControlHandle {
   bool pauseCalled = false;
   bool playCalled = false;
 
+  // 播放状态可监听流：接口为 nullable，测试中无需暴露（调用方有 ?? 兜底）
+  @override
+  ValueListenable<bool>? get isPlayingListenable => null;
+
   @override
   void play() {
     playing = true;
