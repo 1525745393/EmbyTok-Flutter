@@ -23,7 +23,6 @@ import '../models/models.dart';
 import '../l10n/app_translations.dart'; // batch41-F1：语言设置 tile 读取/保存 AppLocale
 import '../providers/artist_metadata_provider.dart';
 import '../providers/player_engine_provider.dart';
-import '../providers/server_registry_provider.dart';
 import '../services/update_check_service.dart';
 import '../widgets/video/playback_info_osd.dart';
 import 'settings/cache_management_page.dart';
@@ -36,7 +35,6 @@ import '../services/services.dart';
 import '../services/artist_metadata_service.dart' show BatchScanResult;
 import '../utils/app_preferences.dart'
     show AppPreferencesService, OrientationMode, FeedType;
-import '../utils/constants.dart';
 import '../utils/donate_colors.dart';
 import '../utils/formatters.dart' show formatBytes;
 import '../utils/lanzou_url.dart';
@@ -246,27 +244,8 @@ class SettingsView extends ConsumerWidget {
           ),
         ],
       ),
-      // 服务器与账户设置（配置服务器是进入 App 的前提，放在靠前位置）
-      _buildSectionEntry(
-        context,
-        ref,
-        '服务器与账户',
-        Icons.cloud_outlined,
-        Colors.blue,
-        'Emby 服务器、服务模式、账户证书',
-        (context, ref) => [
-          _buildServiceModeSelector(context, ref),
-          _buildServerRegistryTile(context, ref),
-          if (!isMusicMode) ...[
-            _buildServerGroupLabel(context, ref, '视频数据源', Icons.movie_outlined),
-            _buildServerInfoTile(context, ref),
-          ],
-          _buildServerGroupLabel(
-              context, ref, '账户', Icons.account_circle_outlined),
-          _buildProfileTile(context, ref),
-          _buildSelfSignedCertificateTile(context, ref),
-        ],
-      ),
+      // 服务器与账户设置（batch126：整体迁移至登录页 LoginView，
+      // 配置服务器/服务模式/账户是登录环节的前置，登录页统一管理）
       // 存储与缓存设置
       _buildSectionEntry(
         context,
@@ -293,12 +272,12 @@ class SettingsView extends ConsumerWidget {
         accentBlue,
         '群晖 Audio Station、歌手元数据',
         (context, ref) => [
-          _buildServerGroupLabel(
-              context, ref, '音乐数据源', Icons.library_music_outlined),
+          buildServerGroupLabel(
+              context, Icons.library_music_outlined, '音乐数据源'),
           _buildSynologyMusicTile(context, ref),
           _buildLastFmTile(context, ref),
           _buildNasMetadataSyncTile(context, ref),
-          _buildServerGroupLabel(context, ref, '歌手元数据', Icons.person_outline),
+          buildServerGroupLabel(context, Icons.person_outline, '歌手元数据'),
           _buildArtistMetadataCacheTile(context, ref),
           _buildBatchScanTile(context, ref),
         ],
@@ -559,15 +538,11 @@ class SettingsView extends ConsumerWidget {
   // PR #81：观看统计 tile
   // - 显示总次数 + 平均完播率
   // - 点击查看详情 + 清除按钮
-  // 服务器 - 服务器管理入口（多服务器控制台）
-  // 服务器 - 服务模式选择（视频服务 / 音乐服务）
-  // 服务器 - 数据源分组标签（视频 / 音乐）
   /// 规则筛选子分区折叠卡片：推荐/关注/发现 各页面设置分区
   /// 规则筛选分组顶部引导：说明分组结构与生效时机
   /// 规则筛选 - 关注页共享规则说明
   /// 评分/时长/类型等规则与推荐页共用同一开关（关注内容同样经过过滤），
   /// 避免用户误以为需要到推荐页单独配置。
-  // 服务器 - 服务器信息
   // 服务器 - 群晖 Audio Station 音乐
   // 服务器 - Last.fm 音乐元数据补充（歌手头像/简介）
   /// NAS 歌手元数据同步开关（V1.1）
@@ -582,17 +557,6 @@ class SettingsView extends ConsumerWidget {
   // 关于 - 版本信息（动态读取，避免硬编码）
   // P2-5：性能监控面板（仅开发模式）
   // 开启后显示悬浮面板，监控内存使用、帧率、Widget 重建次数、API 请求统计
-  // 账户 - 用户信息
-  // P0-1：允许自签名证书（默认关闭，即启用 SSL 证书校验）
-  // 开启时允许连接使用自签名证书的内网 NAS，存在中间人攻击风险
-  // 读取/保存已提升为库顶层函数（settings_builders_extra.dart，batch41-F2）：
-  // _loadAllowSelfSignedCertificate / _setAllowSelfSignedCertificate
-
-  /// 保存是否允许自签名证书到 SharedPreferences
-  ///
-  /// 注意：证书校验配置在 ApiClient 初始化时读取，
-  /// 修改后需要重启 App 才能生效。
-  /// 显示自签名证书安全风险提示对话框
   // 退出登录按钮
   // ==================== 设置搜索 ====================
 

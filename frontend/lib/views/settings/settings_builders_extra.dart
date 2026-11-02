@@ -5,67 +5,6 @@ part of '../settings_view.dart';
 // ==================== 设置项构建（下半） ====================
 
 extension _SettingsBuilders2 on SettingsView {
-  Widget _buildServerRegistryTile(BuildContext context, WidgetRef ref) {
-    final servers = ref.watch(serverRegistryProvider);
-    final active = ref.watch(activeServerProvider);
-    return settingsTapTile(
-      icon: Icons.dns_outlined,
-      iconColor: Colors.blueGrey,
-      title: '服务器管理',
-      subtitle: servers.isEmpty
-          ? '配置 Emby / 群晖等多台服务器并快速切换'
-          : '${servers.length} 台服务器 · 当前：${active?.name ?? '未激活'}',
-      onTap: () => context.push('/servers'),
-      helpText:
-          '管理已配置的服务器（Emby / Jellyfin / 群晖 Audio Station 等）。\n\n· 查看已添加的服务器列表与状态\n· 添加、编辑、删除服务器\n· 快速切换当前使用的服务器\n\n切换服务器后，媒体库/登录状态跟随切换。',
-    );
-  }
-
-  Widget _buildServiceModeSelector(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
-    final mode = ref.watch(serviceModeProvider);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SegmentedButton<AppServiceMode>(
-            segments: [
-              for (final m in AppServiceMode.values)
-                ButtonSegment(
-                  value: m,
-                  label: Text(m.label),
-                  icon: Icon(m.icon, size: 16),
-                ),
-            ],
-            selected: {mode},
-            showSelectedIcon: false,
-            onSelectionChanged: (selection) async {
-              final next = selection.first;
-              if (next == mode) return;
-              await ref.read(serviceModeProvider.notifier).setMode(next);
-              if (!context.mounted) return;
-              // 切换模式后回到首页，立即展示对应界面
-              context.go('/');
-            },
-            style: const ButtonStyle(
-              visualDensity: VisualDensity.compact,
-              textStyle: const WidgetStatePropertyAll(
-                  TextStyle(fontSize: _kFontSizeBody)),
-            ),
-          ),
-          const SizedBox(height: _kSpacingMedium),
-          Text(
-            mode == AppServiceMode.music
-                ? '首页将显示音乐库界面（群晖 Audio Station）'
-                : '首页将显示视频流界面（Emby / Plex）',
-            style: TextStyle(
-                fontSize: _kFontSizeSmall, color: scheme.onSurfaceVariant),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildRuleScopeHint(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
@@ -96,44 +35,6 @@ extension _SettingsBuilders2 on SettingsView {
           color: scheme.onSurfaceVariant,
         ),
       ),
-    );
-  }
-
-  Widget _buildServerGroupLabel(
-    BuildContext context,
-    WidgetRef ref,
-    String label,
-    IconData icon,
-  ) {
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 2),
-      child: Row(
-        children: [
-          Icon(icon, size: 15, color: scheme.onSurfaceVariant),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: _kFontSizeSmall,
-              fontWeight: FontWeight.w600,
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildServerInfoTile(BuildContext context, WidgetRef ref) {
-    final auth = ref.watch(authProvider);
-    return settingsInfoTile(
-      icon: Icons.cloud_outlined,
-      iconColor: Colors.blue,
-      title: '当前服务器',
-      subtitle: auth.backendUrl ?? '未连接',
-      helpText:
-          '当前正在使用的服务器地址。\n\n如需切换或添加服务器，请使用上方「服务器管理」入口。\n\n服务器切换后，媒体库、推荐与收藏内容都会跟随当前服务器变化。',
     );
   }
 
@@ -364,167 +265,6 @@ extension _SettingsBuilders2 on SettingsView {
     );
   }
 
-  Widget _buildProfileTile(BuildContext context, WidgetRef ref) {
-    // 音乐模式显示群晖账户，视频模式显示 Emby 账户
-    if (ref.read(serviceModeProvider) == AppServiceMode.music) {
-      final syno = ref.watch(synologyAuthProvider);
-      return settingsInfoTile(
-        icon: Icons.account_circle_outlined,
-        iconColor: Colors.blue,
-        title: syno.account ?? (syno.isLoggedIn ? '群晖账号' : '未登录'),
-        subtitle: syno.serverUrl ?? '未连接群晖 NAS',
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => _showAccountSwitcher(context, ref),
-        helpText:
-            '当前登录的账号信息（音乐模式）。\n\n· 点击可快速切换到其他已保存的服务器\n· 显示群晖 Audio Station 账号与 NAS 地址\n· 信息不符时，可到「服务器管理」重新登录或切换服务器',
-      );
-    }
-    final auth = ref.watch(authProvider);
-    final name = auth.user?.name ?? '未登录';
-    return settingsInfoTile(
-      icon: Icons.account_circle_outlined,
-      iconColor: Colors.blue,
-      title: name,
-      subtitle: auth.backendUrl ?? '未连接服务器',
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () => _showAccountSwitcher(context, ref),
-      helpText:
-          '当前登录的账号信息（视频模式）。\n\n· 点击可快速切换到其他已保存的服务器\n· 显示 Emby 账号名与服务器地址\n· 信息不符时，可到「服务器管理」重新登录或切换服务器',
-    );
-  }
-
-  /// 快速账号切换弹窗：列出所有已配置服务器，点击即切换
-  void _showAccountSwitcher(BuildContext context, WidgetRef ref) {
-    final servers = ref.read(serverRegistryProvider);
-    final activeId = ref.read(activeServerIdProvider);
-
-    showModalBottomSheet(
-      context: context,
-      builder: (sheetCtx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('切换服务器',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            ),
-            if (servers.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(32),
-                child: Text('尚未添加服务器'),
-              )
-            else
-              ...servers.map((s) {
-                final isActive = s.id == activeId;
-                return ListTile(
-                  leading: Icon(
-                    isActive ? Icons.check_circle : Icons.storage_outlined,
-                    color: isActive ? Colors.green : null,
-                  ),
-                  title: Text(s.name),
-                  subtitle: Text('${s.kind.label} · ${s.username}'),
-                  onTap: () {
-                    Navigator.pop(sheetCtx);
-                    _switchServerQuick(context, ref, s);
-                  },
-                );
-              }),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('服务器管理'),
-              onTap: () {
-                Navigator.pop(sheetCtx);
-                context.push('/servers');
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// 快速切换服务器（复用 servers_view 的登录逻辑）
-  ///
-  /// 先尝试登录，成功后再 setActive；失败时保持旧服务器激活状态不变。
-  Future<void> _switchServerQuick(
-      BuildContext context, WidgetRef ref, ServerProfile server) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final registry = ref.read(serverRegistryProvider.notifier);
-    final secureStorage = ref.read(secureStorageProvider);
-    final prevActiveId = ref.read(activeServerIdProvider);
-
-    try {
-      if (server.kind == ServerKind.synology) {
-        String? sid;
-        try {
-          sid = await secureStorage.read(key: serverSynoSidKey(server.id));
-        } catch (_) {}
-        final synoAuth = ref.read(synologyAuthProvider.notifier);
-        if (sid != null && sid.isNotEmpty) {
-          await synoAuth.restoreSession(
-            serverUrl: server.resolveUrl(),
-            account: server.username,
-            sid: sid,
-          );
-        } else {
-          final password =
-              await secureStorage.read(key: 'server_password_${server.id}');
-          if (password == null) {
-            messenger.showSnackBar(
-                const SnackBar(content: Text('未保存该服务器的密码，请编辑后重试')));
-            return;
-          }
-          await synoAuth.login(
-            serverUrl: server.resolveUrl(),
-            account: server.username,
-            password: password,
-          );
-        }
-      } else {
-        final password =
-            await secureStorage.read(key: 'server_password_${server.id}');
-        if (password == null) {
-          messenger
-              .showSnackBar(const SnackBar(content: Text('未保存该服务器的密码，请编辑后重试')));
-          return;
-        }
-        await ref.read(authProvider.notifier).login(
-              server.resolveUrl(),
-              server.username,
-              password,
-            );
-      }
-      // 登录成功后才更新激活状态和最后使用时间
-      await registry.touch(server.id);
-      await ref.read(activeServerIdProvider.notifier).setActive(server.id);
-      if (context.mounted) {
-        messenger.showSnackBar(SnackBar(content: Text('已切换到「${server.name}」')));
-      }
-    } catch (e) {
-      AppLogger.error('切换服务器失败，保持原服务器', data: {
-        'error': e.toString(),
-        'prevActiveId': prevActiveId,
-      });
-      if (context.mounted) {
-        messenger.showSnackBar(SnackBar(content: Text('切换失败：$e（保持原服务器）')));
-      }
-    }
-  }
-
-  // P0-1：允许自签名证书（默认关闭，即启用 SSL 证书校验）
-  // 开启时允许连接使用自签名证书的内网 NAS，存在中间人攻击风险
-  // batch41-F2：原 FutureBuilder 在 build 中重建 future（每次 rebuild 闪回；
-  // 确认开启写 prefs 后旧 future 不刷新，开关一直显示"已禁用"）——已提取为
-  // _SelfSignedCertificateTile（本文件底部类），initState 读一次，写入后本地覆盖。
-  Widget _buildSelfSignedCertificateTile(BuildContext context, WidgetRef ref) {
-    return const _SelfSignedCertificateTile();
-  }
-
-  // 安全风险提示对话框已并入 _SelfSignedCertificateTileState._toggle（batch41-F2）；
-  // _setAllowSelfSignedCertificate 已提升为库顶层函数（batch41-F2 配套）
-
   /// 本地媒体库模式的退出按钮（batchF3）：
   /// 与 [local_library_settings_page] 的「退出本地模式」同语义——
   /// 同时清 localModeProvider 与 authProvider 注入态，守卫才放行跳登录页。
@@ -706,11 +446,11 @@ class _MirrorPickerDialogState extends State<_MirrorPickerDialog> {
   }
 }
 
-// ==================== 下载源/自签名证书 库级辅助（batch41-F2/F5） ====================
-// 说明：以下 helper 原为 extension _SettingsBuilders2 成员，batch41-F2/F5 新增的
-// StatefulWidget（_DownloadMirrorTile / _SelfSignedCertificateTile）无法调用
-// extension 成员（非 SettingsView 实例），已提升为库顶层函数，供 extension 与
-// State 类共同调用（同库作用域直接可见，避免重复实现）。
+// ==================== 下载源 库级辅助（batch41-F5） ====================
+// 说明：以下 helper 原为 extension _SettingsBuilders2 成员，batch41-F5 新增的
+// StatefulWidget（_DownloadMirrorTile）无法调用 extension 成员（非 SettingsView
+// 实例），已提升为库顶层函数，供 extension 与 State 类共同调用
+// （同库作用域直接可见，避免重复实现）。
 
 /// 镜像显示名映射（_MirrorPickerDialog 原 _label 与此合并，batch41-F5 消重）
 String _mirrorLabel(String mirror) {
@@ -736,33 +476,6 @@ Future<void> _showMirrorPicker(
   );
 }
 
-/// 保存自签名证书开关（batch41-F2 提升为顶层函数）
-Future<void> _setAllowSelfSignedCertificate(
-    BuildContext context, bool allow) async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setBool(kStorageKeyAllowSelfSignedCertificate, allow);
-  if (allow) {
-    AppLogger.warn('已允许自签名证书，SSL 校验已禁用，存在安全风险');
-  } else {
-    AppLogger.info('已禁用自签名证书，SSL 校验已启用');
-  }
-  // 提示用户重启 App 生效
-  if (context.mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(allow ? '已允许自签名证书，重启 App 后生效' : '已禁用自签名证书，重启 App 后生效'),
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-}
-
-/// 从 SharedPreferences 读取是否允许自签名证书
-/// （原 SettingsView 实例方法，batch41-F2 提升为顶层函数供证书 tile State 调用）
-Future<bool> _loadAllowSelfSignedCertificate() async {
-  final prefs = await SharedPreferences.getInstance();
-  return prefs.getBool(kStorageKeyAllowSelfSignedCertificate) ?? false;
-}
 
 // ==================== NAS 元数据同步开关（batch41-F4） ====================
 
@@ -896,102 +609,3 @@ class _DownloadMirrorTileState extends ConsumerState<_DownloadMirrorTile> {
   }
 }
 
-// ==================== 允许自签名证书开关（batch41-F2） ====================
-
-/// 允许自签名证书开关（batch41-F2）
-///
-/// 原实现（settings_builders_extra.dart）在 build 中新建
-/// `_loadAllowSelfSignedCertificate()` future——每次 rebuild（切分组/返回页面/
-/// 操作其他开关）回 pending、开关闪回关闭；确认开启写入 prefs 后，已 resolve
-/// 的旧 future 不刷新，UI 一直显示"已禁用"直到重启，与实际状态不符。
-/// 修复：initState 读一次并缓存到本地 state；开启走二次确认（原
-/// `_showSelfSignedCertificateWarning` 逻辑并入 `_toggle`），写入后本地覆盖显示。
-class _SelfSignedCertificateTile extends StatefulWidget {
-  const _SelfSignedCertificateTile({super.key});
-
-  @override
-  State<_SelfSignedCertificateTile> createState() =>
-      _SelfSignedCertificateTileState();
-}
-
-class _SelfSignedCertificateTileState
-    extends State<_SelfSignedCertificateTile> {
-  bool _allow = false;
-  bool _loaded = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final allow = await _loadAllowSelfSignedCertificate();
-    if (mounted) {
-      setState(() {
-        _allow = allow;
-        _loaded = true;
-      });
-    }
-  }
-
-  Future<void> _toggle(bool value) async {
-    if (value) {
-      // 开启时弹出安全风险提示，确认后才保存
-      final scheme = Theme.of(context).colorScheme;
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Row(
-            children: [
-              Icon(Icons.warning_amber_rounded, color: scheme.error, size: 24),
-              const SizedBox(width: 8),
-              const Text('安全风险提示'),
-            ],
-          ),
-          content: const Text(
-            '允许自签名证书将禁用 SSL 证书校验，可能导致中间人攻击，'
-            '使您的账号密码和播放数据面临泄露风险。\n\n'
-            '仅建议在受信任的内网环境中使用，且仅连接您自己的服务器。\n\n'
-            '确定要开启吗？',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('取消'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              style: TextButton.styleFrom(foregroundColor: scheme.error),
-              child: const Text('确认开启'),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true || !mounted) return;
-      await _setAllowSelfSignedCertificate(context, true);
-    } else {
-      // 关闭时直接保存
-      await _setAllowSelfSignedCertificate(context, false);
-    }
-    if (mounted) setState(() => _allow = value);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!_loaded) {
-      // 读取中：与原 FutureBuilder waiting 态一致，避免首帧开关抖动
-      return const SizedBox.shrink();
-    }
-    return settingsSwitchTile(
-      icon: Icons.security_outlined,
-      iconColor: Colors.orange,
-      title: '允许自签名证书',
-      subtitle: _allow ? '已允许：可连接自签名证书的内网服务器（存在安全风险）' : '已禁用：严格校验 SSL 证书（推荐）',
-      value: _allow,
-      onChanged: _toggle,
-      helpText:
-          '开启后允许连接使用自签名证书的服务器（如内网 NAS、自建 Emby）。\n\n· 开启 → 信任自签名证书，避免 TLS 校验失败\n· 关闭 → 只信任受信任 CA 签发的证书\n\n仅在你信任该服务器时开启，否则存在中间人攻击风险。',
-    );
-  }
-}

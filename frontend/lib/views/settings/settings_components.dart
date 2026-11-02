@@ -24,6 +24,33 @@ Widget settingsRuleSectionDivider(ColorScheme scheme) {
   );
 }
 
+/// 服务器/账户分组标签（batch126：从 settings_view 提取为共享函数，
+/// 设置页「音乐库」分区与登录页「服务器与账户」区块共用，避免两套实现）
+Widget buildServerGroupLabel(
+  BuildContext context,
+  IconData icon,
+  String label,
+) {
+  final scheme = Theme.of(context).colorScheme;
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(20, 12, 20, 2),
+    child: Row(
+      children: [
+        Icon(icon, size: 15, color: scheme.onSurfaceVariant),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: scheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 Widget settingsLibrarySelectionTile({
   required IconData icon,
   Color? iconColor,
