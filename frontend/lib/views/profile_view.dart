@@ -75,15 +75,8 @@ class ProfileView extends ConsumerWidget {
             _buildMenuTile(
               icon: Icons.settings,
               title: '设置',
-              subtitle: '服务模式、服务器管理、外观',
+              subtitle: '服务模式、外观',
               onTap: () => context.go('/settings'),
-            ),
-            // 服务器管理入口
-            _buildMenuTile(
-              icon: Icons.dns,
-              title: '服务器管理',
-              subtitle: '添加、编辑、切换媒体服务器',
-              onTap: () => context.go('/servers'),
             ),
             // 下载管理入口
             _buildMenuTile(
