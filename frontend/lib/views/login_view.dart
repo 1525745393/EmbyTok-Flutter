@@ -633,8 +633,21 @@ class _LoginViewState extends ConsumerState<LoginView> {
   }
 
   Widget _buildProfileTile(BuildContext context, WidgetRef ref) {
-    // 音乐模式显示群晖账户，视频模式显示 Emby 账户
-    if (ref.read(serviceModeProvider) == AppServiceMode.music) {
+    // 账户 tile 与「激活服务器」类型保持一致：群晖服务器显示群晖账号，
+    // Emby/Plex 显示 Emby 账号；未激活服务器时按当前服务模式兜底显示。
+    final activeId = ref.watch(activeServerIdProvider);
+    final registry = ref.watch(serverRegistryProvider);
+    ServerProfile? active;
+    for (final s in registry) {
+      if (s.id == activeId) {
+        active = s;
+        break;
+      }
+    }
+    final isSynoActive = active?.kind == ServerKind.synology;
+    if (isSynoActive ||
+        (active == null &&
+            ref.read(serviceModeProvider) == AppServiceMode.music)) {
       final syno = ref.watch(synologyAuthProvider);
       return settingsInfoTile(
         icon: Icons.account_circle_outlined,
@@ -767,6 +780,16 @@ class _LoginViewState extends ConsumerState<LoginView> {
       // 登录成功后才更新激活状态和最后使用时间
       await registry.touch(server.id);
       await ref.read(activeServerIdProvider.notifier).setActive(server.id);
+      // 账号类型与模式联动：群晖 → 音乐模式，Emby/Plex → 视频模式
+      // （与登录表单提交 _submit 的联动对称，避免首页模式与激活账号割裂）
+      final modeNotifier = ref.read(serviceModeProvider.notifier);
+      if (server.kind == ServerKind.synology) {
+        if (ref.read(serviceModeProvider) != AppServiceMode.music) {
+          await modeNotifier.setMode(AppServiceMode.music);
+        }
+      } else if (ref.read(serviceModeProvider) != AppServiceMode.video) {
+        await modeNotifier.setMode(AppServiceMode.video);
+      }
       if (context.mounted) {
         messenger.showSnackBar(SnackBar(content: Text('已切换到「${server.name}」')));
       }
@@ -1019,13 +1042,16 @@ Future<void> _loadSavedData() async {
         );
       }
       if (mounted) {
-        // 群晖登录成功：联动切换音乐服务模式（与退出登录回退 video 对称），
-        // 避免 video 模式下登录群晖后首页仍是视频流、音乐账号与模式割裂
+        // 账号类型与模式对称联动：群晖登录成功 → 音乐模式；Emby/Plex 登录成功
+        // → 视频模式。避免登录成功后首页模式与激活账号割裂（与退出登录回退
+        // video、服务模式选择器切换互为对称）。
+        final modeNotifier = ref.read(serviceModeProvider.notifier);
         if (_serverType == ServerType.synology) {
-          final modeNotifier = ref.read(serviceModeProvider.notifier);
           if (ref.read(serviceModeProvider) != AppServiceMode.music) {
             await modeNotifier.setMode(AppServiceMode.music);
           }
+        } else if (ref.read(serviceModeProvider) != AppServiceMode.video) {
+          await modeNotifier.setMode(AppServiceMode.video);
         }
         if (!mounted) return;
         context.go('/');

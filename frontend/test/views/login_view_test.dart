@@ -18,6 +18,13 @@ import 'package:embytok_flutter/providers/service_mode_provider.dart';
 import 'package:embytok_flutter/services/services.dart';
 import 'package:embytok_flutter/views/login_view.dart';
 
+import 'package:mockito/mockito.dart';
+
+import 'package:embytok_flutter/models/models.dart';
+import 'package:embytok_flutter/providers/auth_provider.dart';
+import 'package:embytok_flutter/providers/server_registry_provider.dart';
+
+import '../mocks/mock_services.dart';
 import '../mocks/mock_secure_storage.dart';
 
 void main() {
@@ -220,7 +227,132 @@ void main() {
     expect(find.text('首页'), findsOneWidget,
         reason: '登录成功应重定向回首页');
   });
+
+  testWidgets('音乐模式下 Emby 登录成功联动切回视频服务模式', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final mockService = MockEmbytokService();
+    when(mockService.login(
+      embyServerUrl: anyNamed('embyServerUrl'),
+      username: anyNamed('username'),
+      password: anyNamed('password'),
+    )).thenAnswer((_) async =>
+        const User(id: 'u1', name: 'tester', accessToken: 'tok'));
+    final container = ProviderContainer(
+      overrides: [
+        secureStorageProvider.overrideWithValue(MockFlutterSecureStorage()),
+        embytokServiceProvider.overrideWithValue(mockService),
+        authProvider.overrideWith((ref) => AuthNotifier(ref)),
+        serviceModeProvider.overrideWith((ref) => ServiceModeNotifier()),
+      ],
+    );
+    addTearDown(container.dispose);
+    // 前置：音乐模式（验证 Emby 登录会联动切回 video，与群晖→music 对称）
+    await container
+        .read(serviceModeProvider.notifier)
+        .setMode(AppServiceMode.music);
+
+    final router = GoRouter(
+      initialLocation: '/login',
+      routes: [
+        GoRoute(path: '/login', builder: (_, __) => const LoginView()),
+        GoRoute(
+            path: '/', builder: (_, __) => const Scaffold(body: Text('首页'))),
+      ],
+    );
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 默认 Emby 卡片已选中，填写表单并提交
+    await tester.enterText(
+        find.byType(TextFormField).at(0), 'http://emby.test:8096');
+    await tester.enterText(find.byType(TextFormField).at(1), 'tester');
+    await tester.enterText(find.byType(TextFormField).at(2), 'pass');
+    await tester.pump();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(container.read(serviceModeProvider), AppServiceMode.video,
+        reason: 'Emby 登录成功应联动切回视频服务模式（与群晖→music 对称）');
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('首页'), findsOneWidget,
+        reason: '登录成功应重定向回首页');
+  });
+
+  testWidgets('快速切换群晖服务器联动音乐服务模式', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final mockStorage = MockFlutterSecureStorage();
+    final container = ProviderContainer(
+      overrides: [
+        secureStorageProvider.overrideWithValue(mockStorage),
+        synologyAudioApiProvider
+            .overrideWith((ref) => _FakeSynoLoginAudioApi()),
+        serviceModeProvider.overrideWith((ref) => ServiceModeNotifier()),
+        serverRegistryProvider
+            .overrideWith((ref) => ServerRegistryNotifier(ref)),
+      ],
+    );
+    addTearDown(container.dispose);
+    // 前置：视频模式（验证快速切换到群晖会联动 music）
+    await container
+        .read(serviceModeProvider.notifier)
+        .setMode(AppServiceMode.video);
+    // 预置一个群晖服务器，密码写入安全存储（走登录路径）
+    final profile = ServerProfile(
+      id: 's1',
+      kind: ServerKind.synology,
+      name: 'NAS',
+      url: 'http://nas.test:5000',
+      username: 'tester',
+      lastUsed: DateTime.now(),
+    );
+    await container.read(serverRegistryProvider.notifier).add(profile);
+    await mockStorage.write(key: 'server_password_s1', value: 'pass');
+
+    final router = GoRouter(
+      initialLocation: '/login',
+      routes: [
+        GoRoute(path: '/login', builder: (_, __) => const LoginView()),
+        GoRoute(
+            path: '/', builder: (_, __) => const Scaffold(body: Text('首页'))),
+      ],
+    );
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 滚动到「账户」tile 并点击，弹出服务器切换列表
+    await tester.ensureVisible(find.text('未登录'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('未登录'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('NAS'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(container.read(activeServerIdProvider), 's1',
+        reason: '群晖服务器应切换为激活服务器');
+    expect(container.read(serviceModeProvider), AppServiceMode.music,
+        reason: '快速切换到群晖服务器成功应联动音乐服务模式（与登录表单提交对称）');
+  });
+
 }
+
 
 /// 群晖 Audio API 假实现：login 直接返回固定 sid，避免测试环境走真实网络
 class _FakeSynoLoginAudioApi extends SynologyAudioApi {
