@@ -1,3 +1,10 @@
+## [2.401.102](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.101...v2.401.102) (2026-11-03)
+
+
+### Bug Fixes
+
+* **router:** /music/artist/:name 歌手详情补同款音乐服务守卫 ([e4884e9](https://github.com/1525745393/EmbyTok-Flutter/commit/e4884e99e86149676b36bfae303b8a08ec218f3d))
+
 ## [2.401.101](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.100...v2.401.101) (2026-11-03)
 
 
