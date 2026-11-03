@@ -395,6 +395,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
                   size: isCompact ? 24 : 28,
                 ),
                 onPressed: _togglePlay,
+                tooltip: value.isPlaying ? '暂停' : '播放',
               );
             },
           )
@@ -409,6 +410,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
                   size: isCompact ? 24 : 28,
                 ),
                 onPressed: _togglePlay,
+                tooltip: isPlaying ? '暂停' : '播放',
               );
             },
           );
@@ -456,6 +458,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
               size: isCompact ? 20 : 24,
             ),
             onPressed: widget.onToggleFullscreen,
+            tooltip: widget.isInFullscreen ? '退出全屏' : '全屏',
           )
         : null;
 
@@ -503,6 +506,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
         ? IconButton(
             icon: Icon(Icons.subtitles, color: scheme.onSurface),
             onPressed: _showSubtitleMenu,
+            tooltip: '字幕',
           )
         : null;
 
@@ -511,6 +515,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
         ? IconButton(
             icon: Icon(Icons.skip_previous, color: scheme.onSurface),
             onPressed: widget.onPrevEpisode,
+            tooltip: '上一集',
           )
         : null;
 

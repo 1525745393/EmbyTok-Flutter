@@ -668,6 +668,7 @@ class _FavoriteButtonState extends ConsumerState<_FavoriteButton> {
               color: _isFavorite ? scheme.primary : scheme.onSurfaceVariant,
             ),
       onPressed: _loading ? null : _toggle,
+      tooltip: _isFavorite ? '取消收藏' : '收藏',
     );
   }
 }
@@ -1066,6 +1067,7 @@ class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
           child: IconButton(
             icon: const Icon(Icons.close, color: Colors.white, size: 28),
             onPressed: () => Navigator.of(context).pop(),
+            tooltip: '关闭',
           ),
         ),
       ],
@@ -1509,6 +1511,7 @@ Widget _buildVideoInfoSheetBody(BuildContext context, MediaItem item) {
                               const SnackBar(content: Text('分享链接已复制到剪贴板')),
                             );
                           },
+                          tooltip: '分享',
                         ),
                         _FavoriteButton(item: item),
                       ],

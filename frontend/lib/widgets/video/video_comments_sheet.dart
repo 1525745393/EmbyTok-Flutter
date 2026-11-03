@@ -308,6 +308,7 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
                           ? scheme.onSurfaceVariant
                           : scheme.primary,
                     ),
+                    tooltip: '发送',
                   ),
                 ],
               ),

@@ -1763,6 +1763,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                       icon:
                           const Icon(Icons.skip_previous, color: Colors.white),
                       onPressed: _hasPrevious() ? _jumpToPrevious : null,
+                      tooltip: '上一集',
                     ),
                     // 播放/暂停：EXO 由 controller 状态驱动；MPV/VLC 由统一句柄状态驱动。
                     // 操作统一走 _togglePlayPause（句柄优先，避免命中隐藏 EXO 实例）。
@@ -1779,6 +1780,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                               size: 44,
                             ),
                             onPressed: _togglePlayPause,
+                            tooltip: value.isPlaying ? '暂停' : '播放',
                           );
                         },
                       )
@@ -1794,12 +1796,15 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                             size: 44,
                           ),
                           onPressed: _togglePlayPause,
+                          tooltip:
+                              (controlHandle?.isPlaying ?? false) ? '暂停' : '播放',
                         ),
                       ),
                     // PRD P1：下一集按钮（与上一集对称）
                     IconButton(
                       icon: const Icon(Icons.skip_next, color: Colors.white),
                       onPressed: _hasNext() ? _jumpToNext : null,
+                      tooltip: '下一集',
                     ),
                     const Spacer(),
                     // 剧集列表按钮（仅剧集显示）

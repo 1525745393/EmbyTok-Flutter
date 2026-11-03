@@ -292,6 +292,7 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
                   _selectedLibrary = null;
                   _currentLibraryTab = 0;
                 }),
+                tooltip: '返回',
               ),
               Expanded(
                 child: Column(
@@ -1229,6 +1230,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
               _categoryShowList = true;
               _selectedGenre = null;
             }),
+            tooltip: '返回',
           ),
           Text(
             _selectedGenre ?? '',
@@ -1297,6 +1299,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
               });
               _loadItems();
             },
+            tooltip: '清除搜索',
           ),
           isDense: true,
           border: OutlineInputBorder(
@@ -1434,6 +1437,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                 _loadItems();
               }
             },
+            tooltip: '搜索',
           ),
           // 类型筛选按钮
           IconButton(

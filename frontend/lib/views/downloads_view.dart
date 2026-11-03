@@ -65,6 +65,7 @@ class _DownloadsViewState extends ConsumerState<DownloadsView>
                   _batchMode = false;
                   _selected.clear();
                 }),
+                tooltip: '取消批量选择',
               )
             : null,
         actions: [
@@ -263,11 +264,13 @@ class _DownloadingTab extends ConsumerWidget {
                   icon: const Icon(Icons.refresh, color: Colors.orange),
                   onPressed: () =>
                       ref.read(downloadProvider.notifier).retry(t.songId),
+                  tooltip: '重试下载',
                 )
               : IconButton(
                   icon: const Icon(Icons.cancel, color: Colors.grey),
                   onPressed: () =>
                       ref.read(downloadProvider.notifier).cancel(t.songId),
+                  tooltip: '取消下载',
                 ),
         );
       },
@@ -333,6 +336,7 @@ class _DownloadedTab extends ConsumerWidget {
                   onPressed: () => ref
                       .read(downloadProvider.notifier)
                       .deleteDownloaded(s.songId),
+                  tooltip: '删除',
                 ),
           onLongPress: () => onLongPress(s.songId),
           onTap: () {

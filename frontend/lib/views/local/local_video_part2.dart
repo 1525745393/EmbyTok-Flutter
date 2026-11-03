@@ -515,6 +515,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
           child: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => Navigator.pop(context),
+            tooltip: '返回',
           ),
         ),
         // 顶部右侧：重新刮削
@@ -624,10 +625,12 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                     icon: Icon(
                         allFaved ? Icons.favorite : Icons.favorite_border,
                         color: allFaved ? Colors.pink : Colors.white),
+                    tooltip: allFaved ? '取消整剧收藏' : '整剧收藏',
                   ),
                   IconButton(
                     onPressed: () => _shareItem(first),
                     icon: const Icon(Icons.share, color: Colors.white),
+                    tooltip: '分享',
                   ),
                   IconButton(
                     onPressed: () async {
@@ -658,6 +661,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                       }
                     },
                     icon: const Icon(Icons.delete_outline, color: Colors.white),
+                    tooltip: '删除整剧',
                   ),
                 ],
               ),

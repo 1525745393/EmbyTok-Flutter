@@ -328,6 +328,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
                       _searchQuery = '';
                       _searchCtrl.clear();
                     }),
+                    tooltip: '清除搜索',
                   ),
                   isDense: true,
                   border: OutlineInputBorder(

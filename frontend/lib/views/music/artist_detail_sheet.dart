@@ -159,6 +159,7 @@ class ArtistDetailSheetState extends ConsumerState<ArtistDetailSheet> {
                                     _searchController.clear();
                                     _onSearchChanged('');
                                   },
+                                  tooltip: '清除搜索',
                                 )
                               : null,
                           isDense: true,
