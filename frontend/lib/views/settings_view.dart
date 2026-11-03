@@ -77,7 +77,8 @@ class SettingsView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
-    // 音乐服务模式下隐藏视频相关分组（视频库/推荐/播放/字幕/统计/视频方向等）
+    // 模式分组对称：音乐服务模式下隐藏视频相关分组（视频库/推荐/播放/字幕/
+    // 统计/视频方向等）；视频服务模式下隐藏音乐相关分组（音乐服务/群晖/Last.fm）
     final isMusicMode = ref.watch(serviceModeProvider) == AppServiceMode.music;
 
     return Scaffold(
@@ -265,8 +266,10 @@ class SettingsView extends ConsumerWidget {
         ],
       ),
       // 音乐服务设置（配置分组：群晖 Audio Station、歌手元数据；
-      // 命名避免与底部 Tab「音乐库」同名歧义，浏览入口在底部 Tab）
-      _buildSectionEntry(
+      // 命名避免与底部 Tab「音乐库」同名歧义，浏览入口在底部 Tab；
+      // 仅音乐服务模式显示，与视频侧分组隐藏对称）
+      if (isMusicMode)
+        _buildSectionEntry(
         context,
         ref,
         '音乐服务',

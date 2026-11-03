@@ -416,6 +416,24 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       // 群晖 Audio Station 音乐：独立路由
       GoRoute(
         path: '/music',
+        redirect: (context, state) {
+          final synoLoggedIn = ref.read(
+            synologyAuthProvider.select((s) => s.isLoggedIn),
+          );
+          final isMusicMode =
+              ref.read(serviceModeProvider) == AppServiceMode.music;
+          // 音乐服务仅允许「群晖已登录且音乐模式」访问：视频模式下设置页
+          // 入口已隐藏，此处兜底深链/直接访问（与登录页账号↔模式联动一致）
+          if (!synoLoggedIn || !isMusicMode) {
+            AppLogger.debug('路由守卫', data: {
+              'from': state.matchedLocation,
+              'to': '/',
+              'reason': '音乐服务仅群晖登录且音乐模式下可访问',
+            });
+            return '/';
+          }
+          return null;
+        },
         builder: (context, state) => const SynologyMusicView(),
       ),
       // 歌手详情页
