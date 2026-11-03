@@ -2,9 +2,9 @@
 ///
 /// 验证「音乐服务模式下隐藏视频相关分组」：
 /// - 音乐模式：不显示 视频库/规则筛选/播放/字幕/统计 分组与「视频方向」项，
-///   保留 音乐库/存储/外观（主题）/关于
+///   保留 音乐服务/存储/外观（主题）/关于
 ///   （「服务器与账户」分区已整体迁移至登录页 LoginView，设置页不再展示）
-/// - 视频模式（默认）：显示 视频库/统计/音乐库 等全部分组
+/// - 视频模式（默认）：显示 视频库/统计/音乐服务 等全部分组
 ///
 /// 注意：设置页为 ListView（懒加载），屏幕外分组不会构建，
 /// 通过分步滚动收集全列表出现过的分组标题再断言。
@@ -50,24 +50,24 @@ void main() {
     return found;
   }
 
-  testWidgets('视频模式（默认）：显示视频库与音乐库全部分组', (tester) async {
+  testWidgets('视频模式（默认）：显示视频库与音乐服务全部分组', (tester) async {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(wrap());
     await tester.pumpAndSettle();
 
     // 设置页分组已重排：
-    // - 视频库/规则筛选(二级)/播放/字幕/音乐库 保留
+    // - 视频库/规则筛选(二级)/播放/字幕/音乐服务 保留
     // - "统计"已并入"通用工具"（不再独立分组）
     // - "服务器与账户"分区已整体迁移至登录页 LoginView（batch126）
     final found = await collectVisibleSections(
-        tester, ['视频库', '规则筛选', '播放', '字幕', '音乐库']);
+        tester, ['视频库', '规则筛选', '播放', '字幕', '音乐服务']);
 
-    for (final section in ['视频库', '规则筛选', '播放', '字幕', '音乐库']) {
+    for (final section in ['视频库', '规则筛选', '播放', '字幕', '音乐服务']) {
       expect(found, contains(section), reason: '视频模式应显示「$section」');
     }
   });
 
-  testWidgets('音乐模式：隐藏视频相关分组，保留音乐库', (tester) async {
+  testWidgets('音乐模式：隐藏视频相关分组，保留音乐服务', (tester) async {
     SharedPreferences.setMockInitialValues({'app_service_mode': 'music'});
     await tester.pumpWidget(wrap());
     // 等待 ServiceModeNotifier._loadFromStorage 完成
@@ -75,7 +75,7 @@ void main() {
 
     final found = await collectVisibleSections(tester, [
       '视频库', '规则筛选', '播放', '字幕', '视频方向',
-      '音乐库', '存储与缓存', '外观', '关于',
+      '音乐服务', '存储与缓存', '外观', '关于',
     ]);
 
     // 视频相关分组隐藏
@@ -84,7 +84,7 @@ void main() {
           reason: '音乐模式不应显示「$section」');
     }
     // 音乐库与通用分组保留（「服务器与账户」已整体迁移至登录页，不再出现）
-    for (final section in ['音乐库', '存储与缓存', '外观', '关于']) {
+    for (final section in ['音乐服务', '存储与缓存', '外观', '关于']) {
       expect(found, contains(section), reason: '音乐模式应保留「$section」');
     }
   });

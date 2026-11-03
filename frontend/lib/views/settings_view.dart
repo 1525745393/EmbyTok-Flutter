@@ -264,11 +264,12 @@ class SettingsView extends ConsumerWidget {
           _buildClearLogsTile(context, ref),
         ],
       ),
-      // 音乐库设置
+      // 音乐服务设置（配置分组：群晖 Audio Station、歌手元数据；
+      // 命名避免与底部 Tab「音乐库」同名歧义，浏览入口在底部 Tab）
       _buildSectionEntry(
         context,
         ref,
-        '音乐库',
+        '音乐服务',
         Icons.library_music_outlined,
         accentBlue,
         '群晖 Audio Station、歌手元数据',
