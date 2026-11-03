@@ -110,6 +110,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
   // 当前选择的服务器类型（Emby / 群晖 Audio Station）
   ServerType _serverType = ServerType.emby;
+  // 类型卡片折叠态：已有激活服务器时折叠为单行（当前类型），点击展开完整卡片
+  bool _typeSelectorExpanded = false;
 
   // 群晖两步验证：是否显示 OTP 输入框
   bool _otpRequired = false;
@@ -242,6 +244,11 @@ class _LoginViewState extends ConsumerState<LoginView> {
     final authState = ref.watch(authProvider);
     final isLoading = authState.isLoading;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    // 类型卡片折叠态：已有激活服务器时折叠为单行，且表单类型跟随激活服务器
+    final activeType = _resolveActiveServerType(ref);
+    if (activeType != null && !_typeSelectorExpanded) {
+      _serverType = activeType;
+    }
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -300,8 +307,15 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
                   // 服务器类型选择（先选类型，再填信息）：
                   // 卡片网格 —— 视频服务（Emby/Plex） / 音乐服务（群晖 Audio Station）
-                  _buildServerTypeSelector(scheme),
-                  const SizedBox(height: 16),
+                  // UI 整理：已有激活服务器时折叠为单行（当前类型），点击展开完整卡片；
+                  // 折叠态下表单类型跟随激活服务器（见 build 开头同步），避免登录写错 ServerKind。
+                  if (activeType != null && !_typeSelectorExpanded) ...[
+                    _buildServerTypeCollapsedRow(scheme, activeType),
+                    const SizedBox(height: 12),
+                  ] else ...[
+                    _buildServerTypeSelector(scheme),
+                    const SizedBox(height: 16),
+                  ],
 
                   // 服务器地址（本地模式隐藏）
                   if (_serverType != ServerType.local) ...[
@@ -1281,6 +1295,109 @@ Widget _buildServerTypeSelector(ColorScheme scheme) {
                         size: 16, color: Colors.transparent),
                   ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// 解析当前激活服务器的登录类型（无激活服务器返回 null）
+  ServerType? _resolveActiveServerType(WidgetRef ref) {
+    final activeId = ref.watch(activeServerIdProvider);
+    if (activeId == null) return null;
+    final registry = ref.watch(serverRegistryProvider);
+    for (final s in registry) {
+      if (s.id == activeId) {
+        return switch (s.kind) {
+          ServerKind.emby => ServerType.emby,
+          ServerKind.jellyfin => ServerType.jellyfin,
+          ServerKind.plex => ServerType.plex,
+          ServerKind.synology => ServerType.synology,
+        };
+      }
+    }
+    return null;
+  }
+
+  /// 类型卡片折叠行：显示当前激活服务器类型，点击展开完整卡片并同步表单类型
+  Widget _buildServerTypeCollapsedRow(ColorScheme scheme, ServerType type) {
+    late final String title;
+    late final String subtitle;
+    late final IconData icon;
+    switch (type) {
+      case ServerType.emby:
+        title = 'Emby 视频';
+        subtitle = 'Emby 视频流';
+        icon = Icons.movie_outlined;
+        break;
+      case ServerType.jellyfin:
+        title = 'Jellyfin 视频';
+        subtitle = 'Jellyfin 影视流';
+        icon = Icons.video_library_outlined;
+        break;
+      case ServerType.plex:
+        title = 'Plex 影视';
+        subtitle = 'Plex 影视流';
+        icon = Icons.video_library_outlined;
+        break;
+      case ServerType.synology:
+        title = '群晖音乐';
+        subtitle = 'Audio Station 音乐库';
+        icon = Icons.library_music_outlined;
+        break;
+      case ServerType.local:
+        title = '本地媒体库';
+        subtitle = '直接管理手机视频';
+        icon = Icons.smartphone_outlined;
+        break;
+    }
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => setState(() {
+          _typeSelectorExpanded = true;
+          _serverType = type;
+        }),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: scheme.primary.withValues(alpha: 0.6),
+              width: 1.2,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 28, color: scheme.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '当前：$title',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.expand_more),
+            ],
+          ),
         ),
       ),
     );

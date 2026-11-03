@@ -421,6 +421,64 @@ void main() {
         reason: '快速切换到群晖服务器成功应联动音乐服务模式（与登录表单提交对称）');
   });
 
+  testWidgets('已有激活服务器时类型卡片折叠为单行，点击展开并同步类型', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final mockStorage = MockFlutterSecureStorage();
+    final container = ProviderContainer(
+      overrides: [
+        secureStorageProvider.overrideWithValue(mockStorage),
+        serviceModeProvider.overrideWith((ref) => ServiceModeNotifier()),
+        serverRegistryProvider
+            .overrideWith((ref) => ServerRegistryNotifier(ref)),
+      ],
+    );
+    addTearDown(container.dispose);
+    final profile = ServerProfile(
+      id: 's1',
+      kind: ServerKind.jellyfin,
+      name: 'Jellyfin 服务器',
+      url: 'http://jellyfin.test:8096',
+      username: 'tester',
+      lastUsed: DateTime.now(),
+    );
+    await container.read(serverRegistryProvider.notifier).add(profile);
+    container.read(activeServerIdProvider.notifier).setActive('s1');
+
+    final router = GoRouter(
+      initialLocation: '/login',
+      routes: [
+        GoRoute(path: '/login', builder: (_, __) => const LoginView()),
+        GoRoute(
+            path: '/', builder: (_, __) => const Scaffold(body: Text('首页'))),
+      ],
+    );
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 折叠态：显示「当前：Jellyfin 视频」单行，完整卡片网格隐藏
+    expect(find.text('当前：Jellyfin 视频'), findsOneWidget);
+    expect(find.text('Jellyfin 视频'), findsNothing,
+        reason: '折叠态下不显示完整类型卡片网格');
+
+    // 点击折叠行 → 展开完整卡片
+    await tester.tap(find.text('当前：Jellyfin 视频'));
+    await tester.pumpAndSettle();
+    expect(find.text('当前：Jellyfin 视频'), findsNothing);
+    expect(find.text('Jellyfin 视频'), findsOneWidget,
+        reason: '展开后显示完整类型卡片');
+    expect(find.text('Emby 视频'), findsOneWidget);
+    expect(find.text('群晖音乐'), findsOneWidget);
+    expect(find.text('本地媒体库'), findsOneWidget);
+  });
+
 }
 
 
