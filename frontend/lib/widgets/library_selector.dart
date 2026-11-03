@@ -8,6 +8,7 @@ import '../providers/local_video_provider.dart';
 import '../utils/app_preferences.dart' show FeedType;
 import 'loading_state_card.dart';
 import 'tv_focusable.dart';
+import '../utils/constants.dart';
 part 'library_selector_dialogs.dart';
 
 /// 媒体库选择器作用域（PR #66）
@@ -228,7 +229,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                 //       旧实现只显示「加载失败」让用户无解
                 error: (err, _) => Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(kSpacingXl),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -307,7 +308,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
     // 注意：libraries 为空（本地模式或未连服务器）时不能 early return，
     // 否则会跳过下面的"本地媒体库"分区。改为始终渲染滚动内容。
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(kSpacingLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -317,7 +318,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
             _buildSectionTitle(scheme, '收藏夹模式'),
             const SizedBox(height: 4),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: kSpacingXs),
               child: Text(
                 '显示您收藏的影片、剧集和人物',
                 style: TextStyle(
@@ -382,7 +383,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
           _buildSectionTitle(scheme, '本地媒体库'),
           const SizedBox(height: 4),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingXs),
             child: Text(
               '使用手机本地刮削后的视频，无需 Emby 服务器',
               style: TextStyle(
@@ -462,7 +463,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
           _buildSectionTitle(scheme, '服务器媒体库'),
           const SizedBox(height: 4),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingXs),
             child: Text(
               '从服务器媒体库中选择内容',
               style: TextStyle(
@@ -474,7 +475,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
           const SizedBox(height: 12),
           if (libraries.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.symmetric(vertical: kSpacingMd),
               child: Text(
                 '（未连接 Emby 服务器，无服务器媒体库）',
                 style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.4), fontSize: 12),
@@ -585,7 +586,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
   // 分组标题
   Widget _buildSectionTitle(ColorScheme scheme, String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: kSpacingXs),
       child: Text(
         title,
         style: TextStyle(

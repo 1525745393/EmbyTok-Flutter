@@ -96,8 +96,7 @@ Future<void> showSpeedControlPanel(
                         });
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingSm),
                         decoration: BoxDecoration(
                           color: isSelected
                               ? scheme.tertiary
@@ -511,7 +510,7 @@ class _OverviewExpandableState extends State<_OverviewExpandable> {
           GestureDetector(
             onTap: () => setState(() => _expanded = !_expanded),
             child: Padding(
-              padding: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.only(top: kSpacingXs),
               child: Text(
                 _expanded ? '收起' : '展开全部',
                 style: TextStyle(
@@ -1234,7 +1233,7 @@ Widget _buildTechInfoSection(BuildContext context, MediaItem item) {
       const _VideoInfoSectionLabel('技术参数'),
       const SizedBox(height: 8),
       Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(kSpacingMd),
         decoration: BoxDecoration(
           color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(10),

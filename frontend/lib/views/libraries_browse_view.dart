@@ -17,6 +17,7 @@ import '../utils/image_cache_manager.dart';
 import '../utils/logger.dart';
 import '../widgets/loading_state_card.dart';
 import '../widgets/video/video_grid_card.dart';
+import '../utils/constants.dart';
 
 class LibrariesBrowseView extends ConsumerStatefulWidget {
   const LibrariesBrowseView({super.key});
@@ -124,7 +125,7 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+          padding: const EdgeInsets.fromLTRB(kSpacingLg, kSpacingMd, kSpacingSm, kSpacingSm),
           child: Row(
             children: [
               Expanded(
@@ -177,7 +178,7 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
               height: 110,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
                 itemCount: items.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 10),
                 itemBuilder: (context, index) {
@@ -326,7 +327,7 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
           height: 40,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
             itemCount: _libraryTabs.length,
             separatorBuilder: (_, __) => const SizedBox(width: 20),
             itemBuilder: (context, index) {
@@ -691,7 +692,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(kSpacingLg),
               child: Text(
                 item.title,
                 style: const TextStyle(
@@ -886,7 +887,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         // 路径栏
         if (_folderPathStack.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingXs),
             child: Row(
               children: [
                 IconButton(
@@ -911,7 +912,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
               if (index >= _folderItems.length) {
                 if (_folderError != null) {
                   return Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(kSpacingLg),
                     child: Center(
                       child: TextButton.icon(
                         onPressed: () {
@@ -926,7 +927,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                 }
                 if (_folderHasMore) {
                   return Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(kSpacingLg),
                     child: Center(
                       child: Text(
                         '加载中…',
@@ -1221,7 +1222,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   /// 构建 categoryBackBar
   Widget _buildCategoryBackBar() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: kSpacingSm, vertical: kSpacingXs),
       child: Row(
         children: [
           IconButton(
@@ -1246,7 +1247,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       color: scheme.primaryContainer.withValues(alpha: 0.3),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: kSpacingSm, vertical: kSpacingXs),
       child: Row(
         children: [
           IconButton(
@@ -1282,7 +1283,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   /// 构建 searchField
   Widget _buildSearchField() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingXs),
       child: TextField(
         controller: _searchController,
         autofocus: true,
@@ -1319,7 +1320,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
     final scheme = Theme.of(context).colorScheme;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingXs),
       child: Row(
         children: [
           // 排序选项
@@ -1510,7 +1511,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                     (snapshot.connectionState == ConnectionState.waiting &&
                         _serverGenres.isEmpty))
                   const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    padding: EdgeInsets.symmetric(horizontal: kSpacingSm),
                     child: SizedBox(
                       width: 16,
                       height: 16,
@@ -1645,7 +1646,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
               if (_error != null && _items.isNotEmpty) {
                 return Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(kSpacingLg),
                     child: TextButton.icon(
                       onPressed: () {
                         setState(() => _error = null);
@@ -1659,7 +1660,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
               }
               return Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(kSpacingLg),
                   child: Text(
                     _isLoading && _hasMore
                         ? '加载中…'
@@ -1781,7 +1782,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                             right: 0,
                             bottom: 0,
                             child: Container(
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(kSpacingMd),
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   begin: Alignment.topCenter,
@@ -2100,7 +2101,7 @@ class _LibraryListItem extends ConsumerWidget {
         if (selectionMode)
           Positioned.fill(
             child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 4),
+              margin: const EdgeInsets.symmetric(vertical: kSpacingXs),
               decoration: BoxDecoration(
                 color: selected
                     ? scheme.primary.withValues(alpha: 0.15)
@@ -2309,7 +2310,7 @@ class _LibraryListItem extends ConsumerWidget {
                         .read(favoritesProvider.notifier)
                         .toggleFavorite(item),
                     child: Padding(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(kSpacingSm),
                       child: Icon(
                         favorited ? Icons.favorite : Icons.favorite_border,
                         color: favorited ? Colors.red : scheme.onSurfaceVariant,

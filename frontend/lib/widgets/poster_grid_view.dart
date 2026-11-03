@@ -10,6 +10,7 @@ import '../utils/image_cache_manager.dart';
 import '../utils/logger.dart';
 import '../widgets/loading_state_card.dart';
 import '../widgets/tv_focusable.dart';
+import '../utils/constants.dart';
 
 /// 海报墙视图：网格布局展示视频缩略图
 /// 参考 EmbyX 实现：
@@ -225,7 +226,7 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
         // 顶部 Header：媒体库名 + 总数 + 换一批 + 分页控件
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: kSpacingMd, vertical: kSpacingSm),
           decoration: BoxDecoration(
             color: scheme.surface.withValues(alpha: 0.5),
             border: Border(
@@ -255,7 +256,7 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
                   },
                   child: Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        const EdgeInsets.symmetric(horizontal: kSpacingSm, vertical: kSpacingXs),
                     decoration: BoxDecoration(
                       color: scheme.onSurface.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
@@ -351,7 +352,7 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
         Expanded(
           child: GridView.builder(
             controller: widget.scrollController,
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(kSpacingSm),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
               childAspectRatio: 0.65,
@@ -483,7 +484,7 @@ class _PosterCard extends ConsumerWidget {
               right: 0,
               bottom: 0,
               child: Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(kSpacingSm),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,

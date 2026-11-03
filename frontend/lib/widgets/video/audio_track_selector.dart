@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/providers.dart';
 import '../../models/media_source.dart';
+import '../../utils/constants.dart';
 
 /// 音轨选择器底部弹出菜单
 class AudioTrackSelector extends ConsumerWidget {
@@ -44,7 +45,7 @@ class AudioTrackSelector extends ConsumerWidget {
           children: [
             // 顶部拖动指示器
             Container(
-              margin: const EdgeInsets.only(top: 12),
+              margin: const EdgeInsets.only(top: kSpacingMd),
               width: 40,
               height: 4,
               decoration: BoxDecoration(
@@ -84,7 +85,7 @@ class AudioTrackSelector extends ConsumerWidget {
               ),
               child: tracks.isEmpty
                   ? Padding(
-                      padding: const EdgeInsets.all(32),
+                      padding: const EdgeInsets.all(kSpacingXxl),
                       child: Column(
                         children: [
                           Icon(Icons.audiotrack,
@@ -103,7 +104,7 @@ class AudioTrackSelector extends ConsumerWidget {
                     )
                   : ListView(
                       shrinkWrap: true,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.symmetric(vertical: kSpacingSm),
                       children: [
                         // 默认音轨选项
                         _buildTrackOption(

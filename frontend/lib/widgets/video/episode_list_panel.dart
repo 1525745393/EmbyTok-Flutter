@@ -13,6 +13,7 @@ import '../../models/models.dart';
 import '../../providers/providers.dart';
 import '../../utils/logger.dart';
 import '../../utils/safe_insets.dart';
+import '../../utils/constants.dart';
 
 /// 剧集列表面板（从底部滑出）
 class EpisodeListPanel extends ConsumerStatefulWidget {
@@ -164,7 +165,7 @@ class _EpisodeListPanelState extends ConsumerState<EpisodeListPanel> {
             children: [
               // 标题栏
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+                padding: const EdgeInsets.fromLTRB(kSpacingLg, kSpacingMd, kSpacingSm, kSpacingSm),
                 child: Row(
                   children: [
                     Expanded(
@@ -208,7 +209,7 @@ class _EpisodeListPanelState extends ConsumerState<EpisodeListPanel> {
                   height: 40,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
                     itemCount: _seasons.length,
                     separatorBuilder: (_, __) => const SizedBox(width: 8),
                     itemBuilder: (context, index) {

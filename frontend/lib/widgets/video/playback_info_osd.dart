@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/media_item.dart';
 import '../../providers/player_engine_provider.dart';
+import '../../utils/constants.dart';
 
 /// 播放信息 OSD 显示开关
 ///
@@ -87,7 +88,7 @@ class PlaybackInfoOsd extends ConsumerWidget {
       top: MediaQuery.of(context).padding.top + 8,
       left: 8,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: kSpacingSm, vertical: kSpacingXs),
         decoration: BoxDecoration(
           color: Colors.black54,
           borderRadius: BorderRadius.circular(4),

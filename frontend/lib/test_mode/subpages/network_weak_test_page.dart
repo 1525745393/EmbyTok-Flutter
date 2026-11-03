@@ -2,6 +2,7 @@
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import '../../utils/constants.dart';
 
 class NetworkWeakTestPage extends StatefulWidget {
   const NetworkWeakTestPage({super.key});
@@ -46,13 +47,13 @@ class _NetworkWeakTestPageState extends State<NetworkWeakTestPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('网络与弱网测试')),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(kSpacingLg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(kSpacingLg),
                 child: Text(
                   _result,
                   style: const TextStyle(fontFamily: 'monospace', fontSize: 13),

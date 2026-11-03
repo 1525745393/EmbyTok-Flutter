@@ -586,7 +586,7 @@ Widget _buildTopBar(ViewMode viewMode) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: kSpacingXs),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -653,12 +653,12 @@ Widget _buildTopBar(ViewMode viewMode) {
     final scheme = Theme.of(context).colorScheme;
     final color = scheme.onSurface.withValues(alpha: 0.85);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: kSpacingXs),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: kSpacingSm, vertical: kSpacingSm),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

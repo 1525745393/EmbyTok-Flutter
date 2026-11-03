@@ -25,6 +25,7 @@ import '../providers/providers.dart';
 import '../utils/image_cache_manager.dart';
 import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
+import '../utils/constants.dart';
 part 'favorites_widgets.dart';
 part 'favorites_widgets_cards2.dart';
 part 'favorites_widgets_cards.dart';
@@ -1024,10 +1025,9 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
     return RefreshIndicator(
       onRefresh: () => ref.read(favoritesProvider.notifier).loadFavorites(),
       child: ListView(
-        padding: EdgeInsets.fromLTRB(
-            16,
+        padding: EdgeInsets.fromLTRB(kSpacingLg,
             _kListTopPadding,
-            16,
+            kSpacingLg,
             _selectMode
                 ? _kListBottomPaddingSelect
                 : _kListBottomPaddingNormal),

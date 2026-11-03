@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 
 import '../http_capture_log.dart';
+import '../../utils/constants.dart';
 
 class HttpCapturePanel extends StatefulWidget {
   const HttpCapturePanel({super.key});
@@ -38,7 +39,7 @@ class _HttpCapturePanelState extends State<HttpCapturePanel> {
             }),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
             child: TextField(
               decoration: const InputDecoration(
                 hintText: '按路径筛选...',

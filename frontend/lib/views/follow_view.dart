@@ -18,6 +18,7 @@ import '../widgets/error_state_card.dart';
 import '../widgets/poster_card.dart';
 import '../widgets/resume_play_banner.dart';
 import '../widgets/skeleton_loading.dart';
+import '../utils/constants.dart';
 
 class FollowView extends ConsumerStatefulWidget {
   const FollowView({super.key});
@@ -293,7 +294,7 @@ class _FollowViewState extends ConsumerState<FollowView> {
           child: GridView.builder(
             controller: _gridController,
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(kSpacingMd),
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
               maxCrossAxisExtent: 160,
               mainAxisSpacing: 12,
@@ -335,12 +336,12 @@ class _FollowViewState extends ConsumerState<FollowView> {
     ];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: kSpacingMd, vertical: kSpacingXs),
       child: Row(
         children: [
           for (final f in filters)
             Padding(
-              padding: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.only(right: kSpacingSm),
               child: ChoiceChip(
                 label: Text('${f.label} ${f.count}'),
                 labelStyle: TextStyle(

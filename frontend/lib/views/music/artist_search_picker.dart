@@ -13,6 +13,7 @@ import '../../services/lastfm_service.dart';
 import '../../utils/colors.dart';
 import '../../widgets/loading_state_card.dart';
 import '../../utils/logger.dart';
+import '../../utils/constants.dart';
 
 /// 歌手搜索结果项
 class ArtistSearchResult {
@@ -189,7 +190,7 @@ class _ArtistSearchPickerState extends ConsumerState<ArtistSearchPicker> {
             children: [
               // 顶部拖拽条
               Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                margin: const EdgeInsets.only(top: kSpacingMd, bottom: kSpacingSm),
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
@@ -200,7 +201,7 @@ class _ArtistSearchPickerState extends ConsumerState<ArtistSearchPicker> {
               // 标题
               Padding(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingSm),
                 child: Row(
                   children: [
                     Expanded(
@@ -223,7 +224,7 @@ class _ArtistSearchPickerState extends ConsumerState<ArtistSearchPicker> {
               ),
               // 搜索关键词
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
                 child: Text(
                   '搜索："${widget.searchQuery}"',
                   style: TextStyle(
@@ -269,7 +270,7 @@ class _ArtistSearchPickerState extends ConsumerState<ArtistSearchPicker> {
 
     return ListView.builder(
       controller: controller,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
       itemCount: _results.length,
       itemBuilder: (context, index) {
         final result = _results[index];
@@ -285,7 +286,7 @@ class _ArtistSearchPickerState extends ConsumerState<ArtistSearchPicker> {
     ArtistSearchResult result,
   ) {
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+      contentPadding: const EdgeInsets.symmetric(vertical: kSpacingSm),
       leading: CircleAvatar(
         radius: 28,
         backgroundImage: result.imageUrl != null

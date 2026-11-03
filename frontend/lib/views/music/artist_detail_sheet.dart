@@ -20,6 +20,7 @@ import '../../services/lastfm_service.dart';
 import '../../utils/image_cache_manager.dart';
 import '../../widgets/loading_state_card.dart';
 import 'music_cover_widgets.dart';
+import '../../utils/constants.dart';
 
 // ===== 歌手详情弹层常量 =====
 
@@ -170,8 +171,7 @@ class ArtistDetailSheetState extends ConsumerState<ArtistDetailSheet> {
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
                           ),
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: kSpacingMd, vertical: kSpacingSm),
                         ),
                       ),
                     ),
@@ -263,7 +263,7 @@ class ArtistDetailSheetState extends ConsumerState<ArtistDetailSheet> {
   /// 头部：歌手信息（头像/名/简介/出处）+ 搜索按钮 + 播放全部
   Widget _buildHeader(ScrollController scrollController, ColorScheme scheme) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+      padding: const EdgeInsets.fromLTRB(kSpacingLg, kSpacingMd, kSpacingSm, kSpacingSm),
       child: Row(
         children: [
           // 歌手头像 + 名字 + 简介（出处标签）
@@ -465,7 +465,7 @@ class ArtistSourcePickerState extends ConsumerState<ArtistSourcePicker> {
         final hasBio = lastfmBio != null || wikiBio != null;
 
         return ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(kSpacingLg),
           children: [
             // ---- 头像来源 ----
             SourceSectionTitle('头像来源', scheme),
@@ -588,7 +588,7 @@ class SourceSectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: kSpacingSm),
       child: Text(
         title,
         style: TextStyle(
@@ -610,7 +610,7 @@ class SourceEmptyHint extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: kSpacingMd),
       child: Text(
         text,
         style: TextStyle(
@@ -638,7 +638,7 @@ class AvatarSourceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: kSpacingSm),
       color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
       clipBehavior: Clip.antiAlias,
       child: ListTile(
@@ -693,7 +693,7 @@ class BioSourceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: kSpacingSm),
       color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
       clipBehavior: Clip.antiAlias,
       child: ListTile(
@@ -709,7 +709,7 @@ class BioSourceCard extends StatelessWidget {
           ],
         ),
         subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
+          padding: const EdgeInsets.only(top: kSpacingXs),
           child: Text(
             bio,
             maxLines: 3,

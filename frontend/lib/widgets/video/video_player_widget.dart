@@ -20,6 +20,7 @@ import '../../utils/logger.dart';
 import 'mpv_video_player.dart';
 import 'vlc_video_player.dart';
 import 'subtitle_renderer.dart';
+import '../../utils/constants.dart';
 // 视频播放器：优先使用 preloadedController（已预加载），否则动态构造
 // 设计：preloadedController 用于快速切换场景，避免每次重新初始化
 // 仅使用 Direct Play 模式
@@ -1668,8 +1669,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
                         label: const Text('重试', style: TextStyle(fontSize: 12)),
                         style: TextButton.styleFrom(
                           minimumSize: const Size(0, 32),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: kSpacingMd, vertical: kSpacingXs),
                         ),
                       ),
                     ],
@@ -1685,8 +1685,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
                             style: TextStyle(fontSize: 12)),
                         style: TextButton.styleFrom(
                           minimumSize: const Size(0, 32),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: kSpacingMd, vertical: kSpacingXs),
                         ),
                       ),
                     ],

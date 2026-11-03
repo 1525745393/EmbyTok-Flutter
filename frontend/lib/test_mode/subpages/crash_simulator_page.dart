@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../utils/constants.dart';
 
 class CrashSimulatorPage extends StatelessWidget {
   const CrashSimulatorPage({super.key});
@@ -15,7 +16,7 @@ class CrashSimulatorPage extends StatelessWidget {
       body: ListView(
         children: [
           const Padding(
-            padding: EdgeInsets.all(16),
+            padding: EdgeInsets.all(kSpacingLg),
             child: Text(
               '主动触发各类异常，验证 FlutterError.onError / runZonedGuarded '
               '是否正确记录到 AppLogger 且 App 不白屏。\n'

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/audio_models.dart';
 import '../../providers/playlists_provider.dart';
+import '../../utils/constants.dart';
 
 Future<void> showAddToPlaylistSheet(
     BuildContext context, WidgetRef ref, AudioSong song) async {
@@ -31,7 +32,7 @@ class _AddSheet extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           const Padding(
-            padding: EdgeInsets.all(16),
+            padding: EdgeInsets.all(kSpacingLg),
             child: Text('添加到歌单',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ),
@@ -77,7 +78,7 @@ class _AddSheet extends ConsumerWidget {
           const Divider(),
           if (playlists.isEmpty)
             const Padding(
-              padding: EdgeInsets.all(24),
+              padding: EdgeInsets.all(kSpacingXl),
               child: Text('还没有歌单，先新建一个',
                   style: TextStyle(color: Colors.grey)),
             ),

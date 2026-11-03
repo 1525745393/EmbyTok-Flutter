@@ -399,7 +399,7 @@ class SettingsView extends ConsumerWidget {
                 // 推荐页
                 Consumer(
                   builder: (context, ref, _) => ListView(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(vertical: kSpacingSm),
                     children: [
                       _buildRuleScopeHint(context, ref),
                       _buildRecommendLibraryTile(context, ref),
@@ -424,7 +424,7 @@ class SettingsView extends ConsumerWidget {
                 // 关注页
                 Consumer(
                   builder: (context, ref, _) => ListView(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(vertical: kSpacingSm),
                     children: [
                       _buildRecommendNextUpSeriesCountTile(context, ref),
                       _buildFollowActorVideoCountTile(context, ref),
@@ -437,7 +437,7 @@ class SettingsView extends ConsumerWidget {
                 // 发现页
                 Consumer(
                   builder: (context, ref, _) => ListView(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(vertical: kSpacingSm),
                     children: [
                       _buildDiscoverGenresTile(context, ref),
                       _buildDiscoverTagsTile(context, ref),

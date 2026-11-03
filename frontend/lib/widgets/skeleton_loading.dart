@@ -4,6 +4,7 @@
 // 首次加载时显示骨架屏，提升视觉体验
 
 import 'package:flutter/material.dart';
+import '../utils/constants.dart';
 
 /// 骨架屏卡片（模拟推荐卡片）
 class SkeletonCard extends StatefulWidget {
@@ -97,7 +98,7 @@ class SkeletonGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(kSpacingSm),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
         childAspectRatio: 9 / 16,
@@ -123,11 +124,11 @@ class SkeletonList extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(kSpacingLg),
       itemCount: itemCount,
       itemBuilder: (context, index) {
         return Container(
-          margin: const EdgeInsets.only(bottom: 16),
+          margin: const EdgeInsets.only(bottom: kSpacingLg),
           child: Row(
             children: [
               // 海报占位

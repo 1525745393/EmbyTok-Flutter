@@ -9,6 +9,7 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 import '../widgets/loading_state_card.dart';
 import '../widgets/video/video_grid_card.dart';
+import '../utils/constants.dart';
 
 class GenreItemsView extends ConsumerStatefulWidget {
   const GenreItemsView({super.key, required this.genreName});
@@ -165,7 +166,7 @@ class _GenreItemsViewState extends ConsumerState<GenreItemsView> {
     }
     return GridView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(kSpacingSm),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         childAspectRatio: 0.65,

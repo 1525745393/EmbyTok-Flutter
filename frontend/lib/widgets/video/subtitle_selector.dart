@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/models.dart';
 import '../../providers/providers.dart';
+import '../../utils/constants.dart';
 
 /// 字幕选择器回调
 typedef SubtitleSelectedCallback = void Function(SubtitleTrack? track);
@@ -55,7 +56,7 @@ class SubtitleSelector extends ConsumerWidget {
           children: [
             // 顶部拖动指示器
             Container(
-              margin: const EdgeInsets.only(top: 12),
+              margin: const EdgeInsets.only(top: kSpacingMd),
               width: 40,
               height: 4,
               decoration: BoxDecoration(
@@ -99,7 +100,7 @@ class SubtitleSelector extends ConsumerWidget {
               ),
               child: ListView(
                 shrinkWrap: true,
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(vertical: kSpacingSm),
                 children: [
                   // 关闭字幕选项
                   _buildOption(
@@ -481,7 +482,7 @@ class SubtitleSelector extends ConsumerWidget {
                 icon: Icon(Icons.delete_outline,
                     color: scheme.error.withValues(alpha: 0.7), size: 20),
                 onPressed: onDelete,
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(kSpacingSm),
                 tooltip: '删除',
                 constraints: const BoxConstraints(),
               ),

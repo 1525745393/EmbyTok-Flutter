@@ -15,6 +15,7 @@ import '../../services/tmdb_service.dart';
 import '../../services/scrape_service.dart';
 import '../loading_state_card.dart';
 import '../../utils/logger.dart';
+import '../../utils/constants.dart';
 
 /// 打开视频评论弹层
 /// [title]/[year]/[isTv] 用于在线 Emby 视频按标题搜索 TMDB 获取评论
@@ -154,7 +155,7 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
         final children = <Widget>[];
         if (tmdbReviews.isNotEmpty) {
           children.add(Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            padding: const EdgeInsets.fromLTRB(kSpacingLg, kSpacingSm, kSpacingLg, kSpacingXs),
             child: Text('TMDB 评论',
                 style: TextStyle(
                     fontSize: 12,
@@ -168,7 +169,7 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
         }
         if (localComments.isNotEmpty) {
           children.add(Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+            padding: const EdgeInsets.fromLTRB(kSpacingLg, kSpacingXs, kSpacingLg, kSpacingXs),
             child: Text('我的评论',
                 style: TextStyle(
                     fontSize: 12,
@@ -193,7 +194,7 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
         }
         return ListView(
             controller: scrollController,
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: kSpacingSm),
             children: children);
       },
     );
@@ -217,7 +218,7 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
           children: [
             // 标题行
             Container(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              padding: const EdgeInsets.fromLTRB(kSpacingLg, kSpacingMd, kSpacingLg, kSpacingSm),
               child: Row(
                 children: [
                   Text(

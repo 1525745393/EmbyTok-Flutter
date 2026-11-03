@@ -209,7 +209,7 @@ class _SearchViewState extends ConsumerState<SearchView>
       children: [
         if (!widget.useScaffold)
           Container(
-            padding: const EdgeInsets.fromLTRB(4, 8, 16, 8),
+            padding: const EdgeInsets.fromLTRB(kSpacingXs, kSpacingSm, kSpacingLg, kSpacingSm),
             color: scheme.surface,
             child: Row(
               children: [
@@ -233,7 +233,7 @@ class _SearchViewState extends ConsumerState<SearchView>
           ),
         // 搜索框：用 ValueListenableBuilder 驱动 suffixIcon 更新
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          padding: const EdgeInsets.fromLTRB(kSpacingLg, kSpacingSm, kSpacingLg, kSpacingMd),
           child: ValueListenableBuilder<TextEditingValue>(
             valueListenable: _controller,
             builder: (context, value, _) {
@@ -275,7 +275,7 @@ class _SearchViewState extends ConsumerState<SearchView>
                     borderSide: BorderSide.none,
                   ),
                   contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingMd),
                 ),
               );
             },
@@ -293,7 +293,7 @@ class _SearchViewState extends ConsumerState<SearchView>
                   final label = item['label'] as String;
                   final isSelected = _selectedCategory == category;
                   return Padding(
-                    padding: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.only(right: kSpacingSm),
                     child: ChoiceChip(
                       label: Text(label),
                       selected: isSelected,
@@ -406,7 +406,7 @@ class _SearchViewState extends ConsumerState<SearchView>
 
   Widget _buildPersonResults(SearchState state) {
     return GridView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingSm),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         crossAxisSpacing: 12,
@@ -427,7 +427,7 @@ class _SearchViewState extends ConsumerState<SearchView>
       children: [
         // 搜索结果计数
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          padding: const EdgeInsets.fromLTRB(kSpacingLg, kSpacingXs, kSpacingLg, kSpacingSm),
           child: Align(
             alignment: Alignment.centerLeft,
             child: Text(
@@ -442,7 +442,7 @@ class _SearchViewState extends ConsumerState<SearchView>
         Expanded(
           child: ListView.separated(
             controller: _scrollController,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
             itemCount: state.results.length + (state.hasMore ? 1 : 0),
             separatorBuilder: (_, __) => Divider(
                 color: scheme.onSurface.withValues(alpha: 0.1), height: 1),
@@ -450,7 +450,7 @@ class _SearchViewState extends ConsumerState<SearchView>
               // 底部加载更多指示器
               if (index == state.results.length) {
                 return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: kSpacingLg),
                   child: Center(
                     child: SizedBox(
                       width: 24,
@@ -475,7 +475,7 @@ class _SearchViewState extends ConsumerState<SearchView>
   Widget _buildHints(SearchHintsState hintsState) {
     final scheme = Theme.of(context).colorScheme;
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
       itemCount: hintsState.hints.length,
       itemBuilder: (context, index) {
         final hint = hintsState.hints[index];
@@ -514,7 +514,7 @@ class _SearchViewState extends ConsumerState<SearchView>
   Widget _buildHistory(List<String> history) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -613,7 +613,7 @@ class _SearchResultTile extends ConsumerWidget {
       onTap: () {
         context.push('/play/${item.id}', extra: item);
       },
-      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+      contentPadding: const EdgeInsets.symmetric(vertical: kSpacingSm),
       leading: ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: thumbnailUrl != null && thumbnailUrl.isNotEmpty
@@ -638,7 +638,7 @@ class _SearchResultTile extends ConsumerWidget {
             color: scheme.onSurface, fontSize: 15, fontWeight: FontWeight.w600),
       ),
       subtitle: Padding(
-        padding: const EdgeInsets.only(top: 4),
+        padding: const EdgeInsets.only(top: kSpacingXs),
         child: Row(children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

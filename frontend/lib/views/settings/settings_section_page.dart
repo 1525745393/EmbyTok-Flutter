@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../utils/constants.dart';
 
 /// 设置分组二级页面
 ///
@@ -38,7 +39,7 @@ class SettingsSectionPage extends ConsumerWidget {
         children: [
           // 分组标题卡片
           Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
+            margin: const EdgeInsets.symmetric(horizontal: kSpacingLg),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.08),

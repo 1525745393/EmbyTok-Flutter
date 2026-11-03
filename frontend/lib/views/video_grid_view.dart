@@ -12,6 +12,7 @@ import '../utils/app_preferences.dart' show ViewMode;
 import '../utils/playback_position_memory.dart';
 import '../widgets/resume_play_banner.dart';
 import '../widgets/video/video_grid_card.dart';
+import '../utils/constants.dart';
 
 // 视频网格视图
 class VideoGridView extends ConsumerStatefulWidget {
@@ -237,8 +238,7 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
                 },
                 child: GridView.builder(
                   controller: _gridController,
-                  padding: EdgeInsets.fromLTRB(
-                      8, 8, 8, 8 + MediaQuery.paddingOf(context).bottom),
+                  padding: EdgeInsets.fromLTRB(kSpacingSm, kSpacingSm, kSpacingSm, kSpacingSm + MediaQuery.paddingOf(context).bottom),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: crossAxisCount,
                     childAspectRatio: childAspectRatio,
@@ -287,7 +287,7 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
     final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
+        padding: const EdgeInsets.symmetric(horizontal: kSpacingXxl),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

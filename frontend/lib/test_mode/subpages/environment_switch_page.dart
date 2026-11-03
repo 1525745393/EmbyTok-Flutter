@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/providers.dart';
 import '../../services/emby_server_api.dart';
 import '../test_env_provider.dart';
+import '../../utils/constants.dart';
 
 const _kTestEnvKey = 'test_mode_override_base_url';
 
@@ -63,7 +64,7 @@ class _EnvironmentSwitchPageState extends ConsumerState<EnvironmentSwitchPage> {
       body: ListView(
         children: [
           const Padding(
-            padding: EdgeInsets.all(16),
+            padding: EdgeInsets.all(kSpacingLg),
             child: Text(
               '临时覆盖 ApiClient baseUrl，不写入正式服务器列表。\n'
               '设置后重启 App 继续生效；点"正式"或应用空地址即恢复默认（batch153-F6）。',
@@ -87,7 +88,7 @@ class _EnvironmentSwitchPageState extends ConsumerState<EnvironmentSwitchPage> {
           ),
           const Divider(),
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(kSpacingLg),
             child: TextField(
               controller: _customController,
               decoration: const InputDecoration(
@@ -98,7 +99,7 @@ class _EnvironmentSwitchPageState extends ConsumerState<EnvironmentSwitchPage> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
             child: ElevatedButton(
               onPressed: () => _apply(_customController.text.trim()),
               child: const Text('应用自定义地址'),

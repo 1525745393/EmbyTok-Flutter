@@ -401,7 +401,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                   if (_errorMessage != null) ...[
                     const SizedBox(height: 12),
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(kSpacingMd),
                       decoration: BoxDecoration(
                         color: scheme.error.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
@@ -437,7 +437,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: scheme.primary,
                           foregroundColor: scheme.onPrimary,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: kSpacingLg),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -457,7 +457,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: scheme.primary,
                           foregroundColor: scheme.onPrimary,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: kSpacingLg),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -529,7 +529,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
   Widget? _buildConnectionIndicator(ColorScheme scheme) {
     if (_isTestingConnection) {
       return Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(kSpacingMd),
         child: SizedBox(
           width: 18,
           height: 18,
@@ -573,7 +573,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
     final scheme = Theme.of(context).colorScheme;
     final mode = ref.watch(serviceModeProvider);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.fromLTRB(kSpacingLg, kSpacingMd, kSpacingLg, kSpacingSm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -668,13 +668,13 @@ class _LoginViewState extends ConsumerState<LoginView> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Padding(
-              padding: EdgeInsets.all(16),
+              padding: EdgeInsets.all(kSpacingLg),
               child: Text('切换服务器',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ),
             if (servers.isEmpty)
               const Padding(
-                padding: EdgeInsets.all(32),
+                padding: EdgeInsets.all(kSpacingXxl),
                 child: Text('尚未添加服务器'),
               )
             else

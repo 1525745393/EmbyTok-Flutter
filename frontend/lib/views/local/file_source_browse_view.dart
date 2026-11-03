@@ -20,6 +20,7 @@ import '../../services/tmdb_service.dart';
 import '../../services/webdav_scanner.dart';
 import '../../widgets/loading_state_card.dart';
 import 'local_play_page.dart';
+import '../../utils/constants.dart';
 
 /// 源内浏览页（P1 第三批 + P0 增强）
 ///
@@ -407,7 +408,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           : _error != null
               ? Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(kSpacingXl),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -429,7 +430,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
               : _items.isEmpty
                   ? Center(
                       child: Padding(
-                        padding: const EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(kSpacingXl),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -486,11 +487,11 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         for (var i = 0; i < _items.length; i++) _items[i].pathHash: i,
       };
       return ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(kSpacingLg),
         children: [
           for (final entry in groups.entries)
             Card(
-              margin: const EdgeInsets.only(bottom: 8),
+              margin: const EdgeInsets.only(bottom: kSpacingSm),
               child: GestureDetector(
                 onLongPress: () => _showGroupMenu(
                     entry.key, groupDir[entry.key] ?? '', entry.value),
@@ -1324,7 +1325,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
               const SizedBox(height: 4),
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(kSpacingSm),
                 color: Colors.grey[100],
                 child: const Text(
                   '电影：整理文件结构 → 刮削 → 按刮削重命名\n'
@@ -1356,7 +1357,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
               const SizedBox(height: 4),
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(kSpacingSm),
                 color: Colors.grey[100],
                 child: const Text(
                   'S01E01 / Season 1 Episode 1 / EP08 / E08 / 第1集',
@@ -2307,7 +2308,7 @@ class _SeriesEpisodePage extends StatelessWidget {
         ],
       ),
       body: ListView.separated(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(kSpacingLg),
         itemCount: sorted.length,
         separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (_, i) {

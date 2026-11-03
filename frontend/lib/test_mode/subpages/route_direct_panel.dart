@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../utils/constants.dart';
 
 class RouteDirectPanel extends StatelessWidget {
   const RouteDirectPanel({super.key});
@@ -33,7 +34,7 @@ class RouteDirectPanel extends StatelessWidget {
       body: ListView(
         children: [
           const Padding(
-            padding: EdgeInsets.all(16),
+            padding: EdgeInsets.all(kSpacingLg),
             child: Text(
               '点击直接跳转路由，绕过正常导航流程。\n'
               '需登录的路由未登录时会被重定向到登录页。',

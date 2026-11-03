@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/file_source.dart';
 import '../../providers/file_sources_provider.dart';
 import '../../services/smb_scanner.dart';
+import '../../utils/constants.dart';
 
 /// 文件源添加/编辑表单（P0 第二批）
 ///
@@ -62,7 +63,7 @@ class _FileSourceEditViewState extends ConsumerState<FileSourceEditView> {
         title: Text(widget.existing == null ? '添加文件源' : '编辑文件源'),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(kSpacingLg),
         children: [
           TextField(
             controller: _name,

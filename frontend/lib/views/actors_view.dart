@@ -174,7 +174,7 @@ class _ActorsViewState extends ConsumerState<ActorsView>
                 // 搜索框
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingSm),
                   child: TextField(
                     controller: _searchController,
                     onChanged: (value) {
@@ -207,8 +207,7 @@ class _ActorsViewState extends ConsumerState<ActorsView>
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingMd),
                       isDense: true,
                     ),
                     style: TextStyle(color: scheme.onSurface, fontSize: 14),
@@ -217,7 +216,7 @@ class _ActorsViewState extends ConsumerState<ActorsView>
                 // 类型筛选器
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingXs),
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
@@ -236,7 +235,7 @@ class _ActorsViewState extends ConsumerState<ActorsView>
                 // 排序 + 网格列数切换
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingXs),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -433,7 +432,7 @@ Widget _buildSortChip(String label, String mode) {
       );
     }
     return SliverPadding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(kSpacingLg),
       sliver: SliverGrid(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: _gridColumns,
@@ -503,7 +502,7 @@ Widget _buildSortChip(String label, String mode) {
           if (hasScrollController && isLoadingMore)
             const SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
+                padding: EdgeInsets.symmetric(vertical: kSpacingLg),
                 child: Center(
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -530,7 +529,7 @@ Widget _buildSortChip(String label, String mode) {
           if (hasScrollController && !loading && actors.isNotEmpty)
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: kSpacingLg),
                 child: Center(
                   child: Text(
                     '已加载全部 ${actors.length} 位演员',
@@ -596,7 +595,7 @@ Widget _buildSortChip(String label, String mode) {
             ),
             const SizedBox(height: 20),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingSm),
               decoration: BoxDecoration(
                 color: scheme.primaryContainer.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(20),

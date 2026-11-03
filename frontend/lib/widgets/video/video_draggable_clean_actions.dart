@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/providers.dart';
+import '../../utils/constants.dart';
 
 class DraggableCleanActions extends ConsumerStatefulWidget {
   const DraggableCleanActions({
@@ -249,7 +250,7 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
                   child: Container(
                     key: _buttonsKey,
                     width: widget.buttonWidth,
-                    padding: const EdgeInsets.only(right: 16),
+                    padding: const EdgeInsets.only(right: kSpacingLg),
                     alignment: Alignment.centerRight,
                     decoration: _isDragging
                         ? BoxDecoration(

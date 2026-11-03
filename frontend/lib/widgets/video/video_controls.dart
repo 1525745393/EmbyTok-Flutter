@@ -10,6 +10,7 @@ import '../../models/models.dart';
 import '../../providers/providers.dart';
 import '../../utils/logger.dart';
 import 'subtitle_selector.dart';
+import '../../utils/constants.dart';
 
 // 视频控制条：半透明黑色背景，底部悬浮
 class VideoControls extends ConsumerStatefulWidget {
@@ -285,7 +286,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Padding(
-              padding: EdgeInsets.all(16),
+              padding: EdgeInsets.all(kSpacingLg),
               child: Text('睡眠定时器',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),

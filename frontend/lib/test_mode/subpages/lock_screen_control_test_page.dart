@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/providers.dart';
+import '../../utils/constants.dart';
 
 class LockScreenControlTestPage extends ConsumerWidget {
   const LockScreenControlTestPage({super.key});
@@ -20,7 +21,7 @@ class LockScreenControlTestPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('锁屏/蓝牙控制专项')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(kSpacingLg),
         children: [
           const Text(
             '验证锁屏通知栏和蓝牙设备的媒体控制是否正常。\n'
@@ -34,7 +35,7 @@ class LockScreenControlTestPage extends ConsumerWidget {
           // 当前播放信息
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(kSpacingLg),
               child: StreamBuilder<audio_service.MediaItem?>(
                 stream: handler.mediaItem,
                 builder: (context, s) {
@@ -60,7 +61,7 @@ class LockScreenControlTestPage extends ConsumerWidget {
           // 当前播放状态
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(kSpacingLg),
               child: StreamBuilder<audio_service.PlaybackState>(
                 stream: handler.playbackState,
                 builder: (context, s) {
@@ -134,7 +135,7 @@ class LockScreenControlTestPage extends ConsumerWidget {
           Card(
             color: Colors.blue.shade50,
             child: const Padding(
-              padding: EdgeInsets.all(16),
+              padding: EdgeInsets.all(kSpacingLg),
               child: Text(
                 '测试步骤：\n'
                 '1. 播放任意视频/音乐\n'

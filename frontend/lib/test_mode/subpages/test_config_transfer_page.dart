@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../utils/constants.dart';
 
 class TestConfigTransferPage extends StatefulWidget {
   const TestConfigTransferPage({super.key});
@@ -111,7 +112,7 @@ class _TestConfigTransferPageState extends State<TestConfigTransferPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('测试配置导入导出')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(kSpacingLg),
         children: [
           const Text(
             '导出当前 App 的 SharedPreferences 快照（自动脱敏 token/密码），\n'

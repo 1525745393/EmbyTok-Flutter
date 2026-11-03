@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../widgets/loading_state_card.dart';
 import '../../utils/logger.dart';
+import '../../utils/constants.dart';
 
 class CacheManagementPage extends StatefulWidget {
   const CacheManagementPage({super.key});
@@ -133,7 +134,7 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
           : ListView(
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(kSpacingLg),
                   child: Text(
                     '总占用：${_formatSize(total)}',
                     style: const TextStyle(
@@ -174,7 +175,7 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
                 ),
                 const Divider(),
                 Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(kSpacingLg),
                   child: Text(
                     '清理缓存不会影响登录状态和播放记录。图片缓存清理后，下次浏览时会重新加载。',
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),

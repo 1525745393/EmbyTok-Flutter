@@ -9,6 +9,7 @@ import '../../models/local_video_item.dart';
 import '../../services/tmdb_service.dart';
 import '../../services/scrape_service.dart';
 import '../../services/scrape_media_store.dart';
+import '../../utils/constants.dart';
 
 class TmdbSearchPage extends StatefulWidget {
 
@@ -147,7 +148,7 @@ class _TmdbSearchPageState extends State<TmdbSearchPage> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(kSpacingMd),
             child: Row(
               children: [
                 Expanded(

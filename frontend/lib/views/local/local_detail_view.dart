@@ -15,6 +15,7 @@ import '../../services/scrape_service.dart';
 import '../../services/scrape_media_store.dart';
 import 'person_detail_view.dart';
 import '../../widgets/local/local_images.dart';
+import '../../utils/constants.dart';
 
 /// 本地视频详情页（P1 #7）
 class LocalDetailPage extends ConsumerStatefulWidget {
@@ -526,8 +527,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.white,
                                     foregroundColor: Colors.black87,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 8),
+                                    padding: const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingSm),
                                     shape: RoundedRectangleBorder(
                                         borderRadius:
                                             BorderRadius.circular(20)),

@@ -26,6 +26,7 @@ import 'artist_metadata_editor.dart';
 import 'artist_search_picker.dart';
 import '../../widgets/loading_state_card.dart';
 import 'mini_player_bar.dart';
+import '../../utils/constants.dart';
 part 'artist_parts/artist_builders_extra.dart';
 
 // ===== 歌手详情页常量 =====
@@ -340,7 +341,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
           // 两栏布局：左侧专辑，右侧歌曲
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -433,7 +434,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
                 top < kToolbarHeight + _kCollapsedAvatarThreshold;
             if (!showAvatar) return const SizedBox.shrink();
             return Padding(
-              padding: const EdgeInsets.only(right: 16),
+              padding: const EdgeInsets.only(right: kSpacingLg),
               child: CircleAvatar(
                 radius: _kAvatarRadiusCollapsed,
                 backgroundImage: metadata.hasImage
@@ -559,7 +560,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
         if (metadata.hasTags) ...[
           ...metadata.tags.take(3).map(
                 (tag) => Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  margin: const EdgeInsets.symmetric(horizontal: kSpacingXs),
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
@@ -596,7 +597,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
     ArtistMetadata metadata,
   ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingMd),
       child: Row(
         children: [
           // 播放全部（主按钮）
@@ -606,7 +607,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
               icon: const Icon(Icons.play_arrow),
               label: const Text('播放全部'),
               style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: kSpacingMd),
               ),
             ),
           ),
@@ -630,7 +631,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
             ),
             label: const Text('收藏'),
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingMd),
             ),
           ),
           const SizedBox(width: 12),
@@ -643,7 +644,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
             icon: const Icon(Icons.share),
             label: const Text('分享'),
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingMd),
             ),
           ),
         ],
@@ -660,7 +661,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
     final hasHtml = bioContent.contains('<') && bioContent.contains('>');
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingMd),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -722,8 +723,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
                   TextButton(
                     onPressed: () => _showArtistPicker(context),
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: kSpacingSm, vertical: kSpacingXs),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
@@ -740,8 +740,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
                   TextButton(
                     onPressed: () => _showMetadataEditor(context, metadata),
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: kSpacingSm, vertical: kSpacingXs),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
@@ -969,7 +968,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
           children: [
             // 标题栏
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(kSpacingLg),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -996,7 +995,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
                     ? const Center(child: Text('暂无专辑'))
                     : ListView.builder(
                         controller: scrollController,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        padding: const EdgeInsets.symmetric(vertical: kSpacingSm),
                         itemCount: albums.length,
                         itemBuilder: (context, index) {
                           final album = albums[index];
@@ -1064,7 +1063,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
           children: [
             // 专辑头部信息
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(kSpacingLg),
               child: Row(
                 children: [
                   // 专辑封面

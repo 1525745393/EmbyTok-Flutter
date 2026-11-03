@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'constants.dart';
 
 /// 快捷键帮助面板：按 ? 键显示
 class KeyboardHelpPanel extends StatelessWidget {
@@ -21,7 +22,7 @@ class KeyboardHelpPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.all(24),
+      margin: const EdgeInsets.all(kSpacingXl),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: scheme.surface.withValues(alpha: 0.87),

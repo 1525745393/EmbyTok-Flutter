@@ -13,6 +13,7 @@ import '../providers/providers.dart';
 import '../utils/image_cache_manager.dart';
 import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
+import '../utils/constants.dart';
 
 class HistoryView extends ConsumerStatefulWidget {
   const HistoryView({super.key, this.useScaffold = true});
@@ -67,7 +68,7 @@ class _HistoryViewState extends ConsumerState<HistoryView>
 
     // 覆盖层模式下的顶部栏（含返回按钮 + 标题）
     final topBar = Container(
-      padding: const EdgeInsets.fromLTRB(4, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(kSpacingXs, kSpacingSm, kSpacingLg, kSpacingSm),
       color: scheme.surface,
       child: Row(
         children: [
@@ -183,7 +184,7 @@ class _HistoryViewState extends ConsumerState<HistoryView>
     return RefreshIndicator(
       onRefresh: () => ref.read(watchHistoryProvider.notifier).refresh(),
       child: ListView.separated(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(kSpacingLg),
         itemCount: state.items.length,
         separatorBuilder: (_, __) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
@@ -272,7 +273,7 @@ class _HistoryTile extends ConsumerWidget { // 完整列表
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(kSpacingMd),
         decoration: BoxDecoration(
           color: scheme.onSurface.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12),

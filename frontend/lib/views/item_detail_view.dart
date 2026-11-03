@@ -348,7 +348,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     final directorName = director?.name;
     final durationText = item.formattedDuration;
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(kSpacingLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -611,7 +611,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                 }
               },
               child: Padding(
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.all(kSpacingXs),
                 child: Icon(
                   selected ? Icons.favorite : Icons.favorite_border,
                   size: 14,
@@ -686,7 +686,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
   Widget _buildOverview(String overview) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingSm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -725,7 +725,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
               });
             },
             child: Padding(
-              padding: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.only(top: kSpacingXs),
               child: Text(
                 _overviewExpanded ? '收起' : '展开',
                 style: TextStyle(
@@ -748,12 +748,12 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
         ? embyAuthHeaders(authState.token!)
         : <String, String>{};
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: kSpacingSm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
             child: Text(
               '演员',
               style: TextStyle(
@@ -768,7 +768,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
             height: 120,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
               itemCount: people.length,
               separatorBuilder: (_, __) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
@@ -828,14 +828,14 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
   Widget _buildSeasonsAndEpisodes(AuthState authState) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: kSpacingSm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 季选择器（横向滚动）
           if (_seasons.isNotEmpty) ...[
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
               child: Text(
                 '分集',
                 style: TextStyle(
@@ -850,7 +850,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
               height: 40,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
                 itemCount: _seasons.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 8),
                 itemBuilder: (context, index) {
@@ -859,10 +859,8 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                   return GestureDetector(
                     onTap: () => _selectSeason(season.id),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: kSpacingLg,
+                        vertical: kSpacingSm,),
                       decoration: BoxDecoration(
                         color: isSelected
                             ? scheme.primary
@@ -894,14 +892,14 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
           // 集数列表
           if (_loadingEpisodes)
             Padding(
-              padding: const EdgeInsets.all(32),
+              padding: const EdgeInsets.all(kSpacingXxl),
               child: Center(
                 child: CircularProgressIndicator(color: scheme.primary),
               ),
             )
           else if (_episodes.isEmpty)
             Padding(
-              padding: const EdgeInsets.all(32),
+              padding: const EdgeInsets.all(kSpacingXxl),
               child: Center(
                 child: Text(
                   '暂无集数',
@@ -915,7 +913,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
               itemCount: _episodes.length,
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
@@ -941,12 +939,12 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
       return const SizedBox.shrink();
     }
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: kSpacingSm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
             child: Text(
               '相关推荐',
               style: TextStyle(
@@ -962,7 +960,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
             child: _loadingSimilar
                 ? ListView.separated(
                     scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
                     itemCount: 7,
                     separatorBuilder: (_, __) => const SizedBox(width: 12),
                     itemBuilder: (_, __) =>
@@ -970,7 +968,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                   )
                 : ListView.separated(
                     scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
                     itemCount: _similarItems.length,
                     separatorBuilder: (_, __) => const SizedBox(width: 12),
                     itemBuilder: (context, index) {
@@ -994,7 +992,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
   Widget _buildErrorView(ColorScheme scheme) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(kSpacingXxl),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../utils/constants.dart';
 
 /// 带按下缩放动画的操作按钮
 class PressableActionButton extends StatefulWidget {
@@ -108,7 +109,7 @@ class _PressableActionButtonState extends State<PressableActionButton> {
           curve: Curves.easeOut,
           child: AnimatedContainer(
             duration: duration,
-            padding: EdgeInsets.all(rs(4)),
+            padding: EdgeInsets.all(rs(kSpacingXs)),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(rs(6)),
               border: _isFocused

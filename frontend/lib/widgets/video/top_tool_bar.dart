@@ -7,6 +7,7 @@ import '../../providers/providers.dart';
 import '../../models/library.dart';
 import '../../utils/app_preferences.dart' show ViewMode, OrientationMode;
 import '../library_selector.dart';
+import '../../utils/constants.dart';
 
 // 侧边菜单控制器回调
 typedef MenuButtonCallback = void Function();
@@ -39,7 +40,7 @@ class TopToolBar extends ConsumerWidget {
 
     return Container(
       height: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.symmetric(horizontal: kSpacingSm),
       decoration: BoxDecoration(
         color: scheme.surface,
         border: Border(

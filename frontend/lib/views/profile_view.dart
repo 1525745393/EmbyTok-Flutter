@@ -11,6 +11,7 @@ import '../providers/synology_auth_provider.dart';
 import '../providers/synology_music_provider.dart';
 import '../providers/synology_playback_provider.dart';
 import 'account_switch_sheet.dart';
+import '../utils/constants.dart';
 
 class ProfileView extends ConsumerWidget {
   const ProfileView({super.key});
@@ -33,7 +34,7 @@ class ProfileView extends ConsumerWidget {
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(kSpacingLg),
           children: [
             // 用户信息卡片
             _buildUserCard(auth, scheme),
@@ -226,7 +227,7 @@ class ProfileView extends ConsumerWidget {
           value: music.playlists.length),
     ];
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(vertical: kSpacingLg),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
@@ -268,7 +269,7 @@ class ProfileView extends ConsumerWidget {
     required VoidCallback onTap,
   }) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: kSpacingSm),
       child: ListTile(
         leading: Icon(icon),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),

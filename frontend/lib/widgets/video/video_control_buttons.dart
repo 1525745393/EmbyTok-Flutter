@@ -13,6 +13,7 @@ import '../../providers/local_video_provider.dart';
 import '../../providers/providers.dart';
 import '../../utils/image_cache_manager.dart';
 import '../person_avatar_image.dart';
+import '../../utils/constants.dart';
 
 // ===== 响应式尺寸工具 =====
 double responsiveSize(BuildContext context, double base,
@@ -636,7 +637,7 @@ class TopActions extends StatelessWidget {
         onTap: onToggleFullscreen,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          padding: EdgeInsets.all(rs(8)),
+          padding: EdgeInsets.all(rs(kSpacingSm)),
           decoration: BoxDecoration(
             color: scheme.surface.withValues(alpha: 0.4),
             borderRadius: BorderRadius.circular(rs(16)),

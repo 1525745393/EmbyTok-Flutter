@@ -16,6 +16,7 @@ import '../../utils/logger.dart';
 import '../../test_mode/subpages/log_viewer_page.dart';
 import '../../widgets/loading_state_card.dart';
 import 'file_sources_view.dart';
+import '../../utils/constants.dart';
 
 class LocalLibrarySettingsPage extends ConsumerWidget {
   const LocalLibrarySettingsPage({super.key});
@@ -256,7 +257,7 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Padding(
-              padding: EdgeInsets.all(16),
+              padding: EdgeInsets.all(kSpacingLg),
               child: Text('日志级别',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
@@ -278,7 +279,7 @@ class LocalLibrarySettingsPage extends ConsumerWidget {
                 },
               ),
             const Padding(
-              padding: EdgeInsets.all(16),
+              padding: EdgeInsets.all(kSpacingLg),
               child: Text('开启调试级别会增加日志量与存储占用，排查完请关闭。',
                   style: TextStyle(fontSize: 12, color: Colors.grey)),
             ),
@@ -296,7 +297,7 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.fromLTRB(kSpacingLg, kSpacingLg, kSpacingLg, kSpacingSm),
       child: Text(
         title,
         style: TextStyle(
@@ -582,7 +583,7 @@ class _ScrapeHistoryPageState extends State<_ScrapeHistoryPage> {
 
   Widget _row(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: kSpacingXs),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

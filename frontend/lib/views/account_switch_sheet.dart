@@ -14,6 +14,7 @@ import '../providers/syno_accounts_provider.dart';
 import '../providers/synology_auth_provider.dart';
 import '../providers/synology_music_provider.dart';
 import '../providers/synology_playback_provider.dart';
+import '../utils/constants.dart';
 
 /// 弹出账号切换 sheet
 Future<void> showAccountSwitchSheet(BuildContext context, WidgetRef ref) async {
@@ -38,13 +39,13 @@ class _AccountSheet extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           const Padding(
-            padding: EdgeInsets.all(16),
+            padding: EdgeInsets.all(kSpacingLg),
             child: Text('切换账号',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ),
           if (state.accounts.isEmpty)
             const Padding(
-              padding: EdgeInsets.all(24),
+              padding: EdgeInsets.all(kSpacingXl),
               child: Text('还没有保存的账号，点击下方添加',
                   style: TextStyle(color: Colors.grey)),
             ),
@@ -60,7 +61,7 @@ class _AccountSheet extends ConsumerWidget {
                   Text(a.username),
                   if (a.isDefault)
                     Container(
-                      margin: const EdgeInsets.only(left: 8),
+                      margin: const EdgeInsets.only(left: kSpacingSm),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 1),
                       decoration: BoxDecoration(
@@ -144,7 +145,7 @@ class _AccountSheet extends ConsumerWidget {
       builder: (_) => const Center(
         child: Card(
           child: Padding(
-            padding: EdgeInsets.all(16),
+            padding: EdgeInsets.all(kSpacingLg),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

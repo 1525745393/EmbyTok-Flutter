@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/playlists_provider.dart';
 import '../providers/synology_playback_provider.dart';
+import '../utils/constants.dart';
 
 class PlaylistDetailView extends ConsumerWidget {
   const PlaylistDetailView({required this.playlistId, super.key});
@@ -69,7 +70,7 @@ class PlaylistDetailView extends ConsumerWidget {
               child: Text('歌单为空，去歌曲列表把歌曲加入歌单',
                   style: TextStyle(color: Colors.grey)))
           : ReorderableListView(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: kSpacingSm),
               onReorderItem: (int oldIndex, int newIndex) => ref
                   .read(playlistsProvider.notifier)
                   .reorderSongs(pl.id, oldIndex, newIndex),

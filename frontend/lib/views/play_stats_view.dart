@@ -10,6 +10,7 @@ import '../providers/play_events_provider.dart';
 import '../providers/synology_music_provider.dart';
 import '../providers/synology_playback_provider.dart';
 import '../models/audio_models.dart';
+import '../utils/constants.dart';
 
 enum _Range { week, month, all }
 
@@ -86,7 +87,7 @@ class _PlayStatsViewState extends ConsumerState<PlayStatsView> {
         title: const Text('播放统计'),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.only(right: kSpacingSm),
             child: ToggleButtons(
               isSelected: [
                 _range == _Range.week,
@@ -115,7 +116,7 @@ class _PlayStatsViewState extends ConsumerState<PlayStatsView> {
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(kSpacingLg),
           children: [
             // 总览卡片
             Row(
@@ -206,7 +207,7 @@ class _OverviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: kSpacingLg, horizontal: kSpacingSm),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),

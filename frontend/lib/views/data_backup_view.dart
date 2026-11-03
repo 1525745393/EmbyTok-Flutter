@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/audio_models.dart';
 import '../providers/synology_music_provider.dart';
 import '../services/data_backup_service.dart';
+import '../utils/constants.dart';
 
 class DataBackupView extends ConsumerWidget {
   const DataBackupView({super.key});
@@ -176,7 +177,7 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      padding: const EdgeInsets.fromLTRB(kSpacingLg, kSpacingLg, kSpacingLg, kSpacingXs),
       child:
           Text(text, style: const TextStyle(fontSize: 13, color: Colors.grey)),
     );

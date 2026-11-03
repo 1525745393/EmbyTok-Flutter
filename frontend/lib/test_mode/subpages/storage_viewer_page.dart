@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import '../../widgets/loading_state_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../utils/constants.dart';
 
 class StorageViewerPage extends StatefulWidget {
   const StorageViewerPage({super.key});
@@ -79,7 +80,7 @@ class _StorageViewerPageState extends State<StorageViewerPage> {
                   ),
                   children: [
                     Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(kSpacingLg),
                       child: SelectableText(
                         str,
                         style: const TextStyle(

@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'feed_view.dart';
+import '../utils/constants.dart';
 
 class TVRootView extends ConsumerWidget {
   const TVRootView({super.key});
@@ -25,7 +26,7 @@ class TVRootView extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: kSpacingXl, vertical: kSpacingLg),
               child: Row(
                 children: [
                   Icon(Icons.tv, color: scheme.primary, size: 28),

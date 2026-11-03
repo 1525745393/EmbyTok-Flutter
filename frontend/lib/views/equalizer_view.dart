@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../widgets/loading_state_card.dart';
 import '../services/equalizer_service.dart';
+import '../utils/constants.dart';
 
 class EqualizerView extends ConsumerStatefulWidget {
   const EqualizerView({super.key});
@@ -46,7 +47,7 @@ class _EqualizerViewState extends ConsumerState<EqualizerView> {
             : !_available
                 ? const Center(
                     child: Padding(
-                      padding: EdgeInsets.all(32),
+                      padding: EdgeInsets.all(kSpacingXxl),
                       child: Text(
                           '当前设备不支持硬件均衡器\n（需 Android AudioEffect，iOS 暂不支持）',
                           textAlign: TextAlign.center,
@@ -54,7 +55,7 @@ class _EqualizerViewState extends ConsumerState<EqualizerView> {
                     ),
                   )
                 : ListView(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(kSpacingLg),
                     children: [
                       SwitchListTile(
                         title: const Text('启用均衡器'),
@@ -74,7 +75,7 @@ class _EqualizerViewState extends ConsumerState<EqualizerView> {
                           scrollDirection: Axis.horizontal,
                           children: eqPresets.keys.map((name) {
                             return Padding(
-                              padding: const EdgeInsets.only(right: 8),
+                              padding: const EdgeInsets.only(right: kSpacingSm),
                               child: ActionChip(
                                 label: Text(name),
                                 onPressed: _enabled

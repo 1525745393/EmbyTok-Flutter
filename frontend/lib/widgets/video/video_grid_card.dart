@@ -8,6 +8,7 @@ import '../../models/models.dart';
 import '../../providers/providers.dart';
 import '../../utils/image_cache_manager.dart';
 import '../last_watched_badge.dart';
+import '../../utils/constants.dart';
 
 // 网格卡片组件
 class VideoGridCard extends ConsumerWidget {
@@ -158,7 +159,7 @@ class VideoGridCard extends ConsumerWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(kSpacingSm),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,

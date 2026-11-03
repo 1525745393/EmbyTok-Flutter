@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../providers/play_events_provider.dart';
+import '../../utils/constants.dart';
 
 class YearReportPage extends ConsumerWidget {
   const YearReportPage({super.key});
@@ -44,7 +45,7 @@ class YearReportPage extends ConsumerWidget {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(kSpacingXl),
         children: [
           const SizedBox(height: 24),
           Center(
@@ -84,7 +85,7 @@ class YearReportPage extends ConsumerWidget {
           const SizedBox(height: 24),
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(kSpacingLg),
               child: Text(
                 yearEvents.isEmpty
                     ? '今年还没有播放记录，开始观看吧！'
@@ -117,7 +118,7 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: kSpacingMd),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Row(

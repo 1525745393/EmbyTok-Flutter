@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../../utils/constants.dart';
 
 class PerformanceDebugPage extends StatefulWidget {
   const PerformanceDebugPage({super.key});
@@ -60,7 +61,7 @@ class _PerformanceDebugPageState extends State<PerformanceDebugPage> {
             subtitle: const Text('由主界面右下角悬浮按钮切换显示'),
           ),
           const Padding(
-            padding: EdgeInsets.all(16),
+            padding: EdgeInsets.all(kSpacingLg),
             child: Text(
               '返回主界面后点击右下角悬浮按钮可显示/隐藏性能浮层\n'
               '（内存/FPS/重建次数/API 请求），可拖拽移动。',

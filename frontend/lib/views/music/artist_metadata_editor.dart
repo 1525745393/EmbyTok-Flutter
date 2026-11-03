@@ -10,6 +10,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/artist_metadata.dart';
 import '../../providers/artist_metadata_provider.dart';
 import '../../utils/logger.dart';
+import '../../utils/constants.dart';
 
 /// 歌手元数据编辑界面
 ///
@@ -177,7 +178,7 @@ class _ArtistMetadataEditorState extends ConsumerState<ArtistMetadataEditor> {
             children: [
               // 顶部拖拽条
               Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                margin: const EdgeInsets.only(top: kSpacingMd, bottom: kSpacingSm),
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
@@ -187,7 +188,7 @@ class _ArtistMetadataEditorState extends ConsumerState<ArtistMetadataEditor> {
               ),
               // 标题栏
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingSm),
                 child: Row(
                   children: [
                     Expanded(
@@ -224,8 +225,8 @@ class _ArtistMetadataEditorState extends ConsumerState<ArtistMetadataEditor> {
               // 手动修正标记
               if (widget.currentMetadata.isManualOverride)
                 Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  margin: const EdgeInsets.symmetric(horizontal: kSpacingLg),
+                  padding: const EdgeInsets.symmetric(horizontal: kSpacingMd, vertical: kSpacingSm),
                   decoration: BoxDecoration(
                     color: Colors.orange.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -252,7 +253,7 @@ class _ArtistMetadataEditorState extends ConsumerState<ArtistMetadataEditor> {
               Expanded(
                 child: ListView(
                   controller: scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
                   children: [
                     // 头像预览
                     _buildImagePreview(scheme),
@@ -266,10 +267,8 @@ class _ArtistMetadataEditorState extends ConsumerState<ArtistMetadataEditor> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: kSpacingMd,
+                          vertical: kSpacingMd,),
                       ),
                       onChanged: (_) => setState(() {}),
                     ),
@@ -285,10 +284,8 @@ class _ArtistMetadataEditorState extends ConsumerState<ArtistMetadataEditor> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: kSpacingMd,
+                          vertical: kSpacingMd,),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -303,10 +300,8 @@ class _ArtistMetadataEditorState extends ConsumerState<ArtistMetadataEditor> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: kSpacingMd,
+                          vertical: kSpacingMd,),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -315,7 +310,7 @@ class _ArtistMetadataEditorState extends ConsumerState<ArtistMetadataEditor> {
               ),
               // 底部操作按钮
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(kSpacingLg),
                 child: Row(
                   children: [
                     // 重置按钮
@@ -325,7 +320,7 @@ class _ArtistMetadataEditorState extends ConsumerState<ArtistMetadataEditor> {
                         icon: const Icon(Icons.refresh),
                         label: const Text('重置'),
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingMd),
                         ),
                       ),
                     if (widget.currentMetadata.isManualOverride)
@@ -343,7 +338,7 @@ class _ArtistMetadataEditorState extends ConsumerState<ArtistMetadataEditor> {
                             : const Icon(Icons.save),
                         label: Text(_isSaving ? '保存中...' : '保存'),
                         style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: kSpacingMd),
                         ),
                       ),
                     ),
@@ -360,7 +355,7 @@ class _ArtistMetadataEditorState extends ConsumerState<ArtistMetadataEditor> {
   /// 构建分区标题
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: kSpacingSm),
       child: Text(
         title,
         style: TextStyle(

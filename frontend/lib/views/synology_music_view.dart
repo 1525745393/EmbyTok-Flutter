@@ -377,7 +377,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     return Tooltip(
       message: isOnline ? 'NAS 已连接：${auth.account ?? ''}' : 'NAS 未连接',
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(horizontal: kSpacingXs),
         child: Container(
           width: 10,
           height: 10,

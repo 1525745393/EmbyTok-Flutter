@@ -21,6 +21,7 @@ import 'subpages/storage_viewer_page.dart';
 import 'subpages/test_config_transfer_page.dart';
 import 'subpages/test_data_setup_page.dart';
 import 'subpages/test_mode_about_page.dart';
+import '../utils/constants.dart';
 
 /// 测试模块入口定义
 class _TestModuleEntry {
@@ -193,7 +194,7 @@ class TestModeHomePage extends StatelessWidget {
       body: ListView(
         children: [
           const Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: EdgeInsets.fromLTRB(kSpacingLg, kSpacingLg, kSpacingLg, kSpacingSm),
             child: Text(
               '仅在 debug 构建内可用，release 不包含此入口',
               style: TextStyle(color: Colors.grey, fontSize: 12),

@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../widgets/loading_state_card.dart';
 import '../../utils/logger.dart';
+import '../../utils/constants.dart';
 
 /// 日志查看器子页面
 class LogViewerPage extends StatefulWidget {
@@ -146,7 +147,7 @@ class _LogViewerPageState extends State<LogViewerPage> {
         children: [
           // 搜索框
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingSm, vertical: kSpacingXs),
             child: TextField(
               decoration: const InputDecoration(
                 hintText: '搜索日志内容...',
@@ -160,7 +161,7 @@ class _LogViewerPageState extends State<LogViewerPage> {
           // 级别筛选栏
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingSm),
             child: Row(
               children: [
                 ChoiceChip(
@@ -215,8 +216,7 @@ class _LogViewerPageState extends State<LogViewerPage> {
                         itemBuilder: (_, i) => Container(
                           color:
                               _levelColor(filtered[i]).withValues(alpha: 0.05),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: kSpacingMd, vertical: kSpacingXs),
                           child: Text(
                             filtered[i],
                             style: const TextStyle(

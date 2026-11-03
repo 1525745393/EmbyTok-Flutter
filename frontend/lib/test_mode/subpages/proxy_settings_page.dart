@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../providers/providers.dart';
 import '../../services/emby_server_api.dart';
+import '../../utils/constants.dart';
 
 const _kProxyKey = 'test_mode_proxy';
 
@@ -74,7 +75,7 @@ class _ProxySettingsPageState extends ConsumerState<ProxySettingsPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('HTTP 代理设置')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(kSpacingLg),
         children: [
           const Text(
             '配置 Dio 走外部代理（Charles / mitmproxy）。\n'

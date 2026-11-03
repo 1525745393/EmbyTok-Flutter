@@ -13,6 +13,7 @@
 import 'package:flutter/material.dart';
 
 import '../utils/performance_monitor.dart';
+import '../utils/constants.dart';
 
 /// 性能监控悬浮面板
 class AppPerformanceOverlay extends StatefulWidget {
@@ -109,7 +110,7 @@ class _PerformanceOverlayState extends State<AppPerformanceOverlay> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.white24),
         ),
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(kSpacingMd),
         child: StreamBuilder<PerformanceSnapshot>(
           stream: PerformanceMonitor.instance.stream,
           initialData: PerformanceMonitor.instance.currentSnapshot,
@@ -182,7 +183,7 @@ class _PerformanceOverlayState extends State<AppPerformanceOverlay> {
                         child: TextButton(
                           onPressed: () => PerformanceMonitor.instance.reset(),
                           style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            padding: const EdgeInsets.symmetric(vertical: kSpacingXs),
                             minimumSize: const Size(0, 28),
                           ),
                           child: const Text(
@@ -195,7 +196,7 @@ class _PerformanceOverlayState extends State<AppPerformanceOverlay> {
                         child: TextButton(
                           onPressed: _toggleVisibility,
                           style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            padding: const EdgeInsets.symmetric(vertical: kSpacingXs),
                             minimumSize: const Size(0, 28),
                           ),
                           child: const Text(

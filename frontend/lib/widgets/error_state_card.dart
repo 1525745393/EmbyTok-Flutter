@@ -4,6 +4,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../utils/constants.dart';
 
 /// 错误状态卡片
 ///
@@ -79,7 +80,7 @@ class ErrorStateCard extends StatelessWidget {
     final actionCallback = onAction;
     return Container(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
+        padding: const EdgeInsets.symmetric(horizontal: kSpacingXxl),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
@@ -211,7 +212,7 @@ class _AutoRetryErrorCardState extends State<AutoRetryErrorCard> {
     final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
+        padding: const EdgeInsets.symmetric(horizontal: kSpacingXxl),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,

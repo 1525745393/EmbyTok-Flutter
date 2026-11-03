@@ -29,7 +29,7 @@ class SubtitleControls extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: scheme.outlineVariant),
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(kSpacingLg),
       child: DefaultTextStyle(
         style: TextStyle(color: scheme.onSurface, fontSize: 14),
         child: Column(

@@ -11,6 +11,7 @@ import '../utils/image_cache_manager.dart';
 import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
 import '../widgets/loading_state_card.dart';
+import '../utils/constants.dart';
 
 class BoxsetDetailView extends ConsumerStatefulWidget {
 
@@ -124,7 +125,7 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
             () {
               final overview = widget.item.overview;
               return Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(kSpacingLg),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -162,7 +163,7 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
 
             // 包含的影片列表
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              padding: const EdgeInsets.fromLTRB(kSpacingLg, kSpacingMd, kSpacingLg, kSpacingLg),
               child: Text(
                 '包含的影片 (${_children.length})',
                 style: TextStyle(
@@ -175,14 +176,14 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
 
             if (_loading)
               const Padding(
-                padding: EdgeInsets.all(32),
+                padding: EdgeInsets.all(kSpacingXxl),
                 child: LoadingStateCard(title: '正在加载合集影片...'),
               )
             else if (_error != null)
               _buildError(scheme)
             else if (_children.isEmpty)
               const Padding(
-                padding: EdgeInsets.all(32),
+                padding: EdgeInsets.all(kSpacingXxl),
                 child: EmptyStateCard(
                   icon: Icons.video_library_outlined,
                   title: '暂无影片',
@@ -193,7 +194,7 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
               ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
                 itemCount: _children.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
@@ -219,7 +220,7 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
 
   Widget _buildError(ColorScheme scheme) {
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(kSpacingXl),
       child: ErrorStateCard(
         title: _error ?? '加载失败',
         actionLabel: '重试',
@@ -269,7 +270,7 @@ class _ChildTile extends ConsumerWidget { // 完整列表
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(kSpacingMd),
         decoration: BoxDecoration(
           color: scheme.onSurface.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12),

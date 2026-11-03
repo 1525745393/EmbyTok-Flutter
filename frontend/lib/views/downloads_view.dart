@@ -13,6 +13,7 @@ import '../providers/download_provider.dart';
 import '../providers/synology_playback_provider.dart';
 import '../services/synology_download_service.dart';
 import '../widgets/empty_state_card.dart';
+import '../utils/constants.dart';
 
 class DownloadsView extends ConsumerStatefulWidget {
   const DownloadsView({super.key});
@@ -177,7 +178,7 @@ class _StorageBar extends ConsumerWidget {
           (sum, s) => sum + s.fileSize,
         );
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.fromLTRB(kSpacingLg, kSpacingMd, kSpacingLg, kSpacingXs),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -19,6 +19,7 @@ import '../providers/download_provider.dart';
 import '../providers/providers.dart';
 import '../utils/image_cache_manager.dart';
 import '../utils/lrc_parser.dart';
+import '../utils/constants.dart';
 
 /// 打开全屏播放页
 Future<void> showFullPlayerSheet(BuildContext context) {
@@ -248,7 +249,7 @@ class _FullPlayerSheetState extends ConsumerState<_FullPlayerSheet> {
                   const SizedBox(height: 16),
                   if (current.sleepTimerActive)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.only(bottom: kSpacingSm),
                       child: Text(
                         '当前剩余：${current.sleepTimerRemainingSeconds ~/ 60} 分钟 '
                         '${current.sleepTimerRemainingSeconds % 60} 秒',
@@ -413,7 +414,7 @@ class _FullPlayerSheetState extends ConsumerState<_FullPlayerSheet> {
         return Container(
           height: 44,
           alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+          padding: const EdgeInsets.symmetric(horizontal: kSpacingXxl),
           child: Text(
             line.text.isEmpty ? '♪' : line.text,
             textAlign: TextAlign.center,
@@ -510,7 +511,7 @@ class _FullPlayerSheetState extends ConsumerState<_FullPlayerSheet> {
           ),
           // 时间
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingXs),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

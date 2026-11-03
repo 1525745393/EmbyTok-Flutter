@@ -903,7 +903,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
               child: Center(
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      const EdgeInsets.symmetric(horizontal: kSpacingXl, vertical: kSpacingMd),
                   decoration: BoxDecoration(
                     color: Colors.black54,
                     borderRadius: BorderRadius.circular(16),
@@ -1619,7 +1619,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                 ],
               ),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingXs, vertical: kSpacingXs),
             child: Row(
               children: [
                 IconButton(
@@ -1724,7 +1724,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                 ],
               ),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingSm, vertical: kSpacingXs),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -2065,7 +2065,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
     final selectedId = ref.watch(selectedSubtitleProvider);
     if (tracks.isEmpty) {
       return const Padding(
-        padding: EdgeInsets.all(16),
+        padding: EdgeInsets.all(kSpacingLg),
         child: Text('本片无字幕轨道', style: TextStyle(color: Colors.white54)),
       );
     }
@@ -2104,7 +2104,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
     final tracks = playingItem?.audioTracks ?? [];
     if (tracks.isEmpty) {
       return const Padding(
-        padding: EdgeInsets.all(16),
+        padding: EdgeInsets.all(kSpacingLg),
         child: Text('本片无多音轨', style: TextStyle(color: Colors.white54)),
       );
     }
@@ -2130,7 +2130,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
   Widget _buildQualityList() {
     // TODO: 接入 quality_button.dart 的码率切换逻辑
     return const Padding(
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.all(kSpacingLg),
       child: Text('自动（清晰度切换接入中）', style: TextStyle(color: Colors.white70)),
     );
   }
@@ -2244,7 +2244,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
       right: 0,
       child: Center(
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingSm),
           decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: 0.75),
             borderRadius: BorderRadius.circular(20),
@@ -2338,7 +2338,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
           mainAxisSize: MainAxisSize.min,
           children: [
             const Padding(
-              padding: EdgeInsets.all(16),
+              padding: EdgeInsets.all(kSpacingLg),
               child: Text('睡眠定时器',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
@@ -2430,7 +2430,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
         '${auth.embyServerUrl}/Items/${item.id}/Images/Playback/288?mediaSourceId=$msId&offset=$offsetTicks';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: kSpacingSm),
       width: 160,
       height: 90,
       decoration: BoxDecoration(

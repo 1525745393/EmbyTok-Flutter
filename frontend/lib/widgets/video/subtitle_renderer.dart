@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/subtitle_track.dart';
 import '../../providers/subtitle_settings_provider.dart';
+import '../../utils/constants.dart';
 
 // 字幕渲染器：接收当前播放时间和字幕数据
 class SubtitleRenderer extends ConsumerWidget {
@@ -79,7 +80,7 @@ class SubtitleRenderer extends ConsumerWidget {
       child: Align(
         alignment: settings.alignment,
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          margin: const EdgeInsets.symmetric(horizontal: kSpacingXl, vertical: kSpacingMd),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: scheme.surface.withValues(alpha: bgOpacity),

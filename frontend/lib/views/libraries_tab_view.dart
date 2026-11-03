@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/local_mode_provider.dart';
 import 'libraries_browse_view.dart';
 import 'local/local_video_view.dart';
+import '../utils/constants.dart';
 
 /// 媒体库 Tab 模式（在线 Emby / 本地视频）
 final librariesModeProvider =
@@ -28,12 +29,10 @@ class LibrariesTabView extends ConsumerWidget {
         // 顶部胶囊切换：本地模式下隐藏（只有本地视频）
         if (!localMode)
           Padding(
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 8,
-              left: 16,
-              right: 16,
-              bottom: 4,
-            ),
+            padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + kSpacingSm,
+              left: kSpacingLg,
+              right: kSpacingLg,
+              bottom: kSpacingXs,),
             child: SegmentedButton<LibrariesTabMode>(
               segments: const [
                 ButtonSegment(

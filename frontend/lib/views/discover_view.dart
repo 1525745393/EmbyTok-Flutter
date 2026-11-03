@@ -19,6 +19,7 @@ import '../widgets/error_state_card.dart';
 import '../widgets/poster_card.dart';
 import '../widgets/resume_play_banner.dart';
 import '../widgets/skeleton_loading.dart';
+import '../utils/constants.dart';
 
 class DiscoverView extends ConsumerStatefulWidget {
   const DiscoverView({super.key});
@@ -173,7 +174,7 @@ class _DiscoverViewState extends ConsumerState<DiscoverView> {
         Expanded(
           child: GridView.builder(
             controller: _gridController,
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(kSpacingMd),
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
               maxCrossAxisExtent: 160,
               mainAxisSpacing: 12,

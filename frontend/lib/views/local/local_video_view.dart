@@ -23,6 +23,7 @@ import '../../services/scrape_service.dart';
 import '../../services/tmdb_service.dart';
 import 'local_play_page.dart';
 import 'tmdb_search_page.dart';
+import '../../utils/constants.dart';
 
 part 'local_video_part2.dart';
 part 'local_video_part1.dart';
@@ -178,15 +179,13 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
         body: RefreshIndicator(
           onRefresh: notifier.refresh,
           child: ListView(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).padding.bottom + 24,
-            ),
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + kSpacingXl,),
             children: [
               // 刮削进度条
               if (state.scraping)
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingXs),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -206,7 +205,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
               else if (state.scrapeTotal > 0 && !state.scraping)
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingXs),
                   child: Row(
                     children: [
                       Text(
@@ -239,7 +238,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                   height: 200,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
                     itemCount: state.recentItems.length,
                     separatorBuilder: (_, __) => const SizedBox(width: 12),
                     itemBuilder: (_, i) =>
@@ -256,7 +255,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                   height: 110,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
                     itemCount: sources.length,
                     separatorBuilder: (_, __) => const SizedBox(width: 12),
                     itemBuilder: (_, i) => _buildSourceCard(sources[i], state),
@@ -277,7 +276,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
               // 底部统计行
               if (state.items.isNotEmpty)
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  padding: const EdgeInsets.fromLTRB(kSpacingLg, kSpacingLg, kSpacingLg, kSpacingSm),
                   child: Text(
                     _buildStatsLine(state),
                     style: TextStyle(fontSize: 11, color: Colors.grey[600]),
@@ -318,7 +317,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
             height: 200,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
               itemCount: groups.length,
               separatorBuilder: (_, __) => const SizedBox(width: 12),
               itemBuilder: (_, i) {
@@ -378,7 +377,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
           height: 180,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
             itemCount: srcItems.length,
             separatorBuilder: (_, __) => const SizedBox(width: 10),
             itemBuilder: (_, i) =>
@@ -685,7 +684,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
         builder: (_, scrollController) => Column(
           children: [
             const Padding(
-              padding: EdgeInsets.all(16),
+              padding: EdgeInsets.all(kSpacingLg),
               child: Text('我的收藏',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             ),
@@ -741,7 +740,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(kSpacingMd),
                   child: TextField(
                     autofocus: true,
                     decoration: const InputDecoration(
@@ -877,7 +876,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+          padding: const EdgeInsets.fromLTRB(kSpacingMd, kSpacingSm, kSpacingMd, kSpacingXs),
           child: Text(title,
               style:
                   const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
@@ -886,7 +885,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
           height: 130,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingMd),
             itemCount: items.length,
             separatorBuilder: (_, __) => const SizedBox(width: 8),
             itemBuilder: (_, i) {
@@ -936,7 +935,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
       mainAxisSize: MainAxisSize.min,
       children: [
         const Padding(
-          padding: EdgeInsets.fromLTRB(12, 8, 12, 4),
+          padding: EdgeInsets.fromLTRB(kSpacingMd, kSpacingSm, kSpacingMd, kSpacingXs),
           child: Text('继续观看',
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
         ),
@@ -944,7 +943,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
           height: 72,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingMd),
             itemCount: recent.length,
             separatorBuilder: (_, __) => const SizedBox(width: 8),
             itemBuilder: (_, i) {
@@ -1013,7 +1012,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
     final grouped = state.grouped;
     if (grouped.isEmpty) return const SizedBox.shrink();
     return GridView.builder(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(kSpacingSm),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         childAspectRatio: 1.4,
@@ -1090,7 +1089,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
       children: [
         // 文件夹标题栏 + 返回
         Container(
-          padding: const EdgeInsets.fromLTRB(4, 4, 12, 4),
+          padding: const EdgeInsets.fromLTRB(kSpacingXs, kSpacingXs, kSpacingMd, kSpacingXs),
           child: Row(
             children: [
               IconButton(
@@ -1112,7 +1111,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
         ),
         Expanded(
           child: GridView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingSm),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
               childAspectRatio: 0.72,
@@ -1184,7 +1183,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
     return RefreshIndicator(
       onRefresh: notifier.refresh,
       child: GridView.builder(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(kSpacingSm),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 3,
           mainAxisSpacing: 8,
@@ -1270,7 +1269,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
     return RefreshIndicator(
       onRefresh: notifier.refresh,
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: kSpacingSm, vertical: kSpacingXs),
         itemCount: items.length,
         separatorBuilder: (_, __) => const Divider(height: 1),
         itemBuilder: (_, i) => _ListTileItem(
@@ -1523,7 +1522,7 @@ class _PermissionGuide extends StatelessWidget {
     final denied = permission == PermissionState.denied;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(kSpacingXxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -2055,7 +2054,7 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
+      padding: const EdgeInsets.fromLTRB(kSpacingLg, kSpacingLg, kSpacingSm, kSpacingSm),
       child: Row(
         children: [
           Expanded(

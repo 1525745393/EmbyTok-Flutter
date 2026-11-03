@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/media_item.dart';
+import '../../utils/constants.dart';
 
 /// 显示章节导航 bottom sheet
 ///
@@ -22,7 +23,7 @@ void showChapterPicker({
         mainAxisSize: MainAxisSize.min,
         children: [
           const Padding(
-            padding: EdgeInsets.all(16),
+            padding: EdgeInsets.all(kSpacingLg),
             child: Text(
               '章节导航',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),

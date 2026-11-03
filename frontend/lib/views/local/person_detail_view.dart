@@ -5,6 +5,7 @@ import '../../providers/local_video_provider.dart';
 import '../../services/tmdb_service.dart';
 import '../../services/scrape_media_store.dart';
 import 'dart:io';
+import '../../utils/constants.dart';
 
 /// 演员详情页（本地模式，基于 TMDB）
 class PersonDetailPage extends ConsumerStatefulWidget {
@@ -222,7 +223,7 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                     ),
                   )
                 : Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(kSpacingLg),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

@@ -5,6 +5,7 @@
 // 替代各处直接使用 CircularProgressIndicator 的重复代码。
 
 import 'package:flutter/material.dart';
+import '../utils/constants.dart';
 
 /// 加载状态卡片
 ///
@@ -91,7 +92,7 @@ class LoadingStateCard extends StatelessWidget {
     final subtitleText = subtitle;
     return Container(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
+        padding: const EdgeInsets.symmetric(horizontal: kSpacingXxl),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,

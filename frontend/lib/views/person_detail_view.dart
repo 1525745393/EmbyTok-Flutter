@@ -254,7 +254,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
             // 人员头像/信息区域
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(kSpacingLg),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -388,7 +388,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
             // 出演的作品列表标题
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                padding: const EdgeInsets.fromLTRB(kSpacingLg, kSpacingMd, kSpacingLg, kSpacingLg),
                 child: Text(
                   '${personWorksTitleFromCode(effectiveType)} (${_works.length})',
                   style: TextStyle(
@@ -405,7 +405,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
               SliverToBoxAdapter(
                 child: Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(32),
+                    padding: const EdgeInsets.all(kSpacingXxl),
                     child: CircularProgressIndicator(color: scheme.primary),
                   ),
                 ),
@@ -415,7 +415,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
             else if (_works.isEmpty)
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.all(32),
+                  padding: const EdgeInsets.all(kSpacingXxl),
                   child: Center(
                     child: Text(
                       '暂无作品',
@@ -439,7 +439,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                   // 分组头
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
+                      padding: const EdgeInsets.fromLTRB(kSpacingLg, kSpacingXs, kSpacingSm, kSpacingSm),
                       child: Row(
                         children: [
                           Expanded(
@@ -479,7 +479,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                   // 分组内容（展开时才渲染）
                   if (isOpen)
                     SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
                       sliver: SliverList.builder(
                         itemCount: items.length,
                         itemBuilder: (context, index) {
@@ -543,7 +543,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
             if (_isLoadingMore)
               const SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.all(16),
+                  padding: EdgeInsets.all(kSpacingLg),
                   child: Center(child: CircularProgressIndicator()),
                 ),
               ),
@@ -557,7 +557,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
 
   Widget _buildError(ColorScheme scheme) {
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(kSpacingXl),
       child: Column(
         children: [
           Icon(Icons.error_outline, color: scheme.error, size: 36),
@@ -572,7 +572,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
             style: ElevatedButton.styleFrom(
               backgroundColor: scheme.primary,
               foregroundColor: scheme.onPrimary,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingSm),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),

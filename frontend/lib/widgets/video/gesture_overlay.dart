@@ -284,7 +284,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
             child: Center(
               child: Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    const EdgeInsets.symmetric(horizontal: kSpacingXl, vertical: kSpacingMd),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(20),
@@ -410,7 +410,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
               child: Center(
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      const EdgeInsets.symmetric(horizontal: kSpacingXl, vertical: kSpacingMd),
                   decoration: BoxDecoration(
                     color: Colors.black54,
                     borderRadius: BorderRadius.circular(16),

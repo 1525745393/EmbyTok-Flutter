@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/audio_models.dart';
 import '../../providers/providers.dart';
 import '../../utils/image_cache_manager.dart';
+import '../../utils/constants.dart';
 
 // ===== 封面组件相关常量 =====
 
@@ -296,7 +297,7 @@ class ArtistSearchTile extends ConsumerWidget {
           borderRadius: BorderRadius.circular(12),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingSm),
             child: Row(
               children: [
                 ArtistAvatar(artistName: artist.name, size: 48),

@@ -16,6 +16,7 @@ import '../providers/auth_provider.dart';
 import '../providers/server_registry_provider.dart';
 import '../providers/synology_auth_provider.dart';
 import '../utils/logger.dart';
+import '../utils/constants.dart';
 
 class ServersView extends ConsumerWidget {
   const ServersView({super.key});
@@ -45,8 +46,7 @@ class ServersView extends ConsumerWidget {
       body: servers.isEmpty
           ? _buildEmpty(scheme)
           : ListView(
-              padding: EdgeInsets.fromLTRB(
-                  16, 8, 16, 24 + MediaQuery.paddingOf(context).bottom),
+              padding: EdgeInsets.fromLTRB(kSpacingLg, kSpacingSm, kSpacingLg, kSpacingXl + MediaQuery.paddingOf(context).bottom),
               children: [
                 for (final server in servers)
                   _ServerCard(

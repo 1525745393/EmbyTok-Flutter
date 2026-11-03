@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/artist_metadata_provider.dart';
 import '../../services/artist_metadata_service.dart';
+import '../../utils/constants.dart';
 
 /// 批量扫描进度对话框
 ///
@@ -245,7 +246,7 @@ class _ArtistBatchScanDialogState extends ConsumerState<ArtistBatchScanDialog> {
               borderRadius: BorderRadius.circular(8),
             ),
             child: ListView.builder(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(kSpacingSm),
               itemCount: _result!.failedArtists.length,
               itemBuilder: (context, index) {
                 return Padding(

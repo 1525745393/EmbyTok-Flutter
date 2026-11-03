@@ -2,6 +2,7 @@
 // 用于空列表、无收藏、无历史、无搜索结果等场景
 
 import 'package:flutter/material.dart';
+import '../utils/constants.dart';
 
 /// 空状态卡片
 ///
@@ -87,7 +88,7 @@ class EmptyStateCard extends StatelessWidget {
     final subtitleText = subtitle;
     return Container(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
+        padding: const EdgeInsets.symmetric(horizontal: kSpacingXxl),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,

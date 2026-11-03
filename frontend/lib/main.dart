@@ -10,6 +10,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'app.dart';
 import 'services/api_client.dart';
 import 'utils/logger.dart';
+import 'utils/constants.dart';
 
 /// 应用启动入口
 /// - 预初始化日志系统，避免首次 WARN/ERROR 日志触发惰性 I/O
@@ -84,7 +85,7 @@ Future<void> main() async {
       color: imagePlaceholderBackground,
       child: Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: EdgeInsets.all(kSpacingXl),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

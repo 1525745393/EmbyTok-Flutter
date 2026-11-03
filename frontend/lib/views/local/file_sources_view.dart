@@ -8,6 +8,7 @@ import '../../services/scrape_media_store.dart';
 import 'file_source_browse_view.dart';
 import 'file_source_edit_view.dart';
 import 'local_directory_browser_view.dart';
+import '../../utils/constants.dart';
 
 /// 文件源列表页（P0 第二批 + P0 增强）
 ///
@@ -30,7 +31,7 @@ class FileSourcesView extends ConsumerWidget {
         label: const Text('添加文件源'),
       ),
       body: ListView.separated(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(kSpacingLg),
         itemCount: sources.length,
         separatorBuilder: (_, __) => const SizedBox(height: 12),
         itemBuilder: (context, i) => _buildSourceCard(context, ref, sources[i], scheme),

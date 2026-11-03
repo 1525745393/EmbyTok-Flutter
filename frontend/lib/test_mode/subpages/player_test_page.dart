@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import '../../utils/constants.dart';
 
 class PlayerTestPage extends StatefulWidget {
   const PlayerTestPage({super.key});
@@ -49,7 +50,7 @@ class _PlayerTestPageState extends State<PlayerTestPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('播放器专项测试')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(kSpacingLg),
         children: [
           if (_controller != null && _controller!.value.isInitialized)
             AspectRatio(

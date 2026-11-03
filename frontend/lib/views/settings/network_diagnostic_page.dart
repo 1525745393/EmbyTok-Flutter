@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../../utils/logger.dart';
+import '../../utils/constants.dart';
 
 class NetworkDiagnosticPage extends StatefulWidget {
   const NetworkDiagnosticPage({super.key, this.serverUrl});
@@ -225,11 +226,11 @@ class _NetworkDiagnosticPageState extends State<NetworkDiagnosticPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('网络诊断')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(kSpacingLg),
         children: [
           if (_serverUrl != null)
             Padding(
-              padding: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.only(bottom: kSpacingLg),
               child: Text(
                 '诊断目标：$_serverUrl',
                 style: TextStyle(color: Colors.grey[600], fontSize: 13),
@@ -252,13 +253,13 @@ class _NetworkDiagnosticPageState extends State<NetworkDiagnosticPage> {
           if (_results.isEmpty && !_running)
             const Center(
               child: Padding(
-                padding: EdgeInsets.all(32),
+                padding: EdgeInsets.all(kSpacingXxl),
                 child: Text('点击"开始诊断"检测服务器连接状态',
                     style: TextStyle(color: Colors.grey)),
               ),
             ),
           ..._results.map((r) => Card(
-                margin: const EdgeInsets.only(bottom: 8),
+                margin: const EdgeInsets.only(bottom: kSpacingSm),
                 child: ListTile(
                   leading: Icon(
                     r.success ? Icons.check_circle : Icons.error,

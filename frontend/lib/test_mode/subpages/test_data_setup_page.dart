@@ -13,6 +13,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../utils/constants.dart';
 
 class TestDataSetupPage extends StatelessWidget {
   const TestDataSetupPage({super.key});
@@ -237,7 +238,7 @@ class TestDataSetupPage extends StatelessWidget {
       body: ListView(
         children: [
           const Padding(
-            padding: EdgeInsets.all(16),
+            padding: EdgeInsets.all(kSpacingLg),
             child: Text(
               '一键填充或清空测试场景所需的本地数据。\n操作后需重启对应页面或 App 生效。',
               style: TextStyle(color: Colors.grey, fontSize: 12),
@@ -383,7 +384,7 @@ class TestDataSetupPage extends StatelessWidget {
 
   Widget _sectionTitle(String title, {Color color = Colors.black87}) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.fromLTRB(kSpacingLg, kSpacingLg, kSpacingLg, kSpacingSm),
       child: Text(title,
           style: TextStyle(
               fontWeight: FontWeight.bold, color: color, fontSize: 13)),

@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/models.dart' show Library;
+import '../../utils/constants.dart';
 
 const double _kFontSizeBody = 13;
 const double _kFontSizeLarge = 15;
@@ -161,7 +162,7 @@ Widget settingsLibraryChip({
   required Color background,
 }) {
   return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    padding: const EdgeInsets.symmetric(horizontal: kSpacingSm, vertical: kSpacingXs),
     decoration: BoxDecoration(
       color: background,
       borderRadius: BorderRadius.circular(12),
