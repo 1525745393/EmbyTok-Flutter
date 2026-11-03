@@ -1,3 +1,15 @@
+## [2.402.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.402.0...v2.402.1) (2026-11-03)
+
+
+### Bug Fixes
+
+* 修复全仓UI审查P1三缺陷（PIN锁免验证关闭/编辑源丢失mediaType/MPV·VLC音轨切换失效）+ 回归测试 ([298ab5f](https://github.com/1525745393/EmbyTok-Flutter/commit/298ab5ff5174d5d7f1ca9b1cefaed06ddc826d3a))
+
+
+### Reverts
+
+* **profile:** 恢复个人中心服务器管理入口 ([19013be](https://github.com/1525745393/EmbyTok-Flutter/commit/19013bed3f1e176d4752fc52e7af46c141bbd159))
+
 # [2.402.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.102...v2.402.0) (2026-11-03)
 
 
