@@ -86,7 +86,7 @@ extension _SettingsDialogs2 on SettingsView {
             children: [
               if (hasMore)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.only(bottom: kSpacingSm),
                   child: Text(
                     '... 省略前 ${lines.length - 20} 行',
                     style: TextStyle(

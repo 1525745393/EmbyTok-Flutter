@@ -414,7 +414,7 @@ class _MovieGrid extends StatelessWidget {
         ),
         if (hasMore)
           Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.only(top: kSpacingSm),
             child: _LoadMoreHint(onTap: onLoadMore),
           ),
       ],
@@ -447,7 +447,7 @@ class _BoxSetList extends StatelessWidget {
       children: [
         ...preview.map(
           (item) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(bottom: kSpacingSm),
             child: _SelectableCard(
               selectMode: selectMode,
               selected: selectedIds.contains(item.id),
@@ -461,7 +461,7 @@ class _BoxSetList extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             onTap: () => context.push('/favorites/category/boxset'),
             child: Padding(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(kSpacingSm),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

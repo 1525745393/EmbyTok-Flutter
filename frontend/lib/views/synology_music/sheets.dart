@@ -14,7 +14,7 @@ extension _MusicSheetsMixin on _SynologyMusicViewState {
       builder: (_) => const Center(
         child: Card(
           child: Padding(
-            padding: EdgeInsets.all(16),
+            padding: EdgeInsets.all(kSpacingLg),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -67,7 +67,7 @@ extension _MusicSheetsMixin on _SynologyMusicViewState {
       builder: (_) => const Center(
         child: Card(
           child: Padding(
-            padding: EdgeInsets.all(16),
+            padding: EdgeInsets.all(kSpacingLg),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

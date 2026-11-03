@@ -7,7 +7,7 @@ part of '../synology_music_view.dart';
 extension _MusicListBuilders on _SynologyMusicViewState {
   Widget _buildLoadingIndicator(ColorScheme scheme) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: kSpacingMd),
       child: Center(
         child: SizedBox(
           width: _kLoadingIndicatorSize,
@@ -29,7 +29,7 @@ extension _MusicListBuilders on _SynologyMusicViewState {
           Icon(Icons.error_outline, size: 48, color: scheme.error),
           const SizedBox(height: kSpacingMd),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingXxl),
             child: Text(
               error,
               textAlign: TextAlign.center,
@@ -60,7 +60,7 @@ extension _MusicListBuilders on _SynologyMusicViewState {
     // batch124-F1 搜索结果嵌入外层 ListView 时必须 shrinkWrap + 禁滚动，
     // 否则垂直嵌套无界高度直接抛 unbounded height 异常
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: kSpacingXs),
       shrinkWrap: shrinkWrap,
       physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
       itemCount: songs.length + (paginated && musicState.hasMoreSongs ? 1 : 0),
@@ -166,7 +166,7 @@ extension _MusicListBuilders on _SynologyMusicViewState {
     final showLoadingCell = paginated && musicState.hasMoreAlbums;
     // batch124-F1 搜索结果嵌入外层 ListView 时必须 shrinkWrap + 禁滚动
     return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+      padding: const EdgeInsets.fromLTRB(kSpacingMd, kSpacingXs, kSpacingMd, kSpacingMd),
       shrinkWrap: shrinkWrap,
       physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -250,7 +250,7 @@ extension _MusicListBuilders on _SynologyMusicViewState {
     final showLoadingCell = paginated && musicState.hasMoreArtists;
     final grid = GridView.builder(
       controller: _artistScrollController,
-      padding: const EdgeInsets.fromLTRB(12, 8, 32, 12),
+      padding: const EdgeInsets.fromLTRB(kSpacingMd, kSpacingSm, kSpacingXxl, kSpacingMd),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: _kArtistGridCrossAxisCount,
         childAspectRatio: _kArtistGridChildAspectRatio,
@@ -363,7 +363,7 @@ extension _MusicListBuilders on _SynologyMusicViewState {
       return _buildEmpty('暂无歌单', scheme);
     }
     return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+      padding: const EdgeInsets.fromLTRB(kSpacingMd, kSpacingXs, kSpacingMd, kSpacingMd),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: _kPlaylistGridCrossAxisCount,
         childAspectRatio: _kPlaylistGridChildAspectRatio,
@@ -461,7 +461,7 @@ extension _MusicListBuilders on _SynologyMusicViewState {
       return _buildEmpty('未找到「${state.searchKeyword}」相关内容', scheme);
     }
     return ListView(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: kSpacingXs),
       children: [
         if (result.songs.isNotEmpty) ...[
           _buildSectionHeader('歌曲 (${result.songs.length})', scheme),
@@ -484,7 +484,7 @@ extension _MusicListBuilders on _SynologyMusicViewState {
 
   Widget _buildSectionHeader(String title, ColorScheme scheme) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.fromLTRB(kSpacingLg, kSpacingMd, kSpacingLg, kSpacingXs),
       child: Text(
         title,
         style: TextStyle(

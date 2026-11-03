@@ -164,7 +164,7 @@ class _SettingsListItem extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingMd),
         child: Row(
           children: [
             Expanded(

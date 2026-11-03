@@ -145,7 +145,7 @@ class _EpisodeTile extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(kSpacingMd),
         decoration: BoxDecoration(
           color: scheme.onSurface.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
@@ -198,7 +198,7 @@ class _EpisodeTile extends StatelessWidget {
                   ),
                   if (overview != null && overview.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.only(top: kSpacingXs),
                       child: Text(
                         overview,
                         maxLines: 2,

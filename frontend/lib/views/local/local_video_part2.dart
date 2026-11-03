@@ -119,7 +119,7 @@ class _FavSection extends StatelessWidget {
           height: useBackdrop ? 180 : 200,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
             itemCount: items.length,
             itemBuilder: (_, i) {
               final it = items[i];
@@ -144,7 +144,7 @@ class _FavSection extends StatelessWidget {
                 ),
                 child: Container(
                   width: useBackdrop ? 280 : 120,
-                  margin: const EdgeInsets.only(right: 12),
+                  margin: const EdgeInsets.only(right: kSpacingMd),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -243,7 +243,7 @@ class _FavActorsSection extends StatelessWidget {
           height: 120,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
             itemCount: actors.length,
             itemBuilder: (_, i) {
               final a = actors[i];
@@ -263,7 +263,7 @@ class _FavActorsSection extends StatelessWidget {
                         ),
                 child: Container(
                   width: 80,
-                  margin: const EdgeInsets.only(right: 12),
+                  margin: const EdgeInsets.only(right: kSpacingMd),
                   child: Column(
                     children: [
                       CircleAvatar(
@@ -457,7 +457,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
     return Scaffold(
       body: ListView(
         padding:
-            EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + 24),
+            EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + kSpacingXl),
         children: [
           _buildBackdrop(context, ref, sorted, meta, allFaved),
           _buildPosterBackdropRow(context, meta),
@@ -590,8 +590,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: Colors.black87,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingSm),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20)),
                     ),
@@ -731,7 +730,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
           child: Wrap(
             spacing: 6,
             runSpacing: 4,
@@ -775,7 +774,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -815,7 +814,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -851,7 +850,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
     ScrapedMedia? meta,
   ) {
     return GridView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -932,7 +931,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(kSpacingSm),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -955,7 +954,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                         ),
                       if (overview != null && overview.isNotEmpty)
                         Padding(
-                          padding: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.only(top: kSpacingXs),
                           child: Text(overview,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -981,7 +980,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
     return [
       const SizedBox(height: 24),
       const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16),
+        padding: EdgeInsets.symmetric(horizontal: kSpacingLg),
         child: Text('演职人员',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
       ),
@@ -990,7 +989,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
         height: 110,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
           itemCount: cast.length,
           separatorBuilder: (_, __) => const SizedBox(width: 12),
           itemBuilder: (_, i) {
@@ -1068,7 +1067,7 @@ class _AllEpisodesPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text('全部剧集 · ${sorted.length} 集')),
       body: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: kSpacingSm),
         itemCount: sorted.length,
         itemBuilder: (_, i) {
           final it = sorted[i];

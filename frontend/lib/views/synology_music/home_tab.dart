@@ -255,7 +255,7 @@ extension _MusicHomeTabBuilders on _SynologyMusicViewState {
             key: ValueKey('${record.mediaType}_${record.mediaId}'),
             direction: DismissDirection.endToStart,
             background: Container(
-              margin: const EdgeInsets.symmetric(vertical: 4),
+              margin: const EdgeInsets.symmetric(vertical: kSpacingXs),
               decoration: BoxDecoration(
                 color: Colors.red,
                 borderRadius: BorderRadius.circular(_kCardBorderRadius),

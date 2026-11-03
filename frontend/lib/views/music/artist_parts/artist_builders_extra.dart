@@ -11,13 +11,13 @@ extension _ArtistBuilders2 on _ArtistDetailPageState {
     ArtistMetadata metadata,
   ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: kSpacingMd),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 标题
           const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.symmetric(horizontal: kSpacingLg),
             child: Text(
               '相似歌手',
               style: TextStyle(
@@ -32,7 +32,7 @@ extension _ArtistBuilders2 on _ArtistDetailPageState {
             height: 110,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: kSpacingMd),
               itemCount: metadata.similarArtists.length,
               itemBuilder: (context, index) {
                 final artist = metadata.similarArtists[index];
@@ -44,7 +44,7 @@ extension _ArtistBuilders2 on _ArtistDetailPageState {
                   },
                   child: Container(
                     width: 80,
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    margin: const EdgeInsets.symmetric(horizontal: kSpacingXs),
                     child: Column(
                       children: [
                         // 歌手头像（圆形）
@@ -96,7 +96,7 @@ extension _ArtistBuilders2 on _ArtistDetailPageState {
       children: [
         // 标题行
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingSm),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -124,7 +124,7 @@ extension _ArtistBuilders2 on _ArtistDetailPageState {
                 ? const Center(child: Text('暂无专辑'))
                 : ListView.builder(
                     scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: kSpacingMd),
                     itemCount: albums.length,
                     itemBuilder: (context, index) {
                       final album = albums[index];
@@ -150,7 +150,7 @@ extension _ArtistBuilders2 on _ArtistDetailPageState {
       },
       child: Container(
         width: 120,
-        margin: const EdgeInsets.symmetric(horizontal: 4),
+        margin: const EdgeInsets.symmetric(horizontal: kSpacingXs),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -218,7 +218,7 @@ extension _ArtistBuilders2 on _ArtistDetailPageState {
       children: [
         // 标题
         const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingSm),
           child: Text(
             '歌曲',
             style: TextStyle(
@@ -231,7 +231,7 @@ extension _ArtistBuilders2 on _ArtistDetailPageState {
         songsAsync.when(
           data: (songs) => songs.isEmpty
               ? const Padding(
-                  padding: EdgeInsets.all(32),
+                  padding: EdgeInsets.all(kSpacingXxl),
                   child: Center(child: Text('暂无歌曲')),
                 )
               : ListView.builder(
@@ -244,11 +244,11 @@ extension _ArtistBuilders2 on _ArtistDetailPageState {
                   },
                 ),
           loading: () => const Padding(
-            padding: EdgeInsets.all(32),
+            padding: EdgeInsets.all(kSpacingXxl),
             child: Center(child: CircularProgressIndicator()),
           ),
           error: (e, s) => Padding(
-            padding: const EdgeInsets.all(32),
+            padding: const EdgeInsets.all(kSpacingXxl),
             child: Center(child: Text('加载失败: $e')),
           ),
         ),
@@ -363,7 +363,7 @@ extension _ArtistBuilders2 on _ArtistDetailPageState {
 
         return ListView.builder(
           controller: scrollController,
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: kSpacingSm),
           itemCount: albumSongs.length,
           itemBuilder: (context, index) {
             final song = albumSongs[index];

@@ -23,7 +23,7 @@ class _BoxSetTile extends ConsumerWidget {
       onTap: () => context.push('/boxset/${item.id}', extra: item),
       onLongPress: () => _showMenu(context, ref),
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(kSpacingSm),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
           color: scheme.surface.withValues(alpha: 0.7),

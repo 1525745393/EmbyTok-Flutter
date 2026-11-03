@@ -48,7 +48,7 @@ extension _SettingsDialogs3 on SettingsView {
                     const SizedBox(height: kSpacingSm),
                     ...stats.records.take(10).map((r) {
                       return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        padding: const EdgeInsets.symmetric(vertical: kSpacingXs),
                         child: Row(
                           children: [
                             Expanded(
@@ -79,7 +79,7 @@ extension _SettingsDialogs3 on SettingsView {
                     }),
                   ] else
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.symmetric(vertical: kSpacingSm),
                       child: Text(
                         '暂无观看记录。开始播放视频后这里会显示统计。',
                         style: TextStyle(
@@ -154,7 +154,7 @@ extension _SettingsDialogs3 on SettingsView {
 
   Widget _buildStatRow(ColorScheme scheme, String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: kSpacingXs),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

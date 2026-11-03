@@ -236,7 +236,7 @@ extension _SettingsBuilders2 on SettingsView {
   Widget _buildLocalModeExitButton(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
@@ -265,7 +265,7 @@ extension _SettingsBuilders2 on SettingsView {
   Widget _buildLogoutButton(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
@@ -327,7 +327,7 @@ class _MirrorPickerDialogState extends State<_MirrorPickerDialog> {
         width: double.maxFinite,
         child: _testing
             ? const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
+                padding: EdgeInsets.symmetric(vertical: kSpacingXl),
                 child: Column(
                   children: [
                     CircularProgressIndicator(),

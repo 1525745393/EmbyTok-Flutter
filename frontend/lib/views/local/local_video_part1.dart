@@ -225,7 +225,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
             _buildTabBar(isTv),
             Expanded(
               child: GridView.builder(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(kSpacingLg),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
                   childAspectRatio: 0.55,
@@ -314,7 +314,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
           _buildTabBar(isTv),
           if (_showSearch)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: kSpacingLg, vertical: kSpacingXs),
               child: TextField(
                 controller: _searchCtrl,
                 autofocus: true,
@@ -342,7 +342,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
             height: 36,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
               children: _watchFilters.map((f) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 3),
@@ -434,11 +434,11 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
       height: 44,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
         children: [
           for (var i = 0; i < labels.length; i++)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: kSpacingMd),
               child: GestureDetector(
                 onTap: () => setState(() => _tab = i),
                 child: Column(
@@ -512,7 +512,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
               height: 40,
               child: ListView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: kSpacingMd),
                 children: [
                   ChoiceChip(
                     label: const Text('全部'),
@@ -548,7 +548,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
               height: 40,
               child: ListView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: kSpacingMd),
                 children: [
                   ChoiceChip(
                     label: const Text('全部'),
@@ -557,7 +557,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
                   ),
                   const SizedBox(width: 8),
                   ...genres.map((g) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.only(right: kSpacingSm),
                         child: ChoiceChip(
                           label: Text(g),
                           selected: _genreFilter == g,
@@ -582,7 +582,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
           groups.putIfAbsent(key, () => []).add(it);
         }
         return ListView(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(kSpacingMd),
           children: groups.entries.map((e) {
             final first = e.value.first;
             final s = state.scrapedMap[first.pathHash];
@@ -627,7 +627,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
           folders.putIfAbsent(dir, () => []).add(it);
         }
         return ListView(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(kSpacingMd),
           children: folders.entries.map((e) {
             return ListTile(
               leading: const Icon(Icons.folder, color: Colors.amber),
@@ -666,7 +666,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
   /// 单列列表视图
   Widget _buildListView(List<LocalVideoItem> items, LocalVideoState state) {
     return ListView.builder(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(kSpacingSm),
       itemCount: items.length,
       itemBuilder: (_, i) {
         final it = items[i];
@@ -705,7 +705,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
   /// 3列竖版海报网格
   Widget _buildGrid(List<LocalVideoItem> items, LocalVideoState state) {
     return GridView.builder(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(kSpacingMd),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         childAspectRatio: 0.58,
@@ -724,7 +724,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
   /// 2列横版 backdrop 卡片
   Widget _buildBackdropList(List<LocalVideoItem> items, LocalVideoState state) {
     return GridView.builder(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(kSpacingMd),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         childAspectRatio: 1.4,
@@ -927,7 +927,7 @@ class _GroupListPage extends StatelessWidget {
         ),
       ),
       body: GridView.builder(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(kSpacingMd),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 3,
           childAspectRatio: 0.58,

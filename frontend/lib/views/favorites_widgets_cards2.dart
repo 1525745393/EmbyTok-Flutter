@@ -183,7 +183,7 @@ class _MoviePosterCard extends ConsumerWidget {
                             .read(favoritesProvider.notifier)
                             .toggleFavorite(item),
                         child: Container(
-                          padding: const EdgeInsets.all(4),
+                          padding: const EdgeInsets.all(kSpacingXs),
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.3),
                             shape: BoxShape.circle,
@@ -258,8 +258,7 @@ class _MoviePosterCard extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(
-                    _kMenuPadding, 16, _kMenuPadding, 8),
+                padding: const EdgeInsets.fromLTRB(_kMenuPadding, kSpacingLg, _kMenuPadding, kSpacingSm),
                 child: Row(
                   children: [
                     Expanded(

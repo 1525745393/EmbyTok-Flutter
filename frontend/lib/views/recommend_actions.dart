@@ -225,7 +225,7 @@ extension _RecommendViewActions on _RecommendViewState {
                     : _buildListEmpty(state, scheme))
                 : GridView.builder(
                     controller: _scrollController,
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(kSpacingSm),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: _gridColumns,
                       childAspectRatio: 9 / 16, // 竖屏海报
@@ -279,7 +279,7 @@ extension _RecommendViewActions on _RecommendViewState {
 
   Widget _buildSearchBar(ColorScheme scheme) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+      padding: const EdgeInsets.fromLTRB(kSpacingMd, kSpacingXs, kSpacingMd, kSpacingXs),
       child: TextField(
         controller: _searchController,
         decoration: InputDecoration(
@@ -512,10 +512,10 @@ extension _RecommendViewActions on _RecommendViewState {
 
     return Container(
       height: 44,
-      margin: const EdgeInsets.only(top: 4, bottom: 4),
+      margin: const EdgeInsets.only(top: kSpacingXs, bottom: kSpacingXs),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: kSpacingMd),
         itemCount: visibleTags.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, i) {
@@ -540,7 +540,7 @@ extension _RecommendViewActions on _RecommendViewState {
                   : scheme.outlineVariant.withValues(alpha: 0.3),
               width: 1,
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+            padding: const EdgeInsets.symmetric(horizontal: kSpacingXs),
           );
         },
       ),
@@ -549,7 +549,7 @@ extension _RecommendViewActions on _RecommendViewState {
 
   Widget _buildColdStartBanner(ColorScheme scheme) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+      margin: const EdgeInsets.fromLTRB(kSpacingMd, kSpacingSm, kSpacingMd, kSpacingXs),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: scheme.primaryContainer.withValues(alpha: 0.4),

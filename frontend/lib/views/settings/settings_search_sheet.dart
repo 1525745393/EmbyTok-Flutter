@@ -63,7 +63,7 @@ class _SettingsSearchSheetState extends State<_SettingsSearchSheet> {
           children: [
             // 搜索框
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              padding: const EdgeInsets.fromLTRB(kSpacingLg, kSpacingSm, kSpacingLg, kSpacingMd),
               child: TextField(
                 controller: _controller,
                 autofocus: true,

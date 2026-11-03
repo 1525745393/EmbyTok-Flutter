@@ -237,7 +237,7 @@ class _LicensePageState extends State<_LicensePage> {
     if (_error != null) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(kSpacingXl),
           child: Text(
             _error!,
             style: TextStyle(color: scheme.error, fontSize: _kFontSizeMedium),
@@ -257,7 +257,7 @@ class _LicensePageState extends State<_LicensePage> {
       );
     }
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: kSpacingSm),
       itemCount: list.length + 1, // +1 为顶部说明卡片
       itemBuilder: (context, index) {
         if (index == 0) return _buildHeaderCard(scheme, list.length);
@@ -270,7 +270,7 @@ class _LicensePageState extends State<_LicensePage> {
   // 顶部说明卡片：致谢与应用信息
   Widget _buildHeaderCard(ColorScheme scheme, int count) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      margin: const EdgeInsets.fromLTRB(kSpacingLg, kSpacingSm, kSpacingLg, kSpacingMd),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: widget.primaryColor.withValues(alpha: 0.08),
@@ -314,7 +314,7 @@ class _LicensePageState extends State<_LicensePage> {
   // 单个许可证条目：点击展开查看全文
   Widget _buildLicenseTile(ColorScheme scheme, _LicenseEntryView entry) {
     return ExpansionTile(
-      tilePadding: const EdgeInsets.symmetric(horizontal: 16),
+      tilePadding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
       childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       title: Text(
         entry.packageName,

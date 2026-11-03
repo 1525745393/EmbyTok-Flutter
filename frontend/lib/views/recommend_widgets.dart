@@ -140,7 +140,7 @@ class _LoadMoreIndicator extends StatelessWidget {
     if (!hasMore) {
       // 没有更多数据：分割线 + 文案，顶部对齐，不绘制卡片底色
       return Padding(
-        padding: const EdgeInsets.only(top: 12, left: 4, right: 4),
+        padding: const EdgeInsets.only(top: kSpacingMd, left: kSpacingXs, right: kSpacingXs),
         child: Row(
           children: [
             Expanded(

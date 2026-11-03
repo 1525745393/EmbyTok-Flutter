@@ -225,7 +225,7 @@ extension _SettingsRecommendRules2 on SettingsView {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Padding(
-                    padding: EdgeInsets.only(bottom: 12),
+                    padding: EdgeInsets.only(bottom: kSpacingMd),
                     child: Text(
                       '越短 = 推荐越关注最近的偏好；越长 = 老的偏好也会影响推荐。\n0 = 不衰减',
                       style: TextStyle(fontSize: _kFontSizeBody),
@@ -320,7 +320,7 @@ extension _SettingsRecommendRules2 on SettingsView {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Padding(
-                    padding: EdgeInsets.only(bottom: 12),
+                    padding: EdgeInsets.only(bottom: kSpacingMd),
                     child: Text(
                       '越长 = 越不容易看到重复内容；越短 = 推荐变化越快。',
                       style: TextStyle(fontSize: _kFontSizeBody),
@@ -415,7 +415,7 @@ extension _SettingsRecommendRules2 on SettingsView {
     final onlyUnwatched = ref.watch(followOnlyUnwatchedProvider);
     final scheme = Theme.of(context).colorScheme;
     return SwitchListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      contentPadding: const EdgeInsets.symmetric(horizontal: kSpacingLg),
       secondary: settingsHelpButton(
         helpText:
             '开启后，「关注」视频流只显示你尚未观看过的视频。\n\n· 开启 → 已看过的视频不会出现在关注视频流，方便追新\n· 关闭 → 已看过的视频也会显示\n\n「已观看」依据 Emby 服务器记录的播放状态判断。',
@@ -480,7 +480,7 @@ extension _SettingsRecommendRules2 on SettingsView {
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.only(bottom: kSpacingSm),
                 child: Text(description,
                     style: const TextStyle(fontSize: _kFontSizeBody)),
               ),
@@ -566,7 +566,7 @@ extension _SettingsRecommendRules2 on SettingsView {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Padding(
-                    padding: EdgeInsets.only(bottom: 12),
+                    padding: EdgeInsets.only(bottom: kSpacingMd),
                     child: Text(
                       '用户评分 < 阈值的 item 不再推荐（收藏项豁免）。0 = 关闭该过滤。',
                       style: TextStyle(fontSize: _kFontSizeBody),

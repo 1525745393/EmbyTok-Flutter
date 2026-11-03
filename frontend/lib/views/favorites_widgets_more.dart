@@ -384,7 +384,7 @@ class _FavoritesCategoryViewState extends ConsumerState<FavoritesCategoryView> {
 
     return GridView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(kSpacingMd),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
         childAspectRatio: aspectRatio,
