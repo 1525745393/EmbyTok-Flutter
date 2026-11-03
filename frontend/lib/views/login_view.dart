@@ -558,16 +558,14 @@ class _LoginViewState extends ConsumerState<LoginView> {
   // 原 settings_builders_extra.dart extension 成员，设置页已移除该分区，
   // 服务模式 / 服务器管理 / 账户切换 / 自签名证书在登录页统一管理。
 
+  /// 登录页服务器管理入口（形态与个人中心一致，以个人中心为设计基准：
+  /// 副标题固定为「添加、编辑、切换媒体服务器」，进入同一个服务器管理页）
   Widget _buildServerRegistryTile(BuildContext context, WidgetRef ref) {
-    final servers = ref.watch(serverRegistryProvider);
-    final active = ref.watch(activeServerProvider);
     return settingsTapTile(
       icon: Icons.dns_outlined,
       iconColor: Colors.blueGrey,
       title: '服务器管理',
-      subtitle: servers.isEmpty
-          ? '配置 Emby / 群晖等多台服务器并快速切换'
-          : '${servers.length} 台服务器 · 当前：${active?.name ?? '未激活'}',
+      subtitle: '添加、编辑、切换媒体服务器',
       onTap: () => context.push('/servers'),
       helpText:
           '管理已配置的服务器（Emby / Jellyfin / 群晖 Audio Station 等）。\n\n· 查看已添加的服务器列表与状态\n· 添加、编辑、删除服务器\n· 快速切换当前使用的服务器\n\n切换服务器后，媒体库/登录状态跟随切换。',
