@@ -31,6 +31,7 @@ import 'settings/network_diagnostic_page.dart';
 import 'settings/year_report_page.dart';
 import '../providers/service_mode_provider.dart';
 import '../providers/providers.dart';
+import '../utils/auth_actions.dart';
 import '../services/services.dart';
 import '../services/artist_metadata_service.dart' show BatchScanResult;
 import '../utils/app_preferences.dart'

@@ -12,6 +12,7 @@ import '../providers/synology_music_provider.dart';
 import '../providers/synology_playback_provider.dart';
 import 'account_switch_sheet.dart';
 import '../utils/constants.dart';
+import '../utils/auth_actions.dart';
 
 class ProfileView extends ConsumerWidget {
   const ProfileView({super.key});
@@ -293,8 +294,10 @@ class ProfileView extends ConsumerWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              ref.read(synologyAuthProvider.notifier).logout();
-              context.go('/login');
+              // 退出全部账号（群晖 + Emby）：历史实现只退群晖后 go('/login')，
+              // 若 Emby 仍登录会被路由守卫拦回首页，表现为「点了退出却还在 App 里」。
+              // 统一走 logoutAllAccounts，全部登出后守卫自动重定向 /login。
+              logoutAllAccounts(ref);
             },
             child: Text('退出',
                 style: TextStyle(color: Theme.of(context).colorScheme.error)),

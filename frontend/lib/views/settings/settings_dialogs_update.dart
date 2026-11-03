@@ -199,15 +199,11 @@ extension _SettingsDialogs3 on SettingsView {
     if (confirmed != true || !context.mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
-    // 按服务模式退出对应服务：音乐模式退群晖（先停播放再登出，避免登出后音乐续响），
-    // 视频模式退 Emby；await 确保完成后守卫才跳转，失败给出反馈。
+    // 退出全部已登录账号（群晖 + Emby）：历史实现按 serviceMode 二选一退出，
+    // 另一账号残留导致「任一登录」不跳 /login 的半退出异常。统一走 logoutAllAccounts，
+    // await 确保完成后守卫才跳转，失败给出反馈。
     try {
-      if (ref.read(serviceModeProvider) == AppServiceMode.music) {
-        await ref.read(synologyPlaybackProvider.notifier).stop();
-        await ref.read(synologyAuthProvider.notifier).logout();
-      } else {
-        await ref.read(authProvider.notifier).logout();
-      }
+      await logoutAllAccounts(ref);
       if (context.mounted) {
         messenger.showSnackBar(const SnackBar(content: Text('已退出登录')));
       }
