@@ -54,18 +54,22 @@ class VlcVideoPlayerState extends State<VlcVideoPlayer> {
   VlcPlayerController? _controller;
   bool _isDisposed = false;
 
+  /// 重建令牌：url 变化（音轨切换/换集）触发重建时递增，
+  /// `_init` 内每个 await 后校验，避免并发重建互相覆盖或泄漏旧播放器
+  int _reinitToken = 0;
+
   @override
   void initState() {
     super.initState();
     _init();
   }
 
-  Future<void> _init() async {
+  Future<void> _init({Duration? startPosition, int token = 0}) async {
     try {
       final source = VlcMediaSource(
         uri: Uri.parse(widget.url),
         httpHeaders: widget.httpHeaders ?? const {},
-        startPosition: widget.startPosition,
+        startPosition: startPosition ?? widget.startPosition,
       );
 
       final controller = VlcPlayerController(
@@ -76,13 +80,19 @@ class VlcVideoPlayerState extends State<VlcVideoPlayer> {
           '--live-caching=3000',
         ],
       );
-
+      // 重建令牌校验：url 变化（音轨切换/换集）触发的重建已接管时，
+      // 丢弃本次局部创建的 controller，避免泄漏与并发覆盖
+      if (!mounted || token != _reinitToken) {
+        controller.dispose();
+        return;
+      }
       _controller = controller;
       widget.onPlayerReady?.call(controller);
       controller.addListener(_onValueChanged);
 
       if (!widget.isCurrentPage || widget.muted) {
         await controller.pause();
+        if (!mounted || token != _reinitToken) return;
       }
       // 加载外挂字幕（本地模式 P3）
       for (final subPath in widget.externalSubtitlePaths) {
@@ -93,11 +103,30 @@ class VlcVideoPlayerState extends State<VlcVideoPlayer> {
               data: {'path': subPath, 'error': e.toString()});
         }
       }
-      if (mounted) setState(() {});
+      if (mounted && token == _reinitToken) setState(() {});
     } catch (e) {
-      AppLogger.error('VLC 初始化失败', data: {'error': e.toString()});
-      widget.onError?.call(e);
+      // 令牌失效后的 catch（如旧 controller 已被更新重建 dispose）不回调错误，
+      // 避免并发重建误报失败
+      if (token == _reinitToken && mounted) {
+        AppLogger.error('VLC 初始化失败', data: {'error': e.toString()});
+        widget.onError?.call(e);
+      }
     }
+  }
+
+  /// 播放内容变化（url 变化：音轨切换/换集/服务器地址变化）时重建播放器：
+  /// 记录当前播放位置 → 释放旧资源 → 用新 url 重新初始化 → 从原位置续播。
+  /// 音轨切换链路：VideoPlayerWidget 监听 selectedAudioStreamIndexProvider
+  /// 变化 → rebuild 传入带 AudioStreamIndex 的新 url → 此处 didUpdateWidget 重建。
+  Future<void> _reinitForNewUrl() async {
+    final token = ++_reinitToken;
+    final pos = _controller?.value.position ?? Duration.zero;
+    _controller?.removeListener(_onValueChanged);
+    _controller?.dispose();
+    _controller = null;
+    if (!mounted) return;
+    setState(() {});
+    await _init(startPosition: pos, token: token);
   }
 
   void _onValueChanged() {
@@ -152,6 +181,12 @@ class VlcVideoPlayerState extends State<VlcVideoPlayer> {
   @override
   void didUpdateWidget(covariant VlcVideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // url 变化（音轨切换/换集）：底层 libvlc 仍持有旧流，必须重建播放器，
+    // 否则音轨切换完全无效（修复前 didUpdateWidget 只处理 isCurrentPage/muted）
+    if (oldWidget.url != widget.url) {
+      _reinitForNewUrl();
+      return;
+    }
     if (widget.isCurrentPage != oldWidget.isCurrentPage) {
       if (widget.isCurrentPage) {
         _controller?.play();

@@ -177,7 +177,12 @@ class _FileSourceEditViewState extends ConsumerState<FileSourceEditView> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请输入主机地址')));
       return;
     }
-    final cfg = <String, String>{};
+    // P1 修复：编辑时以原 config 为底拷贝，保留 mediaType 等非连接字段。
+    // copyWith(config:) 是整体替换而非浅合并，若只重建连接字段，
+    // 会把「修改媒体类型」写入的 mediaType 静默清空（剧集被当电影平铺）。
+    final cfg = <String, String>{
+      if (widget.existing != null) ...widget.existing!.config,
+    };
     if (_type == FileSourceType.webdav) {
       cfg['url'] = _url.text.trim();
     } else {

@@ -747,6 +747,14 @@ class SettingsView extends ConsumerWidget {
           if (currentPin.isNotEmpty)
             TextButton(
               onPressed: () {
+                // P1 修复：关闭锁必须先输入当前 PIN 并校验通过（与「验证」按钮一致），
+                // 防止任何能进入设置页的人无需当前 PIN 即可关闭守卫
+                if (controller.text != currentPin) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('PIN 不正确')),
+                  );
+                  return;
+                }
                 ref.read(pinLockProvider.notifier).setPin('');
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(

@@ -94,6 +94,10 @@ class MpvVideoPlayerState extends State<MpvVideoPlayer> {
   StreamSubscription<Duration>? _positionSub;
   StreamSubscription<bool>? _completeSub;
 
+  /// 重建令牌：url 变化（音轨切换/换集）触发重建时递增，
+  /// `_init` 内每个 await 后校验，避免并发重建互相覆盖或泄漏旧播放器
+  int _reinitToken = 0;
+
   @override
   void initState() {
     super.initState();
@@ -153,41 +157,52 @@ class MpvVideoPlayerState extends State<MpvVideoPlayer> {
     }
   }
 
-  Future<void> _init() async {
+  Future<void> _init({Duration? startPosition, int token = 0}) async {
     try {
       // 创建 MPV 播放器，应用用户配置的缓冲大小
       // 字幕使用 media_kit 默认的 Flutter Widget 渲染；
       // 若启用 libass=true，Android 必须额外配置 libassAndroidFont 字体文件，否则字幕崩溃
-      _player = Player(
+      final player = Player(
         configuration: PlayerConfiguration(
           bufferSize: widget.cacheSizeMb * 1024 * 1024,
           logLevel: MPVLogLevel.warn,
           title: 'EmbyTok',
         ),
       );
-      _controller = VideoController(_player!);
+      final controller = VideoController(player);
 
       // 打开视频流
-      await _player!.open(
+      await player.open(
         Media(
           widget.url,
           httpHeaders: widget.httpHeaders,
         ),
         play: widget.autoPlay,
       );
+      // 重建令牌校验：url 变化（音轨切换/换集）触发的重建已接管时，
+      // 丢弃本次局部创建的播放器，避免泄漏与并发覆盖
+      if (!mounted || token != _reinitToken) {
+        player.dispose();
+        return;
+      }
+      _player = player;
+      _controller = controller;
 
-      // 设置起始位置
-      if (widget.startPosition > Duration.zero) {
-        await _player!.seek(widget.startPosition);
+      // 设置起始位置（重建时 seek 回切换前位置）
+      final start = startPosition ?? widget.startPosition;
+      if (start > Duration.zero) {
+        await player.seek(start);
+        if (!mounted || token != _reinitToken) return;
       }
 
       // 静音（media_kit 音量范围 0~100，见 toMpvVolume）
-      await _player!.setVolume(widget.muted ? 0.0 : 100.0);
+      await player.setVolume(widget.muted ? 0.0 : 100.0);
+      if (!mounted || token != _reinitToken) return;
 
       // 加载外挂字幕（本地模式 P3）：media_kit 用 setSubtitleTrack(uri) 加载
       for (final subPath in widget.externalSubtitlePaths) {
         try {
-          await _player!.setSubtitleTrack(SubtitleTrack.uri(subPath));
+          await player.setSubtitleTrack(SubtitleTrack.uri(subPath));
           // 只加载第一个外挂字幕，避免覆盖前一个
           break;
         } catch (e) {
@@ -195,9 +210,10 @@ class MpvVideoPlayerState extends State<MpvVideoPlayer> {
               data: {'path': subPath, 'error': e.toString()});
         }
       }
+      if (!mounted || token != _reinitToken) return;
 
       // 监听播放结束
-      _completeSub = _player!.stream.completed.listen((completed) {
+      _completeSub = player.stream.completed.listen((completed) {
         if (completed && mounted) {
           widget.onPlaybackEnded?.call();
         }
@@ -205,7 +221,7 @@ class MpvVideoPlayerState extends State<MpvVideoPlayer> {
 
       // 监听位置变化（每 1 秒回调一次，保证进度条流畅）
       Duration lastCallback = Duration.zero;
-      _positionSub = _player!.stream.position.listen((pos) {
+      _positionSub = player.stream.position.listen((pos) {
         if (pos - lastCallback > const Duration(seconds: 1)) {
           lastCallback = pos;
           widget.onPositionChanged?.call(pos);
@@ -214,21 +230,50 @@ class MpvVideoPlayerState extends State<MpvVideoPlayer> {
 
       if (mounted) {
         setState(() => _initialized = true);
-        widget.onPlayerReady?.call(_player!);
+        widget.onPlayerReady?.call(player);
       }
       AppLogger.info('MPV 播放器初始化成功', data: {'url': widget.url});
     } catch (e) {
-      AppLogger.error('MPV 播放器初始化失败', error: e);
-      if (mounted) {
+      // 令牌失效后的 catch（如旧播放器已被更新重建 dispose）不触发错误 UI，
+      // 避免并发重建误报失败
+      if (token == _reinitToken && mounted) {
+        AppLogger.error('MPV 播放器初始化失败', error: e);
         setState(() => _hasError = true);
         widget.onError?.call(e.toString());
       }
     }
   }
 
+  /// 播放内容变化（url 变化：音轨切换/换集/服务器地址变化）时重建播放器：
+  /// 记录当前播放位置 → 释放旧资源 → 用新 url 重新初始化 → seek 回原位置。
+  /// 音轨切换链路：VideoPlayerWidget 监听 selectedAudioStreamIndexProvider
+  /// 变化 → rebuild 传入带 AudioStreamIndex 的新 url → 此处 didUpdateWidget 重建。
+  Future<void> _reinitForNewUrl() async {
+    final token = ++_reinitToken;
+    final pos = _player?.state.position ?? Duration.zero;
+    _positionSub?.cancel();
+    _completeSub?.cancel();
+    _positionSub = null;
+    _completeSub = null;
+    _player?.dispose();
+    _player = null;
+    _controller = null;
+    _initialized = false;
+    _hasError = false;
+    if (!mounted) return;
+    setState(() {});
+    await _init(startPosition: pos, token: token);
+  }
+
   @override
   void didUpdateWidget(MpvVideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // url 变化（音轨切换/换集）：底层 libmpv 仍持有旧流，必须重建播放器，
+    // 否则音轨切换完全无效（修复前 didUpdateWidget 只处理 isCurrentPage/muted）
+    if (oldWidget.url != widget.url) {
+      _reinitForNewUrl();
+      return;
+    }
     if (_player == null) return;
     // PageView 滑动：非当前页暂停+静音，当前页恢复
     if (oldWidget.isCurrentPage != widget.isCurrentPage) {
