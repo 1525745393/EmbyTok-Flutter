@@ -367,7 +367,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
                         tooltip: _passwordVisible ? '隐藏密码' : '显示密码',
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    // 字段间距与地址/用户名等字段统一为 16
+                    const SizedBox(height: 16),
                   ],
 
                   // 群晖两步验证码（开启后显示）
@@ -383,7 +384,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                       onFieldSubmitted: (_) => _submit(),
                       onChanged: (_) => _clearError(),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                   ],
 
                   // 记住密码 + HTTP 安全提示
@@ -696,7 +697,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
     final servers = ref.read(serverRegistryProvider);
     final activeId = ref.read(activeServerIdProvider);
 
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       builder: (sheetCtx) => SafeArea(
         child: Column(
@@ -1728,7 +1729,7 @@ Future<bool> _loadAllowSelfSignedCertificate() async {
 /// 的旧 future 不刷新，UI 一直显示"已禁用"直到重启，与实际状态不符。
 /// 修复：initState 读一次并缓存到本地 state；开启走二次确认，写入后本地覆盖显示。
 class _SelfSignedCertificateTile extends StatefulWidget {
-  const _SelfSignedCertificateTile({super.key});
+  const _SelfSignedCertificateTile();
 
   @override
   State<_SelfSignedCertificateTile> createState() =>
