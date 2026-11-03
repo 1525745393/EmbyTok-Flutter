@@ -447,46 +447,16 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
                   const SizedBox(height: 24),
 
-                  // 登录按钮
-                  if (_serverType == ServerType.local) ...[
-                    // 本地媒体库模式：直接进入，无需表单
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () => _enterLocalMode(context, ref),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: scheme.primary,
-                          foregroundColor: scheme.onPrimary,
-                          padding: const EdgeInsets.symmetric(vertical: kSpacingLg),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          textStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        child: const Text('进入本地媒体库'),
-                      ),
-                    ),
-                  ] else ...[
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: (isLoading || _isSubmitting) ? null : _submit,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: scheme.primary,
-                          foregroundColor: scheme.onPrimary,
-                          padding: const EdgeInsets.symmetric(vertical: kSpacingLg),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          textStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        child: (isLoading || _isSubmitting)
+                  // 主操作按钮：本地媒体库（进入）/ 服务器登录（登录，加载中转圈）
+                  // 单一 builder 复用样式，避免两套重复代码（见 _buildPrimaryButton）
+                  _buildPrimaryButton(
+                    context,
+                    onPressed: _serverType == ServerType.local
+                        ? () => _enterLocalMode(context, ref)
+                        : ((isLoading || _isSubmitting) ? null : _submit),
+                    child: _serverType == ServerType.local
+                        ? const Text('进入本地媒体库')
+                        : (isLoading || _isSubmitting)
                             ? SizedBox(
                                 height: 20,
                                 width: 20,
@@ -497,9 +467,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                                 ),
                               )
                             : const Text('登录'),
-                      ),
-                    ),
-                  ],
+                  ),
                   const SizedBox(height: 12),
                   // === 服务器与账户区块（batch126：原设置页「服务器与账户」分区整体迁移） ===
                   // 服务模式 / 服务器管理 / 当前数据源 / 账户快速切换 / 自签名证书
@@ -538,6 +506,35 @@ class _LoginViewState extends ConsumerState<LoginView> {
     ref.read(authProvider.notifier).enterLocalMode();
     AppLogger.info('进入本地媒体库模式');
     context.go('/');
+  }
+
+  /// 主操作按钮：本地媒体库「进入」与服务器「登录」共用一套样式，
+  /// 仅按场景区分 onPressed/child（本地无加载态，服务器登录有转圈）
+  Widget _buildPrimaryButton(
+    BuildContext context, {
+    required VoidCallback? onPressed,
+    required Widget child,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: scheme.primary,
+          foregroundColor: scheme.onPrimary,
+          padding: const EdgeInsets.symmetric(vertical: kSpacingLg),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          textStyle: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        child: child,
+      ),
+    );
   }
 
   /// 判断是否为 HTTP（非 HTTPS）以显示安全提示
