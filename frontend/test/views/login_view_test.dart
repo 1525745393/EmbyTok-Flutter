@@ -11,7 +11,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:go_router/go_router.dart';
+
 import 'package:embytok_flutter/providers/providers.dart';
+import 'package:embytok_flutter/providers/service_mode_provider.dart';
+import 'package:embytok_flutter/services/services.dart';
 import 'package:embytok_flutter/views/login_view.dart';
 
 import '../mocks/mock_secure_storage.dart';
@@ -39,7 +43,7 @@ void main() {
 
     expect(find.text('Emby 视频'), findsOneWidget);
     expect(find.text('群晖音乐'), findsOneWidget);
-    expect(find.text('Emby / Plex 视频流'), findsOneWidget);
+    expect(find.text('Emby 视频流'), findsOneWidget);
     expect(find.text('Audio Station 音乐库'), findsOneWidget);
     // 默认选中 Emby：表单 label 为 Emby 服务器地址
     expect(find.text('Emby 服务器地址'), findsOneWidget);
@@ -156,4 +160,78 @@ void main() {
     expect(tester.getRect(field).bottom, lessThanOrEqualTo(keyboardTop + 1),
         reason: 'Scaffold 默认 resizeToAvoidBottomInset=true，输入框不应被键盘遮挡');
   });
+
+  // ==================== F2 回归：群晖登录成功后联动音乐服务模式 ====================
+  testWidgets('群晖登录成功后联动切换音乐服务模式', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final container = ProviderContainer(
+      overrides: [
+        secureStorageProvider.overrideWithValue(MockFlutterSecureStorage()),
+        synologyAudioApiProvider
+            .overrideWith((ref) => _FakeSynoLoginAudioApi()),
+        serviceModeProvider.overrideWith((ref) => ServiceModeNotifier()),
+      ],
+    );
+    addTearDown(container.dispose);
+    // 前置：视频模式（验证群晖登录会联动切到 music）
+    await container
+        .read(serviceModeProvider.notifier)
+        .setMode(AppServiceMode.video);
+
+    final router = GoRouter(
+      initialLocation: '/login',
+      routes: [
+        GoRoute(path: '/login', builder: (_, __) => const LoginView()),
+        GoRoute(
+            path: '/', builder: (_, __) => const Scaffold(body: Text('首页'))),
+      ],
+    );
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(
+          // M2 涟漪规避 Flutter 3.47.2 shader 已知缺陷（与 buildLogin 一致）
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 选群晖卡片并填写表单
+    await tester.tap(find.text('群晖音乐'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byType(TextFormField).at(0), 'http://nas.test:5000');
+    await tester.enterText(find.byType(TextFormField).at(1), 'tester');
+    await tester.enterText(find.byType(TextFormField).at(2), 'pass');
+    await tester.pump();
+
+    // 通过密码框键盘 done 触发提交（登录按钮可能被连接测试指示器/表单
+    // 布局遮挡；且避免 tap 按钮引起地址框失焦叠加连接测试状态机干扰）
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // 断言：服务模式联动为 music，且已回到首页
+    expect(container.read(serviceModeProvider), AppServiceMode.music,
+        reason: '群晖登录成功应联动切换音乐服务模式（与退出回退 video 对称）');
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('首页'), findsOneWidget,
+        reason: '登录成功应重定向回首页');
+  });
+}
+
+/// 群晖 Audio API 假实现：login 直接返回固定 sid，避免测试环境走真实网络
+class _FakeSynoLoginAudioApi extends SynologyAudioApi {
+  @override
+  Future<String> login({
+    required String serverUrl,
+    required String account,
+    required String password,
+    String? otpCode,
+    String? deviceId,
+  }) async {
+    return 'fake-sid';
+  }
 }

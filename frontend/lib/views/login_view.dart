@@ -99,7 +99,9 @@ class _LoginViewState extends ConsumerState<LoginView> {
   final _serverFocusNode = FocusNode();
   final _usernameFocusNode = FocusNode();
   final _passwordFocusNode = FocusNode();
-  final _secureStorage = const FlutterSecureStorage();
+  // 安全存储经 secureStorageProvider 注入（batch126 views 直连收口）：
+  // 便于测试替换 mock、统一凭据读写路径
+  late final FlutterSecureStorage _secureStorage;
 
   bool _passwordVisible = false;
   bool _rememberMe = false;
@@ -124,6 +126,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
   @override
   void initState() {
     super.initState();
+    _secureStorage = ref.read(secureStorageProvider);
     _loadSavedData();
     // 服务器地址失焦时自动测试连接
     _serverFocusNode.addListener(_onServerFocusChanged);
@@ -375,7 +378,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                         onChanged: (v) =>
                             setState(() => _rememberMe = v ?? false),
                         activeColor: scheme.primary,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        // F1：去掉 shrinkWrap，保证 Checkbox 触控热区 ≥44px
                       ),
                       const Text('记住密码'),
                       const Spacer(),
@@ -598,6 +601,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
             },
             style: const ButtonStyle(
               visualDensity: VisualDensity.compact,
+              // F1：保证触控高度 ≥44px（compact 默认高度约 36px）
+              minimumSize: WidgetStatePropertyAll(Size(0, 44)),
               // 与设置页 _kFontSizeBody(13) 保持一致
               textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 13)),
             ),
@@ -884,8 +889,9 @@ Future<void> _loadSavedData() async {
         await _secureStorage.write(key: _kSecureKeyUsername, value: username);
         await _secureStorage.write(key: _kSecureKeyPassword, value: password);
       } else {
+        final f1 = _secureStorage.delete(key: _kSecureKeyServer);
         await Future.wait([
-          _secureStorage.delete(key: _kSecureKeyServer),
+          f1,
           _secureStorage.delete(key: _kSecureKeyUsername),
           _secureStorage.delete(key: _kSecureKeyPassword),
         ]);
@@ -1013,13 +1019,16 @@ Future<void> _loadSavedData() async {
         );
       }
       if (mounted) {
-        // 群晖登录成功：音乐模式下首页即音乐库（无返回按钮），视频模式下进 /music
+        // 群晖登录成功：联动切换音乐服务模式（与退出登录回退 video 对称），
+        // 避免 video 模式下登录群晖后首页仍是视频流、音乐账号与模式割裂
         if (_serverType == ServerType.synology) {
-          final mode = ref.read(serviceModeProvider);
-          context.go(mode == AppServiceMode.music ? '/' : '/music');
-        } else {
-          context.go('/');
+          final modeNotifier = ref.read(serviceModeProvider.notifier);
+          if (ref.read(serviceModeProvider) != AppServiceMode.music) {
+            await modeNotifier.setMode(AppServiceMode.music);
+          }
         }
+        if (!mounted) return;
+        context.go('/');
       }
     } catch (e) {
       AppLogger.warn('登录失败', data: {
@@ -1134,7 +1143,9 @@ Widget _buildServerTypeSelector(ColorScheme scheme) {
                 scheme: scheme,
                 type: ServerType.emby,
                 title: 'Emby 视频',
-                subtitle: 'Emby / Plex 视频流',
+                // F3：副标题去掉 Plex 承诺——登录页无 Plex 新建入口，
+                // Plex 服务器经「服务器管理」添加后从历史/注册表使用
+                subtitle: 'Emby 视频流',
                 icon: Icons.movie_outlined,
               ),
             ),
@@ -1377,18 +1388,16 @@ Widget _buildServerTypeSelector(ColorScheme scheme) {
                         ),
                       ),
                       const SizedBox(width: 4),
-                      // 删除按钮
-                      SizedBox(
-                        width: 32,
-                        height: 32,
-                        child: IconButton(
-                          icon: Icon(Icons.close,
-                              size: 16, color: scheme.onSurfaceVariant),
-                          padding: EdgeInsets.zero,
-                          onPressed: () =>
-                              _showDeleteConfirmDialog(index, scheme),
-                          tooltip: '关闭',
-                        ),
+                      // 删除按钮（F1：触控热区 ≥44px，视觉保持紧凑）
+                      IconButton(
+                        icon: Icon(Icons.close,
+                            size: 16, color: scheme.onSurfaceVariant),
+                        padding: EdgeInsets.zero,
+                        constraints:
+                            const BoxConstraints(minWidth: 44, minHeight: 44),
+                        onPressed: () =>
+                            _showDeleteConfirmDialog(index, scheme),
+                        tooltip: '关闭',
                       ),
                     ],
                   ),
