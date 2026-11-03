@@ -71,6 +71,7 @@ class AudioTrackSelector extends ConsumerWidget {
                       icon: Icon(Icons.close,
                           color: scheme.onSurfaceVariant.withValues(alpha: 0.7)),
                       onPressed: onClose,
+                      tooltip: '关闭',
                     ),
                 ],
               ),

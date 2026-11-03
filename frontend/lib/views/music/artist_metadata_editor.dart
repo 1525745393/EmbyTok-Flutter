@@ -216,6 +216,7 @@ class _ArtistMetadataEditorState extends ConsumerState<ArtistMetadataEditor> {
                     IconButton(
                       icon: const Icon(Icons.close),
                       onPressed: () => Navigator.of(context).pop(),
+                      tooltip: '关闭',
                     ),
                   ],
                 ),

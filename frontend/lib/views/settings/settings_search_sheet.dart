@@ -77,6 +77,7 @@ class _SettingsSearchSheetState extends State<_SettingsSearchSheet> {
                             _controller.clear();
                             setState(() => _query = '');
                           },
+                          tooltip: '清除搜索',
                         )
                       : null,
                   border: OutlineInputBorder(

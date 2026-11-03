@@ -90,10 +90,12 @@ class _PlayerTestPageState extends State<PlayerTestPage> {
               IconButton(
                 icon: const Icon(Icons.play_arrow),
                 onPressed: () => _controller?.play(),
+                tooltip: '播放',
               ),
               IconButton(
                 icon: const Icon(Icons.pause),
                 onPressed: () => _controller?.pause(),
+                tooltip: '暂停',
               ),
             ],
           ),

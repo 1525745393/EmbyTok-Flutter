@@ -218,6 +218,7 @@ class _SearchViewState extends ConsumerState<SearchView>
                   onPressed: () {
                     ref.read(pageNavigationNotifierProvider).backToFeed();
                   },
+                  tooltip: '返回',
                 ),
                 const SizedBox(width: 4),
                 Icon(Icons.search, color: scheme.primary, size: 24),
@@ -257,6 +258,7 @@ class _SearchViewState extends ConsumerState<SearchView>
                             _controller.clear();
                             _onQueryChanged('');
                           },
+                          tooltip: '清除搜索',
                         )
                       : IconButton(
                           icon: Icon(Icons.mic,
@@ -264,6 +266,7 @@ class _SearchViewState extends ConsumerState<SearchView>
                                   ? scheme.primary
                                   : scheme.onSurface.withValues(alpha: 0.6)),
                           onPressed: _toggleVoiceSearch,
+                          tooltip: _isListening ? '停止语音搜索' : '语音搜索',
                         ),
                   filled: true,
                   fillColor: scheme.onSurface.withValues(alpha: 0.05),

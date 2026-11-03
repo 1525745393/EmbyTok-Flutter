@@ -39,6 +39,7 @@ class YearReportPage extends ConsumerWidget {
               '共 $totalPlays 次播放，活跃 $uniqueDays 天！',
               subject: 'EmbyTok 年度报告',
             )),
+            tooltip: '分享',
           ),
         ],
       ),

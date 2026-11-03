@@ -31,6 +31,7 @@ extension _RecommendViewActions on _RecommendViewState {
               context.go('/');
             }
           },
+          tooltip: '返回',
         ),
         actions: [
           // P2-2：网格 2/3 列切换（持久化到 SharedPreferences，对齐演员页）

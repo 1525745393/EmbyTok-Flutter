@@ -422,6 +422,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
       leading: IconButton(
         icon: const Icon(Icons.arrow_back),
         onPressed: () => context.pop(),
+        tooltip: '返回',
       ),
       actions: [
         // 折叠状态下显示小头像
@@ -982,6 +983,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
                   IconButton(
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.pop(context),
+                    tooltip: '关闭',
                   ),
                 ],
               ),
@@ -1110,6 +1112,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
                   IconButton(
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.pop(context),
+                    tooltip: '关闭',
                   ),
                 ],
               ),

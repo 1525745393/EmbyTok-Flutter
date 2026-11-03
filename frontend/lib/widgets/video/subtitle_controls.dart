@@ -51,6 +51,7 @@ class SubtitleControls extends ConsumerWidget {
                   IconButton(
                     icon: Icon(Icons.close, color: scheme.onSurface),
                     onPressed: onClose,
+                    tooltip: '关闭',
                   ),
               ],
             ),

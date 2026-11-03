@@ -1096,6 +1096,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
               IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () => setState(() => _browsingFolder = null),
+                tooltip: '返回',
               ),
               Expanded(
                 child: Text(folder,

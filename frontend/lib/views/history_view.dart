@@ -77,6 +77,7 @@ class _HistoryViewState extends ConsumerState<HistoryView>
               // 使用 Provider 管理返回，避免 Navigator.pop 导致根路由被弹出
               ref.read(pageNavigationNotifierProvider).backToFeed();
             },
+            tooltip: '返回',
           ),
           const SizedBox(width: 4),
           Icon(Icons.history, color: scheme.primary, size: 24),

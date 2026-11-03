@@ -59,6 +59,7 @@ class _ApiMockPanelState extends State<ApiMockPanel> {
                             trailing: IconButton(
                               icon: const Icon(Icons.delete_outline, size: 20),
                               onPressed: () => MockRules.instance.removeAt(i),
+                              tooltip: '删除',
                             ),
                           );
                         },

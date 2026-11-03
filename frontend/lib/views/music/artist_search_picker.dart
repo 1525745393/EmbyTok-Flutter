@@ -216,6 +216,7 @@ class _ArtistSearchPickerState extends ConsumerState<ArtistSearchPicker> {
                     IconButton(
                       icon: const Icon(Icons.close),
                       onPressed: () => Navigator.of(context).pop(),
+                      tooltip: '关闭',
                     ),
                   ],
                 ),

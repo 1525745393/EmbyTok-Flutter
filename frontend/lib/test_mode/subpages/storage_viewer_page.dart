@@ -52,6 +52,7 @@ class _StorageViewerPageState extends State<StorageViewerPage> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _load,
+            tooltip: '刷新',
           ),
         ],
       ),
@@ -74,6 +75,7 @@ class _StorageViewerPageState extends State<StorageViewerPage> {
                   trailing: IconButton(
                     icon: const Icon(Icons.delete_outline, size: 20),
                     onPressed: () => _deleteKey(key),
+                    tooltip: '删除',
                   ),
                   children: [
                     Padding(

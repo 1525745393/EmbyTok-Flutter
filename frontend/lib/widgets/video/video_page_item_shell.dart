@@ -275,6 +275,7 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
             child: IconButton(
               icon: Icon(Icons.arrow_back, color: scheme.onSurface),
               onPressed: widget.onBack,
+              tooltip: '返回',
             ),
           ),
           // 当前位置指示器

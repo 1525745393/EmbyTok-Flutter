@@ -197,6 +197,7 @@ class _EpisodeListPanelState extends ConsumerState<EpisodeListPanel> {
                     IconButton(
                       icon: const Icon(Icons.close, color: Colors.white),
                       onPressed: () => Navigator.of(context).pop(),
+                      tooltip: '关闭',
                     ),
                   ],
                 ),

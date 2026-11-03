@@ -84,6 +84,7 @@ class SubtitleSelector extends ConsumerWidget {
                           color:
                               scheme.onSurfaceVariant.withValues(alpha: 0.7)),
                       onPressed: onClose,
+                      tooltip: '关闭',
                     ),
                 ],
               ),
@@ -481,6 +482,7 @@ class SubtitleSelector extends ConsumerWidget {
                     color: scheme.error.withValues(alpha: 0.7), size: 20),
                 onPressed: onDelete,
                 padding: const EdgeInsets.all(8),
+                tooltip: '删除',
                 constraints: const BoxConstraints(),
               ),
             // 默认标记（服务器字幕）

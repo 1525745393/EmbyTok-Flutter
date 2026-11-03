@@ -345,6 +345,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                             _passwordVisible = !_passwordVisible;
                           });
                         },
+                        tooltip: _passwordVisible ? '隐藏密码' : '显示密码',
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -1386,6 +1387,7 @@ Widget _buildServerTypeSelector(ColorScheme scheme) {
                           padding: EdgeInsets.zero,
                           onPressed: () =>
                               _showDeleteConfirmDialog(index, scheme),
+                          tooltip: '关闭',
                         ),
                       ),
                     ],

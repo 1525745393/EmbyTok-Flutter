@@ -197,6 +197,7 @@ class _ActorsViewState extends ConsumerState<ActorsView>
                                 ref.read(actorsProvider.notifier).clearSearch();
                                 _saveSearchQuery('');
                               },
+                              tooltip: '清除搜索',
                             )
                           : null,
                       filled: true,

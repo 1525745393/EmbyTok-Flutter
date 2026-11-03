@@ -470,6 +470,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                                 _groupOpen[typeCode] = !isOpen;
                               });
                             },
+                            tooltip: isOpen ? '收起' : '展开',
                           ),
                         ],
                       ),
