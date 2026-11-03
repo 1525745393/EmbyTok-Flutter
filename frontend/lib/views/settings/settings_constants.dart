@@ -29,30 +29,6 @@ const double _kFontSizeXXLarge = 18;
 /// 最大字体（捐赠/关于页面大标题）
 const double _kFontSizeXXXLarge = 20;
 
-/// 超小间距
-const double _kSpacingXSmall = 4;
-
-/// 小间距
-const double _kSpacingSmall = 6;
-
-/// 中间距
-const double _kSpacingMedium = 8;
-
-/// 大间距
-const double _kSpacingLarge = 10;
-
-/// 超大间距
-const double _kSpacingXLarge = 12;
-
-/// 特大间距
-const double _kSpacingXXLarge = 16;
-
-/// 巨大间距
-const double _kSpacingXXXLarge = 20;
-
-/// 最大间距（页面底部留白）
-const double _kSpacingXXXXLarge = 32;
-
 // ===== 分组标题和卡片容器常量 =====
 
 /// 分组标题图标容器尺寸

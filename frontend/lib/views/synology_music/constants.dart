@@ -21,27 +21,6 @@ const double _kFontSizeMedium = 14;
 /// 大字体（页面标题、歌手名）
 const double _kFontSizeLarge = 16;
 
-/// 超小间距
-const double _kSpacingXSmall = 2;
-
-/// 中间距
-const double _kSpacingMedium = 6;
-
-/// 大间距
-const double _kSpacingLarge = 8;
-
-/// 超大间距
-const double _kSpacingXLarge = 10;
-
-/// 特大间距
-const double _kSpacingXXLarge = 12;
-
-/// 巨大间距
-const double _kSpacingXXXLarge = 16;
-
-/// 最大间距
-const double _kSpacingXXXXLarge = 20;
-
 // ===== 快捷入口颜色常量（避免硬编码，支持主题扩展）=====
 
 /// 快捷入口：歌曲 - 蓝色

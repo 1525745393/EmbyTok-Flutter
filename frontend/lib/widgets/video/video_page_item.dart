@@ -104,14 +104,6 @@ const double _kFontSizeLarge = 18;
 
 // ===== 间距与内边距常量 =====
 
-/// 小间距
-const double _kSpacingSmall = 6;
-
-/// 中间距
-const double _kSpacingMedium = 8;
-
-/// 大间距
-const double _kSpacingLarge = 12;
 
 /// 标签内边距（水平/垂直）
 const double _kTagPaddingHorizontal = 10;
@@ -1289,7 +1281,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                   bottomSafeArea: bottomPadding + 80 + 16,
                   rightSafeArea: 16,
                   buttons: Container(
-                    padding: const EdgeInsets.all(_kSpacingLarge),
+                    padding: const EdgeInsets.all(kSpacingMd),
                     decoration: BoxDecoration(
                       color: scheme.surface.withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(16),

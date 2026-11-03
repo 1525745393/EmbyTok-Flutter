@@ -27,7 +27,7 @@ extension _MusicListBuilders on _SynologyMusicViewState {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.error_outline, size: 48, color: scheme.error),
-          const SizedBox(height: _kSpacingXXLarge),
+          const SizedBox(height: kSpacingMd),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32),
             child: Text(
@@ -37,7 +37,7 @@ extension _MusicListBuilders on _SynologyMusicViewState {
                   color: scheme.onSurfaceVariant, fontSize: _kFontSizeBody),
             ),
           ),
-          const SizedBox(height: _kSpacingXXXLarge),
+          const SizedBox(height: kSpacingLg),
           // 复用首页刷新链路：首页 Tab 的 loadTab(home) 为空操作，
           // 由 _refreshCurrentTab 路由到 loadHomeData(force:true)
           OutlinedButton.icon(
@@ -217,7 +217,7 @@ extension _MusicListBuilders on _SynologyMusicViewState {
                   ),
                 ),
               ),
-              const SizedBox(height: _kSpacingLarge),
+              const SizedBox(height: kSpacingSm),
               Text(
                 album.name,
                 maxLines: 1,
@@ -227,7 +227,7 @@ extension _MusicListBuilders on _SynologyMusicViewState {
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurface),
               ),
-              const SizedBox(height: _kSpacingXSmall),
+              const SizedBox(height: kSpacingXs),
               Text(
                 album.artistDisplay.isEmpty ? '未知歌手' : album.artistDisplay,
                 maxLines: 1,
@@ -279,7 +279,7 @@ extension _MusicListBuilders on _SynologyMusicViewState {
           child: Column(
             children: [
               ArtistAvatar(artistName: artist.name, size: 72),
-              const SizedBox(height: _kSpacingLarge),
+              const SizedBox(height: kSpacingSm),
               Text(
                 artist.name,
                 maxLines: 1,
@@ -432,7 +432,7 @@ extension _MusicListBuilders on _SynologyMusicViewState {
                   ),
                 ),
               ),
-              const SizedBox(height: _kSpacingLarge),
+              const SizedBox(height: kSpacingSm),
               Text(
                 playlist.name,
                 maxLines: 1,
@@ -523,7 +523,7 @@ extension _MusicListBuilders on _SynologyMusicViewState {
               children: [
                 Icon(Icons.music_off_outlined,
                     size: 48, color: scheme.onSurfaceVariant),
-                const SizedBox(height: _kSpacingXXLarge),
+                const SizedBox(height: kSpacingMd),
                 Text(
                   text,
                   style: TextStyle(

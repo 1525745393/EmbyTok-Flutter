@@ -44,6 +44,7 @@ import '../widgets/library_selector.dart';
 import 'music/artist_batch_scan_dialog.dart';
 import 'settings/settings_components.dart';
 import 'settings/settings_section_page.dart';
+import '../utils/constants.dart';
 
 part 'settings/settings_recommend_rules.dart';
 part 'settings/settings_recommend_rules_ext.dart';
@@ -364,14 +365,14 @@ class SettingsView extends ConsumerWidget {
           _buildVersionTile(context, ref),
         ],
       ),
-      const SizedBox(height: _kSpacingXXLarge),
+      const SizedBox(height: kSpacingLg),
       // batchF3：本地模式用独立的「退出本地模式」按钮（清 localMode + auth，
       // 守卫才真正放行跳登录页）；主「退出登录」只退 authProvider，本地模式下半退出残留。
       if (ref.watch(localModeProvider))
         _buildLocalModeExitButton(context, ref)
       else
         _buildLogoutButton(context, ref),
-      const SizedBox(height: _kSpacingXXXXLarge),
+      const SizedBox(height: kSpacingXxl),
     ];
   }
 

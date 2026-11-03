@@ -214,7 +214,7 @@ extension _SettingsDialogs4 on SettingsView {
                   ),
                 ],
               ),
-              const SizedBox(height: _kSpacingXXXLarge),
+              const SizedBox(height: kSpacingXl),
               ValueListenableBuilder<double>(
                 valueListenable: progressNotifier,
                 builder: (_, progress, __) {
@@ -225,7 +225,7 @@ extension _SettingsDialogs4 on SettingsView {
                   );
                 },
               ),
-              const SizedBox(height: _kSpacingLarge),
+              const SizedBox(height: kSpacingSm),
               ValueListenableBuilder<String>(
                 valueListenable: statusNotifier,
                 builder: (_, status, __) {
@@ -269,7 +269,7 @@ extension _SettingsDialogs4 on SettingsView {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.error_outline, size: 48, color: scheme.error),
-            const SizedBox(height: _kSpacingXXLarge),
+            const SizedBox(height: kSpacingLg),
             const Text(
               '下载失败',
               style: TextStyle(
@@ -277,7 +277,7 @@ extension _SettingsDialogs4 on SettingsView {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: _kSpacingXLarge),
+            const SizedBox(height: kSpacingMd),
             Text(
               error,
               style: TextStyle(
@@ -327,7 +327,7 @@ extension _SettingsDialogs4 on SettingsView {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.check_circle, size: 48, color: Colors.green),
-            const SizedBox(height: _kSpacingXXLarge),
+            const SizedBox(height: kSpacingLg),
             const Text(
               '下载完成',
               style: TextStyle(
@@ -335,7 +335,7 @@ extension _SettingsDialogs4 on SettingsView {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: _kSpacingMedium),
+            const SizedBox(height: kSpacingSm),
             Text(
               '版本 ${release.version} 已下载完成，是否立即安装？',
               style: TextStyle(
@@ -425,7 +425,7 @@ extension _SettingsDialogs4 on SettingsView {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 48, color: scheme.primary),
-            const SizedBox(height: _kSpacingXXLarge),
+            const SizedBox(height: kSpacingLg),
             Text(
               title,
               style: TextStyle(
@@ -434,7 +434,7 @@ extension _SettingsDialogs4 on SettingsView {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: _kSpacingXLarge),
+            const SizedBox(height: kSpacingMd),
             // batch44-F2：正文可能含整段 release notes，限高 + 可滚动，
             // 防止长正文把 actions 按钮挤出对话框
             ConstrainedBox(

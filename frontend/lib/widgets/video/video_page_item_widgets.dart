@@ -415,7 +415,7 @@ class _BottomInfoBar extends StatelessWidget {
                           );
                         },
                       ),
-                      const SizedBox(height: _kSpacingMedium),
+                      const SizedBox(height: kSpacingSm),
                       // 标题 + 评分 + 时长
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -433,7 +433,7 @@ class _BottomInfoBar extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: _kSpacingLarge),
+                          const SizedBox(width: kSpacingMd),
                           if (item.displayRating != null &&
                               item.displayRating! > 0)
                             Text(
@@ -447,7 +447,7 @@ class _BottomInfoBar extends StatelessWidget {
                           // 用户评分（如有）
                           if (item.userRating != null &&
                               item.userRating! > 0) ...[
-                            const SizedBox(width: _kSpacingSmall),
+                            const SizedBox(width: kSpacingSm),
                             Text(
                               '你 ★ ${item.userRating!.toStringAsFixed(0)}',
                               style: TextStyle(
@@ -457,7 +457,7 @@ class _BottomInfoBar extends StatelessWidget {
                               ),
                             ),
                           ],
-                          const SizedBox(width: _kSpacingSmall),
+                          const SizedBox(width: kSpacingSm),
                           if (item.durationSeconds != null &&
                               item.durationSeconds! > 0)
                             Text(
@@ -470,7 +470,7 @@ class _BottomInfoBar extends StatelessWidget {
                             ),
                         ],
                       ),
-                      const SizedBox(height: _kSpacingSmall),
+                      const SizedBox(height: kSpacingSm),
                       // 简介（1行）
                       if (item.overview != null && item.overview!.isNotEmpty)
                         Text(
@@ -501,7 +501,7 @@ class _BottomInfoBar extends StatelessWidget {
                             if (playCountStr != null) playCountStr,
                           ].join('  |  ');
                           return Padding(
-                            padding: const EdgeInsets.only(top: _kSpacingSmall),
+                            padding: const EdgeInsets.only(top: kSpacingSm),
                             child: Text(
                               text,
                               maxLines: 1,
@@ -520,7 +520,7 @@ class _BottomInfoBar extends StatelessWidget {
                 // 进度条（不包在 GestureDetector 里，避免点击进度条弹出详情）
                 if (hasProgress)
                   Padding(
-                    padding: const EdgeInsets.only(top: _kSpacingLarge),
+                    padding: const EdgeInsets.only(top: kSpacingMd),
                     child: SeekableProgressBar(
                       controller: hasController ? controller : null,
                       handle: handle,

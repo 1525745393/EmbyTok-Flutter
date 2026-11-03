@@ -285,7 +285,7 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
               right: 16,
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: _kSpacingLarge, vertical: _kSpacingSmall),
+                    horizontal: kSpacingMd, vertical: kSpacingSm),
                 decoration: BoxDecoration(
                   color: scheme.surface.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(16),

@@ -34,7 +34,7 @@ extension _SettingsDialogs3 on SettingsView {
                     '近 7 天完播率',
                     '${(stats.last7DaysAvgCompletion * 100).toStringAsFixed(0)}%',
                   ),
-                  const SizedBox(height: _kSpacingXXLarge),
+                  const SizedBox(height: kSpacingLg),
                   // 最近 10 条
                   if (stats.records.isNotEmpty) ...[
                     Text(
@@ -45,7 +45,7 @@ extension _SettingsDialogs3 on SettingsView {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: _kSpacingMedium),
+                    const SizedBox(height: kSpacingSm),
                     ...stats.records.take(10).map((r) {
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4),
@@ -258,7 +258,7 @@ extension _SettingsDialogs3 on SettingsView {
                 child: const Icon(Icons.volunteer_activism,
                     color: DonateColors.donateAccent, size: 32),
               ),
-              const SizedBox(height: _kSpacingXLarge),
+              const SizedBox(height: kSpacingMd),
               Text(
                 '打赏支持',
                 style: TextStyle(
@@ -267,7 +267,7 @@ extension _SettingsDialogs3 on SettingsView {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: _kSpacingSmall),
+              const SizedBox(height: kSpacingSm),
               Text(
                 '如果这个应用对你有帮助，\n可以请作者喝杯咖啡 ☕',
                 style: TextStyle(
@@ -277,7 +277,7 @@ extension _SettingsDialogs3 on SettingsView {
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: _kSpacingXXLarge),
+              const SizedBox(height: kSpacingLg),
               // 收款码区域：用 errorBuilder 处理图片缺失
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
@@ -294,7 +294,7 @@ extension _SettingsDialogs3 on SettingsView {
                   ),
                 ),
               ),
-              const SizedBox(height: _kSpacingXLarge),
+              const SizedBox(height: kSpacingMd),
               // 支付宝收款码
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
@@ -311,7 +311,7 @@ extension _SettingsDialogs3 on SettingsView {
                   ),
                 ),
               ),
-              const SizedBox(height: _kSpacingXXLarge),
+              const SizedBox(height: kSpacingLg),
               // 外部打赏链接（如爱发电等）
               InkWell(
                 borderRadius: BorderRadius.circular(8),
@@ -337,7 +337,7 @@ extension _SettingsDialogs3 on SettingsView {
                   ),
                 ),
               ),
-              const SizedBox(height: _kSpacingMedium),
+              const SizedBox(height: kSpacingSm),
             ],
           ),
         ),
@@ -386,7 +386,7 @@ extension _SettingsDialogs3 on SettingsView {
                 child: Icon(Icons.play_circle_filled,
                     color: scheme.onPrimary, size: 44),
               ),
-              const SizedBox(height: _kSpacingXLarge),
+              const SizedBox(height: kSpacingMd),
               // 应用名
               Text(
                 'EmbyTok',
@@ -396,7 +396,7 @@ extension _SettingsDialogs3 on SettingsView {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: _kSpacingXSmall),
+              const SizedBox(height: kSpacingXs),
               // 版本号
               Text(
                 '版本 $version',
@@ -405,7 +405,7 @@ extension _SettingsDialogs3 on SettingsView {
                   fontSize: _kFontSizeBody,
                 ),
               ),
-              const SizedBox(height: _kSpacingXXXLarge),
+              const SizedBox(height: kSpacingXl),
               // 应用介绍
               Text(
                 'EmbyTok 是一款面向 Emby 媒体服务器与群晖 Audio Station 的媒体客户端，提供类似 TikTok 的上下滑动刷片体验，同时支持音乐库浏览与播放，让你以更现代、便捷的方式享受个人媒体库。',
@@ -415,25 +415,25 @@ extension _SettingsDialogs3 on SettingsView {
                   height: 1.5,
                 ),
               ),
-              const SizedBox(height: _kSpacingXXLarge),
+              const SizedBox(height: kSpacingLg),
               // 功能亮点
               const _AboutFeatureRow(
                 icon: Icons.swipe_vertical,
                 text: '上下滑动，沉浸式刷片体验',
               ),
-              const SizedBox(height: _kSpacingLarge),
+              const SizedBox(height: kSpacingSm),
               const _AboutFeatureRow(
                 icon: Icons.favorite_border,
                 text: '收藏管理，快速访问心仪内容',
               ),
-              const SizedBox(height: _kSpacingLarge),
+              const SizedBox(height: kSpacingSm),
               const _AboutFeatureRow(
                 icon: Icons.library_music_outlined,
                 text: '支持 Emby 视频与群晖 Audio Station 音乐',
               ),
-              const SizedBox(height: _kSpacingXXXLarge),
+              const SizedBox(height: kSpacingXl),
               const Divider(height: 1),
-              const SizedBox(height: _kSpacingXLarge),
+              const SizedBox(height: kSpacingMd),
               // GitHub 仓库入口：点击跳转到项目仓库
               InkWell(
                 borderRadius: BorderRadius.circular(8),
@@ -463,7 +463,7 @@ extension _SettingsDialogs3 on SettingsView {
                   ),
                 ),
               ),
-              const SizedBox(height: _kSpacingXLarge),
+              const SizedBox(height: kSpacingMd),
               // 版权
               Text(
                 '© $copyrightYear EmbyTok  contributors',
@@ -472,7 +472,7 @@ extension _SettingsDialogs3 on SettingsView {
                   fontSize: _kFontSizeSmall,
                 ),
               ),
-              const SizedBox(height: _kSpacingXSmall),
+              const SizedBox(height: kSpacingXs),
               Text(
                 '本软件基于开源协议发布',
                 style: TextStyle(

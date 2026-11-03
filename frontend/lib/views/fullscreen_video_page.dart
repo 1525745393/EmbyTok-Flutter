@@ -57,20 +57,7 @@ const double _kFontSizeXLarge = 42;
 /// 超小字体（时间戳、进度提示）
 const double _kFontSizeTiny = 11;
 
-/// 超小间距
-const double _kSpacingXSmall = 4;
 
-/// 小间距
-const double _kSpacingSmall = 6;
-
-/// 中间距
-const double _kSpacingMedium = 8;
-
-/// 大间距
-const double _kSpacingLarge = 16;
-
-/// 超大间距
-const double _kSpacingXLarge = 20;
 
 /// 全屏视频播放页
 ///
@@ -970,7 +957,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                       color: Colors.white,
                       size: 48,
                     ),
-                    const SizedBox(height: _kSpacingXSmall),
+                    const SizedBox(height: kSpacingXs),
                     Text(
                       '${isSeekForward ? '+' : '-'}${seekFeedbackCount * kDoubleTapSeekStepSec}s',
                       style: const TextStyle(
@@ -1556,19 +1543,19 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
         mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(Icons.error_outline, color: Colors.white70, size: 56),
-          const SizedBox(height: _kSpacingLarge),
+          const SizedBox(height: kSpacingLg),
           const Text(
             '视频加载失败',
             style: TextStyle(color: Colors.white70, fontSize: _kFontSizeLarge),
           ),
-          const SizedBox(height: _kSpacingMedium),
+          const SizedBox(height: kSpacingSm),
           Text(
             controller?.value.errorDescription ?? '网络错误或资源不可用',
             style: const TextStyle(
                 color: Colors.white70, fontSize: _kFontSizeBody),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: _kSpacingXLarge),
+          const SizedBox(height: kSpacingXl),
           TextButton.icon(
             onPressed: _retryVideo,
             icon: const Icon(Icons.refresh, size: 20),
@@ -1932,7 +1919,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
           style:
               const TextStyle(color: Colors.white, fontSize: _kFontSizeSmall),
         ),
-        const SizedBox(width: _kSpacingMedium),
+        const SizedBox(width: kSpacingSm),
         Expanded(
           child: Stack(
             alignment: Alignment.center,
@@ -1973,7 +1960,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
             ],
           ),
         ),
-        const SizedBox(width: _kSpacingMedium),
+        const SizedBox(width: kSpacingSm),
         Text(
           _formatDuration(duration),
           style:
@@ -2225,7 +2212,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.lock_outline, color: Colors.white, size: 28),
-                SizedBox(height: _kSpacingSmall),
+                SizedBox(height: kSpacingSm),
                 Text(
                   '点击\n解锁',
                   textAlign: TextAlign.center,
@@ -2261,7 +2248,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.info_outline, color: Colors.white, size: 18),
-              const SizedBox(width: _kSpacingMedium),
+              const SizedBox(width: kSpacingSm),
               Text(
                 _networkToastMessage ?? '',
                 style: const TextStyle(
@@ -2291,7 +2278,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon, color: Colors.white, size: 36),
-              const SizedBox(height: _kSpacingMedium),
+              const SizedBox(height: kSpacingSm),
               SizedBox(
                 width: kFullscreenVolumeBarWidth,
                 child: LinearProgressIndicator(
@@ -2301,7 +2288,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                   minHeight: 4,
                 ),
               ),
-              const SizedBox(height: _kSpacingXSmall),
+              const SizedBox(height: kSpacingXs),
               Text(
                 '${(value * 100).round()}%',
                 style: const TextStyle(

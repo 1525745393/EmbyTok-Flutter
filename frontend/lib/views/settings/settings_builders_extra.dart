@@ -94,12 +94,12 @@ extension _SettingsBuilders2 on SettingsView {
                 '免费申请：https://www.last.fm/api/account/create',
                 style: TextStyle(fontSize: _kFontSizeSmall),
               ),
-              const SizedBox(height: _kSpacingXSmall),
+              const SizedBox(height: kSpacingXs),
               const Text(
                 '用于补充歌手头像与简介（未配置时自动使用群晖/Wikipedia 数据）',
                 style: TextStyle(fontSize: _kFontSizeSmall),
               ),
-              const SizedBox(height: _kSpacingXLarge),
+              const SizedBox(height: kSpacingMd),
               TextField(
                 controller: controller,
                 decoration: const InputDecoration(

@@ -76,7 +76,7 @@ class _SeekPreviewBar extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: _kSpacingMedium),
+          const SizedBox(height: kSpacingSm),
           LinearProgressIndicator(
             value: clampedProgress,
             backgroundColor: Colors.white24,

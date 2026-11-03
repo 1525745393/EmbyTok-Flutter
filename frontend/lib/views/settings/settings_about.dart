@@ -28,7 +28,7 @@ class _DonatePlaceholder extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, size: 40, color: color),
-          const SizedBox(height: _kSpacingMedium),
+          const SizedBox(height: kSpacingSm),
           Text(
             label,
             style: TextStyle(
@@ -37,7 +37,7 @@ class _DonatePlaceholder extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: _kSpacingXSmall),
+          const SizedBox(height: kSpacingXs),
           Text(
             hint,
             style: TextStyle(
@@ -224,7 +224,7 @@ class _LicensePageState extends State<_LicensePage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             CircularProgressIndicator(color: widget.primaryColor),
-            const SizedBox(height: _kSpacingXLarge),
+            const SizedBox(height: kSpacingMd),
             Text(
               '正在加载许可证...',
               style: TextStyle(
@@ -297,7 +297,7 @@ class _LicensePageState extends State<_LicensePage> {
               ),
             ],
           ),
-          const SizedBox(height: _kSpacingMedium),
+          const SizedBox(height: kSpacingSm),
           Text(
             '本应用使用了 $count 个开源软件包，谨向以下项目的作者致以诚挚谢意。',
             style: TextStyle(

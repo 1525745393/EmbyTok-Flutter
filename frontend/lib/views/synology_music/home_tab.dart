@@ -46,68 +46,68 @@ extension _MusicHomeTabBuilders on _SynologyMusicViewState {
       children: [
           // 快捷入口
           _buildQuickEntries(scheme),
-          const SizedBox(height: _kSpacingXXXXLarge),
+          const SizedBox(height: kSpacingXl),
           // 最近播放（无记录时整个模块隐藏，PRD 要求）
           if (recentPlaybacks.isNotEmpty) ...[
             _buildHomeSectionHeader(
                 _kHomeSectionRecentPlaybacks, SynologyMusicTab.songs, scheme),
-            const SizedBox(height: _kSpacingXLarge),
+            const SizedBox(height: kSpacingSm),
             _buildRecentPlaybacksList(recentPlaybacks, scheme),
-            const SizedBox(height: _kSpacingXXXXLarge),
+            const SizedBox(height: kSpacingXl),
           ],
           // 最近添加（time_add 倒序，NAS 原生接口）
           if (state.recentAlbums.isNotEmpty) ...[
             _buildHomeSectionHeader(
                 _kHomeSectionRecentAlbums, SynologyMusicTab.albums, scheme),
-            const SizedBox(height: _kSpacingXLarge),
+            const SizedBox(height: kSpacingSm),
             AlbumHorizontalList(
                 albums: state.recentAlbums,
                 scheme: scheme,
                 onAlbumTap: _showAlbumSongs),
-            const SizedBox(height: _kSpacingXXXXLarge),
+            const SizedBox(height: kSpacingXl),
           ],
           // 我的锁定（My Pins / 用户收藏，SYNO.AudioStation.Pin）
           if (state.pins.isNotEmpty) ...[
             _buildHomeSectionHeader(_kHomeSectionPins, null, scheme),
-            const SizedBox(height: _kSpacingXLarge),
+            const SizedBox(height: kSpacingSm),
             _buildPinsList(state.pins, scheme),
-            const SizedBox(height: _kSpacingXXXXLarge),
+            const SizedBox(height: kSpacingXl),
           ],
           // 我的歌单
           if (state.playlists.isNotEmpty) ...[
             _buildHomeSectionHeader(
                 _kHomeSectionPlaylists, SynologyMusicTab.playlists, scheme),
-            const SizedBox(height: _kSpacingXLarge),
+            const SizedBox(height: kSpacingSm),
             PlaylistHorizontalList(
                 playlists: state.playlists.take(_kHomePlaylistsCount).toList(),
                 scheme: scheme,
                 onPlaylistTap: _showPlaylistSongs),
-            const SizedBox(height: _kSpacingXXXXLarge),
+            const SizedBox(height: kSpacingXl),
           ],
           // 精选专辑（客户端随机抽样，与最近添加去重）
           if (featured.isNotEmpty) ...[
             _buildHomeSectionHeader(
                 _kHomeSectionFeaturedAlbums, SynologyMusicTab.albums, scheme),
-            const SizedBox(height: _kSpacingXLarge),
+            const SizedBox(height: kSpacingSm),
             AlbumHorizontalList(
                 albums: featured, scheme: scheme, onAlbumTap: _showAlbumSongs),
-            const SizedBox(height: _kSpacingXXXXLarge),
+            const SizedBox(height: kSpacingXl),
           ],
           // 艺术家（契约 name 序，DSM 不支持按歌曲数排序）
           if (state.topArtists.isNotEmpty) ...[
             _buildHomeSectionHeader(
                 _kHomeSectionTopArtists, SynologyMusicTab.artists, scheme),
-            const SizedBox(height: _kSpacingXLarge),
+            const SizedBox(height: kSpacingSm),
             ArtistHorizontalList(
                 artists: state.topArtists,
                 scheme: scheme,
                 onArtistTap: _showArtistSongs),
-            const SizedBox(height: _kSpacingXXXXLarge),
+            const SizedBox(height: kSpacingXl),
           ],
           // 音乐流派（2列网格色块卡片，PRD 页面最底部模块）
           if (state.genres.isNotEmpty) ...[
             _buildHomeSectionHeader(_kHomeSectionGenres, null, scheme),
-            const SizedBox(height: _kSpacingXLarge),
+            const SizedBox(height: kSpacingSm),
             _buildGenreGrid(state.genres, scheme),
           ],
           // 全空占位（检查所有模块，包括我的锁定）
@@ -129,7 +129,7 @@ extension _MusicHomeTabBuilders on _SynologyMusicViewState {
                     const SizedBox(height: _kEmptyIconTextSpacing),
                     Text(_kHomeEmptyText,
                         style: TextStyle(color: scheme.onSurfaceVariant)),
-                    const SizedBox(height: _kSpacingLarge),
+                    const SizedBox(height: kSpacingSm),
                     FilledButton.icon(
                       onPressed:
                           state.isLoading ? null : _refreshCurrentTab,
@@ -327,7 +327,7 @@ extension _MusicHomeTabBuilders on _SynologyMusicViewState {
                         ),
                       ],
                     ),
-                    const SizedBox(height: _kSpacingMedium),
+                    const SizedBox(height: kSpacingSm),
                     Text(record.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -412,7 +412,7 @@ extension _MusicHomeTabBuilders on _SynologyMusicViewState {
                         ),
                       ),
                     ),
-                    const SizedBox(height: _kSpacingMedium),
+                    const SizedBox(height: kSpacingSm),
                     Text(pin.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -605,7 +605,7 @@ extension _MusicHomeTabBuilders on _SynologyMusicViewState {
                             color: Colors.white, size: 20),
                       ],
                     ),
-                    const SizedBox(height: _kSpacingXSmall),
+                    const SizedBox(height: kSpacingXs),
                     Text(
                       '${genre.songCount} 首',
                       style: TextStyle(

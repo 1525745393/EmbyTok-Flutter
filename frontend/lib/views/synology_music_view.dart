@@ -28,6 +28,7 @@ import 'music/add_to_playlist_sheet.dart';
 import 'music/home_widgets.dart';
 import '../widgets/loading_state_card.dart';
 import 'music/horizontal_lists.dart';
+import '../utils/constants.dart';
 part 'synology_music/constants.dart';
 part 'synology_music/home_tab.dart';
 part 'synology_music/list_builders.dart';
@@ -237,7 +238,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                       children: [
                         const Icon(Icons.library_music,
                             color: onGradient, size: 22),
-                        SizedBox(width: _kSpacingMedium),
+                        SizedBox(width: kSpacingSm),
                         const Text(
                           '群晖音乐',
                           style: const TextStyle(
@@ -276,19 +277,19 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         children: [
           Icon(Icons.library_music_outlined,
               size: 64, color: scheme.onSurfaceVariant),
-          const SizedBox(height: _kSpacingXXXLarge),
+          const SizedBox(height: kSpacingLg),
           Text(
             '尚未连接群晖 Audio Station',
             style:
                 TextStyle(fontSize: _kFontSizeLarge, color: scheme.onSurface),
           ),
-          const SizedBox(height: _kSpacingLarge),
+          const SizedBox(height: kSpacingSm),
           Text(
             '登录后可浏览和播放 NAS 上的音乐',
             style: TextStyle(
                 fontSize: _kFontSizeBody, color: scheme.onSurfaceVariant),
           ),
-          const SizedBox(height: _kSpacingXXXXLarge),
+          const SizedBox(height: kSpacingXl),
           ElevatedButton.icon(
             onPressed: () => context.go('/login'),
             icon: const Icon(Icons.login, size: 18),

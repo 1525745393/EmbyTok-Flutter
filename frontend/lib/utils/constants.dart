@@ -241,6 +241,7 @@ const int kSubtitleTimeOffsetDefault = 0;
 // ===== Design Tokens：间距 / 圆角 =====
 // 与 theme/theme_extensions.dart 同步，为组件提供语义化间距/圆角常量
 // 导入方式：import 'package:embytok_flutter/utils/constants.dart';
+// U3 约定：全 app 唯一间距 token，禁止在页面内私有复制 _kSpacing*（已收敛）
 
 // 间距（8px 基准，适用于 EdgeInsets.all / symmetric / only）
 const double kSpacingXs = 4.0;
