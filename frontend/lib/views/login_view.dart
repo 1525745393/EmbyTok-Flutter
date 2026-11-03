@@ -489,12 +489,15 @@ class _LoginViewState extends ConsumerState<LoginView> {
                   // === 服务器与账户区块（batch126：原设置页「服务器与账户」分区整体迁移） ===
                   // 服务模式 / 服务器管理 / 当前数据源 / 账户快速切换 / 自签名证书
                   // 在登录环节统一管理，设置页不再重复入口。
+                  // UI 整理：未登录时不展示「当前服务器：未连接」空态分组，
+                  // 账户快速切换入口保留（未登录也可点开切换已保存服务器）。
                   const Divider(height: 32),
                   buildServerGroupLabel(
                       context, Icons.cloud_outlined, '服务器与账户'),
                   _buildServerRegistryTile(context, ref),
                   _buildServiceModeSelector(context, ref),
-                  if (ref.watch(serviceModeProvider) != AppServiceMode.music) ...[
+                  if (ref.watch(serviceModeProvider) != AppServiceMode.music &&
+                      ref.watch(authProvider).backendUrl != null) ...[
                     buildServerGroupLabel(
                         context, Icons.movie_outlined, '视频数据源'),
                     _buildServerInfoTile(context, ref),
