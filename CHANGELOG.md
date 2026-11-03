@@ -1,3 +1,10 @@
+# [2.402.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.102...v2.402.0) (2026-11-03)
+
+
+### Features
+
+* **server:** 登录页支持 Jellyfin 服务器 + 媒体库每服务器记忆 ([37eeb37](https://github.com/1525745393/EmbyTok-Flutter/commit/37eeb373c14010489cbcc6b064246a07078f3cc1))
+
 ## [2.401.102](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.101...v2.401.102) (2026-11-03)
 
 
