@@ -283,7 +283,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: kSpacingLg),
 
                   // 应用标题
                   Text(
@@ -296,7 +296,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: kSpacingSm),
                   Text(
                     '浏览你的私人媒体库',
                     style:
@@ -311,20 +311,20 @@ class _LoginViewState extends ConsumerState<LoginView> {
                   // 折叠态下表单类型跟随激活服务器（见 build 开头同步），避免登录写错 ServerKind。
                   if (activeType != null && !_typeSelectorExpanded) ...[
                     _buildServerTypeCollapsedRow(scheme, activeType),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: kSpacingMd),
                   ] else ...[
                     _buildServerTypeSelector(scheme),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: kSpacingLg),
                   ],
 
                   // 服务器地址（本地模式隐藏）
                   if (_serverType != ServerType.local) ...[
                     _buildServerField(scheme),
                     if (_serverHistory.isNotEmpty) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: kSpacingSm),
                       _buildServerHistory(scheme),
                     ],
-                    const SizedBox(height: 16),
+                    const SizedBox(height: kSpacingLg),
 
                     // 用户名
                     _buildTextField(
@@ -338,7 +338,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                       onFieldSubmitted: (_) => _passwordFocusNode.requestFocus(),
                       onChanged: (_) => _clearError(),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: kSpacingLg),
 
                     // 密码
                     _buildTextField(
@@ -368,7 +368,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                       ),
                     ),
                     // 字段间距与地址/用户名等字段统一为 16
-                    const SizedBox(height: 16),
+                    const SizedBox(height: kSpacingLg),
                   ],
 
                   // 群晖两步验证码（开启后显示）
@@ -384,7 +384,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                       onFieldSubmitted: (_) => _submit(),
                       onChanged: (_) => _clearError(),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: kSpacingLg),
                   ],
 
                   // 记住密码 + HTTP 安全提示
@@ -419,7 +419,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
                   // 内联错误提示
                   if (_errorMessage != null) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: kSpacingMd),
                     Container(
                       padding: const EdgeInsets.all(kSpacingMd),
                       decoration: BoxDecoration(
@@ -445,7 +445,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                     ),
                   ],
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: kSpacingXl),
 
                   // 主操作按钮：本地媒体库（进入）/ 服务器登录（登录，加载中转圈）
                   // 单一 builder 复用样式，避免两套重复代码（见 _buildPrimaryButton）
@@ -468,7 +468,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                               )
                             : const Text('登录'),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: kSpacingMd),
                   // === 服务器与账户区块（batch126：原设置页「服务器与账户」分区整体迁移） ===
                   // 服务模式 / 服务器管理 / 当前数据源 / 账户快速切换 / 自签名证书
                   // 在登录环节统一管理，设置页不再重复入口。
