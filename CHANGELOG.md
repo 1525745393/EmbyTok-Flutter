@@ -1,3 +1,10 @@
+## [2.401.100](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.99...v2.401.100) (2026-11-03)
+
+
+### Bug Fixes
+
+* 退出登录半退出异常——统一 logoutAllAccounts 全退群晖+Emby ([781954b](https://github.com/1525745393/EmbyTok-Flutter/commit/781954bdbc1c6235053fd3f97f75cd5719ae9a7d))
+
 ## [2.401.99](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.98...v2.401.99) (2026-11-03)
 
 
