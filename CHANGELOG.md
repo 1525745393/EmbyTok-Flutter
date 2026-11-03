@@ -1,3 +1,10 @@
+## [2.401.99](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.98...v2.401.99) (2026-11-03)
+
+
+### Bug Fixes
+
+* **ui:** U29 读屏语义—icon-only IconButton 补 tooltip(30处) ([4ae2b0b](https://github.com/1525745393/EmbyTok-Flutter/commit/4ae2b0b77f045d8f18a572ba5772b8414cb55ceb))
+
 ## [2.401.98](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.97...v2.401.98) (2026-11-02)
 
 
