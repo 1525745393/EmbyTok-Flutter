@@ -15,6 +15,7 @@ import 'app_preferences_providers.dart';
 import 'auth_provider.dart';
 import 'cache_providers.dart';
 import 'local_mode_provider.dart';
+import 'server_registry_provider.dart';
 
 // ==================== 基础数据 Provider ====================
 
@@ -99,12 +100,26 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
         next.whenData(_onLibrariesLoaded);
       },
     );
+    // 每服务器记忆（VidHub 风格）：切换激活服务器时自动恢复该服务器所选媒体库。
+    // 仅默认实例生效；推荐页自定义 key 实例不参与服务器记忆。
+    if (_storageKey == kStorageKeySelectedLibraryId) {
+      _activeServerSubscription = _ref.listen<String?>(
+        activeServerIdProvider,
+        (previous, next) => _restoreForServer(next),
+      );
+      // 启动路径：注册表/激活服务器可能先于本 Notifier 恢复，主动补一次，
+      // 否则首启会回退到全局 key 而非该服务器记忆（listen 只响应后续变化）
+      final currentActive = _ref.read(activeServerIdProvider);
+      if (currentActive != null) _restoreForServer(currentActive);
+    }
   }
   final Ref _ref;
   // 持久化 key：默认视频流用原 key；推荐页传自定义 key（PR #66）
   final String _storageKey;
   // ProviderSubscription：显式保存并在 dispose 时取消
   ProviderSubscription<AsyncValue<List<Library>>>? _librarySubscription;
+  // 激活服务器订阅（每服务器记忆；仅默认实例持有）
+  ProviderSubscription<String?>? _activeServerSubscription;
 
   /// 媒体库列表到达后的恢复/校验逻辑
   ///
@@ -168,6 +183,34 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
     _saveLibraries(libraryIds);
   }
 
+  // ========== 每服务器记忆 ==========
+
+  /// 按 id 在注册表中查找服务器配置
+  ServerProfile? _findProfile(String? serverId) {
+    if (serverId == null) return null;
+    for (final s in _ref.read(serverRegistryProvider)) {
+      if (s.id == serverId) return s;
+    }
+    return null;
+  }
+
+  /// 切换激活服务器后恢复该服务器记忆的媒体库（VidHub 风格）。
+  ///
+  /// 有记忆：同步内存 saved 与 state（避免 _onLibrariesLoaded 回退全局旧值）；
+  /// 无记忆：清空由 _onLibrariesLoaded 按新列表默认选第一个可见。
+  void _restoreForServer(String? serverId) {
+    if (_storageKey != kStorageKeySelectedLibraryId) return;
+    final profile = _findProfile(serverId);
+    final saved = profile?.libraryIds ?? const <String>[];
+    if (saved.isNotEmpty) {
+      _savedLibraryIds = List<String>.of(saved);
+      state = List<String>.of(saved);
+    } else {
+      _savedLibraryIds = const <String>[];
+      state = const <String>[];
+    }
+  }
+
   // ========== 持久化 ==========
 
   // 磁盘上保存的媒体库 ID 列表（PR #70：支持多选恢复整组 ID）
@@ -179,6 +222,14 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
   late Future<void> _loadFuture;
 
   Future<void> _loadSaved() async {
+    // 每服务器记忆优先：激活服务器有记忆时直接用（覆盖全局 key 兜底）
+    if (_storageKey == kStorageKeySelectedLibraryId) {
+      final profile = _findProfile(_ref.read(activeServerIdProvider));
+      if (profile != null && profile.libraryIds.isNotEmpty) {
+        _savedLibraryIds = List<String>.of(profile.libraryIds);
+        return;
+      }
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
       // 优先用 StringList 读多选列表（PR #70 起的格式）
@@ -198,8 +249,24 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
   }
 
   /// 持久化整个 ID 列表（PR #70：多选不再丢）
+  ///
+  /// 同时写回当前激活服务器的 libraryIds（每服务器记忆，VidHub 风格），
+  /// 切换服务器时由 _restoreForServer 恢复。
   Future<void> _saveLibraries(List<String> ids) async {
     _savedLibraryIds = ids;
+    // 每服务器记忆：媒体库多选变更立即写回激活服务器（仅默认实例）
+    if (_storageKey == kStorageKeySelectedLibraryId) {
+      final activeId = _ref.read(activeServerIdProvider);
+      if (activeId != null) {
+        try {
+          await _ref
+              .read(serverRegistryProvider.notifier)
+              .setLibraryIds(activeId, ids);
+        } catch (_) {
+          // 写回失败不影响媒体库主流程，静默处理
+        }
+      }
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
       if (ids.isEmpty) {
@@ -231,6 +298,7 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
   @override
   void dispose() {
     _librarySubscription?.close();
+    _activeServerSubscription?.close();
     super.dispose();
   }
 }

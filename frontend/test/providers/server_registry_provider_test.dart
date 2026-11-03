@@ -37,6 +37,7 @@ void main() {
     String username = 'user',
     NetworkMode networkMode = NetworkMode.auto,
     bool isDefault = false,
+    List<String> libraryIds = const <String>[],
   }) {
     return ServerProfile(
       id: id,
@@ -49,6 +50,7 @@ void main() {
       networkMode: networkMode,
       isDefault: isDefault,
       lastUsed: DateTime(2026, 1, 1),
+      libraryIds: libraryIds,
     );
   }
 
@@ -213,6 +215,36 @@ void main() {
           .read(activeServerIdProvider.notifier)
           .setActive('not-exist');
       expect(container.read(activeServerProvider), isNull);
+    });
+  });
+
+  group('Jellyfin 与媒体库记忆（每服务器记忆）', () {
+    test('ServerKind.jellyfin JSON roundtrip', () {
+      final p = profile(kind: ServerKind.jellyfin);
+      final restored = ServerProfile.fromJson(p.toJson());
+      expect(restored.kind, ServerKind.jellyfin);
+      expect(ServerKind.fromStorage('jellyfin'), ServerKind.jellyfin);
+      expect(restored.url, p.url);
+    });
+
+    test('ServerProfile.libraryIds roundtrip 与缺省空列表', () {
+      final p = profile(libraryIds: <String>['libA', 'libB']);
+      final restored = ServerProfile.fromJson(p.toJson());
+      expect(restored.libraryIds, <String>['libA', 'libB']);
+      expect(ServerProfile.fromJson(profile().toJson()).libraryIds, isEmpty,
+          reason: '老配置无 libraryIds 字段时应缺省为空');
+    });
+
+    test('setLibraryIds 持久化：重启后恢复', () async {
+      final container = buildContainer();
+      addTearDown(container.dispose);
+      final registry = container.read(serverRegistryProvider.notifier);
+      final p = profile();
+      await registry.add(p);
+      await registry.setLibraryIds(p.id, <String>['libA', 'libB']);
+      await registry.reload(); // 模拟重启：从 prefs 重新加载
+      final restored = container.read(serverRegistryProvider).single;
+      expect(restored.libraryIds, <String>['libA', 'libB']);
     });
   });
 }

@@ -1,9 +1,10 @@
 // 登录页服务器类型卡片选择器测试
 //
 // 覆盖：
-// - 卡片网格渲染（Emby 视频 / 群晖音乐）
+// - 卡片网格渲染（Emby 视频 / Jellyfin 视频 / 群晖音乐 / 本地媒体库）
 // - 默认选中 Emby，表单 label 为 Emby 服务器地址
 // - 点击群晖卡片后表单动态切换为群晖服务器地址
+// - Jellyfin 登录成功联动视频模式并写入注册表 kind=jellyfin
 // - 小屏 320×568 卡片选择器不溢出
 
 import 'package:flutter/material.dart';
@@ -43,14 +44,17 @@ void main() {
     );
   }
 
-  testWidgets('渲染两张服务器类型卡片，默认选中 Emby', (tester) async {
+  testWidgets('渲染服务器类型卡片（Emby/Jellyfin/群晖/本地），默认选中 Emby', (tester) async {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(buildLogin());
     await tester.pumpAndSettle();
 
     expect(find.text('Emby 视频'), findsOneWidget);
+    expect(find.text('Jellyfin 视频'), findsOneWidget);
     expect(find.text('群晖音乐'), findsOneWidget);
+    expect(find.text('本地媒体库'), findsOneWidget);
     expect(find.text('Emby 视频流'), findsOneWidget);
+    expect(find.text('Jellyfin 影视流'), findsOneWidget);
     expect(find.text('Audio Station 音乐库'), findsOneWidget);
     // 默认选中 Emby：表单 label 为 Emby 服务器地址
     expect(find.text('Emby 服务器地址'), findsOneWidget);
@@ -282,6 +286,72 @@ void main() {
 
     expect(container.read(serviceModeProvider), AppServiceMode.video,
         reason: 'Emby 登录成功应联动切回视频服务模式（与群晖→music 对称）');
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('首页'), findsOneWidget,
+        reason: '登录成功应重定向回首页');
+  });
+
+  testWidgets('Jellyfin 登录成功联动视频模式并写入注册表 kind=jellyfin',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final mockService = MockEmbytokService();
+    when(mockService.login(
+      embyServerUrl: anyNamed('embyServerUrl'),
+      username: anyNamed('username'),
+      password: anyNamed('password'),
+    )).thenAnswer((_) async =>
+        const User(id: 'u1', name: 'tester', accessToken: 'tok'));
+    final container = ProviderContainer(
+      overrides: [
+        secureStorageProvider.overrideWithValue(MockFlutterSecureStorage()),
+        embytokServiceProvider.overrideWithValue(mockService),
+        authProvider.overrideWith((ref) => AuthNotifier(ref)),
+        serviceModeProvider.overrideWith((ref) => ServiceModeNotifier()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final router = GoRouter(
+      initialLocation: '/login',
+      routes: [
+        GoRoute(path: '/login', builder: (_, __) => const LoginView()),
+        GoRoute(
+            path: '/', builder: (_, __) => const Scaffold(body: Text('首页'))),
+      ],
+    );
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 点击 Jellyfin 卡片（与 Emby 并排，视频类）
+    await tester.tap(find.text('Jellyfin 视频'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // 填写表单并提交（Jellyfin 复用 Emby 协议链路）
+    await tester.enterText(
+        find.byType(TextFormField).at(0), 'http://jellyfin.test:8096');
+    await tester.enterText(find.byType(TextFormField).at(1), 'tester');
+    await tester.enterText(find.byType(TextFormField).at(2), 'pass');
+    await tester.pump();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(container.read(serviceModeProvider), AppServiceMode.video,
+        reason: 'Jellyfin 登录成功应联动视频服务模式（与 Emby 同源）');
+    // 注册表落 kind=jellyfin，供服务器管理/历史恢复使用
+    final saved = container.read(serverRegistryProvider);
+    expect(saved, hasLength(1));
+    expect(saved.single.kind, ServerKind.jellyfin);
+    expect(saved.single.url, 'http://jellyfin.test:8096');
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('首页'), findsOneWidget,
         reason: '登录成功应重定向回首页');

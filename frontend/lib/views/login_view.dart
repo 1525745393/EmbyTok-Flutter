@@ -31,6 +31,7 @@ const _kMaxServerHistory = 5;
 /// 服务器类型
 enum ServerType {
   emby,
+  jellyfin,
   plex,
   synology,
   local, // 本地媒体库模式（P0）
@@ -167,6 +168,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
     try {
       final kind = switch (_serverType) {
         ServerType.emby => ServerKind.emby,
+        ServerType.jellyfin => ServerKind.jellyfin,
         ServerType.plex => ServerKind.plex,
         ServerType.synology => ServerKind.synology,
         ServerType.local => ServerKind.emby, // 本地模式不写注册表，兜底
@@ -938,6 +940,7 @@ Future<void> _loadSavedData() async {
       final apiClient = ApiClient(baseUrl: url);
       final ok = switch (_serverType) {
         ServerType.emby ||
+        ServerType.jellyfin ||
         ServerType.plex =>
           (await apiClient.get<dynamic>('/System/Info/Public')).statusCode ==
               200,
@@ -1179,13 +1182,23 @@ Widget _buildServerTypeSelector(ColorScheme scheme) {
             Expanded(
               child: _buildServerTypeCard(
                 scheme: scheme,
-                type: ServerType.synology,
-                title: '群晖音乐',
-                subtitle: 'Audio Station 音乐库',
-                icon: Icons.library_music_outlined,
+                type: ServerType.jellyfin,
+                title: 'Jellyfin 视频',
+                // Jellyfin 与 Emby API 同源，登录复用 Emby 协议链路
+                subtitle: 'Jellyfin 影视流',
+                icon: Icons.video_library_outlined,
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 12),
+        // 群晖音乐（整宽卡片，与影视服务器分区）
+        _buildServerTypeCard(
+          scheme: scheme,
+          type: ServerType.synology,
+          title: '群晖音乐',
+          subtitle: 'Audio Station 音乐库',
+          icon: Icons.library_music_outlined,
         ),
         const SizedBox(height: 12),
         // 本地媒体库模式（P0）
@@ -1447,6 +1460,18 @@ Widget _buildServerTypeSelector(ColorScheme scheme) {
             borderRadius: BorderRadius.circular(8),
           ),
           child: const Icon(Icons.dns, size: 18, color: Color(0xFF52B54B)),
+        );
+      case ServerType.jellyfin:
+        return Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            // 视频类（Emby 同源协议），紫色区分 Emby 绿
+            color: const Color(0xFFAA5CC3).withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.video_library_outlined,
+              size: 18, color: Color(0xFFAA5CC3)),
         );
       case ServerType.plex:
         return Container(

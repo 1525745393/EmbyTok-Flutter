@@ -19,6 +19,7 @@ import 'auth_provider.dart' show secureStorageProvider;
 /// 服务器类型（与服务模式正交：服务模式决定首页内容，类型决定登录协议）
 enum ServerKind {
   emby('Emby', 'emby'),
+  jellyfin('Jellyfin', 'jellyfin'),
   plex('Plex', 'plex'),
   synology('群晖音乐', 'synology');
 
@@ -30,6 +31,7 @@ enum ServerKind {
   static ServerKind fromStorage(String? value) {
     return switch (value) {
       'plex' => ServerKind.plex,
+      'jellyfin' => ServerKind.jellyfin,
       'synology' => ServerKind.synology,
       _ => ServerKind.emby,
     };
@@ -70,6 +72,7 @@ class ServerProfile {
     this.networkMode = NetworkMode.auto,
     this.isDefault = false,
     required this.lastUsed,
+    this.libraryIds = const <String>[],
   });
 
   factory ServerProfile.fromJson(Map<String, dynamic> json) {
@@ -85,6 +88,9 @@ class ServerProfile {
       isDefault: json['isDefault'] as bool? ?? false,
       lastUsed: DateTime.tryParse(json['lastUsed'] as String? ?? '') ??
           DateTime.now(),
+      libraryIds:
+          (json['libraryIds'] as List?)?.whereType<String>().toList() ??
+              const <String>[],
     );
   }
   final String id;
@@ -106,6 +112,9 @@ class ServerProfile {
   final NetworkMode networkMode;
   final bool isDefault;
   final DateTime lastUsed;
+
+  /// 该服务器记忆的媒体库 ID（媒体库多选变更时写回，切换激活服务器时恢复）
+  final List<String> libraryIds;
 
   /// 按网络模式解析实际连接地址（auto：内网优先，无内网地址用主地址）
   /// 同时防御性补全 http:// 协议（用户可能只填 IP/主机名）
@@ -159,6 +168,7 @@ class ServerProfile {
     NetworkMode? networkMode,
     bool? isDefault,
     DateTime? lastUsed,
+    List<String>? libraryIds,
   }) {
     return ServerProfile(
       id: id,
@@ -171,6 +181,7 @@ class ServerProfile {
       networkMode: networkMode ?? this.networkMode,
       isDefault: isDefault ?? this.isDefault,
       lastUsed: lastUsed ?? this.lastUsed,
+      libraryIds: libraryIds ?? this.libraryIds,
     );
   }
 
@@ -187,6 +198,7 @@ class ServerProfile {
         'networkMode': networkMode.storageValue,
         'isDefault': isDefault,
         'lastUsed': lastUsed.toIso8601String(),
+        'libraryIds': libraryIds,
       };
 }
 
@@ -318,6 +330,14 @@ class ServerRegistryNotifier extends StateNotifier<List<ServerProfile>> {
     state = [
       for (final s in state)
         s.id == id ? s.copyWith(isDefault: true) : s.copyWith(isDefault: false),
+    ];
+    await _persist();
+  }
+
+  /// 更新该服务器记忆的媒体库 ID（媒体库多选变更写回 / 切换恢复用）
+  Future<void> setLibraryIds(String id, List<String> libraryIds) async {
+    state = [
+      for (final s in state) s.id == id ? s.copyWith(libraryIds: libraryIds) : s,
     ];
     await _persist();
   }

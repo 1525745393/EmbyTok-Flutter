@@ -12,8 +12,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:embytok_flutter/models/models.dart';
 import 'package:embytok_flutter/providers/app_preferences_providers.dart';
+import 'package:embytok_flutter/providers/auth_provider.dart'
+    show secureStorageProvider;
 import 'package:embytok_flutter/providers/library_provider.dart';
+import 'package:embytok_flutter/providers/server_registry_provider.dart';
 import 'package:embytok_flutter/utils/constants.dart';
+
+import '../mocks/mock_secure_storage.dart';
 
 // 构造测试用 Library
 Library _lib(String id) =>
@@ -172,6 +177,96 @@ void main() {
         () => prefs.getString(kStorageKeySelectedLibraryId),
         throwsA(isA<TypeError>()),
       );
+    });
+  });
+
+  group('每服务器记忆媒体库（VidHub 风格）', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+    });
+
+    ServerProfile _profile(String id,
+        {List<String> libraryIds = const <String>[]}) {
+      return ServerProfile(
+        id: id,
+        kind: ServerKind.emby,
+        name: 'srv$id',
+        url: 'http://host$id:8096',
+        username: 'u',
+        lastUsed: DateTime(2026, 1, 1),
+        libraryIds: libraryIds,
+      );
+    }
+
+    ProviderContainer _container() {
+      return ProviderContainer(overrides: [
+        secureStorageProvider.overrideWithValue(MockFlutterSecureStorage()),
+      ]);
+    }
+
+    test('媒体库多选变更写回当前激活服务器 libraryIds', () async {
+      final container = _container();
+      addTearDown(container.dispose);
+      await container.read(serverRegistryProvider.notifier).add(_profile('srvA'));
+      await container
+          .read(activeServerIdProvider.notifier)
+          .setActive('srvA');
+
+      final notifier = container.read(selectedLibraryIdsProvider.notifier);
+      await Future<void>.delayed(Duration.zero);
+      notifier.setLibraries(<String>['libA', 'libB']);
+      await Future<void>.delayed(Duration.zero);
+
+      final saved = container.read(serverRegistryProvider).single;
+      expect(saved.libraryIds, <String>['libA', 'libB'],
+          reason: '媒体库变更必须写回激活服务器，供切换后恢复');
+    });
+
+    test('切换激活服务器自动恢复该服务器所选媒体库', () async {
+      final container = _container();
+      addTearDown(container.dispose);
+      final registry = container.read(serverRegistryProvider.notifier);
+      await registry.add(_profile('srvA', libraryIds: <String>['libA1']));
+      await registry
+          .add(_profile('srvB', libraryIds: <String>['libB1', 'libB2']));
+      await container
+          .read(activeServerIdProvider.notifier)
+          .setActive('srvA');
+
+      final notifier = container.read(selectedLibraryIdsProvider.notifier);
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(selectedLibraryIdsProvider), <String>['libA1'],
+          reason: '激活服务器 A 时启动恢复其记忆');
+
+      await container
+          .read(activeServerIdProvider.notifier)
+          .setActive('srvB');
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(selectedLibraryIdsProvider),
+          <String>['libB1', 'libB2'],
+          reason: '切换到服务器 B 应自动恢复 B 的记忆（VidHub 风格）');
+    });
+
+    test('切换到无记忆服务器时清空，由列表加载默认选中', () async {
+      final container = _container();
+      addTearDown(container.dispose);
+      final registry = container.read(serverRegistryProvider.notifier);
+      await registry.add(_profile('srvA', libraryIds: <String>['libA1']));
+      await registry.add(_profile('srvB'));
+      await container
+          .read(activeServerIdProvider.notifier)
+          .setActive('srvA');
+
+      final notifier = container.read(selectedLibraryIdsProvider.notifier);
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(selectedLibraryIdsProvider), <String>['libA1']);
+
+      await container
+          .read(activeServerIdProvider.notifier)
+          .setActive('srvB');
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(selectedLibraryIdsProvider), isEmpty,
+          reason: '无记忆服务器切换后应清空，等待媒体库列表默认选中第一个可见');
     });
   });
 }

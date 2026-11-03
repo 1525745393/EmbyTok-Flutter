@@ -77,7 +77,9 @@ class ServersView extends ConsumerWidget {
     return switch (server.kind) {
       // batch126-F2 host 精确比较：contains 子串匹配会把
       // "192.168.1.5" 误命中 "192.168.1.50"，造成未登录误显示已登录
-      ServerKind.emby || ServerKind.plex => auth.isAuthenticated &&
+      // Jellyfin 与 Emby 同源协议，登录态同样由 authProvider 持有
+      ServerKind.emby || ServerKind.jellyfin || ServerKind.plex =>
+          auth.isAuthenticated &&
           auth.embyServerUrl != null &&
           _hostOf(auth.embyServerUrl!) == _hostOf(server.url),
       ServerKind.synology => synoAuth.isLoggedIn &&
