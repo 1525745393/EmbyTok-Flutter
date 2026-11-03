@@ -643,14 +643,16 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
     });
 
     final themeMode = ref.watch(themeModeProvider);
+    // U27：系统开启「减少动态效果」时全局动画降级（框架动画时长 + 自定义动画点）
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
     // 测试模式环境覆盖横幅：非默认环境时顶部红色条
     final testEnvOverride = isAppTestMode ? ref.watch(testEnvOverrideProvider) : null;
 
     return MaterialApp.router(
       title: 'EmbyTok',
       debugShowCheckedModeBanner: false,
-      theme: buildLightTheme(),
-      darkTheme: buildDarkTheme(),
+      theme: buildLightTheme(reduceMotion: reduceMotion),
+      darkTheme: buildDarkTheme(reduceMotion: reduceMotion),
       themeMode: parseThemeMode(themeMode),
       routerConfig: _router,
       localizationsDelegates: const [

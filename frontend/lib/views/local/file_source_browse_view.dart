@@ -2337,6 +2337,8 @@ class _HelpItem extends StatelessWidget {
   const _HelpItem(this.title, this.desc);
   @override
   Widget build(BuildContext context) {
+    // U18/U1 收尾：副标题用主题 onSurfaceVariant，暗黑模式可读
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Column(
@@ -2346,7 +2348,8 @@ class _HelpItem extends StatelessWidget {
               style:
                   const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
           const SizedBox(height: 2),
-          Text(desc, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+          Text(desc,
+              style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant)),
         ],
       ),
     );

@@ -137,4 +137,23 @@ void main() {
     expect(tester.takeException(), isNull,
         reason: '带尾部斜杠的 URL 输入不应导致崩溃');
   });
+
+  testWidgets('U25 键盘弹出：表单输入框可滚动到键盘上方不被遮挡', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(buildLogin());
+    await tester.pumpAndSettle();
+
+    // 模拟键盘弹出：底部 inset 300（视口 800×600，键盘顶在 y=300）
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    addTearDown(tester.view.reset);
+    await tester.pumpAndSettle();
+
+    // 聚焦第一个输入框并滚动到可见，断言其底部位于键盘顶部上方
+    final field = find.byType(TextFormField).first;
+    await tester.ensureVisible(field);
+    await tester.pumpAndSettle();
+    final keyboardTop = 600 - 300;
+    expect(tester.getRect(field).bottom, lessThanOrEqualTo(keyboardTop + 1),
+        reason: 'Scaffold 默认 resizeToAvoidBottomInset=true，输入框不应被键盘遮挡');
+  });
 }

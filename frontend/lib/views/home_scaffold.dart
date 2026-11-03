@@ -24,6 +24,7 @@ import 'package:video_player/video_player.dart';
 
 import '../providers/providers.dart';
 import '../utils/constants.dart';
+import '../utils/animation_utils.dart';
 import '../utils/safe_insets.dart';
 import 'feed_view.dart';
 import 'search_view.dart';
@@ -311,11 +312,12 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
                 right: 0,
                 bottom: 0,
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: kToolbarAnimMs),
+                  // U27：reduce-motion 下动画即时完成
+                  duration: uiAnimMs(context, kToolbarAnimMs),
                   curve: Curves.easeOut,
                   height: toolbarVisible ? kBottomNavHeight + bottomPadding : 0,
                   child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: kToolbarAnimMs),
+                    duration: uiAnimMs(context, kToolbarAnimMs),
                     opacity: toolbarVisible ? 1.0 : 0.0,
                     child: ClipRect(
                       child: SingleChildScrollView(

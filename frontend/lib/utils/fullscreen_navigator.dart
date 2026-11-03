@@ -4,6 +4,7 @@ import 'package:video_player/video_player.dart';
 
 import '../providers/providers.dart';
 import 'constants.dart';
+import 'animation_utils.dart';
 import '../views/fullscreen_video_page.dart';
 
 /// 统一的全屏导航工具
@@ -80,7 +81,8 @@ class FullscreenNavigator {
       barrierDismissible: false,
       barrierLabel: 'fullscreen',
       barrierColor: Colors.transparent,
-      transitionDuration: const Duration(milliseconds: kFullscreenTransitionMs),
+      // U27：reduce-motion 下全屏转场即时完成
+      transitionDuration: uiAnimMs(context, kFullscreenTransitionMs),
       transitionBuilder: (_, animation, __, child) {
         // 从底部滑入过渡，与 fullscreenDialog 行为一致
         return SlideTransition(

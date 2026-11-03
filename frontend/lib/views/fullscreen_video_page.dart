@@ -27,6 +27,7 @@ import '../widgets/video/danmaku_overlay.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/constants.dart';
+import '../utils/animation_utils.dart';
 import '../utils/logger.dart';
 import '../utils/pip_util.dart';
 import '../utils/safe_insets.dart';
@@ -1619,7 +1620,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
         ),
         child: AnimatedOpacity(
           opacity: _controlsVisible ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: kToolbarAnimMs),
+          duration: uiAnimMs(context, kToolbarAnimMs),
           child: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -1724,7 +1725,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
         ),
         child: AnimatedOpacity(
           opacity: _controlsVisible ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: kToolbarAnimMs),
+          duration: uiAnimMs(context, kToolbarAnimMs),
           child: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(

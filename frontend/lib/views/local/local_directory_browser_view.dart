@@ -260,8 +260,12 @@ class _LocalDirectoryBrowserViewState extends State<LocalDirectoryBrowserView> {
       );
     }
     if (_entries.isEmpty) {
-      return const Center(
-        child: Text('此文件夹为空', style: TextStyle(color: Colors.grey)),
+      // U18/U1 收尾：空态提示用主题色，暗黑模式可读
+      return Center(
+        child: Text(
+          '此文件夹为空',
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
       );
     }
     return ListView.separated(

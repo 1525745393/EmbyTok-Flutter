@@ -28,6 +28,7 @@ import '../providers/local_video_provider.dart';
 import '../utils/local_video_adapter.dart';
 import '../utils/app_preferences.dart' show ViewMode, FeedType;
 import '../utils/constants.dart';
+import '../utils/animation_utils.dart';
 import '../utils/fullscreen_navigator.dart';
 import '../utils/safe_insets.dart';
 import '../utils/keyboard_shortcuts.dart';
@@ -409,11 +410,12 @@ class _FeedViewState extends ConsumerState<FeedView>
               right: 0,
               top: 0,
               child: AnimatedSlide(
-                duration: const Duration(milliseconds: kToolbarAnimMs),
+                // U27：reduce-motion 下动画即时完成
+                duration: uiAnimMs(context, kToolbarAnimMs),
                 curve: Curves.easeOut,
                 offset: toolbarVisible ? Offset.zero : const Offset(0, -1),
                 child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: kToolbarAnimMs),
+                  duration: uiAnimMs(context, kToolbarAnimMs),
                   opacity: toolbarVisible ? 1.0 : 0.0,
                   child: IgnorePointer(
                     ignoring: !toolbarVisible,
@@ -440,7 +442,8 @@ class _FeedViewState extends ConsumerState<FeedView>
                   return IgnorePointer(
                     ignoring: !show,
                     child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: kToolbarAnimMs),
+                      // U27：reduce-motion 下动画即时完成
+                      duration: uiAnimMs(context, kToolbarAnimMs),
                       curve: Curves.easeOut,
                       opacity: show ? 1.0 : 0.0,
                       child: ValueListenableBuilder<int>(

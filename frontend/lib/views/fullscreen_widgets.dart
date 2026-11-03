@@ -107,7 +107,8 @@ class _FlyingHeartState extends State<_FlyingHeart>
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: kFullscreenFlyingHeartAnimMs),
+      // U27：reduce-motion 下点赞飞心动画即时完成
+      duration: uiAnimMs(context, kFullscreenFlyingHeartAnimMs),
     );
     _opacity = Tween<double>(begin: 1.0, end: 0.0).animate(
       CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),

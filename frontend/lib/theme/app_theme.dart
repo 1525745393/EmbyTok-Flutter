@@ -60,9 +60,12 @@ SystemUiOverlayStyle _lightSystemOverlayStyle() {
 /// ---- 统一 ThemeData 构建器（共享配置） ----
 /// surfaceContainerHighest 在 Flutter 3.22 才引入，这里用 surface + 不透明度代替
 /// [systemOverlayStyle] 全面屏适配：根据主题 brightness 选 dark / light foreground
+/// [reduceMotion] 系统开启「减少动态效果」时，框架动画(对话框/路由过渡等)
+/// 时长降为 Duration.zero（U27）；自定义动画见 lib/utils/animation_utils.dart
 ThemeData _buildBaseTheme(
   ColorScheme colorScheme, {
   required SystemUiOverlayStyle systemOverlayStyle,
+  bool reduceMotion = false,
 }) {
   final surfaceElevated = colorScheme.brightness == Brightness.dark
       ? colorScheme.surface.withValues(alpha: 1.0) // 暗色模式下保持纯深色
@@ -81,9 +84,28 @@ ThemeData _buildBaseTheme(
       ? InkRipple.splashFactory
       : ThemeData(useMaterial3: true).splashFactory;
 
+  // U27：reduce-motion 下页面转场即时完成（无过渡动画）
+  final pageTransitions = reduceMotion
+      ? const PageTransitionsTheme(
+          builders: <TargetPlatform, PageTransitionsBuilder>{
+            TargetPlatform.android: _InstantPageTransitionsBuilder(),
+            TargetPlatform.iOS: _InstantPageTransitionsBuilder(),
+            TargetPlatform.linux: _InstantPageTransitionsBuilder(),
+            TargetPlatform.macOS: _InstantPageTransitionsBuilder(),
+            TargetPlatform.windows: _InstantPageTransitionsBuilder(),
+            TargetPlatform.fuchsia: _InstantPageTransitionsBuilder(),
+          },
+        )
+      : null;
+
+  // U27：reduce-motion 时页面转场即时完成，否则使用 M3 默认转场
+  final effectivePageTransitions = pageTransitions ??
+      ThemeData(useMaterial3: true).pageTransitionsTheme;
+
   return ThemeData(
     useMaterial3: true,
     splashFactory: splashFactory,
+    pageTransitionsTheme: effectivePageTransitions,
     colorScheme: colorScheme,
     // 显式指定 scaffold 背景色（确保视频浏览页的背景与 colorScheme 对齐）
     scaffoldBackgroundColor: colorScheme.surface,
@@ -256,20 +278,22 @@ ThemeData _buildBaseTheme(
 /// ===== 暴露给 app.dart 的三个入口 =====
 
 /// 亮色主题
-ThemeData buildLightTheme() {
+ThemeData buildLightTheme({bool reduceMotion = false}) {
   final colorScheme = _buildLightColorScheme();
   return _buildBaseTheme(
     colorScheme,
     systemOverlayStyle: _lightSystemOverlayStyle(),
+    reduceMotion: reduceMotion,
   );
 }
 
 /// 暗色主题
-ThemeData buildDarkTheme() {
+ThemeData buildDarkTheme({bool reduceMotion = false}) {
   final colorScheme = _buildDarkColorScheme();
   return _buildBaseTheme(
     colorScheme,
     systemOverlayStyle: _darkSystemOverlayStyle(),
+    reduceMotion: reduceMotion,
   );
 }
 
@@ -315,4 +339,20 @@ class _SystemOverlayStyleTheme
 SystemUiOverlayStyle systemOverlayStyleOf(BuildContext context) {
   final ext = Theme.of(context).extension<_SystemOverlayStyleTheme>();
   return ext?.style ?? _lightSystemOverlayStyle();
+}
+
+/// U27：reduce-motion 下的即时页面转场 builder（无过渡动画）
+class _InstantPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _InstantPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return child;
+  }
 }
