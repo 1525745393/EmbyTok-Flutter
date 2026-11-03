@@ -20,6 +20,7 @@ import 'package:embytok_flutter/providers/synology_music_provider.dart';
 import 'package:embytok_flutter/providers/synology_playback_provider.dart';
 import 'package:embytok_flutter/views/home_scaffold.dart';
 import 'package:embytok_flutter/views/main_view.dart';
+import 'package:embytok_flutter/views/music/artist_detail_page.dart';
 import 'package:embytok_flutter/views/synology_music_view.dart';
 
 /// Emby 已登录（默认视频模式）
@@ -131,5 +132,48 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 30));
     await tester.pump(const Duration(seconds: 30));
+  });
+
+  testWidgets('Emby 登录（视频模式）深链访问歌手详情 /music/artist 重定向回首页',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authProvider.overrideWith(
+            (ref) => _FakeEmbyAuth(
+              ref,
+              const AuthState(
+                isAuthenticated: true,
+                user: User(id: 'u1', name: 'tester', accessToken: 'tok'),
+                embyServerUrl: 'http://emby.example.com',
+                token: 'tok',
+              ),
+            ),
+          ),
+          synologyAuthProvider
+              .overrideWith((ref) => _FakeSynoAuthLoggedOut(ref)),
+          synologyMusicProvider.overrideWith((ref) => _FakeMusicNotifier(ref)),
+          synologyPlaybackProvider
+              .overrideWith((ref) => _FakePlaybackNotifier(ref)),
+        ],
+        child: const EmbyTokApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(HomeScaffold), findsOneWidget);
+
+    final router = GoRouter.of(tester.element(find.byType(HomeScaffold)));
+    router.go('/music/artist/周杰伦');
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ArtistDetailPage), findsNothing,
+        reason: '视频模式/群晖未登录不应进入歌手详情页');
+    expect(find.byType(HomeScaffold), findsOneWidget,
+        reason: '守卫应重定向回首页');
+
+    // 清理后台 Timer：卸载 App + 推进虚拟时间（避免 !timersPending）
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 2));
   });
 }
