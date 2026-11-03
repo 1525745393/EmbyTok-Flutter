@@ -1,3 +1,10 @@
+## [2.401.101](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.100...v2.401.101) (2026-11-03)
+
+
+### Bug Fixes
+
+* **settings:** 音乐服务分组与/music路由按模式对称守卫 ([e65fe3e](https://github.com/1525745393/EmbyTok-Flutter/commit/e65fe3ec4b8c9ceef1c02825de532773873c3cb9))
+
 ## [2.401.100](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.401.99...v2.401.100) (2026-11-03)
 
 
