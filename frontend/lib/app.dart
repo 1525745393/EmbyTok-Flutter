@@ -51,7 +51,6 @@ import 'views/profile_view.dart';
 import 'views/folder_browse_view.dart';
 import 'views/synology_music_view.dart';
 import 'views/music/artist_detail_page.dart';
-import 'widgets/performance_overlay.dart';
 import 'widgets/video/video_page_item.dart';
 import 'test_mode/test_mode_switch.dart';
 import 'test_mode/test_mode_home.dart';
@@ -670,30 +669,28 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
           maxScaleFactor: 1.3,
           child: AnnotatedRegion<SystemUiOverlayStyle>(
             value: systemOverlayStyleOf(context),
-            child: AppPerformanceOverlay(
-              child: Column(
-                children: [
-                  if (testEnvOverride != null && testEnvOverride.isNotEmpty)
-                    Container(
-                      width: double.infinity,
-                      color: Colors.red,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 3),
-                      child: SafeArea(
-                        bottom: false,
-                        child: Text(
-                          '测试环境: $testEnvOverride',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center,
-                        ),
+            child: Column(
+              children: [
+                if (testEnvOverride != null && testEnvOverride.isNotEmpty)
+                  Container(
+                    width: double.infinity,
+                    color: Colors.red,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 3),
+                    child: SafeArea(
+                      bottom: false,
+                      child: Text(
+                        '测试环境: $testEnvOverride',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
                       ),
                     ),
-                  Expanded(child: child ?? const SizedBox.shrink()),
-                ],
-              ),
+                  ),
+                Expanded(child: child ?? const SizedBox.shrink()),
+              ],
             ),
           ),
         );

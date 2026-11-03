@@ -12,7 +12,6 @@ import 'subpages/http_capture_panel.dart';
 import 'subpages/log_viewer_page.dart';
 import 'subpages/lock_screen_control_test_page.dart';
 import 'subpages/network_weak_test_page.dart';
-import 'subpages/performance_debug_page.dart';
 import 'subpages/player_test_page.dart';
 import 'subpages/proxy_settings_page.dart';
 import 'subpages/route_direct_panel.dart';
@@ -72,13 +71,6 @@ class TestModeHomePage extends StatelessWidget {
       title: '环境切换',
       subtitle: '切换 Emby 后端地址（开发/测试/正式）',
       builder: _buildEnv,
-    ),
-    _TestModuleEntry(
-      icon: Icons.speed,
-      color: Colors.teal,
-      title: '性能调试工具',
-      subtitle: '内存读数、PerformanceOverlay 开关',
-      builder: _buildPerf,
     ),
     _TestModuleEntry(
       icon: Icons.article_outlined,
@@ -170,7 +162,6 @@ class TestModeHomePage extends StatelessWidget {
   static Widget _buildNetwork(BuildContext _) => const NetworkWeakTestPage();
   static Widget _buildBasic(BuildContext _) => const BasicTestPage();
   static Widget _buildEnv(BuildContext _) => const EnvironmentSwitchPage();
-  static Widget _buildPerf(BuildContext _) => const PerformanceDebugPage();
   static Widget _buildLog(BuildContext _) => const LogViewerPage();
   static Widget _buildRoute(BuildContext _) => const RouteDirectPanel();
   static Widget _buildCrash(BuildContext _) => const CrashSimulatorPage();
