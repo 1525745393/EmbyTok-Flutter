@@ -1,3 +1,10 @@
+## [2.402.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.402.1...v2.402.2) (2026-11-04)
+
+
+### Bug Fixes
+
+* 修复全仓UI审查P2批1播放器/全屏族四缺陷（句柄竞争/弹幕回退/全局静音/字幕残留）+ 回归测试 ([dc9380a](https://github.com/1525745393/EmbyTok-Flutter/commit/dc9380a2d7f40ef59dc829c17a2e05b9f14d2f34))
+
 ## [2.402.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.402.0...v2.402.1) (2026-11-03)
 
 
