@@ -202,13 +202,24 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
         _reinitForAudioTrackSwitch();
       }
     });
+    // P2 全局静音修复：顶栏静音按钮只切换 isMutedProvider，
+    // 这里监听变化并同步当前播放器实际音量（静音→0，取消→恢复 volumeBeforeMute）
+    ref.listenManual<bool>(isMutedProvider, (prev, next) {
+      if (prev == next || !mounted || _isDisposed) return;
+      if (next) {
+        setVolume(0.0);
+      } else {
+        setVolume(ref.read(volumeBeforeMuteProvider) ?? 1.0);
+      }
+    });
     if (_canPlayVideo) {
       _initVideo();
     }
     // 注册统一控制句柄：横屏覆盖层通过 currentPlayerControlProvider
-    // 调用 seekTo/setRate/setVolume，三引擎同步生效
+    // 调用 seekTo/setRate/setVolume，三引擎同步生效。
+    // 仅当前页注册：预加载的相邻页不抢占句柄（P2 句柄竞争修复）
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_isDisposed && mounted) {
+      if (!_isDisposed && mounted && widget.isCurrentPage) {
         ref.read(currentPlayerControlProvider.notifier).state = this;
       }
     });
@@ -230,6 +241,28 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
   @override
   void didUpdateWidget(VideoPlayerWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // 同步统一控制句柄归属：变当前页则注册（若句柄尚未指向本页），
+    // 变非当前页则注销（compare-and-set，仅当句柄仍指向本页）——P2 句柄竞争修复。
+    // 放在最前：即使首次 update（_currentItemId==null early-return）或 item 切换
+    // 分支提前返回，isCurrentPage 变化的句柄同步也不能被跳过。
+    // 注：didUpdateWidget 属于 widget 生命周期，Riverpod debug 守卫禁止在此
+    // 直接修改 provider（生产 debug 构建同样会抛），故延迟到 post-frame 执行。
+    if (oldWidget.isCurrentPage != widget.isCurrentPage) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_isDisposed && mounted) {
+          final curHandle = ref.read(currentPlayerControlProvider);
+          if (widget.isCurrentPage) {
+            if (!identical(curHandle, this)) {
+              ref.read(currentPlayerControlProvider.notifier).state = this;
+            }
+          } else {
+            if (identical(curHandle, this)) {
+              ref.read(currentPlayerControlProvider.notifier).state = null;
+            }
+          }
+        }
+      });
+    }
     final newItemId = widget.item.id;
     if (_currentItemId == null) {
       _currentItemId = newItemId;
@@ -521,12 +554,34 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
   }
 
   @override
+  void deactivate() {
+    super.deactivate();
+    // 注销统一控制句柄（避免横屏持有已 dispose 的 State）。
+    // compare-and-set：仅当句柄仍指向本页时才置 null，
+    // 防止非当前页 dispose 误清空当前页句柄（P2 句柄竞争修复）。
+    // 注：Riverpod debug 守卫禁止在 deactivate（树构建期间）直接修改 provider，
+    // 且 post-frame 时 element 可能已 dispose（ref 不可用，抛 Bad state），
+    // 故在此缓存 ProviderContainer，延迟到 post-frame 经 container 直连做 CAS 清理。
+    try {
+      final container = ProviderScope.containerOf(context);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        try {
+          final cur = container.read(currentPlayerControlProvider);
+          if (identical(cur, this)) {
+            container.read(currentPlayerControlProvider.notifier).state = null;
+          }
+        } catch (e) {
+          AppLogger.warn('播放器操作失败', data: {'error': e.toString()});
+        }
+      });
+    } catch (e) {
+      AppLogger.warn('播放器操作失败', data: {'error': e.toString()});
+    }
+  }
+
+  @override
   void dispose() {
     _isDisposed = true;
-    // 注销统一控制句柄（避免横屏持有已 dispose 的 State）
-    try {
-      ref.read(currentPlayerControlProvider.notifier).state = null;
-    } catch (e) { AppLogger.warn('播放器操作失败', data: {'error': e.toString()}); }
     _backgroundReleaseTimer?.cancel();
     _positionMs.dispose();
     _isPlayingNotifier.dispose();

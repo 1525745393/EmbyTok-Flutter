@@ -273,6 +273,10 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
 
   // 字幕
   List<SubtitleCue> _subtitleCues = const <SubtitleCue>[];
+  /// 已加载字幕对应的播放项 id：切集（item 变化）时用于重置并重载字幕，
+  /// 防止新集字幕轨道 ID 与旧集相同导致 selectedSubtitleProvider 不变、
+  /// listen 不 firing 时旧集 cues 残留（P2 字幕残留修复）
+  String? _subtitleItemId;
 
   // 弹幕
   List<DanmakuItem> _danmakus = [];
@@ -666,6 +670,22 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
         _danmakuItemId = itemId;
         _danmakus = [];
         _danmakuLoadAttempted = false;
+      }
+      // P2 字幕残留修复：切集时重置字幕 cues 并重新加载（与弹幕重置对齐）。
+      // 若新集字幕轨道 ID 与旧集相同，selectedSubtitleProvider 值不变、
+      // listen 不 firing，必须在此显式按新 item 重载，否则旧集文本残留。
+      if (_subtitleItemId != itemId) {
+        _subtitleItemId = itemId;
+        _subtitleCues = const <SubtitleCue>[];
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          final currentSub = ref.read(selectedSubtitleProvider);
+          if (currentSub != null) {
+            _loadSubtitle(currentSub);
+          } else {
+            _autoLoadDefaultSubtitle();
+          }
+        });
       }
       if (_danmakus.isEmpty && !_danmakuLoadAttempted && _danmakuEnabled) {
         _danmakuLoadAttempted = true;

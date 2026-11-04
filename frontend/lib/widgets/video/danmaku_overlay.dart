@@ -96,6 +96,15 @@ class _DanmakuOverlayState extends State<DanmakuOverlay>
   void _onTick(Duration elapsed) {
     if (!widget.enabled || !mounted) return;
     final pos = widget.positionMs.value;
+    // 回退 seek（pos < _lastPosition）：游标二分回退到新位置之后即将出现的弹幕，
+    // 并清空已发射弹幕（旧位置的弹幕不再匹配当前画面）——P2 弹幕回退修复。
+    // 不重放 [pos 之前已出现] 的弹幕，只发射 [pos, pos+窗口] 内的新弹幕。
+    if (pos < _lastPosition) {
+      _lastPosition = pos;
+      _rewindCursor(pos);
+      setState(() => _active.clear());
+      return;
+    }
     final delta = pos - _lastPosition;
     _lastPosition = pos;
     if (delta <= 0) return;
@@ -107,6 +116,21 @@ class _DanmakuOverlayState extends State<DanmakuOverlay>
       }
       _active.removeWhere((d) => d.x < -200);
     });
+  }
+
+  /// 回退 seek：将发射游标二分定位到第一个 startMs >= pos 的弹幕，
+  /// 使 [pos, pos+窗口] 内的弹幕重新发射（startMs < pos 的已出现过，不重放）。
+  void _rewindCursor(int pos) {
+    int lo = 0, hi = _sortedDanmakus.length;
+    while (lo < hi) {
+      final mid = (lo + hi) ~/ 2;
+      if (_sortedDanmakus[mid].startMs < pos) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    _emitCursor = lo;
   }
 
   void _emit() {
