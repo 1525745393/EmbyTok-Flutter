@@ -1,3 +1,10 @@
+## [2.402.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.402.2...v2.402.3) (2026-11-04)
+
+
+### Bug Fixes
+
+* 修复全仓UI审查P2批2弹窗/竞态族四缺陷（音乐加载框系统返回/批量重命名防重入/TMDB选择竞态）+ 回归测试 ([2f2f22a](https://github.com/1525745393/EmbyTok-Flutter/commit/2f2f22a68b716172348f08a3c16789fa48b727a2))
+
 ## [2.402.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.402.1...v2.402.2) (2026-11-04)
 
 
