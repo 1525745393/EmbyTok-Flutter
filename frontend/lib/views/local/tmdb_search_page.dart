@@ -34,6 +34,10 @@ class _TmdbSearchPageState extends State<TmdbSearchPage> {
   late TextEditingController _ctrl;
   List<Map<String, dynamic>> _results = [];
   bool _loading = false;
+  // P2 修复：详情拉取独立 busy 标志——_select 与 _search 共用 _loading 时，
+  // 详情进行中提交新搜索会把 _loading 重置 false，第二个 _select 穿过
+  // if(_loading)return 守卫并发写盘（后写覆盖先写，落盘可能非用户最终所选）。
+  bool _selectBusy = false;
   String _type = 'movie'; // movie | tv
   // batch50-F1：请求序号守卫，快速切换类型/连续搜索时丢弃过期响应
   int _searchSeq = 0;
@@ -77,12 +81,15 @@ class _TmdbSearchPageState extends State<TmdbSearchPage> {
   }
 
   Future<void> _select(Map<String, dynamic> result) async {
-    // 防快速连击：结果项在加载遮罩下仍可点，连点会发起两次详情请求并重复落盘
-    if (_loading) return;
-    final id = result['id'] as int;
+    // 防快速连击：结果项在加载遮罩下仍可点，连点会发起两次详情请求并重复落盘。
+    // P2 修复：_selectBusy 独立于 _loading——新搜索响应会把 _loading 重置 false，
+    // 仅靠 if(_loading)return 守卫会被击穿，加 _selectBusy 双重拦截。
+    if (_loading || _selectBusy) return;
+    _selectBusy = true;
     setState(() => _loading = true);
     try {
       // 获取详情
+      final id = result['id'] as int;
       final details = _type == 'movie'
           ? await TmdbService.getMovieDetails(id)
           : await TmdbService.getTvDetails(id);
@@ -138,6 +145,9 @@ class _TmdbSearchPageState extends State<TmdbSearchPage> {
         setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('获取详情失败: $e')));
       }
+    } finally {
+      // P2 修复：无论成功/失败都释放 _selectBusy，保证后续选择可再次进入
+      _selectBusy = false;
     }
   }
 

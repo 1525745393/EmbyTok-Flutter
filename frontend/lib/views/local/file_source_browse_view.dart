@@ -68,6 +68,9 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   bool _loading = true;
   String? _error;
   bool _scraping = false;
+  // P2 修复：批量重命名防重入——连点会并发跑两个重命名循环，
+  // 第二个循环因文件已改名全部失败，SnackBar 成功/失败计数错乱
+  bool _batchRenameBusy = false;
   int _scrapedCount = 0;
   // 多选模式
   final Set<String> _selected = {};
@@ -1924,7 +1927,9 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           TextButton.icon(
             icon: const Icon(Icons.auto_fix_high, color: Colors.green),
             label: const Text('按刮削重命名'),
-            onPressed: () => _batchRename(),
+            // P2 修复：busy 期间禁用按钮，防止连点触发并发重命名循环
+            onPressed:
+                _batchRenameBusy ? null : () => _batchRename(),
           ),
           TextButton.icon(
             icon: const Icon(Icons.delete, color: Colors.red),
@@ -1937,28 +1942,35 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   }
 
   Future<void> _batchRename() async {
-    int ok = 0, fail = 0, skip = 0;
-    for (final item in _items.where((i) => _selected.contains(i.pathHash))) {
-      try {
-        final s = _scraped[item.pathHash];
-        if (s != null) {
-          await LocalVideoService().renameByScraped(item, s);
-          ok++;
-        } else {
-          skip++;
+    // P2 修复：防重入——循环未结束前再次点击直接忽略（按钮同时禁用）
+    if (_batchRenameBusy) return;
+    _batchRenameBusy = true;
+    try {
+      int ok = 0, fail = 0, skip = 0;
+      for (final item in _items.where((i) => _selected.contains(i.pathHash))) {
+        try {
+          final s = _scraped[item.pathHash];
+          if (s != null) {
+            await LocalVideoService().renameByScraped(item, s);
+            ok++;
+          } else {
+            skip++;
+          }
+        } catch (_) {
+          fail++;
         }
-      } catch (_) {
-        fail++;
       }
-    }
-    setState(() => _selected.clear());
-    if (mounted) {
-      final msg = StringBuffer('批量重命名：成功 $ok');
-      if (skip > 0) msg.write('，$skip 个未刮削');
-      if (fail > 0) msg.write('，失败 $fail');
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(msg.toString())));
-      _scan();
+      setState(() => _selected.clear());
+      if (mounted) {
+        final msg = StringBuffer('批量重命名：成功 $ok');
+        if (skip > 0) msg.write('，$skip 个未刮削');
+        if (fail > 0) msg.write('，失败 $fail');
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(msg.toString())));
+        _scan();
+      }
+    } finally {
+      _batchRenameBusy = false;
     }
   }
 

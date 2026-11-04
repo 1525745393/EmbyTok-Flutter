@@ -8,20 +8,25 @@ extension _MusicSheetsMixin on _SynologyMusicViewState {
   Future<void> _showAlbumSongs(AudioAlbum album) async {
     // 批次B-F7：加载专辑歌曲为多跳网络，原实现 await 期间无任何反馈。
     // 先弹不可关闭的加载对话框，完成后关闭再弹歌曲 sheet。
+    // P2 修复：PopScope(canPop:false) 拦截系统返回键——否则用户返回键
+    // 关闭加载框后，await 完成时 Navigator.pop(context) 会误 pop 底层页面。
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(
-        child: Card(
-          child: Padding(
-            padding: EdgeInsets.all(kSpacingLg),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(width: 12),
-                Text('正在加载歌曲…'),
-              ],
+      builder: (_) => const PopScope(
+        canPop: false,
+        child: Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(kSpacingLg),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 12),
+                  Text('正在加载歌曲…'),
+                ],
+              ),
             ),
           ),
         ),
@@ -61,20 +66,24 @@ extension _MusicSheetsMixin on _SynologyMusicViewState {
   Future<void> _showPlaylistSongs(AudioPlaylist playlist) async {
     // 批次B-F7：加载歌单歌曲为多跳网络，原实现 await 期间无任何反馈。
     // 先弹不可关闭的加载对话框，完成后关闭再弹歌曲 sheet。
+    // P2 修复：PopScope(canPop:false) 拦截系统返回键（同 _showAlbumSongs）。
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(
-        child: Card(
-          child: Padding(
-            padding: EdgeInsets.all(kSpacingLg),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(width: 12),
-                Text('正在加载歌曲…'),
-              ],
+      builder: (_) => const PopScope(
+        canPop: false,
+        child: Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(kSpacingLg),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 12),
+                  Text('正在加载歌曲…'),
+                ],
+              ),
             ),
           ),
         ),
