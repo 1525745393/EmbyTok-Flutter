@@ -2409,7 +2409,8 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
         tracks: item.subtitleTracks,
         onSelected: (track) {
           if (track == null) {
-            ref.read(subtitleSettingsProvider.notifier).setLanguage('');
+            // P3 修复：关闭字幕仅临时关闭当前视频，不 setLanguage('')
+            // 清空持久化偏好（subtitle_selector 内已同步去除）
             ref.read(selectedSubtitleProvider.notifier).state = null;
           } else {
             // 本地字幕不保存语言偏好（语言代码为 'local'）

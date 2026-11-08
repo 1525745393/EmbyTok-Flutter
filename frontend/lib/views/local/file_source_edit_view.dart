@@ -28,6 +28,10 @@ class _FileSourceEditViewState extends ConsumerState<FileSourceEditView> {
   late final TextEditingController _user;
   late final TextEditingController _password;
 
+  /// P3 修复：SMB 测试连接进行中标志——防重入（连点会弹两个 loading 圈
+  /// 并显示两条结果 SnackBar）；测试期间按钮同步禁用
+  bool _testing = false;
+
   @override
   void initState() {
     super.initState();
@@ -119,7 +123,7 @@ class _FileSourceEditViewState extends ConsumerState<FileSourceEditView> {
           // SMB 连接测试按钮
           if (!isWebdav)
             OutlinedButton.icon(
-              onPressed: _testSmbConnection,
+              onPressed: _testing ? null : _testSmbConnection,
               icon: const Icon(Icons.wifi_tethering),
               label: const Text('测试连接'),
             ),
@@ -135,6 +139,8 @@ class _FileSourceEditViewState extends ConsumerState<FileSourceEditView> {
 
   /// 测试 SMB 连通性（P0 增强）
   Future<void> _testSmbConnection() async {
+    // P3 修复：防重入——测试进行中再次点击直接忽略（按钮同时禁用）
+    if (_testing) return;
     final host = _host.text.trim();
     if (host.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -142,25 +148,35 @@ class _FileSourceEditViewState extends ConsumerState<FileSourceEditView> {
       );
       return;
     }
-    showDialog<Widget>(context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
-    final err = await SmbScanner.testConnection(
-      host: host,
-      port: int.tryParse(_port.text.trim()) ?? 445,
-      username: _user.text.trim(),
-      password: _password.text,
-      share: _share.text.trim(),
-    );
-    if (!mounted) return;
-    Navigator.pop(context); // 关闭 loading
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(err == null ? '连接成功' : '连接失败: $err'),
-        backgroundColor: err == null ? Colors.green : Colors.red,
-      ),
-    );
+    _testing = true;
+    try {
+      showDialog<Widget>(context: context,
+        // P3/P2 同族修复：系统返回键不能关闭加载框，避免 await 完成后
+        // Navigator.pop 误 pop 掉表单页
+        barrierDismissible: false,
+        builder: (_) => const PopScope(
+          canPop: false,
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
+      final err = await SmbScanner.testConnection(
+        host: host,
+        port: int.tryParse(_port.text.trim()) ?? 445,
+        username: _user.text.trim(),
+        password: _password.text,
+        share: _share.text.trim(),
+      );
+      if (!mounted) return;
+      Navigator.pop(context); // 关闭 loading
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(err == null ? '连接成功' : '连接失败: $err'),
+          backgroundColor: err == null ? Colors.green : Colors.red,
+        ),
+      );
+    } finally {
+      _testing = false;
+    }
   }
 
   void _save() {

@@ -55,7 +55,7 @@ class _MainViewState extends ConsumerState<MainView> {
         showMiniPlayer: false,
       ),
       // 我的：个人中心
-      const ProfileView(),
+      const ProfileView(showBackButton: false),
     ];
     // 启动后静默检查更新（有新版本才提示，同一版本只弹一次）
     WidgetsBinding.instance.addPostFrameCallback((_) => _autoCheckUpdate());

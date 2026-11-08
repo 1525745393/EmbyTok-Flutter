@@ -15,7 +15,12 @@ import '../utils/constants.dart';
 import '../utils/auth_actions.dart';
 
 class ProfileView extends ConsumerWidget {
-  const ProfileView({super.key});
+  const ProfileView({super.key, this.showBackButton = true});
+
+  /// P3 修复：Tab 页内（MainView）不显示返回箭头——`context.go('/')` 会重建
+  /// MainView 使 `_currentIndex` 归 0，用户从「我的」Tab 被弹回首页 Tab；
+  /// 作为独立路由页（/profile）时仍保留返回按钮
+  final bool showBackButton;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -27,11 +32,13 @@ class ProfileView extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('个人中心'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/'),
-          tooltip: '返回',
-        ),
+        leading: showBackButton
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => context.go('/'),
+                tooltip: '返回',
+              )
+            : null,
       ),
       body: SafeArea(
         child: ListView(

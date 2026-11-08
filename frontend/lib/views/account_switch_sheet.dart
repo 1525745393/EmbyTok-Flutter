@@ -219,10 +219,13 @@ class _AccountSheet extends ConsumerWidget {
   }
 
   Future<void> _showAddDialog(BuildContext context, WidgetRef ref) async {
-    final serverCtl = TextEditingController(
-        text: ref.read(synologyAuthProvider).serverUrl ?? '');
-    final userCtl = TextEditingController();
-    final pwdCtl = TextEditingController();
+    // P3 修复：输入值经 onChanged 收集、不创建 TextEditingController——
+    // controller 若在 dialog 关闭后立即 dispose，退场动画期间 TextField 仍在
+    // 引用它会崩溃；此方案无 controller，从根上消除泄漏与时机问题。
+    // 服务器地址预填当前值，用户可直接点「登录并保存」复用
+    var serverUrl = ref.read(synologyAuthProvider).serverUrl ?? '';
+    var username = '';
+    var password = '';
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -230,14 +233,15 @@ class _AccountSheet extends ConsumerWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
-                controller: serverCtl,
+            TextFormField(
+                initialValue: serverUrl,
+                onChanged: (v) => serverUrl = v,
                 decoration: const InputDecoration(labelText: '服务器地址')),
-            TextField(
-                controller: userCtl,
+            TextFormField(
+                onChanged: (v) => username = v,
                 decoration: const InputDecoration(labelText: '用户名')),
-            TextField(
-                controller: pwdCtl,
+            TextFormField(
+                onChanged: (v) => password = v,
                 obscureText: true,
                 decoration: const InputDecoration(labelText: '密码')),
           ],
@@ -253,19 +257,21 @@ class _AccountSheet extends ConsumerWidget {
       ),
     );
     if (ok != true) return;
+    serverUrl = serverUrl.trim();
+    username = username.trim();
     if (!context.mounted) return;
     try {
       await ref.read(synologyAuthProvider.notifier).login(
-            serverUrl: serverCtl.text.trim(),
-            account: userCtl.text.trim(),
-            password: pwdCtl.text,
+            serverUrl: serverUrl,
+            account: username,
+            password: password,
           );
       final account = await ref
           .read(synoAccountsProvider.notifier)
           .addAccount(
-            serverUrl: serverCtl.text.trim(),
-            username: userCtl.text.trim(),
-            password: pwdCtl.text,
+            serverUrl: serverUrl,
+            username: username,
+            password: password,
           );
       await ref.read(synoAccountsProvider.notifier).setCurrent(account.accountId);
       await ref.read(synologyMusicProvider.notifier).loadHomeData(force: true);

@@ -124,6 +124,19 @@ class _SeekableProgressBarState extends State<SeekableProgressBar> {
     super.dispose();
   }
 
+  @override
+  void didUpdateWidget(covariant SeekableProgressBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // P3 修复：MPV/VLC 引擎下组件挂载时 handle 可能为 null（延迟就绪），
+    // 此后 handle 就绪时补挂 listener——否则进度条不随播放刷新
+    // （对齐 VideoControls 同款处理）
+    if (_useHandleListener &&
+        oldWidget.handle?.positionMsListenable == null &&
+        widget.handle?.positionMsListenable != null) {
+      widget.handle?.positionMsListenable?.addListener(_onChanged);
+    }
+  }
+
   void _onChanged() {
     if (!mounted) return;
     setState(() {});

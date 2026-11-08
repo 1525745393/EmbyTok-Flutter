@@ -73,6 +73,9 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
   Set<String> _localSelectedIds = {};
   // 是否选中收藏夹（确认前临时使用）
   bool _localIsFavorites = false;
+  // P3 修复：本地选中只初始化一次——收藏夹模式切换会清空 _localSelectedIds，
+  // 切回媒体库模式若再命中补选分支会把原选中静默替换为第一个库
+  bool _localInitialized = false;
 
   @override
   void initState() {
@@ -139,11 +142,14 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
     final librariesAsync = ref.watch(libraryListProvider);
     final visibleLibraries = ref.watch(visibleLibraryListProvider);
 
-    // 如果还没有初始化本地选中状态，默认选中第一个库（仅非收藏夹模式）
-    if (!_localIsFavorites &&
-        _localSelectedIds.isEmpty &&
-        visibleLibraries.isNotEmpty) {
-      _localSelectedIds.add(visibleLibraries.first.id);
+    // 仅在首次 build 初始化本地选中状态，默认选中第一个库（仅非收藏夹模式）。
+    // P3 修复：此后不再补选——收藏夹 onTap 会 clear _localSelectedIds，
+    // 切回媒体库模式时原选中保持，不被静默替换为第一个库。
+    if (!_localInitialized) {
+      _localInitialized = true;
+      if (!_localIsFavorites && visibleLibraries.isNotEmpty) {
+        _localSelectedIds.add(visibleLibraries.first.id);
+      }
     }
 
     // 判断是否全选

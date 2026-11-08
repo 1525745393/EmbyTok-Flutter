@@ -178,11 +178,25 @@ class _SearchNoResultHint extends StatelessWidget {
 ///
 /// 注意：仅对「当前未收藏」的条目执行 toggle。取消失败（已回滚，仍收藏）
 /// 的条目若再次 toggle，会被反方向取消收藏——用户点撤销反而把它移除。
+///
+/// P3 修复：toggleFavorite 对同一 itemId 并发调用会直接忽略（_pendingToggles
+/// 守卫），若「取消收藏」请求尚未落定就点撤销，撤销会被静默吞掉、条目仍是未收藏。
+/// 因此先 await 该条目最近一次取消请求，再执行撤销 toggle。
+final Map<String, Future<void>> _pendingUnfavorites = {};
+
 Future<void> _undoUnfavorite(
   ScaffoldMessengerState messenger,
   FavoritesNotifier notifier,
   MediaItem item,
 ) async {
+  final pending = _pendingUnfavorites.remove(item.id);
+  if (pending != null) {
+    try {
+      await pending;
+    } catch (_) {
+      // 取消请求自身失败已由 toggleFavorite 内部回滚，这里只等待其落定
+    }
+  }
   if (!notifier.isFavorite(item.id)) {
     await notifier.toggleFavorite(item);
   }
@@ -214,7 +228,8 @@ Widget _buildUnfavoriteTile({
     onTap: () {
       Navigator.pop(ctx);
       final notifier = ref.read(favoritesProvider.notifier);
-      notifier.toggleFavorite(item);
+      // P3 修复：记录本次取消收藏请求，撤销时先等待其落定再 toggle
+      _pendingUnfavorites[item.id] = notifier.toggleFavorite(item);
       final messenger = ScaffoldMessenger.of(stateContext);
       messenger.showSnackBar(
         SnackBar(

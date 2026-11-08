@@ -83,6 +83,19 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
   }
 
   @override
+  void didUpdateWidget(covariant VideoControls oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // P3 修复：MPV/VLC 引擎下组件挂载时 handle 可能为 null（延迟就绪），
+    // 此后 handle 就绪/替换时补挂 listener——否则 isPlayingProvider 不被
+    // 同步（如唱片旋转动画不更新）。仅补挂一次（handle 从 null 变非 null）。
+    if (_useHandleListener &&
+        oldWidget.handle?.positionMsListenable == null &&
+        widget.handle?.positionMsListenable != null) {
+      widget.handle?.positionMsListenable?.addListener(_onControllerChanged);
+    }
+  }
+
+  @override
   void dispose() {
     if (_useHandleListener) {
       widget.handle?.positionMsListenable?.removeListener(_onControllerChanged);

@@ -40,13 +40,16 @@ class _AddSheet extends ConsumerWidget {
             leading: const Icon(Icons.add),
             title: const Text('新建歌单'),
             onTap: () async {
-              final ctl = TextEditingController();
+              // P3 修复：歌单名经 onChanged 收集、不创建 TextEditingController——
+              // controller 若在 dialog 关闭后立即 dispose，退场动画期间 TextField
+              // 仍在引用它会崩溃；此方案无 controller，从根上消除泄漏与时机问题
+              var name = '';
               final ok = await showDialog<bool>(
                 context: context,
                 builder: (_) => AlertDialog(
                   title: const Text('新建歌单'),
                   content: TextField(
-                    controller: ctl,
+                    onChanged: (v) => name = v,
                     autofocus: true,
                     decoration: const InputDecoration(labelText: '歌单名称'),
                   ),
@@ -60,10 +63,10 @@ class _AddSheet extends ConsumerWidget {
                   ],
                 ),
               );
-              if (ok == true && ctl.text.trim().isNotEmpty) {
+              if (ok == true && name.trim().isNotEmpty) {
                 final pl = await ref
                     .read(playlistsProvider.notifier)
-                    .create(ctl.text);
+                    .create(name);
                 await ref
                     .read(playlistsProvider.notifier)
                     .addSong(pl.id, song);

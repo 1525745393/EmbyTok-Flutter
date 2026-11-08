@@ -110,9 +110,10 @@ class SubtitleSelector extends ConsumerWidget {
                     subtitle: '不显示字幕',
                     isSelected: selectedId == null,
                     onTap: () {
-                      ref
-                          .read(subtitleSettingsProvider.notifier)
-                          .setLanguage('');
+                      // P3 修复：关闭字幕仅临时关闭当前视频字幕（onSelected(null)
+                      // 置 selectedSubtitleProvider=null），不调用 setLanguage('')
+                      // 清空持久化偏好——否则本集临时关闭会让后续所有视频
+                      // 不再自动匹配偏好字幕
                       onSelected?.call(null);
                       onClose?.call();
                     },

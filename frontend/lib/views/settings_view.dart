@@ -717,7 +717,10 @@ class SettingsView extends ConsumerWidget {
 
   Future<void> _showPinLockDialog(BuildContext context, WidgetRef ref) async {
     final currentPin = ref.read(pinLockProvider);
-    final controller = TextEditingController();
+    // P3 修复：输入值经 onChanged 收集，不创建 TextEditingController——
+    // controller 若在 dialog 关闭后立即 dispose，退场动画期间 TextField 仍在
+    // 引用它会崩溃；onChanged 方案无 controller，从根上消除泄漏与时机问题
+    var input = '';
     await showDialog<Widget>(
       context: context,
       builder: (context) => AlertDialog(
@@ -728,7 +731,7 @@ class SettingsView extends ConsumerWidget {
             Text(currentPin.isEmpty ? '输入 4 位数字 PIN' : '输入当前 PIN 以验证'),
             const SizedBox(height: 16),
             TextField(
-              controller: controller,
+              onChanged: (v) => input = v,
               keyboardType: TextInputType.number,
               maxLength: 4,
               obscureText: true,
@@ -749,7 +752,7 @@ class SettingsView extends ConsumerWidget {
               onPressed: () {
                 // P1 修复：关闭锁必须先输入当前 PIN 并校验通过（与「验证」按钮一致），
                 // 防止任何能进入设置页的人无需当前 PIN 即可关闭守卫
-                if (controller.text != currentPin) {
+                if (input != currentPin) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('PIN 不正确')),
                   );
@@ -765,7 +768,6 @@ class SettingsView extends ConsumerWidget {
             ),
           TextButton(
             onPressed: () {
-              final input = controller.text;
               if (input.length != 4) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('请输入 4 位数字')),
@@ -799,13 +801,14 @@ class SettingsView extends ConsumerWidget {
   }
 
   Future<void> _showSetNewPinDialog(BuildContext context, WidgetRef ref) async {
-    final controller = TextEditingController();
+    // P3 修复：同 _showPinLockDialog——用 onChanged 收集，不持有 controller
+    var input = '';
     await showDialog<Widget>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('输入新 PIN'),
         content: TextField(
-          controller: controller,
+          onChanged: (v) => input = v,
           keyboardType: TextInputType.number,
           maxLength: 4,
           obscureText: true,
@@ -818,13 +821,13 @@ class SettingsView extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () {
-              if (controller.text.length != 4) {
+              if (input.length != 4) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('请输入 4 位数字')),
                 );
                 return;
               }
-              ref.read(pinLockProvider.notifier).setPin(controller.text);
+              ref.read(pinLockProvider.notifier).setPin(input);
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('PIN 已更新')),

@@ -1996,8 +1996,12 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       ),
     );
     if (confirm != true) return;
+    // P3 修复：确认后立即清空选中（循环改用 selectedItems 快照）——底部栏
+    // 随选中清空自动隐藏，删除进行中无法再次发起批量删除，避免对已删除
+    // 文件重复 delete 得到「成功 0 失败 N」的误导结果
+    setState(() => _selected.clear());
     int ok = 0, fail = 0;
-    for (final item in _items.where((i) => _selected.contains(i.pathHash))) {
+    for (final item in selectedItems) {
       try {
         // 批次Q1：按 delete 返回值计数，失败不再计入成功
         final deleted = await LocalVideoService().delete(item);
@@ -2016,7 +2020,6 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         fail++;
       }
     }
-    setState(() => _selected.clear());
     if (mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('批量删除：成功 $ok，失败 $fail')));
