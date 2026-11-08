@@ -1,3 +1,10 @@
+## [2.402.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.402.4...v2.402.5) (2026-11-08)
+
+
+### Bug Fixes
+
+* 闭合UI审查报告未闭合三候选（账号切换音乐数据残留/服务器切换防重入/均衡器滑条跟手） ([4b403d3](https://github.com/1525745393/EmbyTok-Flutter/commit/4b403d3d04b6b47a65e8c8005704bf06fcc49b58))
+
 ## [2.402.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.402.3...v2.402.4) (2026-11-08)
 
 
