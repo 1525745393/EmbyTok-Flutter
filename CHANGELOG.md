@@ -1,3 +1,10 @@
+## [2.402.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.402.5...v2.402.6) (2026-11-08)
+
+
+### Bug Fixes
+
+* 修复登录界面审查 9 条 findings（P2×2 + P3×7） ([bc3037d](https://github.com/1525745393/EmbyTok-Flutter/commit/bc3037df3bdcbfa1064106ee4ba21b0952e1a9ae))
+
 ## [2.402.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.402.4...v2.402.5) (2026-11-08)
 
 
