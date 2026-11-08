@@ -10,13 +10,13 @@
 import 'package:flutter/material.dart';
 import '../utils/colors.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../providers/auth_provider.dart';
 import '../providers/server_registry_provider.dart';
 import '../providers/synology_auth_provider.dart';
 import '../utils/logger.dart';
 import '../utils/constants.dart';
+import 'server_switch_helpers.dart';
 
 class ServersView extends ConsumerStatefulWidget {
   const ServersView({super.key});
@@ -138,79 +138,21 @@ class _ServersViewState extends ConsumerState<ServersView> {
     await ref.read(activeServerIdProvider.notifier).setActive(server.id);
 
     try {
-      // batchF4：跨类型切换前清理对端会话，避免双登录残留——
-      // 切群晖前清 Emby token，切 Emby/Plex 前清群晖 sid；
-      // 同类型切换不清理（新登录覆盖旧会话即可）。
-      if (server.kind == ServerKind.synology) {
-        if (ref.read(authProvider).isAuthenticated) {
-          await ref.read(authProvider.notifier).logout();
-        }
-      } else {
-        if (ref.read(synologyAuthProvider).isLoggedIn) {
-          await ref.read(synologyAuthProvider.notifier).logout();
-        }
-      }
+      // P3 修复（登录界面审查 F3/F4/F7）：跨类型对端会话清理、群晖 sid
+      // 有效性校验与密码回退、两步验证取码重试统一收敛到
+      // server_switch_helpers，与登录页「快速切换」共用同一实现，
+      // 避免两套逻辑各自演化、只修一处。
+      await purgeCounterpartSession(ref, server);
 
       if (server.kind == ServerKind.synology) {
-        // 优先用保存的 sid 会话（避免重复输入密码）
-        String? sid;
-        try {
-          sid = await secureStorage.read(key: serverSynoSidKey(server.id));
-        } catch (_) {
-      // 操作失败不影响主流程，静默处理
-    }
-        final synoAuth = ref.read(synologyAuthProvider.notifier);
-        if (sid != null && sid.isNotEmpty) {
-          await synoAuth.restoreSession(
-            serverUrl: server.resolveUrl(),
-            account: server.username,
-            sid: sid,
-          );
-          // batch126-F1 会话恢复是本地乐观置位，不校验 sid 有效性；
-          // 无效 sid（NAS 重启/会话过期）会让下方弹"已切换到"成功提示而实际未登录。
-          // 用一次轻量 API 调用验证，失败则清除假登录态并回退密码登录。
-          try {
-            await synoAuth.api.getGenres();
-          } catch (_) {
-            // batchF1：失败路径只用 clearInvalidSession()（清状态+持久化，不切服务模式），
-            // 不可调 logout()——logout 会清空登录态并 setMode(video)，切换失败会把用户登出。
-            await synoAuth.clearInvalidSession();
-            final password = await _readPassword(secureStorage, server.id);
-            if (password == null) {
-              messenger.showSnackBar(const SnackBar(
-                  content: Text('会话已过期且未保存密码，请编辑后重试')));
-              return;
-            }
-            await synoAuth.login(
-              serverUrl: server.resolveUrl(),
-              account: server.username,
-              password: password,
-            );
-            final current = ref.read(synologyAuthProvider);
-            if (current.sid != null && current.sid!.isNotEmpty) {
-              await registry.update(server, synoSid: current.sid);
-            }
-          }
-        } else {
-          final password = await _readPassword(secureStorage, server.id);
-          if (password == null) {
-            messenger.showSnackBar(const SnackBar(
-                content: Text('未保存该服务器的密码，请编辑后重试')));
-            return;
-          }
-          await synoAuth.login(
-            serverUrl: server.resolveUrl(),
-            account: server.username,
-            password: password,
-          );
-          // 保存 sid 供下次免密恢复
-          final current = ref.read(synologyAuthProvider);
-          if (current.sid != null && current.sid!.isNotEmpty) {
-            await registry.update(server, synoSid: current.sid);
-          }
-        }
+        await loginSynologyTarget(
+          ref,
+          server,
+          secureStorage,
+          requestOtp: () => showSynologyOtpDialog(context),
+        );
       } else {
-        final password = await _readPassword(secureStorage, server.id);
+        final password = await readSavedServerPassword(secureStorage, server.id);
         if (password == null) {
           messenger.showSnackBar(const SnackBar(
               content: Text('未保存该服务器的密码，请编辑后重试')));
@@ -503,13 +445,6 @@ class _ServersViewState extends ConsumerState<ServersView> {
   }
 
   /// 读取保存的密码
-  Future<String?> _readPassword(FlutterSecureStorage storage, String id) async {
-    try {
-      return await storage.read(key: serverPasswordKey(id));
-    } catch (_) {
-      return null;
-    }
-  }
 }
 
 /// 服务器卡片

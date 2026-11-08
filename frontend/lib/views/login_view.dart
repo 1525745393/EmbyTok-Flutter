@@ -18,6 +18,7 @@ import '../providers/service_mode_provider.dart';
 import '../services/services.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
+import 'server_switch_helpers.dart';
 import 'settings/settings_components.dart';
 
 /// 安全存储键名（仅用于凭据，服务器历史仍用 SharedPreferences）
@@ -126,6 +127,11 @@ class _LoginViewState extends ConsumerState<LoginView> {
   bool _isSubmitting = false;
   String? _errorMessage;
 
+  // P3 修复（登录界面审查 F5）：服务器快速切换防重入——切换弹窗关闭后
+  // 登录仍在进行时，再次打开弹窗点另一台服务器会并发两套 login 互相覆盖
+  // token/sid；所有早退出口经 finally 复位。
+  bool _switchingQuick = false;
+
   @override
   void initState() {
     super.initState();
@@ -166,6 +172,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
     required String username,
     String? password,
     String? synoSid,
+    bool clearPassword = false,
   }) async {
     try {
       final kind = switch (_serverType) {
@@ -203,7 +210,11 @@ class _LoginViewState extends ConsumerState<LoginView> {
         lastUsed: DateTime.now(),
       );
       if (existing != null) {
-        await registry.update(profile, password: password, synoSid: synoSid);
+        // P3 修复（登录界面审查 F6）：取消「记住密码」时显式清除注册表里的
+        // 旧密码——update 的 null 语义是「不修改」，只传 null 会让旧密码残留，
+        // 后续切换服务器仍可免密登录。
+        await registry.update(profile,
+            password: password, synoSid: synoSid, clearPassword: clearPassword);
       } else {
         await registry.add(profile, password: password, synoSid: synoSid);
       }
@@ -720,10 +731,12 @@ class _LoginViewState extends ConsumerState<LoginView> {
                   ),
                   title: Text(s.name),
                   subtitle: Text('${s.kind.label} · ${s.username}'),
-                  onTap: () {
-                    Navigator.pop(sheetCtx);
-                    _switchServerQuick(context, ref, s);
-                  },
+                  onTap: _switchingQuick
+                      ? null
+                      : () {
+                          Navigator.pop(sheetCtx);
+                          _switchServerQuick(context, ref, s);
+                        },
                 );
               }),
             const Divider(),
@@ -741,49 +754,42 @@ class _LoginViewState extends ConsumerState<LoginView> {
     );
   }
 
-  /// 快速切换服务器（复用 servers_view 的登录逻辑）
+  /// 快速切换服务器（与服务器管理页共用 server_switch_helpers 的登录逻辑）
   ///
-  /// 先尝试登录，成功后再 setActive；失败时保持旧服务器激活状态不变。
+  /// 登录成功后才 touch / setActive；失败时保持旧服务器激活状态不变。
   Future<void> _switchServerQuick(
       BuildContext context, WidgetRef ref, ServerProfile server) async {
+    // P3 修复（登录界面审查 F5）：切换进行中再次触发直接忽略，避免并发 login
+    if (_switchingQuick) return;
+    _switchingQuick = true;
     final messenger = ScaffoldMessenger.of(context);
     final registry = ref.read(serverRegistryProvider.notifier);
     final secureStorage = ref.read(secureStorageProvider);
     final prevActiveId = ref.read(activeServerIdProvider);
 
+    messenger.clearSnackBars();
+    messenger.showSnackBar(SnackBar(
+      content: Text('正在切换到「${server.name}」…'),
+      duration: const Duration(seconds: 30),
+    ));
+
     try {
+      // P3 修复（登录界面审查 F3/F4/F7）：sid 有效性校验、跨类型对端会话
+      // 清理、两步验证取码，与服务器管理页共用同一实现。
+      await purgeCounterpartSession(ref, server);
+
       if (server.kind == ServerKind.synology) {
-        String? sid;
-        try {
-          sid = await secureStorage.read(key: serverSynoSidKey(server.id));
-        } catch (e) { AppLogger.warn('读取 Synology 会话失败', data: {'error': e.toString()}); }
-        final synoAuth = ref.read(synologyAuthProvider.notifier);
-        if (sid != null && sid.isNotEmpty) {
-          await synoAuth.restoreSession(
-            serverUrl: server.resolveUrl(),
-            account: server.username,
-            sid: sid,
-          );
-        } else {
-          final password =
-              await secureStorage.read(key: 'server_password_${server.id}');
-          if (password == null) {
-            messenger.showSnackBar(
-                const SnackBar(content: Text('未保存该服务器的密码，请编辑后重试')));
-            return;
-          }
-          await synoAuth.login(
-            serverUrl: server.resolveUrl(),
-            account: server.username,
-            password: password,
-          );
-        }
+        await loginSynologyTarget(
+          ref,
+          server,
+          secureStorage,
+          requestOtp: () => showSynologyOtpDialog(context),
+        );
       } else {
-        final password =
-            await secureStorage.read(key: 'server_password_${server.id}');
+        final password = await readSavedServerPassword(secureStorage, server.id);
         if (password == null) {
-          messenger
-              .showSnackBar(const SnackBar(content: Text('未保存该服务器的密码，请编辑后重试')));
+          messenger.showSnackBar(
+              const SnackBar(content: Text('未保存该服务器的密码，请编辑后重试')));
           return;
         }
         await ref.read(authProvider.notifier).login(
@@ -806,7 +812,9 @@ class _LoginViewState extends ConsumerState<LoginView> {
         await modeNotifier.setMode(AppServiceMode.video);
       }
       if (context.mounted) {
-        messenger.showSnackBar(SnackBar(content: Text('已切换到「${server.name}」')));
+        messenger.clearSnackBars();
+        messenger
+            .showSnackBar(SnackBar(content: Text('已切换到「${server.name}」')));
       }
     } catch (e) {
       AppLogger.error('切换服务器失败，保持原服务器', data: {
@@ -814,8 +822,12 @@ class _LoginViewState extends ConsumerState<LoginView> {
         'prevActiveId': prevActiveId,
       });
       if (context.mounted) {
-        messenger.showSnackBar(SnackBar(content: Text('切换失败：$e（保持原服务器）')));
+        messenger.clearSnackBars();
+        messenger.showSnackBar(
+            SnackBar(content: Text('切换失败：$e（保持原服务器）')));
       }
+    } finally {
+      _switchingQuick = false;
     }
   }
 
@@ -866,7 +878,9 @@ Future<void> _loadSavedData() async {
             _embyController.text = server;
             _usernameController.text = username ?? '';
             _passwordController.text = password ?? '';
-            _rememberMe = true;
+            // P3 修复（登录界面审查 F8）：仅在确实保存过密码时才回填为勾选，
+            // 否则未主动勾选的用户会因为地址存在而被静默保存密码。
+            _rememberMe = password != null && password.isNotEmpty;
             // batch112-F2：凭据回填时按 URL 匹配历史条目恢复服务器类型，
             // 避免上次用群晖登录后重启回填群晖地址却仍是 Emby 类型（连接测试走错端点）
             final matched = entries.where((e) => e.url == server).firstOrNull;
@@ -1050,6 +1064,7 @@ Future<void> _loadSavedData() async {
         server: server,
         username: username,
         password: _rememberMe ? password : null,
+        clearPassword: !_rememberMe,
         synoSid: _serverType == ServerType.synology ? synoSid : null,
       );
       if (!registrySaved && mounted) {
@@ -1490,17 +1505,19 @@ Widget _buildServerTypeSelector(ColorScheme scheme) {
                 borderRadius: BorderRadius.circular(10),
                 onTap: () {
                   _embyController.text = entry.url;
-                  // 恢复该服务器上次使用的类型
-                  if (entry.serverType != _serverType) {
-                    setState(() => _serverType = entry.serverType);
-                  }
+                  // P3 修复（登录界面审查 F2）：点历史条目视为显式选择该服务器类型，
+                  // 同时置 _typeSelectorExpanded=true——否则 build 中折叠态的
+                  // 「表单类型跟随激活服务器」会把刚设的类型回滚，导致连接测试
+                  // 与登录按错误协议发请求。
                   // batch34-F2 同类型切换（如群晖→群晖）也重置两步验证与连接测试状态，
                   // 避免上一台服务器的 OTP 残留阻塞本次登录
                   setState(() {
+                    _typeSelectorExpanded = true;
+                    _serverType = entry.serverType;
                     _otpRequired = false;
-                    _otpController.clear();
                     _connectionStatus = null;
                   });
+                  _otpController.clear();
                   _clearError();
                   _testConnection();
                   _usernameFocusNode.requestFocus();

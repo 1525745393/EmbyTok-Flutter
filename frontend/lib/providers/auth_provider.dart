@@ -73,13 +73,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _secureStorage = _ref.read(secureStorageProvider);
     // 移动端专项 #2：Emby API 返回 401（token 过期/失效）时自动登出，
     // GoRouter redirect 基于 isAuthenticated 会随即跳回登录页。
-    // 仅「已登录态」触发：登录页密码错误等 401 属于凭证校验失败，
-    // 未登录时不应触发登出（否则会清掉登录错误提示）。
-    // 登录页服务器探测等临时 ApiClient 未注入此回调，不受影响。
+    // P2 修复（登录界面审查 F1）：login() 执行期间的 401 是「登录请求自身」
+    // 的凭证校验失败（密码错/账号不存在），不是会话失效——此时若旧服务器仍
+    // 处于已登录态，无条件 logout() 会把原服务器会话一起清掉（切换服务器
+    // 失败反被登出）。用 _loggingIn 标志排除这段窗口。
     // 测试环境 mock service 的 apiClient 可能为 null，防御性跳过。
     final apiClient = _service.apiClient;
     if (apiClient != null) {
       apiClient.onUnauthorized = () {
+        if (_loggingIn) return;
         if (state.isAuthenticated) {
           logout();
         }
@@ -91,6 +93,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
   late final EmbytokService _service;
   late final FlutterSecureStorage _secureStorage;
   bool _loggingOut = false;
+  /// 登录请求进行中标志：见构造器内 onUnauthorized 回调的说明
+  bool _loggingIn = false;
 
   // 从本地存储恢复登录状态
   Future<void> _loadFromStorage() async {
@@ -171,6 +175,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String password, {
     String? backendUrl, // 保留向后兼容
   }) async {
+    _loggingIn = true;
     state = state.copyWith(isLoading: true, error: null);
     try {
       AppLogger.info('开始登录',
@@ -189,7 +194,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await prefs.setString(
           kStorageKeyUser,
           json.encode({
-            'backend_url': backendUrl ?? '',
+            'backend_url': backendUrl,
             'user_id': user.id,
             'user_name': user.name,
           }));
@@ -197,7 +202,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthState(
         isAuthenticated: true,
         user: user,
-        backendUrl: backendUrl ?? '',
+        backendUrl: backendUrl,
         embyServerUrl: embyServerUrl,
         token: user.accessToken,
       );
@@ -209,6 +214,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         error: AppError.wrap(e, stackTrace: stackTrace),
       );
       rethrow;
+    } finally {
+      _loggingIn = false;
     }
   }
 
