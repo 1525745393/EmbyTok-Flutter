@@ -1,3 +1,10 @@
+## [2.402.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.402.3...v2.402.4) (2026-11-08)
+
+
+### Bug Fixes
+
+* 修复全仓UI审查P3十项小缺陷（收藏撤销竞态/进度条listener/对话框controller泄漏/返回箭头/测试连接防重入/批量删除选中）+ 回归测试 ([9fa9ff9](https://github.com/1525745393/EmbyTok-Flutter/commit/9fa9ff9f8ad56c2ac5958bce6b83daf726ee55ef))
+
 ## [2.402.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.402.2...v2.402.3) (2026-11-04)
 
 
