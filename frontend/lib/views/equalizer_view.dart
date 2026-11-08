@@ -20,6 +20,15 @@ class _EqualizerViewState extends ConsumerState<EqualizerView> {
   bool _available = false;
   bool _enabled = true;
 
+  /// P3 修复（审查报告未闭合候选）：滑条拖动值本地化——此前 Slider.value 直接读
+  /// equalizerService.levels（要等 setBand 异步落地才变），拖动时拇指每帧回弹、
+  /// 不跟手。现在 onChanged 先 setState 本地值即时跟手，同时按顺序下发 setBand
+  /// （MethodChannel 调用 FIFO 排队，不会乱序）。
+  List<double> _levels = const [];
+
+  List<double> _syncLevels() =>
+      [for (final mb in equalizerService.levels) mb / 100.0];
+
   @override
   void initState() {
     super.initState();
@@ -34,6 +43,7 @@ class _EqualizerViewState extends ConsumerState<EqualizerView> {
       _inited = true;
       // 同步持久化的开关状态，避免重启后 UI 显示与实际生效状态不一致
       _enabled = equalizerService.enabled;
+      _levels = _syncLevels();
     });
   }
 
@@ -82,7 +92,9 @@ class _EqualizerViewState extends ConsumerState<EqualizerView> {
                                     ? () async {
                                         await equalizerService
                                             .applyPreset(eqPresets[name]!);
-                                        setState(() {});
+                                        if (!mounted) return;
+                                        setState(() =>
+                                            _levels = _syncLevels());
                                       }
                                     : null,
                               ),
@@ -101,7 +113,8 @@ class _EqualizerViewState extends ConsumerState<EqualizerView> {
                                 ? () async {
                                     await equalizerService
                                         .applyPreset(eqPresets['平直']!);
-                                    setState(() {});
+                                    if (!mounted) return;
+                                    setState(() => _levels = _syncLevels());
                                   }
                                 : null,
                             icon: const Icon(Icons.restore, size: 18),
@@ -126,20 +139,18 @@ class _EqualizerViewState extends ConsumerState<EqualizerView> {
                               child: Slider(
                                 min: (equalizerService.minMb / 100).toDouble(),
                                 max: (equalizerService.maxMb / 100).toDouble(),
-                                value: (equalizerService.levels[i] / 100)
-                                    .clamp(
-                                        (equalizerService.minMb / 100)
-                                            .toDouble(),
-                                        (equalizerService.maxMb / 100)
-                                            .toDouble())
-                                    .toDouble(),
+                                value: _levels[i].clamp(
+                                    (equalizerService.minMb / 100).toDouble(),
+                                    (equalizerService.maxMb / 100)
+                                        .toDouble()),
                                 label:
-                                    '${(equalizerService.levels[i] / 100).toStringAsFixed(1)}dB',
+                                    '${_levels[i].toStringAsFixed(1)}dB',
                                 onChanged: _enabled
-                                    ? (v) async {
-                                        await equalizerService.setBand(
+                                    ? (v) {
+                                        setState(() => _levels[i] = v);
+                                        // 即时跟手 + 顺序下发（MethodChannel FIFO）
+                                        equalizerService.setBand(
                                             i, (v * 100).round());
-                                        setState(() {});
                                       }
                                     : null,
                               ),
@@ -147,7 +158,7 @@ class _EqualizerViewState extends ConsumerState<EqualizerView> {
                             SizedBox(
                               width: 40,
                               child: Text(
-                                '${(equalizerService.levels[i] / 100).toStringAsFixed(1)}dB',
+                                '${_levels[i].toStringAsFixed(1)}dB',
                                 style: const TextStyle(fontSize: 12),
                               ),
                             ),

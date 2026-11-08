@@ -18,11 +18,21 @@ import '../providers/synology_auth_provider.dart';
 import '../utils/logger.dart';
 import '../utils/constants.dart';
 
-class ServersView extends ConsumerWidget {
+class ServersView extends ConsumerStatefulWidget {
   const ServersView({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ServersView> createState() => _ServersViewState();
+}
+
+class _ServersViewState extends ConsumerState<ServersView> {
+  /// P3 修复（审查报告未闭合候选）：服务器切换进行中标志——快速连点两行会
+  /// 并发执行两套 logout/login，互相覆盖 sid/token 且提示错乱；切换期间列表行
+  /// 禁用。所有早退出口经 finally 复位。
+  bool _switching = false;
+
+  @override
+  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final servers = ref.watch(serverRegistryProvider);
     final activeId = ref.watch(activeServerIdProvider);
@@ -53,7 +63,9 @@ class ServersView extends ConsumerWidget {
                     server: server,
                     active: server.id == activeId,
                     isLoggedIn: _isServerLoggedIn(server, auth, synoAuth),
-                    onTap: () => _switchServer(context, ref, server),
+                    onTap: _switching
+                        ? null
+                        : () => _switchServer(context, ref, server),
                     onEdit: () => _showEditSheet(context, ref, server: server),
                     onDelete: () => _confirmDelete(context, ref, server),
                     onSetDefault: () =>
@@ -99,6 +111,22 @@ class ServersView extends ConsumerWidget {
 
   /// 切换激活服务器：用保存的凭据自动登录
   Future<void> _switchServer(
+    BuildContext context,
+    WidgetRef ref,
+    ServerProfile server,
+  ) async {
+    // P3 修复（审查报告未闭合候选）：防重入——切换进行中再次点行直接忽略
+    if (_switching) return;
+    _switching = true;
+    try {
+      await _doSwitchServer(context, ref, server);
+    } finally {
+      _switching = false;
+    }
+  }
+
+  /// 实际的切换登录流程（由 [_switchServer] 加锁后调用）
+  Future<void> _doSwitchServer(
     BuildContext context,
     WidgetRef ref,
     ServerProfile server,
@@ -499,7 +527,8 @@ class _ServerCard extends StatelessWidget {
   final ServerProfile server;
   final bool active;
   final bool isLoggedIn;
-  final VoidCallback onTap;
+  /// 可空：服务器切换进行中时为 null，行禁用（防并发登录）
+  final VoidCallback? onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onSetDefault;
