@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/auth_provider.dart';
 import '../providers/server_registry_provider.dart';
+import '../providers/service_mode_provider.dart';
 import '../providers/synology_auth_provider.dart';
 import '../utils/logger.dart';
 import '../utils/constants.dart';
@@ -134,16 +135,12 @@ class _ServersViewState extends ConsumerState<ServersView> {
     final messenger = ScaffoldMessenger.of(context);
     final registry = ref.read(serverRegistryProvider.notifier);
     final secureStorage = ref.read(secureStorageProvider);
-    await registry.touch(server.id);
-    await ref.read(activeServerIdProvider.notifier).setActive(server.id);
 
     try {
       // P3 修复（登录界面审查 F3/F4/F7）：跨类型对端会话清理、群晖 sid
       // 有效性校验与密码回退、两步验证取码重试统一收敛到
       // server_switch_helpers，与登录页「快速切换」共用同一实现，
       // 避免两套逻辑各自演化、只修一处。
-      await purgeCounterpartSession(ref, server);
-
       if (server.kind == ServerKind.synology) {
         await loginSynologyTarget(
           ref,
@@ -154,6 +151,7 @@ class _ServersViewState extends ConsumerState<ServersView> {
       } else {
         final password = await readSavedServerPassword(secureStorage, server.id);
         if (password == null) {
+          messenger.clearSnackBars();
           messenger.showSnackBar(const SnackBar(
               content: Text('未保存该服务器的密码，请编辑后重试')));
           return;
@@ -164,13 +162,32 @@ class _ServersViewState extends ConsumerState<ServersView> {
               password,
             );
       }
+      // P2 修复（登录界面复审）：登录成功后才清理对端会话、更新激活状态。
+      // 原顺序先 logout 对端会话再登录，登录失败会把当前可用会话销毁
+      // （用户被踢回登录页）；且跨类型 + 两步验证时页面已被路由重定向销毁，
+      // 验证码对话框拿不到 context，切换必然失败。
+      await purgeCounterpartSession(ref, server);
+      await registry.touch(server.id);
+      await ref.read(activeServerIdProvider.notifier).setActive(server.id);
+      // 账号类型与服务模式联动（与登录页「快速切换」对称）：
+      // 群晖 → 音乐模式，Emby/Jellyfin/Plex → 视频模式
+      final modeNotifier = ref.read(serviceModeProvider.notifier);
+      if (server.kind == ServerKind.synology) {
+        if (ref.read(serviceModeProvider) != AppServiceMode.music) {
+          await modeNotifier.setMode(AppServiceMode.music);
+        }
+      } else if (ref.read(serviceModeProvider) != AppServiceMode.video) {
+        await modeNotifier.setMode(AppServiceMode.video);
+      }
       if (context.mounted) {
+        messenger.clearSnackBars();
         messenger.showSnackBar(
             SnackBar(content: Text('已切换到「${server.name}」')));
       }
     } catch (e, st) {
       AppLogger.error('切换服务器失败', error: e, stackTrace: st);
       if (context.mounted) {
+        messenger.clearSnackBars();
         messenger.showSnackBar(SnackBar(content: Text('切换失败：$e')));
       }
     }
@@ -358,6 +375,9 @@ class _ServersViewState extends ConsumerState<ServersView> {
                           networkMode: networkMode,
                           isDefault: server?.isDefault ?? false,
                           lastUsed: server?.lastUsed ?? DateTime.now(),
+                          // P3 修复（登录界面复审）：update 按 id 整体替换，
+                          // 编辑保存必须带上原有 libraryIds，否则媒体库记忆被清空
+                          libraryIds: server?.libraryIds ?? const <String>[],
                         );
                         if (isEdit) {
                           await registry.update(

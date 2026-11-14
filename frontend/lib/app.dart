@@ -145,8 +145,13 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
         // 测试模式路由绕过登录守卫（仅 debug 构建注册）
         final goingToTestMode = state.matchedLocation == '/test-mode';
         if (goingToTestMode) return null;
+        // P2 修复（登录界面复审）：服务器管理台是「登录前」的配置台，
+        // 唯一入口在登录页「服务器与账户 → 服务器管理」，若同样被登录守卫
+        // 弹回 /login，该入口与 /servers 整段不可达（实测两个入口均失效）。
+        // 与 /login 一样豁免登录守卫；其余页面仍要求已登录。
+        final goingToServers = state.matchedLocation == '/servers';
         // 路由守卫日志：记录重定向决策
-        if (!isLoggedIn && !goingToLogin) {
+        if (!isLoggedIn && !goingToLogin && !goingToServers) {
           AppLogger.debug('路由守卫', data: {
             'from': state.matchedLocation,
             'to': '/login',

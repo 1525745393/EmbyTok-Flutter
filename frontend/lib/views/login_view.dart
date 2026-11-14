@@ -155,17 +155,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
     super.dispose();
   }
 
-  /// 加载服务器历史（SharedPreferences）和凭据（安全存储）
-  /// 兼容旧格式（纯 URL 字符串）和新格式（JSON 字符串）
-  /// 持久化服务器历史到 SharedPreferences
-  /// 保存服务器地址到历史列表（去重，最多 5 个）
-  /// 删除指定服务器历史条目
-  /// 保存或清除凭据（使用 flutter_secure_storage 加密存储）
-  /// 测试服务器连接：按服务器类型走不同探测端点
-  /// 请求序号机制：快速切换服务器类型或反复失焦时，后发先至的过期结果被丢弃
-  /// 友好的错误提示
-  /// 提交登录：按服务器类型走对应认证流程，带防重复提交锁和内联错误提示
-  /// 登录成功后写入服务器注册表（已存在则更新），并设为激活
+  /// 登录成功后写入服务器注册表（已存在则按端点命中更新），并设为激活
   /// 返回 true 表示写入成功，false 表示失败（调用方应提示用户）
   Future<bool> _saveToRegistry({
     required String server,
@@ -173,6 +163,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
     String? password,
     String? synoSid,
     bool clearPassword = false,
+    bool clearSynoSid = false,
   }) async {
     try {
       final kind = switch (_serverType) {
@@ -208,13 +199,19 @@ class _LoginViewState extends ConsumerState<LoginView> {
         isDefault:
             existing?.isDefault ?? ref.read(serverRegistryProvider).isEmpty,
         lastUsed: DateTime.now(),
+        // P3 修复（登录界面复审）：update 是按 id 整体替换，必须显式继承
+        // libraryIds，否则重新登录会把该服务器记忆的媒体库多选清空
+        libraryIds: existing?.libraryIds ?? const <String>[],
       );
       if (existing != null) {
         // P3 修复（登录界面审查 F6）：取消「记住密码」时显式清除注册表里的
         // 旧密码——update 的 null 语义是「不修改」，只传 null 会让旧密码残留，
         // 后续切换服务器仍可免密登录。
         await registry.update(profile,
-            password: password, synoSid: synoSid, clearPassword: clearPassword);
+            password: password,
+            synoSid: synoSid,
+            clearPassword: clearPassword,
+            clearSynoSid: clearSynoSid);
       } else {
         await registry.add(profile, password: password, synoSid: synoSid);
       }
@@ -248,7 +245,6 @@ class _LoginViewState extends ConsumerState<LoginView> {
     }
   }
 
-  /// 清除内联错误（用户修改输入时调用）
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -788,6 +784,9 @@ class _LoginViewState extends ConsumerState<LoginView> {
       } else {
         final password = await readSavedServerPassword(secureStorage, server.id);
         if (password == null) {
+          // P3 修复（登录界面复审）：先清掉 30s 的「正在切换到…」进度提示，
+          // 否则失败原因要等进度提示走完才可见（成功/异常分支都已先清理）
+          messenger.clearSnackBars();
           messenger.showSnackBar(
               const SnackBar(content: Text('未保存该服务器的密码，请编辑后重试')));
           return;
@@ -835,13 +834,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
     return const _SelfSignedCertificateTile();
   }
 
-  /// 服务器历史记录 — 卡片式列表，含服务器类型图标、友好名称和删除确认
-  /// 服务器类型图标
-  /// 删除确认弹窗
-  /// 通用表单项
-
-  // === 合并自 login_view_actions.dart ===
-Future<void> _loadSavedData() async {
+  /// 加载服务器历史（SharedPreferences）和凭据（安全存储），旧格式自动迁移
+  Future<void> _loadSavedData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
 
@@ -900,6 +894,7 @@ Future<void> _loadSavedData() async {
     }
   }
 
+  /// 持久化服务器历史到 SharedPreferences
   Future<void> _persistHistory() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -910,6 +905,7 @@ Future<void> _loadSavedData() async {
     }
   }
 
+  /// 保存服务器地址到历史列表（去重，最多 5 个），同时记录服务器类型
   Future<void> _saveServerHistory(String url, [ServerType? type]) async {
     try {
       // 移除同 URL 的旧条目
@@ -928,11 +924,13 @@ Future<void> _loadSavedData() async {
     }
   }
 
+  /// 删除指定服务器历史条目
   Future<void> _deleteHistoryEntry(int index) async {
     setState(() => _serverHistory.removeAt(index));
     await _persistHistory();
   }
 
+  /// 保存或清除凭据（flutter_secure_storage）：勾选「记住密码」才写入，否则删除
   Future<void> _saveCredentials(
       String server, String username, String password) async {
     try {
@@ -953,6 +951,8 @@ Future<void> _loadSavedData() async {
     }
   }
 
+  /// 测试服务器连接：按服务器类型走不同探测端点；
+  /// 请求序号机制：快速切换服务器类型或反复失焦时，后发先至的过期结果被丢弃
   Future<void> _testConnection() async {
     final url = _embyController.text.trim();
     if (url.isEmpty) return;
@@ -1000,6 +1000,7 @@ Future<void> _loadSavedData() async {
     }
   }
 
+  /// 友好的错误提示
   String _friendlyError(dynamic e) {
     // 群晖两步验证：提示输入验证码并显示 OTP 输入框
     if (e is SynologyOtpRequiredException) {
@@ -1028,6 +1029,7 @@ Future<void> _loadSavedData() async {
     return e is String ? e : '登录失败：$e';
   }
 
+  /// 提交登录：按服务器类型走对应认证流程，带防重复提交锁和内联错误提示
   Future<void> _submit() async {
     if (_isSubmitting) return;
     if (_formKey.currentState?.validate() != true) return;
@@ -1060,12 +1062,15 @@ Future<void> _loadSavedData() async {
       final synoSid = _serverType == ServerType.synology
           ? ref.read(synologyAuthProvider).sid
           : null;
+      // P3 修复（登录界面复审）：sid 是与密码同级的可复用会话凭据，
+      // 未勾选「记住密码」时不得持久化，否则下次可免密切换
       final registrySaved = await _saveToRegistry(
         server: server,
         username: username,
         password: _rememberMe ? password : null,
         clearPassword: !_rememberMe,
-        synoSid: _serverType == ServerType.synology ? synoSid : null,
+        synoSid: (_rememberMe && _serverType == ServerType.synology) ? synoSid : null,
+        clearSynoSid: !_rememberMe,
       );
       if (!registrySaved && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1111,6 +1116,7 @@ Future<void> _loadSavedData() async {
     }
   }
 
+  /// 清除内联错误（用户修改输入时调用）
   void _clearError() {
     if (_errorMessage != null) {
       setState(() => _errorMessage = null);
@@ -1186,8 +1192,7 @@ Future<void> _loadSavedData() async {
     }
   }
 
-  // === 合并自 login_view_builders.dart ===
-Widget _buildServerTypeSelector(ColorScheme scheme) {
+  Widget _buildServerTypeSelector(ColorScheme scheme) {
     // 注意：登录表单在 SingleChildScrollView 内，垂直方向无界，
     // 不能使用 crossAxisAlignment.stretch（需要有限高度），用默认 center
     return Column(
