@@ -198,7 +198,15 @@ Widget settingsTapTile({
 }) {
   return Builder(builder: (context) {
     final scheme = Theme.of(context).colorScheme;
+    // 系统字号放大时（≥1.3x）leading 图标 + trailing（帮助按钮 + 箭头）会把标题列
+    // 压到约 95dp：实测 320×568@1.3x 标题折 2 行、副标题折 4 行，360×800@2.0x 更差。
+    // 此时收窄左右留白，并省掉冗余的 chevron（整行本就可点），把宽度让给文字。
+    final largeText = MediaQuery.textScalerOf(context).scale(_kFontSizeLarge) >=
+        _kFontSizeLarge * 1.3;
     return ListTile(
+      contentPadding:
+          largeText ? const EdgeInsets.symmetric(horizontal: kSpacingSm) : null,
+      horizontalTitleGap: largeText ? kSpacingSm : null,
       leading:
           settingsIconContainer(icon: icon, color: iconColor ?? scheme.primary),
       title: Text(
@@ -219,7 +227,8 @@ Widget settingsTapTile({
         mainAxisSize: MainAxisSize.min,
         children: [
           settingsHelpButton(helpText: helpText, title: title),
-          Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+          if (!largeText)
+            Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
         ],
       ),
       onTap: onTap,

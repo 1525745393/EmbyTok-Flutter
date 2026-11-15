@@ -255,4 +255,137 @@ void main() {
       await tester.pump(const Duration(seconds: 2));
     });
   });
+
+  // ===== 渲染级验证第二轮（2026-11-15）V1–V4 守门 =====
+  //
+  // V1[P2] 键盘弹起时底部操作栏被键盘完全遮挡（F2 搬到 bottomNavigationBar 引入）
+  // V2[P3] 2.0x 大字号下类型卡片标题被省略号吃掉
+  // V3[P3] 「整宽卡」按内容宽度居中，未铺满可用宽度、左边缘不对齐
+  // V4[P3] 「服务器管理」tile 大字号下标题列被 leading + trailing 压窄
+
+  Future<void> pumpLogin(
+    WidgetTester tester,
+    ProviderContainer container, {
+    required Size size,
+    double scale = 1.0,
+    double keyboard = 0,
+  }) async {
+    SharedPreferences.setMockInitialValues({});
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.viewInsets = keyboard > 0
+        ? FakeViewPadding(bottom: keyboard)
+        : FakeViewPadding.zero;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: MediaQuery(
+        data: MediaQueryData(
+          size: size,
+          textScaler: TextScaler.linear(scale),
+          viewInsets: EdgeInsets.only(bottom: keyboard),
+        ),
+        child: MaterialApp(theme: buildLightTheme(), home: const LoginView()),
+      ),
+    ));
+    await tester.pumpAndSettle();
+  }
+
+  group('V1 键盘弹起时操作栏可见', () {
+    testWidgets('360×800 + 键盘 300dp：按钮整体位于键盘上方', (tester) async {
+      final container = _container();
+      addTearDown(container.dispose);
+      await pumpLogin(tester, container,
+          size: const Size(360, 800), keyboard: 300);
+
+      final button = tester.getRect(find.byType(ElevatedButton));
+      // 键盘顶 = 800 - 300 = 500
+      expect(button.bottom, lessThanOrEqualTo(500.5),
+          reason: '键盘弹起时必须把底部操作栏抬到键盘上方，否则输完密码点不到登录');
+      expect(button.top, greaterThan(0));
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 2));
+    });
+  });
+
+  group('V3 类型卡片铺满可用宽度', () {
+    testWidgets('360 下整宽卡与两列网格同宽同左边缘', (tester) async {
+      final container = _container();
+      addTearDown(container.dispose);
+      await pumpLogin(tester, container, size: const Size(360, 800));
+
+      Rect cardOf(String label) => tester.getRect(find
+          .ancestor(
+              of: find.text(label), matching: find.byType(AnimatedContainer))
+          .first);
+
+      final emby = cardOf('Emby 视频');
+      final synology = cardOf('群晖音乐');
+      final local = cardOf('本地媒体库');
+
+      // Column(stretch) 后整宽卡 = 可用宽度（360 - 32*2）
+      expect(synology.width, closeTo(296.0, 0.5));
+      expect(local.width, closeTo(296.0, 0.5));
+      // 左边缘与两列网格第一格对齐（不再居中缩进）
+      expect(synology.left, closeTo(emby.left, 0.5));
+      expect(local.left, closeTo(emby.left, 0.5));
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 2));
+    });
+  });
+
+  group('V2 大字号改单列且标题不只剩省略号', () {
+    testWidgets('2.0x 下双卡竖排、标题允许 2 行', (tester) async {
+      final container = _container();
+      addTearDown(container.dispose);
+      await pumpLogin(tester, container,
+          size: const Size(360, 800), scale: 2.0);
+
+      final emby = tester.getRect(find.text('Emby 视频'));
+      final jelly = tester.getRect(find.text('Jellyfin 视频'));
+      // 单列：两卡水平方向同中心，且 Jellyfin 在 Emby 下方
+      expect((emby.center.dx - jelly.center.dx).abs(), lessThan(1.0),
+          reason: '大字号必须单列，双列会把标题挤成「Emby ⋯」');
+      expect(jelly.top, greaterThan(emby.bottom));
+
+      // 标题/副标题在单列模式下允许折到 2 行
+      final title = tester.widget<Text>(find.text('Jellyfin 视频'));
+      expect(title.maxLines, 2);
+      final subtitle =
+          tester.widget<Text>(find.text('直接管理手机视频，无需服务器'));
+      expect(subtitle.maxLines, 2);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 2));
+    });
+  });
+
+  group('V4 大字号下 tile 不再被压成四行', () {
+    testWidgets('320×568 @1.3x：tile 高度收敛、副标题不超过 2 行', (tester) async {
+      final container = _container();
+      addTearDown(container.dispose);
+      await pumpLogin(tester, container,
+          size: const Size(320, 568), scale: 1.3);
+
+      await tester.scrollUntilVisible(
+          find.text('服务器管理'), 120,
+          scrollable: find.byType(Scrollable).first);
+      await tester.pumpAndSettle();
+
+      final tile = find
+          .ancestor(of: find.text('服务器管理'), matching: find.byType(ListTile))
+          .first;
+      // 修复前实测 170.0（标题 2 行 + 副标题 4 行）
+      expect(tester.getSize(tile).height, lessThan(120.0));
+      final subtitle =
+          tester.getRect(find.text('添加、编辑、切换媒体服务器'));
+      // 13sp×1.3 ≈ 17px/行，2 行 ≈ 48；4 行会接近 90
+      expect(subtitle.height, lessThan(60.0));
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 2));
+    });
+  });
 }

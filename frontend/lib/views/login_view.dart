@@ -510,19 +510,31 @@ class _LoginViewState extends ConsumerState<LoginView> {
   /// 只做承载与安全区/分隔线处理，按钮样式与加载态仍走 [_buildPrimaryButton]。
   Widget _buildActionBar(BuildContext context, WidgetRef ref, bool isLoading) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        border: Border(
-          top: BorderSide(
-            color: scheme.outlineVariant.withValues(alpha: 0.35),
+    // 键盘弹起时操作栏必须跟着上移：Scaffold 的 bottomNavigationBar 不参与
+    // resizeToAvoidBottomInset 的避让（body 会收缩，操作栏仍钉在屏幕底部——
+    // 实测 360×800、键盘 300dp 时按钮 rect 仍为 y 740–788，整块落在键盘里，
+    // 输完密码时既看不到也点不到「登录」）。这里把键盘高度补成下内边距。
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(bottom: keyboardInset),
+      child: Container(
+        decoration: BoxDecoration(
+          color: scheme.surface,
+          border: Border(
+            top: BorderSide(
+              color: scheme.outlineVariant.withValues(alpha: 0.35),
+            ),
           ),
         ),
-      ),
-      child: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.fromLTRB(32, kSpacingSm, 32, kSpacingMd),
-        child: _buildPrimaryAction(context, ref, isLoading),
+        child: SafeArea(
+          top: false,
+          // 键盘已占满底部时不再叠加安全区内边距，避免双重留白
+          minimum: EdgeInsets.fromLTRB(
+              32, kSpacingSm, 32, keyboardInset > 0 ? kSpacingSm : kSpacingMd),
+          child: _buildPrimaryAction(context, ref, isLoading),
+        ),
       ),
     );
   }
@@ -1243,55 +1255,60 @@ class _LoginViewState extends ConsumerState<LoginView> {
   /// 设计参考：AudioDock / AuthPortal —— 用卡片直观区分视频服务与音乐服务，
   /// 选中态以主题色边框 + 背景 + 勾选角标标识，表单随选择动态适配。
   Widget _buildServerTypeSelector(ColorScheme scheme) {
-    // 注意：登录表单在 SingleChildScrollView 内，垂直方向无界，
-    // 不能使用 crossAxisAlignment.stretch（需要有限高度），用默认 center
+    // 布局口径：
+    // 1) 卡片一律铺满可用宽度。Column 的 stretch 只作用于水平方向（宽度有界、
+    //    高度无界，与 SingleChildScrollView 不冲突），之前用默认 center 时未撑宽的
+    //    AnimatedContainer 会缩成内容宽度居中，导致「整宽卡」实测只有 126.7/175.5
+    //    （可用宽度 296）且左边缘与两列网格不对齐。
+    // 2) 大字号/窄屏改单列：2.0x 下双列卡片标题会被省略号吃成「Emby ⋯」「Jellyfi⋯」，
+    //    信息不可读；单列同时放开 maxLines 到 2 行。
+    final width = MediaQuery.sizeOf(context).width;
+    final scaledBody = MediaQuery.textScalerOf(context).scale(14);
+    final singleColumn = scaledBody >= 17 || width < 340;
+
+    Widget card(ServerType type, String title, String subtitle, IconData icon) =>
+        _buildServerTypeCard(
+          scheme: scheme,
+          type: type,
+          title: title,
+          subtitle: subtitle,
+          icon: icon,
+          allowWrap: singleColumn,
+        );
+
+    // Emby 与 Jellyfin 并排；F3：副标题去掉 Plex 承诺——登录页无 Plex 新建入口，
+    // Plex 服务器经「服务器管理」添加后从历史/注册表使用
+    final videoCards = [
+      card(ServerType.emby, 'Emby 视频', 'Emby 视频流', Icons.movie_outlined),
+      // Jellyfin 与 Emby API 同源，登录复用 Emby 协议链路
+      card(ServerType.jellyfin, 'Jellyfin 视频', 'Jellyfin 影视流',
+          Icons.video_library_outlined),
+    ];
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: _buildServerTypeCard(
-                scheme: scheme,
-                type: ServerType.emby,
-                title: 'Emby 视频',
-                // F3：副标题去掉 Plex 承诺——登录页无 Plex 新建入口，
-                // Plex 服务器经「服务器管理」添加后从历史/注册表使用
-                subtitle: 'Emby 视频流',
-                icon: Icons.movie_outlined,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildServerTypeCard(
-                scheme: scheme,
-                type: ServerType.jellyfin,
-                title: 'Jellyfin 视频',
-                // Jellyfin 与 Emby API 同源，登录复用 Emby 协议链路
-                subtitle: 'Jellyfin 影视流',
-                icon: Icons.video_library_outlined,
-              ),
-            ),
-          ],
-        ),
+        if (singleColumn) ...[
+          videoCards[0],
+          const SizedBox(height: 12),
+          videoCards[1],
+        ] else
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(child: videoCards[0]),
+              const SizedBox(width: 12),
+              Expanded(child: videoCards[1]),
+            ],
+          ),
         const SizedBox(height: 12),
         // 群晖音乐（整宽卡片，与影视服务器分区）
-        _buildServerTypeCard(
-          scheme: scheme,
-          type: ServerType.synology,
-          title: '群晖音乐',
-          subtitle: 'Audio Station 音乐库',
-          icon: Icons.library_music_outlined,
-        ),
+        card(ServerType.synology, '群晖音乐', 'Audio Station 音乐库',
+            Icons.library_music_outlined),
         const SizedBox(height: 12),
         // 本地媒体库模式（P0）
-        _buildServerTypeCard(
-          scheme: scheme,
-          type: ServerType.local,
-          title: '本地媒体库',
-          subtitle: '直接管理手机视频，无需服务器',
-          icon: Icons.smartphone_outlined,
-        ),
+        card(ServerType.local, '本地媒体库', '直接管理手机视频，无需服务器',
+            Icons.smartphone_outlined),
       ],
     );
   }
@@ -1302,6 +1319,9 @@ class _LoginViewState extends ConsumerState<LoginView> {
     required String title,
     required String subtitle,
     required IconData icon,
+
+    /// 单列布局（大字号/窄屏）时允许标题、副标题折到 2 行，避免只剩省略号
+    bool allowWrap = false,
   }) {
     final selected = _serverType == type;
     // 语义：选中态必须可被读屏识别（手势 + 勾选角标对读屏不可见）；
@@ -1345,7 +1365,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                 const SizedBox(height: 8),
                 Text(
                   title,
-                  maxLines: 1,
+                  maxLines: allowWrap ? 2 : 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 14,
@@ -1356,7 +1376,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  maxLines: 1,
+                  maxLines: allowWrap ? 2 : 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                   style: TextStyle(
