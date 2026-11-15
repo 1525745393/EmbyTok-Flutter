@@ -1,3 +1,10 @@
+## [2.402.9](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.402.8...v2.402.9) (2026-11-15)
+
+
+### Bug Fixes
+
+* 登录页键盘遮挡操作栏与大字号卡片挤压（V1-V4） ([9e34eda](https://github.com/1525745393/EmbyTok-Flutter/commit/9e34eda46c8c6881a08462d4aeccebe1056e5f48))
+
 ## [2.402.8](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.402.7...v2.402.8) (2026-11-15)
 
 
