@@ -259,7 +259,12 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
     return Scaffold(
       backgroundColor: scheme.surface,
+      // 主操作按钮固定在底部操作栏：表单内容高约 1030dp，按钮放在内容流里会掉到
+      // 首屏之外（360×640/360×800/411×915 实测顶边均在 y≈975dp），用户填完表单
+      // 需先滚动才能提交。底部操作栏让「登录 / 进入本地媒体库」在任何视口都可见。
+      bottomNavigationBar: _buildActionBar(context, ref, isLoading),
       body: SafeArea(
+        bottom: false,
         child: Center(
           child: SingleChildScrollView(
             padding: EdgeInsets.only(
@@ -283,9 +288,10 @@ class _LoginViewState extends ConsumerState<LoginView> {
                         color: scheme.primary,
                         borderRadius: BorderRadius.circular(18),
                       ),
-                      child: const Icon(
+                      // 图标色跟随主题语义色：深色主题的 primary 是浅粉，硬编码白色只有 1.70:1
+                      child: Icon(
                         Icons.play_circle_filled,
-                        color: Colors.white,
+                        color: scheme.onPrimary,
                         size: 44,
                       ),
                     ),
@@ -342,7 +348,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
                       focusNode: _usernameFocusNode,
                       textInputAction: TextInputAction.next,
                       autofillHints: const [AutofillHints.username],
-                      onFieldSubmitted: (_) => _passwordFocusNode.requestFocus(),
+                      onFieldSubmitted: (_) =>
+                          _passwordFocusNode.requestFocus(),
                       onChanged: (_) => _clearError(),
                     ),
                     const SizedBox(height: kSpacingLg),
@@ -394,35 +401,40 @@ class _LoginViewState extends ConsumerState<LoginView> {
                     const SizedBox(height: kSpacingLg),
                   ],
 
-                  // 记住密码 + HTTP 安全提示
-                  Row(
-                    children: [
-                      Checkbox(
-                        value: _rememberMe,
-                        onChanged: (v) =>
-                            setState(() => _rememberMe = v ?? false),
-                        activeColor: scheme.primary,
-                        // F1：去掉 shrinkWrap，保证 Checkbox 触控热区 ≥44px
-                      ),
-                      const Text('记住密码'),
-                      const Spacer(),
-                      if (_isHttpWarning())
-                        Row(
-                          children: [
-                            Icon(Icons.warning_amber_rounded,
-                                color: scheme.error, size: 16),
-                            const SizedBox(width: 4),
-                            Text(
+                  // 记住密码：整行可点（CheckboxListTile），文字放大时标题自动换行，
+                  // 不再出现「Checkbox + Text + Spacer + 警告」同排不可压缩导致的横向溢出
+                  CheckboxListTile(
+                    value: _rememberMe,
+                    onChanged: (v) => setState(() => _rememberMe = v ?? false),
+                    activeColor: scheme.primary,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                    title: const Text('记住密码'),
+                  ),
+
+                  // HTTP 安全提示：独立一行，窄屏/大字体时随可用宽度换行而不撑破页面
+                  if (_isHttpWarning())
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: kSpacingSm),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.warning_amber_rounded,
+                              color: scheme.error, size: 16),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
                               'HTTP 不安全',
                               style: TextStyle(
                                 color: scheme.error,
                                 fontSize: 12,
                               ),
                             ),
-                          ],
-                        ),
-                    ],
-                  ),
+                          ),
+                        ],
+                      ),
+                    ),
 
                   // 内联错误提示
                   if (_errorMessage != null) ...[
@@ -453,28 +465,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                   ],
 
                   const SizedBox(height: kSpacingXl),
-
-                  // 主操作按钮：本地媒体库（进入）/ 服务器登录（登录，加载中转圈）
-                  // 单一 builder 复用样式，避免两套重复代码（见 _buildPrimaryButton）
-                  _buildPrimaryButton(
-                    context,
-                    onPressed: _serverType == ServerType.local
-                        ? () => _enterLocalMode(context, ref)
-                        : ((isLoading || _isSubmitting) ? null : _submit),
-                    child: _serverType == ServerType.local
-                        ? const Text('进入本地媒体库')
-                        : (isLoading || _isSubmitting)
-                            ? SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.4,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    scheme.onPrimary),
-                                ),
-                              )
-                            : const Text('登录'),
-                  ),
+                  // 主操作按钮不在内容流内，固定在底部操作栏（见 _buildActionBar）
                   const SizedBox(height: kSpacingMd),
                   // === 服务器与账户区块（batch126：原设置页「服务器与账户」分区整体迁移） ===
                   // 服务模式 / 服务器管理 / 当前数据源 / 账户快速切换 / 自签名证书
@@ -515,6 +506,53 @@ class _LoginViewState extends ConsumerState<LoginView> {
     context.go('/');
   }
 
+  /// 底部固定操作栏：登录页主操作（登录 / 进入本地媒体库）常驻可见。
+  /// 只做承载与安全区/分隔线处理，按钮样式与加载态仍走 [_buildPrimaryButton]。
+  Widget _buildActionBar(BuildContext context, WidgetRef ref, bool isLoading) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: scheme.outlineVariant.withValues(alpha: 0.35),
+          ),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.fromLTRB(32, kSpacingSm, 32, kSpacingMd),
+        child: _buildPrimaryAction(context, ref, isLoading),
+      ),
+    );
+  }
+
+  /// 主操作按钮的内容与回调：本地模式「进入」、服务器模式「登录」（含加载中转圈）
+  Widget _buildPrimaryAction(
+      BuildContext context, WidgetRef ref, bool isLoading) {
+    final scheme = Theme.of(context).colorScheme;
+    final isLocal = _serverType == ServerType.local;
+    final busy = isLoading || _isSubmitting;
+    return _buildPrimaryButton(
+      context,
+      onPressed: isLocal
+          ? () => _enterLocalMode(context, ref)
+          : (busy ? null : _submit),
+      child: isLocal
+          ? const Text('进入本地媒体库')
+          : busy
+              ? SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.4,
+                    valueColor: AlwaysStoppedAnimation<Color>(scheme.onPrimary),
+                  ),
+                )
+              : const Text('登录'),
+    );
+  }
+
   /// 主操作按钮：本地媒体库「进入」与服务器「登录」共用一套样式，
   /// 仅按场景区分 onPressed/child（本地无加载态，服务器登录有转圈）
   Widget _buildPrimaryButton(
@@ -544,15 +582,14 @@ class _LoginViewState extends ConsumerState<LoginView> {
     );
   }
 
-  /// 判断是否为 HTTP（非 HTTPS）以显示安全提示
-  /// 私网段（10/8, 172.16/12, 192.168/16）与回环地址不警告
-  /// 切换服务器类型：重置连接测试与两步验证状态
-  /// 服务器类型选择：图标卡片网格（先选类型，再填信息）
-  ///
-  /// 设计参考：AudioDock / AuthPortal —— 用卡片直观区分视频服务与音乐服务，
-  /// 选中态以主题色边框 + 背景 + 勾选角标标识，表单随选择动态适配。
-  /// 服务器地址输入框（带连接测试状态指示器）
-  /// 连接状态指示器
+  /// 成功态语义色：浅色下用深绿（与 surface 对比 ≥3:1），深色下用浅绿。
+  /// 硬编码 Colors.green(#4CAF50) 在浅色 surface 上只有 2.65:1，不满足图形元素对比度要求。
+  Color _successColor(ColorScheme scheme) =>
+      scheme.brightness == Brightness.dark
+          ? const Color(0xFF81C784)
+          : const Color(0xFF2E7D32);
+
+  /// 连接状态指示器（地址栏右侧：测试中转圈 / 成功对勾 / 失败叉号）
   Widget? _buildConnectionIndicator(ColorScheme scheme) {
     if (_isTestingConnection) {
       return Padding(
@@ -568,7 +605,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
       );
     }
     if (_connectionStatus == true) {
-      return const Icon(Icons.check_circle, color: Colors.green, size: 22);
+      return Icon(Icons.check_circle, color: _successColor(scheme), size: 22);
     }
     if (_connectionStatus == false) {
       return Icon(Icons.cancel, color: scheme.error, size: 22);
@@ -598,7 +635,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
     final scheme = Theme.of(context).colorScheme;
     final mode = ref.watch(serviceModeProvider);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(kSpacingLg, kSpacingMd, kSpacingLg, kSpacingSm),
+      padding: const EdgeInsets.fromLTRB(
+          kSpacingLg, kSpacingMd, kSpacingLg, kSpacingSm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -634,8 +672,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
             mode == AppServiceMode.music
                 ? '首页将显示音乐库界面（群晖 Audio Station）'
                 : '首页将显示视频流界面（Emby / Plex）',
-            style: TextStyle(
-                fontSize: 12, color: scheme.onSurfaceVariant),
+            style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -700,6 +737,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
   void _showAccountSwitcher(BuildContext context, WidgetRef ref) {
     final servers = ref.read(serverRegistryProvider);
     final activeId = ref.read(activeServerIdProvider);
+    final scheme = Theme.of(context).colorScheme;
 
     showModalBottomSheet<void>(
       context: context,
@@ -723,7 +761,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                 return ListTile(
                   leading: Icon(
                     isActive ? Icons.check_circle : Icons.storage_outlined,
-                    color: isActive ? Colors.green : null,
+                    color: isActive ? _successColor(scheme) : null,
                   ),
                   title: Text(s.name),
                   subtitle: Text('${s.kind.label} · ${s.username}'),
@@ -782,13 +820,14 @@ class _LoginViewState extends ConsumerState<LoginView> {
           requestOtp: () => showSynologyOtpDialog(context),
         );
       } else {
-        final password = await readSavedServerPassword(secureStorage, server.id);
+        final password =
+            await readSavedServerPassword(secureStorage, server.id);
         if (password == null) {
           // P3 修复（登录界面复审）：先清掉 30s 的「正在切换到…」进度提示，
           // 否则失败原因要等进度提示走完才可见（成功/异常分支都已先清理）
           messenger.clearSnackBars();
-          messenger.showSnackBar(
-              const SnackBar(content: Text('未保存该服务器的密码，请编辑后重试')));
+          messenger
+              .showSnackBar(const SnackBar(content: Text('未保存该服务器的密码，请编辑后重试')));
           return;
         }
         await ref.read(authProvider.notifier).login(
@@ -812,8 +851,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
       }
       if (context.mounted) {
         messenger.clearSnackBars();
-        messenger
-            .showSnackBar(SnackBar(content: Text('已切换到「${server.name}」')));
+        messenger.showSnackBar(SnackBar(content: Text('已切换到「${server.name}」')));
       }
     } catch (e) {
       AppLogger.error('切换服务器失败，保持原服务器', data: {
@@ -822,8 +860,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
       });
       if (context.mounted) {
         messenger.clearSnackBars();
-        messenger.showSnackBar(
-            SnackBar(content: Text('切换失败：$e（保持原服务器）')));
+        messenger.showSnackBar(SnackBar(content: Text('切换失败：$e（保持原服务器）')));
       }
     } finally {
       _switchingQuick = false;
@@ -912,7 +949,11 @@ class _LoginViewState extends ConsumerState<LoginView> {
       _serverHistory.removeWhere((e) => e.url == url);
       // 插入到最前面（batch112-F1：保存当前服务器类型，避免群晖条目被记为 emby）
       _serverHistory.insert(
-          0, _ServerHistoryEntry(url: url, serverType: type ?? _serverType, lastUsed: DateTime.now()));
+          0,
+          _ServerHistoryEntry(
+              url: url,
+              serverType: type ?? _serverType,
+              lastUsed: DateTime.now()));
       // 最多保留 _kMaxServerHistory 条
       if (_serverHistory.length > _kMaxServerHistory) {
         _serverHistory = _serverHistory.sublist(0, _kMaxServerHistory);
@@ -1069,7 +1110,9 @@ class _LoginViewState extends ConsumerState<LoginView> {
         username: username,
         password: _rememberMe ? password : null,
         clearPassword: !_rememberMe,
-        synoSid: (_rememberMe && _serverType == ServerType.synology) ? synoSid : null,
+        synoSid: (_rememberMe && _serverType == ServerType.synology)
+            ? synoSid
+            : null,
         clearSynoSid: !_rememberMe,
       );
       if (!registrySaved && mounted) {
@@ -1123,6 +1166,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
     }
   }
 
+  /// 切换服务器类型：重置连接测试与两步验证状态
   void _onServerTypeChanged(ServerType type) {
     if (type == _serverType) return;
     // 使在途连接测试失效，避免旧类型结果覆盖新类型状态
@@ -1166,6 +1210,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
     }
   }
 
+  /// 判断是否为 HTTP（非 HTTPS）以显示安全提示
+  /// 私网段（10/8, 172.16/12, 192.168/16）与回环地址不警告
   bool _isHttpWarning() {
     final url = _embyController.text.trim().toLowerCase();
     if (!url.startsWith('http://')) return false;
@@ -1192,6 +1238,10 @@ class _LoginViewState extends ConsumerState<LoginView> {
     }
   }
 
+  /// 服务器类型选择：图标卡片网格（先选类型，再填信息）
+  ///
+  /// 设计参考：AudioDock / AuthPortal —— 用卡片直观区分视频服务与音乐服务，
+  /// 选中态以主题色边框 + 背景 + 勾选角标标识，表单随选择动态适配。
   Widget _buildServerTypeSelector(ColorScheme scheme) {
     // 注意：登录表单在 SingleChildScrollView 内，垂直方向无界，
     // 不能使用 crossAxisAlignment.stretch（需要有限高度），用默认 center
@@ -1254,66 +1304,89 @@ class _LoginViewState extends ConsumerState<LoginView> {
     required IconData icon,
   }) {
     final selected = _serverType == type;
-    return GestureDetector(
+    // 语义：选中态必须可被读屏识别（手势 + 勾选角标对读屏不可见）；
+    // 交互：AnimatedContainer 承载视觉，InkWell 叠在其上提供按压涟漪与焦点/键盘可达性。
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '$title，$subtitle',
+      // excludeSemantics 会连带丢掉 InkWell 的点击语义动作，这里显式补回，
+      // 否则读屏用户能听到卡片却无法激活
       onTap: () => _onServerTypeChanged(type),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-        decoration: BoxDecoration(
-          color: selected
-              ? scheme.primary.withValues(alpha: 0.08)
-              : scheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected
-                ? scheme.primary
-                : scheme.outlineVariant.withValues(alpha: 0.4),
-            width: selected ? 1.6 : 1,
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 30,
-              color: selected ? scheme.primary : scheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: selected ? scheme.primary : scheme.onSurface,
+      excludeSemantics: true,
+      child: Stack(
+        // passthrough：让卡片继承外层 Expanded 的紧约束（loose 会让卡片缩成内容宽）
+        fit: StackFit.passthrough,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+            decoration: BoxDecoration(
+              color: selected
+                  ? scheme.primary.withValues(alpha: 0.08)
+                  : scheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: selected
+                    ? scheme.primary
+                    : scheme.outlineVariant.withValues(alpha: 0.4),
+                width: selected ? 1.6 : 1,
               ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 11,
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 6),
-            // 选中角标（未选中时占位保持高度一致，避免卡片跳动）
-            selected
-                ? Icon(Icons.check_circle, size: 16, color: scheme.primary)
-                : const SizedBox(
-                    height: 16,
-                    width: 16,
-                    child: Icon(Icons.check_circle,
-                        size: 16, color: Colors.transparent),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  size: 30,
+                  color: selected ? scheme.primary : scheme.onSurfaceVariant,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: selected ? scheme.primary : scheme.onSurface,
                   ),
-          ],
-        ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                // 选中角标（未选中时占位保持高度一致，避免卡片跳动）
+                selected
+                    ? Icon(Icons.check_circle, size: 16, color: scheme.primary)
+                    : const SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: Icon(Icons.check_circle,
+                            size: 16, color: Colors.transparent),
+                      ),
+              ],
+            ),
+          ),
+          Positioned.fill(
+            child: Material(
+              type: MaterialType.transparency,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () => _onServerTypeChanged(type),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1421,6 +1494,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
     );
   }
 
+  /// 服务器地址输入框（带连接测试状态指示器）
   Widget _buildServerField(ColorScheme scheme) {
     final isSyno = _serverType == ServerType.synology;
     return TextFormField(
@@ -1451,7 +1525,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
             color: _connectionStatus == false
                 ? scheme.error
                 : _connectionStatus == true
-                    ? Colors.green
+                    ? _successColor(scheme)
                     : scheme.outlineVariant,
           ),
         ),
@@ -1574,7 +1648,9 @@ class _LoginViewState extends ConsumerState<LoginView> {
                             const BoxConstraints(minWidth: 44, minHeight: 44),
                         onPressed: () =>
                             _showDeleteConfirmDialog(index, scheme),
-                        tooltip: '关闭',
+                        // 该按钮实际删除历史条目（弹窗标题「删除服务器」），
+                        // tooltip 必须与行为一致，否则读屏播报「关闭」会误导
+                        tooltip: '删除',
                       ),
                     ],
                   ),

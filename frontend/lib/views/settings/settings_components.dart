@@ -162,7 +162,8 @@ Widget settingsLibraryChip({
   required Color background,
 }) {
   return Container(
-    padding: const EdgeInsets.symmetric(horizontal: kSpacingSm, vertical: kSpacingXs),
+    padding: const EdgeInsets.symmetric(
+        horizontal: kSpacingSm, vertical: kSpacingXs),
     decoration: BoxDecoration(
       color: background,
       borderRadius: BorderRadius.circular(12),
@@ -305,7 +306,8 @@ Widget settingsInfoTile({
               ),
             )
           : null,
-      trailing: trailing ?? settingsHelpButton(helpText: helpText, title: title),
+      trailing:
+          trailing ?? settingsHelpButton(helpText: helpText, title: title),
     );
   });
 }
@@ -322,8 +324,9 @@ Widget settingsHelpButton({
     return IconButton(
       icon: Icon(Icons.help_outline, size: 19, color: scheme.onSurfaceVariant),
       tooltip: '帮助',
-      visualDensity: VisualDensity.compact,
-      constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+      // 触控目标 ≥44×44（原 34 + VisualDensity.compact 实测只有 40×40）；
+      // 去掉 compact 才不会把约束再缩 8dp，视觉仍靠 19px 图标保持紧凑
+      constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
       padding: EdgeInsets.zero,
       onPressed: () => settingsShowHelp(context, title, helpText),
     );
