@@ -809,7 +809,6 @@ class _LoginViewState extends ConsumerState<LoginView> {
     if (_switchingQuick) return;
     _switchingQuick = true;
     final messenger = ScaffoldMessenger.of(context);
-    final registry = ref.read(serverRegistryProvider.notifier);
     final secureStorage = ref.read(secureStorageProvider);
     final prevActiveId = ref.read(activeServerIdProvider);
 
@@ -820,50 +819,24 @@ class _LoginViewState extends ConsumerState<LoginView> {
     ));
 
     try {
-      // P3 修复（登录界面审查 F3/F4/F7）：sid 有效性校验、跨类型对端会话
-      // 清理、两步验证取码，与服务器管理页共用同一实现。
-      await purgeCounterpartSession(ref, server);
-
-      if (server.kind == ServerKind.synology) {
-        await loginSynologyTarget(
-          ref,
-          server,
-          secureStorage,
-          requestOtp: () => showSynologyOtpDialog(context),
-        );
-      } else {
-        final password =
-            await readSavedServerPassword(secureStorage, server.id);
-        if (password == null) {
-          // P3 修复（登录界面复审）：先清掉 30s 的「正在切换到…」进度提示，
-          // 否则失败原因要等进度提示走完才可见（成功/异常分支都已先清理）
-          messenger.clearSnackBars();
-          messenger
-              .showSnackBar(const SnackBar(content: Text('未保存该服务器的密码，请编辑后重试')));
-          return;
-        }
-        await ref.read(authProvider.notifier).login(
-              server.resolveUrl(),
-              server.username,
-              password,
-            );
-      }
-      // 登录成功后才更新激活状态和最后使用时间
-      await registry.touch(server.id);
-      await ref.read(activeServerIdProvider.notifier).setActive(server.id);
-      // 账号类型与模式联动：群晖 → 音乐模式，Emby/Plex → 视频模式
-      // （与登录表单提交 _submit 的联动对称，避免首页模式与激活账号割裂）
-      final modeNotifier = ref.read(serviceModeProvider.notifier);
-      if (server.kind == ServerKind.synology) {
-        if (ref.read(serviceModeProvider) != AppServiceMode.music) {
-          await modeNotifier.setMode(AppServiceMode.music);
-        }
-      } else if (ref.read(serviceModeProvider) != AppServiceMode.video) {
-        await modeNotifier.setMode(AppServiceMode.video);
+      // 编排收敛到 server_switch_helpers.switchRegistryServer：
+      // 先登录目标成功，再清对端会话、更新激活态与服务模式；目标失败时对端保留。
+      final outcome = await switchRegistryServer(
+        ref,
+        server,
+        secureStorage,
+        requestOtp: () => showSynologyOtpDialog(context),
+      );
+      if (outcome == ServerSwitchOutcome.missingPassword) {
+        messenger.clearSnackBars();
+        messenger.showSnackBar(const SnackBar(
+            content: Text('未保存该服务器的密码，请编辑后重试')));
+        return;
       }
       if (context.mounted) {
         messenger.clearSnackBars();
-        messenger.showSnackBar(SnackBar(content: Text('已切换到「${server.name}」')));
+        messenger
+            .showSnackBar(SnackBar(content: Text('已切换到「${server.name}」')));
       }
     } catch (e) {
       AppLogger.error('切换服务器失败，保持原服务器', data: {

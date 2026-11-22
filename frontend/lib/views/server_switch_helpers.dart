@@ -13,6 +13,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../providers/auth_provider.dart';
 import '../providers/server_registry_provider.dart';
+import '../providers/service_mode_provider.dart';
 import '../providers/synology_auth_provider.dart';
 import '../services/synology_audio_api.dart';
 import '../utils/logger.dart';
@@ -164,4 +165,66 @@ Future<String?> showSynologyOtpDialog(BuildContext context) async {
   );
   if (result == null || result.trim().isEmpty) return null;
   return result.trim();
+}
+
+/// 注册表服务器切换结果
+enum ServerSwitchOutcome {
+  /// 切换成功
+  switched,
+
+  /// 目标服务器未保存密码，无法自动登录
+  missingPassword,
+}
+
+/// 统一的注册表服务器切换编排（登录页快速切换 / 服务器管理页共用）。
+///
+/// 顺序不变量（P1 修复）：**先登录目标成功，再清理对端会话**。
+/// 旧实现先 `purgeCounterpartSession` 再登录目标，目标失败时会把当前可用
+/// 会话一并销毁（用户被踢回登录页）。本函数把顺序收敛为：
+/// 1. 登录目标（群晖走 sid 恢复 + 校验 + 密码回退 + OTP；视频类读保存密码）；
+/// 2. 成功后才清对端会话、touch/setActive、服务模式联动；
+/// 3. 目标登录失败时异常向上抛，对端会话保持不变。
+///
+/// 视频类无保存密码时返回 [ServerSwitchOutcome.missingPassword]，不抛异常。
+Future<ServerSwitchOutcome> switchRegistryServer(
+  WidgetRef ref,
+  ServerProfile server,
+  FlutterSecureStorage storage, {
+  OtpCodeRequester? requestOtp,
+}) async {
+  if (server.kind == ServerKind.synology) {
+    await loginSynologyTarget(
+      ref,
+      server,
+      storage,
+      requestOtp: requestOtp,
+    );
+  } else {
+    final password = await readSavedServerPassword(storage, server.id);
+    if (password == null || password.isEmpty) {
+      return ServerSwitchOutcome.missingPassword;
+    }
+    await ref.read(authProvider.notifier).login(
+          server.resolveUrl(),
+          server.username,
+          password,
+        );
+  }
+
+  // 登录成功后才清理跨类型对端会话；失败时不会执行到这里
+  await purgeCounterpartSession(ref, server);
+  await ref.read(serverRegistryProvider.notifier).touch(server.id);
+  await ref.read(activeServerIdProvider.notifier).setActive(server.id);
+
+  // 账号类型与服务模式联动：群晖 → 音乐，Emby/Jellyfin/Plex → 视频
+  final modeNotifier = ref.read(serviceModeProvider.notifier);
+  if (server.kind == ServerKind.synology) {
+    if (ref.read(serviceModeProvider) != AppServiceMode.music) {
+      await modeNotifier.setMode(AppServiceMode.music);
+    }
+  } else if (ref.read(serviceModeProvider) != AppServiceMode.video) {
+    await modeNotifier.setMode(AppServiceMode.video);
+  }
+
+  return ServerSwitchOutcome.switched;
 }
