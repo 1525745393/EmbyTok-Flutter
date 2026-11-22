@@ -46,13 +46,6 @@ class _ServersViewState extends ConsumerState<ServersView> {
         backgroundColor: scheme.surface,
         foregroundColor: scheme.onSurface,
         title: const Text('服务器管理'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: '添加服务器',
-            onPressed: () => _showEditSheet(context, ref),
-          ),
-        ],
       ),
       body: servers.isEmpty
           ? _buildEmpty(scheme)

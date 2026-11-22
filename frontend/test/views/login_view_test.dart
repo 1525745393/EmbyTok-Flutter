@@ -75,6 +75,22 @@ void main() {
     expect(find.text('http://192.168.1.100:5000'), findsOneWidget);
   });
 
+  testWidgets('点击 Jellyfin 卡片 → 表单 label 切换为 Jellyfin 服务器地址', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(buildLogin());
+    await tester.pumpAndSettle();
+
+    final jellyfinCard = find.text('Jellyfin 视频');
+    await tester.ensureVisible(jellyfinCard);
+    await tester.tap(jellyfinCard, warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Jellyfin 服务器地址'), findsOneWidget);
+    expect(find.text('Emby 服务器地址'), findsNothing);
+    // Jellyfin 与 Emby 同源协议，默认端口同为 8096
+    expect(find.text('http://192.168.1.1:8096'), findsOneWidget);
+  });
+
   testWidgets('小屏 320×568：卡片选择器不溢出', (tester) async {
     SharedPreferences.setMockInitialValues({});
     tester.view.physicalSize = const Size(320, 568);

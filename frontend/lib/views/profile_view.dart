@@ -93,13 +93,14 @@ class ProfileView extends ConsumerWidget {
               subtitle: '离线下载、下载队列、已下载歌曲',
               onTap: () => context.push('/downloads'),
             ),
-            // 切换账号入口
-            _buildMenuTile(
-              icon: Icons.switch_account,
-              title: '切换账号',
-              subtitle: '多账号快速切换、添加/删除账号',
-              onTap: () => showAccountSwitchSheet(context, ref),
-            ),
+            // 切换账号入口：仅群晖已登录时渲染，避免未登录点开空群晖弹窗
+            if (auth.isLoggedIn)
+              _buildMenuTile(
+                icon: Icons.switch_account,
+                title: '切换账号',
+                subtitle: '多账号快速切换、添加/删除账号',
+                onTap: () => showAccountSwitchSheet(context, ref),
+              ),
             // 我的歌单入口
             _buildMenuTile(
               icon: Icons.queue_music,
@@ -134,7 +135,7 @@ class ProfileView extends ConsumerWidget {
               OutlinedButton.icon(
                 onPressed: () => _showLogoutConfirm(context, ref),
                 icon: const Icon(Icons.logout),
-                label: const Text('退出群晖登录'),
+                label: const Text('退出全部账号'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: scheme.error,
                   side: BorderSide(color: scheme.error.withValues(alpha: 0.5)),
@@ -286,7 +287,7 @@ class ProfileView extends ConsumerWidget {
     showDialog<Widget>(context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('退出登录'),
-        content: const Text('确定要退出群晖 Audio Station 登录吗？'),
+        content: const Text('确定要退出全部账号吗？将同时退出群晖音乐与视频服务器账号。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),

@@ -1438,7 +1438,22 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
   /// 服务器地址输入框（带连接测试状态指示器）
   Widget _buildServerField(ColorScheme scheme) {
-    final isSyno = _serverType == ServerType.synology;
+    final String labelText;
+    final String hintText;
+    switch (_serverType) {
+      case ServerType.synology:
+        labelText = '群晖服务器地址';
+        hintText = 'http://192.168.1.100:5000';
+      case ServerType.jellyfin:
+        labelText = 'Jellyfin 服务器地址';
+        hintText = 'http://192.168.1.1:8096';
+      case ServerType.plex:
+        labelText = 'Plex 服务器地址';
+        hintText = 'http://192.168.1.1:32400';
+      case ServerType.emby || ServerType.local:
+        labelText = 'Emby 服务器地址';
+        hintText = 'http://192.168.1.1:8096';
+    }
     return TextFormField(
       controller: _embyController,
       focusNode: _serverFocusNode,
@@ -1454,10 +1469,9 @@ class _LoginViewState extends ConsumerState<LoginView> {
       decoration: InputDecoration(
         filled: true,
         fillColor: scheme.surface,
-        labelText: isSyno ? '群晖服务器地址' : 'Emby 服务器地址',
+        labelText: labelText,
         labelStyle: TextStyle(color: scheme.onSurfaceVariant),
-        hintText:
-            isSyno ? 'http://192.168.1.100:5000' : 'http://192.168.1.1:8096',
+        hintText: hintText,
         hintStyle: TextStyle(color: scheme.onSurface.withValues(alpha: 0.5)),
         prefixIcon: Icon(Icons.dns_outlined, color: scheme.primary),
         suffixIcon: _buildConnectionIndicator(scheme),
