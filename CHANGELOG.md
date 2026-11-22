@@ -1,3 +1,18 @@
+# [2.403.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.402.9...v2.403.0) (2026-11-22)
+
+
+### Bug Fixes
+
+* 停用旧版遗留单槽凭据，登出时清理残留并保留注册表按 id 密码 ([192f825](https://github.com/1525745393/EmbyTok-Flutter/commit/192f82530e69999035e11e11d0d618189499dcb1))
+* 删除注册表服务器时登出匹配的当前活会话，防止残留凭据启动复活 ([3060b19](https://github.com/1525745393/EmbyTok-Flutter/commit/3060b19f956b59e8579c37ae06d5d0fd36e7a9cf))
+* 收敛服务器切换编排至公共helper，修复登录页先清对端导致失败会话丢失 ([65e2399](https://github.com/1525745393/EmbyTok-Flutter/commit/65e239928a6fa97644ce0327dd4a7b7820609683))
+* 群晖账号切换/添加补两步验证OTP回退，复用公共登录helper ([03d17a9](https://github.com/1525745393/EmbyTok-Flutter/commit/03d17a97a292126621c8b1d2c455499c5b2f4902))
+
+
+### Features
+
+* 群晖注册表与账号列表双存储桥接同步，统一端点去重口径 ([b4091aa](https://github.com/1525745393/EmbyTok-Flutter/commit/b4091aaed31a5c6cd0f2cc104fb711c6fffd73d3))
+
 ## [2.402.9](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.402.8...v2.402.9) (2026-11-15)
 
 
