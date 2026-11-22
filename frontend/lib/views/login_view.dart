@@ -19,6 +19,7 @@ import '../services/services.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
 import 'server_switch_helpers.dart';
+import 'account_bridge.dart';
 import 'settings/settings_components.dart';
 
 /// 安全存储键名（仅用于凭据，服务器历史仍用 SharedPreferences）
@@ -156,8 +157,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
   }
 
   /// 登录成功后写入服务器注册表（已存在则按端点命中更新），并设为激活
-  /// 返回 true 表示写入成功，false 表示失败（调用方应提示用户）
-  Future<bool> _saveToRegistry({
+  /// 返回写入的注册表条目；写入失败返回 null（调用方应提示用户）
+  Future<ServerProfile?> _saveToRegistry({
     required String server,
     required String username,
     String? password,
@@ -180,7 +181,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
         // （192.168.1.1 与 192.168.1.10 前缀混淆）及同 host 不同端口互相覆盖
         if (s.kind == kind &&
             s.username == username &&
-            _sameEndpoint(s.url, server)) {
+            sameEndpoint(s.url, server)) {
           existing = s;
           break;
         }
@@ -217,10 +218,10 @@ class _LoginViewState extends ConsumerState<LoginView> {
       }
       // 设为当前激活服务器
       await ref.read(activeServerIdProvider.notifier).setActive(profile.id);
-      return true;
+      return profile;
     } catch (e) {
       AppLogger.error('写入服务器注册表失败', error: e);
-      return false;
+      return null;
     }
   }
 
@@ -231,17 +232,6 @@ class _LoginViewState extends ConsumerState<LoginView> {
       return uri.host;
     } catch (_) {
       return url;
-    }
-  }
-
-  /// 判断两个服务器 URL 是否指向同一端点（host + 端口一致，忽略协议差异）
-  static bool _sameEndpoint(String a, String b) {
-    try {
-      final ua = Uri.parse(a);
-      final ub = Uri.parse(b);
-      return ua.host == ub.host && ua.port == ub.port;
-    } catch (_) {
-      return a == b;
     }
   }
 
@@ -1090,7 +1080,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
           : null;
       // P3 修复（登录界面复审）：sid 是与密码同级的可复用会话凭据，
       // 未勾选「记住密码」时不得持久化，否则下次可免密切换
-      final registrySaved = await _saveToRegistry(
+      final savedProfile = await _saveToRegistry(
         server: server,
         username: username,
         password: _rememberMe ? password : null,
@@ -1100,7 +1090,13 @@ class _LoginViewState extends ConsumerState<LoginView> {
             : null,
         clearSynoSid: !_rememberMe,
       );
-      if (!registrySaved && mounted) {
+      // 群晖且记住密码：同步到群晖账号列表，保持注册表与账号列表双存储一致
+      if (savedProfile != null &&
+          _serverType == ServerType.synology &&
+          _rememberMe) {
+        await bridgeRegistryToAccounts(ref, savedProfile, password);
+      }
+      if (savedProfile == null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('服务器配置保存失败，可在设置 → 服务器管理中手动添加')),
         );

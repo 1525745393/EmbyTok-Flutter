@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../utils/logger.dart';
 import 'auth_provider.dart' show secureStorageProvider;
+import 'server_registry_provider.dart' show sameEndpoint;
 
 /// 一个已保存的群晖账号
 class SynoAccount {
@@ -133,7 +134,8 @@ class SynoAccountsNotifier extends StateNotifier<SynoAccountsState> {
     required String password,
   }) async {
     final existing = state.accounts
-        .where((a) => a.serverUrl == serverUrl && a.username == username)
+        .where((a) =>
+            a.username == username && sameEndpoint(a.serverUrl, serverUrl))
         .toList();
     if (existing.isNotEmpty) {
       // 更新密码（可能改了密码），并切为当前

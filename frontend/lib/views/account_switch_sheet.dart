@@ -16,6 +16,7 @@ import '../providers/synology_music_provider.dart';
 import '../providers/synology_playback_provider.dart';
 import '../utils/constants.dart';
 import 'server_switch_helpers.dart';
+import 'account_bridge.dart';
 
 /// 弹出账号切换 sheet
 Future<void> showAccountSwitchSheet(BuildContext context, WidgetRef ref) async {
@@ -218,6 +219,8 @@ class _AccountSheet extends ConsumerWidget {
     );
     if (ok == true) {
       await ref.read(synoAccountsProvider.notifier).remove(a.accountId);
+      // 同步删除注册表中对应群晖条目，保持双存储一致
+      await bridgeRemoveAccountToRegistry(ref, a);
     }
   }
 
@@ -278,6 +281,13 @@ class _AccountSheet extends ConsumerWidget {
             username: username,
             password: password,
           );
+      // 同步到服务器注册表，保持双存储一致
+      await bridgeAccountToRegistry(
+        ref,
+        serverUrl: serverUrl,
+        username: username,
+        password: password,
+      );
       await ref.read(synoAccountsProvider.notifier).setCurrent(account.accountId);
       await ref.read(synologyMusicProvider.notifier).loadHomeData(force: true);
       await ref.read(recentPlaybacksProvider.notifier).reload();

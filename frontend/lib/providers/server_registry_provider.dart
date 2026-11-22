@@ -212,6 +212,20 @@ String serverPasswordKey(String id) => 'server_password_$id';
 /// 群晖 sid 存储 key（安全存储，按服务器 id 隔离；替代明文 SharedPreferences）
 String serverSynoSidKey(String id) => 'server_syno_sid_$id';
 
+/// 判断两个 URL 是否指向同一端点（host + 端口一致，忽略协议/尾斜杠差异）。
+///
+/// 统一注册表与群晖账号列表两处的去重口径，避免字符串精确比较把
+/// `http://nas:5000` 与 `https://nas:5000` 误判为两个账号。
+bool sameEndpoint(String a, String b) {
+  try {
+    final ua = Uri.parse(a);
+    final ub = Uri.parse(b);
+    return ua.host == ub.host && ua.port == ub.port;
+  } catch (_) {
+    return a.trim() == b.trim();
+  }
+}
+
 /// 服务器注册表 Provider
 final serverRegistryProvider =
     StateNotifierProvider<ServerRegistryNotifier, List<ServerProfile>>(

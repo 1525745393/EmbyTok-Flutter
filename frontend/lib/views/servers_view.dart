@@ -17,6 +17,7 @@ import '../providers/synology_auth_provider.dart';
 import '../utils/logger.dart';
 import '../utils/constants.dart';
 import 'server_switch_helpers.dart';
+import 'account_bridge.dart';
 
 class ServersView extends ConsumerStatefulWidget {
   const ServersView({super.key});
@@ -349,6 +350,11 @@ class _ServersViewState extends ConsumerState<ServersView> {
                             password: password.isEmpty ? null : password,
                           );
                         }
+                        // 群晖条目同步到账号列表，保持双存储一致
+                        if (profile.kind == ServerKind.synology) {
+                          await bridgeRegistryToAccounts(
+                              ref, profile, password.isEmpty ? null : password);
+                        }
                         if (sheetContext.mounted) Navigator.pop(sheetContext);
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -419,6 +425,8 @@ class _ServersViewState extends ConsumerState<ServersView> {
     // 删除前若该服务器正是当前活会话，先登出清理 token/sid，
     // 避免残留凭据在启动恢复路径把已删服务器重新恢复为登录态。
     await logoutMatchingSession(ref, server);
+    // 群晖条目同步删除账号列表，保持双存储一致
+    await bridgeRemoveRegistryToAccounts(ref, server);
     await ref.read(serverRegistryProvider.notifier).remove(server.id);
     if (context.mounted) {
       ScaffoldMessenger.of(context)
