@@ -1,6 +1,6 @@
 // 多账号切换 Bottom Sheet（PRD #30）
 //
-// 列出已保存账号，支持：切换、设为默认、添加账号、删除。
+// 列出已保存账号，支持：切换、添加账号、删除。
 // 切换：停止播放 → 用账号密码重新 login → 重载音乐库。
 
 import 'package:flutter/material.dart';
@@ -58,46 +58,16 @@ class _AccountSheet extends ConsumerWidget {
                 isCurrent ? Icons.check_circle : Icons.person_outline,
                 color: isCurrent ? Colors.green : Colors.grey,
               ),
-              title: Row(
-                children: [
-                  Text(a.username),
-                  if (a.isDefault)
-                    Container(
-                      margin: const EdgeInsets.only(left: kSpacingSm),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      // U18：默认服务器角标用 orange800 提升暗黑下可读性；
-                      // shade800 非常量可求值，Text 不能标 const
-                      child: Text('默认',
-                          style: TextStyle(fontSize: 12, color: Colors.orange.shade800)),
-                    ),
-                ],
-              ),
+              title: Text(a.username),
               subtitle: Text(a.serverUrl,
                   maxLines: 1, overflow: TextOverflow.ellipsis),
               trailing: isCurrent
                   ? const Text('当前',
                       style: TextStyle(color: Colors.green, fontSize: 12))
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.star_border, size: 20),
-                          tooltip: '设为默认',
-                          onPressed: () => ref
-                              .read(synoAccountsProvider.notifier)
-                              .setDefault(a.accountId),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, size: 20),
-                          tooltip: '删除',
-                          onPressed: () => _confirmDelete(context, ref, a),
-                        ),
-                      ],
+                  : IconButton(
+                      icon: const Icon(Icons.delete_outline, size: 20),
+                      tooltip: '删除',
+                      onPressed: () => _confirmDelete(context, ref, a),
                     ),
               onTap: isCurrent ? null : () => _switchTo(context, ref, a),
             );

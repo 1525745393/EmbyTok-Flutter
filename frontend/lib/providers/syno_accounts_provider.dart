@@ -4,7 +4,6 @@
 // - 账号列表持久化到 SharedPreferences（元数据）
 // - 密码 / sid 存安全存储（FlutterSecureStorage）
 // - 切换账号：用新账号凭证 login 拿 sid → restoreSession → 重载音乐库
-// - 默认账号：启动时自动登录
 
 import 'dart:convert';
 
@@ -21,7 +20,6 @@ class SynoAccount {
     required this.accountId,
     required this.serverUrl,
     required this.username,
-    this.isDefault = false,
     this.lastUsedAtMs = 0,
   });
 
@@ -29,29 +27,25 @@ class SynoAccount {
         accountId: j['accountId'] as String? ?? '',
         serverUrl: j['serverUrl'] as String? ?? '',
         username: j['username'] as String? ?? '',
-        isDefault: j['isDefault'] as bool? ?? false,
         lastUsedAtMs: (j['lastUsedAtMs'] as num?)?.toInt() ?? 0,
       );
 
   final String accountId;
   final String serverUrl;
   final String username;
-  final bool isDefault;
   final int lastUsedAtMs;
 
   Map<String, dynamic> toJson() => {
         'accountId': accountId,
         'serverUrl': serverUrl,
         'username': username,
-        'isDefault': isDefault,
         'lastUsedAtMs': lastUsedAtMs,
       };
 
-  SynoAccount copyWith({bool? isDefault, int? lastUsedAtMs}) => SynoAccount(
+  SynoAccount copyWith({int? lastUsedAtMs}) => SynoAccount(
         accountId: accountId,
         serverUrl: serverUrl,
         username: username,
-        isDefault: isDefault ?? this.isDefault,
         lastUsedAtMs: lastUsedAtMs ?? this.lastUsedAtMs,
       );
 }
@@ -190,16 +184,6 @@ class SynoAccountsNotifier extends StateNotifier<SynoAccountsState> {
             : a)
         .toList();
     state = SynoAccountsState(accounts: list, currentAccountId: accountId);
-    await _persist();
-  }
-
-  /// 设为默认
-  Future<void> setDefault(String accountId) async {
-    final list = state.accounts
-        .map((a) => a.copyWith(isDefault: a.accountId == accountId))
-        .toList();
-    state = SynoAccountsState(
-        accounts: list, currentAccountId: state.currentAccountId);
     await _persist();
   }
 

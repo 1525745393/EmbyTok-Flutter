@@ -241,7 +241,7 @@ class _ServersViewState extends ConsumerState<ServersView> {
                   const SizedBox(height: 10),
                   _field(scheme, urlCtrl, '服务器地址（必填）', Icons.dns_outlined),
                   const SizedBox(height: 10),
-                  _field(scheme, userCtrl, '用户名', Icons.person_outline),
+                  _field(scheme, userCtrl, '用户名（必填）', Icons.person_outline),
                   const SizedBox(height: 10),
                   _field(
                     scheme,
@@ -294,10 +294,14 @@ class _ServersViewState extends ConsumerState<ServersView> {
                       onPressed: () async {
                         final url = urlCtrl.text.trim();
                         final name = nameCtrl.text.trim();
-                        if (url.isEmpty || name.isEmpty) {
+                        final username = userCtrl.text.trim();
+                        // 注册表条目均为远端服务（Emby/Jellyfin/Plex/群晖），
+                        // 用户名用于快速切换/续期登录，纳入必填校验。
+                        if (url.isEmpty || name.isEmpty || username.isEmpty) {
                           ScaffoldMessenger.of(sheetContext).showSnackBar(
                               const SnackBar(
-                                  content: Text('名称与服务器地址为必填项')));
+                                  content: Text(
+                                      '名称、服务器地址与用户名为必填项')));
                           return;
                         }
                         final registry =
@@ -324,7 +328,7 @@ class _ServersViewState extends ConsumerState<ServersView> {
                           externalUrl: norm(externalCtrl.text).isEmpty
                               ? null
                               : norm(externalCtrl.text),
-                          username: userCtrl.text.trim(),
+                          username: username,
                           networkMode: networkMode,
                           isDefault: server?.isDefault ?? false,
                           lastUsed: server?.lastUsed ?? DateTime.now(),
