@@ -1,13 +1,12 @@
 // 登录页面：深色 TikTok 风格，粉紫色主题
 // 优化：服务器历史（友好名称 + 类型图标 + 删除确认）、连接测试、键盘交互、内联错误提示
-// 安全：密码通过 flutter_secure_storage 加密存储，防重复提交锁
+// 安全：密码按服务器 id 分桶加密存储于注册表/账号列表，防重复提交锁
 
 import 'dart:convert';
 import '../utils/colors.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -21,11 +20,6 @@ import '../utils/logger.dart';
 import 'server_switch_helpers.dart';
 import 'account_bridge.dart';
 import 'settings/settings_components.dart';
-
-/// 安全存储键名（仅用于凭据，服务器历史仍用 SharedPreferences）
-const _kSecureKeyServer = 'embytok_secure_server';
-const _kSecureKeyUsername = 'embytok_secure_username';
-const _kSecureKeyPassword = 'embytok_secure_password';
 
 /// 服务器历史最大保留条数
 const _kMaxServerHistory = 5;
@@ -102,10 +96,6 @@ class _LoginViewState extends ConsumerState<LoginView> {
   final _serverFocusNode = FocusNode();
   final _usernameFocusNode = FocusNode();
   final _passwordFocusNode = FocusNode();
-  // 安全存储经 secureStorageProvider 注入（batch126 views 直连收口）：
-  // 便于测试替换 mock、统一凭据读写路径
-  late final FlutterSecureStorage _secureStorage;
-
   bool _passwordVisible = false;
   bool _rememberMe = false;
   List<_ServerHistoryEntry> _serverHistory = [];
@@ -136,7 +126,6 @@ class _LoginViewState extends ConsumerState<LoginView> {
   @override
   void initState() {
     super.initState();
-    _secureStorage = ref.read(secureStorageProvider);
     _loadSavedData();
     // 服务器地址失焦时自动测试连接
     _serverFocusNode.addListener(_onServerFocusChanged);
@@ -872,28 +861,11 @@ class _LoginViewState extends ConsumerState<LoginView> {
         }
       }
 
-      // 从安全存储加载凭据
-      final server = await _secureStorage.read(key: _kSecureKeyServer);
-      final username = await _secureStorage.read(key: _kSecureKeyUsername);
-      final password = await _secureStorage.read(key: _kSecureKeyPassword);
-
+      // 凭据不再回填到表单：新实现按服务器 id 分桶保存于注册表/账号列表，
+      // 登录后从历史条目选择对应服务器即可；旧版本遗留单槽由统一登出清理。
       if (mounted) {
         setState(() {
           _serverHistory = entries;
-          if (server != null && server.isNotEmpty) {
-            _embyController.text = server;
-            _usernameController.text = username ?? '';
-            _passwordController.text = password ?? '';
-            // P3 修复（登录界面审查 F8）：仅在确实保存过密码时才回填为勾选，
-            // 否则未主动勾选的用户会因为地址存在而被静默保存密码。
-            _rememberMe = password != null && password.isNotEmpty;
-            // batch112-F2：凭据回填时按 URL 匹配历史条目恢复服务器类型，
-            // 避免上次用群晖登录后重启回填群晖地址却仍是 Emby 类型（连接测试走错端点）
-            final matched = entries.where((e) => e.url == server).firstOrNull;
-            if (matched != null) {
-              _serverType = matched.serverType;
-            }
-          }
         });
       }
 
@@ -946,26 +918,6 @@ class _LoginViewState extends ConsumerState<LoginView> {
     await _persistHistory();
   }
 
-  /// 保存或清除凭据（flutter_secure_storage）：勾选「记住密码」才写入，否则删除
-  Future<void> _saveCredentials(
-      String server, String username, String password) async {
-    try {
-      if (_rememberMe) {
-        await _secureStorage.write(key: _kSecureKeyServer, value: server);
-        await _secureStorage.write(key: _kSecureKeyUsername, value: username);
-        await _secureStorage.write(key: _kSecureKeyPassword, value: password);
-      } else {
-        final f1 = _secureStorage.delete(key: _kSecureKeyServer);
-        await Future.wait([
-          f1,
-          _secureStorage.delete(key: _kSecureKeyUsername),
-          _secureStorage.delete(key: _kSecureKeyPassword),
-        ]);
-      }
-    } catch (e) {
-      AppLogger.error('保存凭据失败', error: e);
-    }
-  }
 
   /// 测试服务器连接：按服务器类型走不同探测端点；
   /// 请求序号机制：快速切换服务器类型或反复失焦时，后发先至的过期结果被丢弃
@@ -1073,7 +1025,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
         await ref.read(authProvider.notifier).login(server, username, password);
       }
       await _saveServerHistory(server);
-      await _saveCredentials(server, username, password);
+      // 凭据按服务器 id 分桶写入注册表/账号列表（见 _saveToRegistry 与桥接），
+      // 不再写旧版本遗留单槽。
       // 写入服务器注册表（多服务器管理），rememberMe 时保存密码
       final synoSid = _serverType == ServerType.synology
           ? ref.read(synologyAuthProvider).sid

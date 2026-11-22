@@ -17,11 +17,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:embytok_flutter/providers/auth_provider.dart';
 import 'package:embytok_flutter/providers/providers.dart';
+import 'package:embytok_flutter/providers/server_registry_provider.dart';
 import 'package:embytok_flutter/providers/service_mode_provider.dart';
 import 'package:embytok_flutter/providers/synology_auth_provider.dart';
 import 'package:embytok_flutter/providers/synology_playback_provider.dart';
 import 'package:embytok_flutter/services/synology_audio_api.dart';
 import 'package:embytok_flutter/utils/auth_actions.dart';
+
+import '../mocks/mock_secure_storage.dart';
 
 /// 停止播放 no-op：避免真实 SynologyPlaybackNotifier.stop() 触发平台通道
 /// (releaseFocus) 在测试环境抛 MissingPluginException。
@@ -144,5 +147,40 @@ void main() {
 
     expect(container.read(authProvider).isAuthenticated, isFalse);
     expect(container.read(synologyAuthProvider).isLoggedIn, isFalse);
+  });
+
+  testWidgets('logoutAllAccounts 清理遗留单槽凭据，保留注册表按 id 保存的密码',
+      (tester) async {
+    final storage = MockFlutterSecureStorage();
+    // 旧版本升级残留：遗留单槽三件套有值
+    storage.setValue(kLegacySecureServer, 'http://emby.test');
+    storage.setValue(kLegacySecureUsername, 'tester');
+    storage.setValue(kLegacySecurePassword, 'old-pass');
+    // 注册表按 id 保存的密码（本轮保留，不在统一登出时清除）
+    storage.setValue(serverPasswordKey('srv_x'), 'registry-pass');
+
+    final container = ProviderContainer(overrides: [
+      authProvider.overrideWith((ref) => _FakeEmbyAuthNotifier(ref)),
+      synologyAuthProvider.overrideWith((ref) => SynologyAuthNotifier(ref)
+        ..state = const SynologyAuthState(
+            isLoggedIn: true,
+            serverUrl: 'http://nas.test',
+            account: 'tester',
+            sid: 'mock-sid')),
+      synologyAudioApiProvider.overrideWith((ref) => _FakeSynoAudioApi()),
+      serviceModeProvider.overrideWith((ref) => ServiceModeNotifier()),
+      synologyPlaybackProvider
+          .overrideWith((ref) => _NoopPlaybackNotifier(ref)),
+      secureStorageProvider.overrideWithValue(storage),
+    ]);
+    addTearDown(container.dispose);
+
+    await tapLogoutButton(tester, container);
+
+    expect(await storage.read(key: kLegacySecureServer), isNull);
+    expect(await storage.read(key: kLegacySecureUsername), isNull);
+    expect(await storage.read(key: kLegacySecurePassword), isNull);
+    expect(await storage.read(key: serverPasswordKey('srv_x')), 'registry-pass',
+        reason: '注册表按 id 保存的密码不在统一登出时清除');
   });
 }

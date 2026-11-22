@@ -22,6 +22,7 @@ import 'package:embytok_flutter/providers/server_registry_provider.dart';
 import 'package:embytok_flutter/providers/service_mode_provider.dart';
 import 'package:embytok_flutter/providers/synology_auth_provider.dart';
 import 'package:embytok_flutter/services/services.dart';
+import 'package:embytok_flutter/utils/auth_actions.dart';
 import 'package:embytok_flutter/views/login_view.dart';
 import 'package:embytok_flutter/views/servers_view.dart';
 
@@ -210,5 +211,78 @@ void main() {
     expect(container.read(serverRegistryProvider).single.libraryIds,
         ['music-1'],
         reason: '群晖重新登录同样不得清空已记忆的媒体库');
+  });
+
+  testWidgets('P2-4：勾选记住密码登录后遗留单槽不写入，注册表密码键保留',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final mockService = MockEmbytokService();
+    when(mockService.login(
+      embyServerUrl: anyNamed('embyServerUrl'),
+      username: anyNamed('username'),
+      password: anyNamed('password'),
+    )).thenAnswer((_) async =>
+        const User(id: 'u1', name: 'tester', accessToken: 'tok'));
+    final storage = MockFlutterSecureStorage();
+    final container = ProviderContainer(
+      overrides: [
+        secureStorageProvider.overrideWithValue(storage),
+        embytokServiceProvider.overrideWithValue(mockService),
+        authProvider.overrideWith((ref) => AuthNotifier(ref)),
+        serviceModeProvider.overrideWith((ref) => ServiceModeNotifier()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await _pumpLogin(container, tester);
+    // 勾选「记住密码」（行在滚动表单内，先滚到可见再点 Checkbox）
+    await tester.ensureVisible(find.byType(Checkbox).first);
+    await tester.pump();
+    await tester.tap(find.byType(Checkbox).first);
+    await tester.pump();
+    final rememberCheckbox = tester.widget<Checkbox>(find.byType(Checkbox).first);
+    expect(rememberCheckbox.value, isTrue, reason: '点击后记住密码应处于勾选态');
+
+    await _fillAndSubmit(tester,
+        server: 'http://emby.test:8096', username: 'tester', password: 'pass');
+
+    // 遗留单槽三件套不再被写入
+    expect(await storage.read(key: kLegacySecureServer), isNull,
+        reason: '遗留单槽已停用，登录不得再写入 embytok_secure_server');
+    expect(await storage.read(key: kLegacySecureUsername), isNull,
+        reason: '遗留单槽已停用，登录不得再写入 embytok_secure_username');
+    expect(await storage.read(key: kLegacySecurePassword), isNull,
+        reason: '遗留单槽已停用，登录不得再写入 embytok_secure_password');
+
+    // 注册表按 id 分桶保存的密码保留
+    final servers = container.read(serverRegistryProvider);
+    expect(servers, isNotEmpty);
+    final savedPwd =
+        await storage.read(key: serverPasswordKey(servers.single.id));
+    expect(savedPwd, 'pass', reason: '勾选记住密码后注册表密码键应保存密码');
+  });
+
+  testWidgets('P2-4：重启回填不读取遗留单槽，登录表单为空', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = MockFlutterSecureStorage();
+    // 模拟旧版本在遗留单槽残留的凭据
+    storage.setValue(kLegacySecureServer, 'http://old.emby:8096');
+    storage.setValue(kLegacySecureUsername, 'old-user');
+    storage.setValue(kLegacySecurePassword, 'old-pass');
+
+    final container = ProviderContainer(
+      overrides: [secureStorageProvider.overrideWithValue(storage)],
+    );
+    addTearDown(container.dispose);
+
+    await _pumpLogin(container, tester);
+
+    final fields = find.byType(TextFormField);
+    expect(fields, findsNWidgets(3));
+    for (var i = 0; i < 3; i++) {
+      final controller = tester.widget<TextFormField>(fields.at(i)).controller;
+      expect(controller?.text, isEmpty,
+          reason: '遗留单槽已停用，重启回填不得把旧凭据填入表单（field $i）');
+    }
   });
 }
