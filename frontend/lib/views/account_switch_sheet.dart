@@ -218,9 +218,12 @@ class _AccountSheet extends ConsumerWidget {
       ),
     );
     if (ok == true) {
-      await ref.read(synoAccountsProvider.notifier).remove(a.accountId);
-      // 同步删除注册表中对应群晖条目，保持双存储一致
-      await bridgeRemoveAccountToRegistry(ref, a);
+      final removed =
+          await ref.read(synoAccountsProvider.notifier).remove(a.accountId);
+      // 仅在账号确实被删除时同步注册表；当前账号被守卫拒绝时不动注册表
+      if (removed) {
+        await bridgeRemoveAccountToRegistry(ref, a);
+      }
     }
   }
 

@@ -203,17 +203,32 @@ class SynoAccountsNotifier extends StateNotifier<SynoAccountsState> {
     await _persist();
   }
 
-  /// 删除账号（不能删当前账号；UI 层保证）
-  Future<void> remove(String accountId) async {
+  /// 登出时解除当前账号指针（保留已保存账号列表与密码，仅清空 current 绑定）。
+  Future<void> clearCurrent() async {
+    state = SynoAccountsState(accounts: state.accounts, currentAccountId: null);
+    await _persist();
+  }
+
+  /// 删除账号；当前登录账号受守卫保护，拒绝删除并返回 false。
+  ///
+  /// UI 层虽已对当前账号隐藏删除入口，Provider 层仍做纵深防御：避免调用方
+  /// 误删当前账号导致会话与保存凭据脱节。`bypassGuard` 仅供双存储桥接在
+  /// 注册表侧条目被删、需对端跟随移除时使用（一致性同步，非用户主动删除）。
+  Future<bool> remove(String accountId, {bool bypassGuard = false}) async {
+    final removingCurrent = state.currentAccountId == accountId;
+    if (!bypassGuard && removingCurrent) {
+      AppLogger.warn('拒绝删除当前登录账号', data: {'accountId': accountId});
+      return false;
+    }
     try {
       await _secure.delete(key: _pwdKey(accountId));
     } catch (e) { AppLogger.warn('读取 Synology 账号失败', data: {'error': e.toString()}); }
     state = SynoAccountsState(
       accounts: state.accounts.where((a) => a.accountId != accountId).toList(),
-      currentAccountId:
-          state.currentAccountId == accountId ? null : state.currentAccountId,
+      currentAccountId: removingCurrent ? null : state.currentAccountId,
     );
     await _persist();
+    return true;
   }
 }
 

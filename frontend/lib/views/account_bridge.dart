@@ -97,7 +97,9 @@ Future<void> bridgeRemoveRegistryToAccounts(
     if (a.username == profile.username &&
         sameEndpoint(a.serverUrl, profile.url)) {
       try {
-        await ref.read(synoAccountsProvider.notifier).remove(a.accountId);
+        await ref
+            .read(synoAccountsProvider.notifier)
+            .remove(a.accountId, bypassGuard: true);
       } catch (e) {
         AppLogger.warn('注册表删除联动群晖账号失败', data: {'error': e.toString()});
       }

@@ -234,6 +234,9 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
     // 存储操作失败不影响主流程，静默处理
   }
     state = const SynologyAuthState();
+    // 解除群晖当前账号指针（含持久化 current key），避免 accountScopedKey
+    // 按陈旧账号分桶；已保存的账号列表与密码保留，不在登出时清除。
+    await _ref.read(synoAccountsProvider.notifier).clearCurrent();
     // 音乐服务模式依赖群晖账号：登出后同步回退视频模式，
     // 否则后续登录其他模式（Emby/本地）后首页仍按音乐模式渲染（异常）
     await _ref.read(serviceModeProvider.notifier).setMode(AppServiceMode.video);
