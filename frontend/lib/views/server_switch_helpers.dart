@@ -167,6 +167,40 @@ Future<String?> showSynologyOtpDialog(BuildContext context) async {
   return result.trim();
 }
 
+/// 提取 host 用于登录状态匹配（地址可能带端口/协议差异）。
+String hostOf(String url) {
+  try {
+    return Uri.parse(url).host;
+  } catch (_) {
+    return url;
+  }
+}
+
+/// 删除注册表服务器前，若它正是当前已登录的活会话，则登出对应认证 Provider。
+///
+/// 匹配口径与服务器管理页「登录态展示」一致：按 host 相等判定（协议/端口差异
+/// 不影响）。仅清匹配的那一路；不匹配或未登录时不动任何会话。
+Future<void> logoutMatchingSession(WidgetRef ref, ServerProfile server) async {
+  switch (server.kind) {
+    case ServerKind.emby:
+    case ServerKind.jellyfin:
+    case ServerKind.plex:
+      final auth = ref.read(authProvider);
+      if (auth.isAuthenticated &&
+          auth.embyServerUrl != null &&
+          hostOf(auth.embyServerUrl!) == hostOf(server.url)) {
+        await ref.read(authProvider.notifier).logout();
+      }
+    case ServerKind.synology:
+      final syno = ref.read(synologyAuthProvider);
+      if (syno.isLoggedIn &&
+          syno.serverUrl != null &&
+          hostOf(syno.serverUrl!) == hostOf(server.url)) {
+        await ref.read(synologyAuthProvider.notifier).logout();
+      }
+  }
+}
+
 /// 注册表服务器切换结果
 enum ServerSwitchOutcome {
   /// 切换成功

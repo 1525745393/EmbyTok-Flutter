@@ -252,4 +252,119 @@ void main() {
     // 模式联动到视频
     expect(capturedRef.read(serviceModeProvider), AppServiceMode.video);
   });
+
+  // ---- P1-2：删除注册表服务器时清掉匹配的活会话 ----
+
+  testWidgets('删除当前已登录的 Emby 服务器：登出视频会话', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = _FakeSecureStorage({});
+
+    await tester.pumpWidget(buildHost(storage: storage, withEmby: true));
+    await tester.pumpAndSettle();
+    capturedRef.read(authProvider);
+    embyAuth!.state = const AuthState(
+      isAuthenticated: true,
+      embyServerUrl: 'http://emby.test:8096',
+      token: 'tok',
+    );
+
+    final server = _profile(
+      id: 'srv_emby',
+      kind: ServerKind.emby,
+      url: 'http://emby.test:8096',
+      username: 'emby-user',
+    );
+
+    await logoutMatchingSession(capturedRef, server);
+
+    expect(embyAuth!.logoutCalls, 1, reason: '删除匹配的已登录服务器必须登出视频会话');
+    expect(capturedRef.read(authProvider).isAuthenticated, isFalse);
+  });
+
+  testWidgets('删除当前已登录的群晖服务器：登出群晖会话', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = _FakeSecureStorage({});
+
+    await tester.pumpWidget(buildHost(storage: storage, withSyno: true));
+    await tester.pumpAndSettle();
+    capturedRef.read(synologyAuthProvider);
+    synoAuth!.state = const SynologyAuthState(
+      isLoggedIn: true,
+      serverUrl: 'http://nas.test:5000',
+      account: 'nas-user',
+      sid: 'sid',
+    );
+
+    final server = _profile(
+      id: 'srv_nas',
+      kind: ServerKind.synology,
+      url: 'http://nas.test:5000',
+      username: 'nas-user',
+    );
+
+    await logoutMatchingSession(capturedRef, server);
+
+    expect(synoAuth!.logoutCalls, 1, reason: '删除匹配的已登录群晖服务器必须登出群晖会话');
+    expect(capturedRef.read(synologyAuthProvider).isLoggedIn, isFalse);
+  });
+
+  testWidgets('删除 host 不匹配的服务器：现有会话保留、不登出', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = _FakeSecureStorage({});
+
+    await tester.pumpWidget(
+      buildHost(storage: storage, withEmby: true, withSyno: true),
+    );
+    await tester.pumpAndSettle();
+    capturedRef.read(authProvider);
+    capturedRef.read(synologyAuthProvider);
+    embyAuth!.state = const AuthState(
+      isAuthenticated: true,
+      embyServerUrl: 'http://other.test:8096',
+      token: 'tok',
+    );
+    synoAuth!.state = const SynologyAuthState(
+      isLoggedIn: true,
+      serverUrl: 'http://other-nas.test:5000',
+      account: 'u',
+      sid: 'sid',
+    );
+
+    final server = _profile(
+      id: 'srv_emby2',
+      kind: ServerKind.emby,
+      url: 'http://emby2.test:8096',
+      username: 'emby-user2',
+    );
+
+    await logoutMatchingSession(capturedRef, server);
+
+    expect(embyAuth!.logoutCalls, 0, reason: 'host 不匹配不得登出现有视频会话');
+    expect(synoAuth!.logoutCalls, 0, reason: '视频类删除不得登出群晖会话');
+    expect(capturedRef.read(authProvider).isAuthenticated, isTrue);
+  });
+
+  testWidgets('删除未登录状态下的服务器：不触发登出', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = _FakeSecureStorage({});
+
+    await tester.pumpWidget(
+      buildHost(storage: storage, withEmby: true, withSyno: true),
+    );
+    await tester.pumpAndSettle();
+    capturedRef.read(authProvider);
+    capturedRef.read(synologyAuthProvider);
+
+    final server = _profile(
+      id: 'srv_emby',
+      kind: ServerKind.emby,
+      url: 'http://emby.test:8096',
+      username: 'emby-user',
+    );
+
+    await logoutMatchingSession(capturedRef, server);
+
+    expect(embyAuth!.logoutCalls, 0);
+    expect(synoAuth!.logoutCalls, 0);
+  });
 }

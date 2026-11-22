@@ -93,20 +93,11 @@ class _ServersViewState extends ConsumerState<ServersView> {
       ServerKind.emby || ServerKind.jellyfin || ServerKind.plex =>
           auth.isAuthenticated &&
           auth.embyServerUrl != null &&
-          _hostOf(auth.embyServerUrl!) == _hostOf(server.url),
+          hostOf(auth.embyServerUrl!) == hostOf(server.url),
       ServerKind.synology => synoAuth.isLoggedIn &&
           synoAuth.serverUrl != null &&
-          _hostOf(synoAuth.serverUrl!) == _hostOf(server.url),
+          hostOf(synoAuth.serverUrl!) == hostOf(server.url),
     };
-  }
-
-  /// 提取 host 用于登录状态匹配（地址可能带端口/协议差异）
-  static String _hostOf(String url) {
-    try {
-      return Uri.parse(url).host;
-    } catch (_) {
-      return url;
-    }
   }
 
   /// 切换激活服务器：用保存的凭据自动登录
@@ -425,6 +416,9 @@ class _ServersViewState extends ConsumerState<ServersView> {
       ),
     );
     if (confirmed != true) return;
+    // 删除前若该服务器正是当前活会话，先登出清理 token/sid，
+    // 避免残留凭据在启动恢复路径把已删服务器重新恢复为登录态。
+    await logoutMatchingSession(ref, server);
     await ref.read(serverRegistryProvider.notifier).remove(server.id);
     if (context.mounted) {
       ScaffoldMessenger.of(context)
