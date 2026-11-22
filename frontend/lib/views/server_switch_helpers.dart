@@ -106,29 +106,48 @@ Future<void> loginSynologyTarget(
   }
 }
 
-Future<void> _loginWithOtp(
-  SynologyAuthNotifier notifier,
-  ServerProfile server,
-  String password,
+/// 群晖密码登录；遇两步验证（[SynologyOtpRequiredException]）时经 [requestOtp]
+/// 取码后带 `otpCode` 重试。取码被取消则把原始 OTP 异常向上抛。
+///
+/// 供服务器切换与账号切换 sheet（切换/添加账号）共用同一 OTP 回退路径。
+Future<void> loginSynoWithOtp(
+  SynologyAuthNotifier notifier, {
+  required String serverUrl,
+  required String account,
+  required String password,
   OtpCodeRequester? requestOtp,
-) async {
+}) async {
   try {
     await notifier.login(
-      serverUrl: server.resolveUrl(),
-      account: server.username,
+      serverUrl: serverUrl,
+      account: account,
       password: password,
     );
   } on SynologyOtpRequiredException {
     final code = requestOtp == null ? null : await requestOtp();
     if (code == null || code.trim().isEmpty) rethrow;
     await notifier.login(
-      serverUrl: server.resolveUrl(),
-      account: server.username,
+      serverUrl: serverUrl,
+      account: account,
       password: password,
       otpCode: code.trim(),
     );
   }
 }
+
+Future<void> _loginWithOtp(
+  SynologyAuthNotifier notifier,
+  ServerProfile server,
+  String password,
+  OtpCodeRequester? requestOtp,
+) =>
+    loginSynoWithOtp(
+      notifier,
+      serverUrl: server.resolveUrl(),
+      account: server.username,
+      password: password,
+      requestOtp: requestOtp,
+    );
 
 /// 群晖两步验证验证码输入对话框；取消返回 null。
 ///

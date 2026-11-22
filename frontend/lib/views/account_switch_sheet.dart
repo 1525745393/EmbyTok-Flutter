@@ -15,6 +15,7 @@ import '../providers/synology_auth_provider.dart';
 import '../providers/synology_music_provider.dart';
 import '../providers/synology_playback_provider.dart';
 import '../utils/constants.dart';
+import 'server_switch_helpers.dart';
 
 /// 弹出账号切换 sheet
 Future<void> showAccountSwitchSheet(BuildContext context, WidgetRef ref) async {
@@ -170,11 +171,13 @@ class _AccountSheet extends ConsumerWidget {
       return;
     }
     try {
-      await ref.read(synologyAuthProvider.notifier).login(
-            serverUrl: a.serverUrl,
-            account: a.username,
-            password: pwd,
-          );
+      await loginSynoWithOtp(
+        ref.read(synologyAuthProvider.notifier),
+        serverUrl: a.serverUrl,
+        account: a.username,
+        password: pwd,
+        requestOtp: () => showSynologyOtpDialog(context),
+      );
       await ref.read(synoAccountsProvider.notifier).setCurrent(a.accountId);
       await ref.read(synologyMusicProvider.notifier).loadHomeData(force: true);
       // 按账号隔离：重载该账号的播放历史/统计数据
@@ -261,11 +264,13 @@ class _AccountSheet extends ConsumerWidget {
     username = username.trim();
     if (!context.mounted) return;
     try {
-      await ref.read(synologyAuthProvider.notifier).login(
-            serverUrl: serverUrl,
-            account: username,
-            password: password,
-          );
+      await loginSynoWithOtp(
+        ref.read(synologyAuthProvider.notifier),
+        serverUrl: serverUrl,
+        account: username,
+        password: password,
+        requestOtp: () => showSynologyOtpDialog(context),
+      );
       final account = await ref
           .read(synoAccountsProvider.notifier)
           .addAccount(
