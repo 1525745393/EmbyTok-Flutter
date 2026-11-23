@@ -1,3 +1,12 @@
+## [2.403.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.403.0...v2.403.1) (2026-11-23)
+
+
+### Bug Fixes
+
+* P3 注册表用户名校验并移除群晖账号默认标记 ([a14c5b9](https://github.com/1525745393/EmbyTok-Flutter/commit/a14c5b9cb3326a9e4222cc77c3ff56d22dfaaf39))
+* P3 视图层入口与文案对齐实际行为 ([9cd5fbc](https://github.com/1525745393/EmbyTok-Flutter/commit/9cd5fbcd05c5b43ca8e70a88990648e143d7e0c9))
+* P3 账号 Provider 守卫与登出清当前指针 ([602e784](https://github.com/1525745393/EmbyTok-Flutter/commit/602e7845913a49de8b3e9743392aec79876ccbf8))
+
 # [2.403.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.402.9...v2.403.0) (2026-11-22)
 
 
