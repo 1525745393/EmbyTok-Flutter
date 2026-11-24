@@ -847,5 +847,33 @@ void main() {
 
       expect(notifier.activeSessionId, 'srv-b');
     });
+
+    test('401 仅失效当前台，另一台会话槽保留', () async {
+      final sharedApiClient = ApiClient(baseUrl: 'http://server-a.example.com');
+      when(mockService.apiClient).thenReturn(sharedApiClient);
+      const a = User(id: 'ua', name: 'user-a', accessToken: 'tok-a');
+      const b = User(id: 'ub', name: 'user-b', accessToken: 'tok-b');
+      stubLoginFor('http://a.example.com', a);
+      stubLoginFor('http://b.example.com', b);
+
+      container = createContainer();
+      await Future.delayed(const Duration(milliseconds: 50));
+      final notifier = container.read(authProvider.notifier);
+      await notifier
+          .login('http://a.example.com', 'user-a', 'pw', serverId: 'srv-a');
+      await notifier
+          .login('http://b.example.com', 'user-b', 'pw', serverId: 'srv-b');
+      expect(notifier.activeSessionId, 'srv-b');
+
+      // 当前台 B 触发 401
+      sharedApiClient.onUnauthorized?.call();
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      // 失效台被移除，当前回到未登录
+      expect(notifier.isSessionOnline('srv-b'), isFalse);
+      expect(container.read(authProvider).isAuthenticated, isFalse);
+      // 另一台 A 槽不受影响
+      expect(notifier.isSessionOnline('srv-a'), isTrue);
+    });
   });
 }

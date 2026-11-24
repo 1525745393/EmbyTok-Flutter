@@ -103,7 +103,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       apiClient.onUnauthorized = () {
         if (_loggingIn) return;
         if (state.isAuthenticated) {
-          logout();
+          // 仅失效当前槽，不清其他在线会话；fire-and-forget 与原 logout 一致。
+          _expireCurrentSession();
         }
       };
     }
@@ -288,28 +289,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _loggingOut = true;
     try {
       AppLogger.info('用户登出');
-      // 清除安全存储中的敏感信息
-      try {
-        await _secureStorage.delete(key: kStorageKeyAccessToken);
-      } catch (_) {
-        // 存储操作失败不影响主流程，静默处理
-      }
-      // 清除 SharedPreferences
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove(kStorageKeyEmbyServerUrl);
-        await prefs.remove(kStorageKeyUser);
-        await prefs.remove(kStorageKeyConfig);
-      } catch (_) {
-        // 存储操作失败不影响主流程，静默处理
-      }
-      // 登出时清除所有内存缓存，避免账号切换后数据污染
-      try {
-        _ref.read(cacheControllerProvider).invalidateAll();
-      } catch (_) {
-        // 存储操作失败不影响主流程，静默处理
-      }
-      // 批次 1：logout 仍为全局清空（按 id 单台登出在阶段 1-B 接入）。
+      await _clearLegacySlotStorage();
+      await _invalidateMemoryCaches();
+      // logout 为全局清空（按 id 单台登出走 logoutSession）。
       _sessions.clear();
       _currentId = null;
       _isLoading = false;
@@ -318,6 +300,53 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } finally {
       _loggingOut = false;
     }
+  }
+
+  /// 清除旧单槽持久化（secure token + prefs url/user/config）。
+  ///
+  /// 批次 2 会话分桶后改为按 id 清桶；当前旧单槽只存当前会话。
+  Future<void> _clearLegacySlotStorage() async {
+    try {
+      await _secureStorage.delete(key: kStorageKeyAccessToken);
+    } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(kStorageKeyEmbyServerUrl);
+      await prefs.remove(kStorageKeyUser);
+      await prefs.remove(kStorageKeyConfig);
+    } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
+  }
+
+  /// 登出/失效时清除内存缓存，避免账号切换后数据污染。
+  Future<void> _invalidateMemoryCaches() async {
+    try {
+      _ref.read(cacheControllerProvider).invalidateAll();
+    } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
+  }
+
+  /// 401 会话失效：仅移除当前激活槽，其他在线槽保留。
+  ///
+  /// ApiClient 单例回调不带会话标识，故按 [_currentId] 定位失效条目；
+  /// 旧单槽持久化与内存缓存随当前失效台一并清理（分桶隔离在批次 2 完善）。
+  Future<void> _expireCurrentSession() async {
+    final expiredId = _currentId;
+    if (expiredId != null) {
+      _sessions.remove(expiredId);
+    }
+    if (_currentId == expiredId) {
+      _currentId = null;
+      _isLoading = false;
+      _error = null;
+    }
+    await _clearLegacySlotStorage();
+    await _invalidateMemoryCaches();
+    state = _derive();
   }
 
   /// 进入本地媒体库模式：注入 mock 登录状态
