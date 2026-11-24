@@ -261,6 +261,7 @@ Future<ServerSwitchOutcome> switchRegistryServer(
           server.resolveUrl(),
           server.username,
           password,
+          serverId: server.id,
         );
   }
 

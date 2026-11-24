@@ -744,4 +744,108 @@ void main() {
       expect(state.error, isNull);
     });
   });
+
+  group('多会话槽隔离（阶段 1-B）', () {
+    late MockEmbytokService mockService;
+    late MockFlutterSecureStorage mockSecureStorage;
+    late ProviderContainer container;
+
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+      mockService = MockEmbytokService();
+      mockSecureStorage = MockFlutterSecureStorage();
+    });
+
+    tearDown(() => container.dispose());
+
+    ProviderContainer createContainer() => ProviderContainer(
+          overrides: [
+            embytokServiceProvider.overrideWithValue(mockService),
+            secureStorageProvider.overrideWithValue(mockSecureStorage),
+            authProvider.overrideWith((ref) => AuthNotifier(ref)),
+          ],
+        );
+
+    void stubLoginFor(String url, User user) {
+      when(mockService.login(
+        embyServerUrl: url,
+        username: anyNamed('username'),
+        password: anyNamed('password'),
+      )).thenAnswer((_) async => user);
+    }
+
+    /// 依次登录 srv-a / srv-b 两台，返回 notifier。
+    Future<AuthNotifier> loginTwoServers() async {
+      const a = User(id: 'ua', name: 'user-a', accessToken: 'tok-a');
+      const b = User(id: 'ub', name: 'user-b', accessToken: 'tok-b');
+      stubLoginFor('http://a.example.com', a);
+      stubLoginFor('http://b.example.com', b);
+
+      container = createContainer();
+      await Future.delayed(const Duration(milliseconds: 50));
+      final notifier = container.read(authProvider.notifier);
+      await notifier.login('http://a.example.com', 'user-a', 'pw',
+          serverId: 'srv-a');
+      await notifier.login('http://b.example.com', 'user-b', 'pw',
+          serverId: 'srv-b');
+      return notifier;
+    }
+
+    test('登录两台后两槽共存，当前指向第二台', () async {
+      final notifier = await loginTwoServers();
+
+      final state = container.read(authProvider);
+      expect(
+        notifier.onlineSessionIds(),
+        containsAll(['srv-a', 'srv-b']),
+      );
+      expect(notifier.isSessionOnline('srv-a'), isTrue);
+      expect(notifier.isSessionOnline('srv-b'), isTrue);
+      expect(notifier.activeSessionId, 'srv-b');
+      expect(state.embyServerUrl, 'http://b.example.com');
+      expect(state.token, 'tok-b');
+    });
+
+    test('logoutSession 仅移除目标台，另一台仍在线', () async {
+      final notifier = await loginTwoServers();
+
+      await notifier.logoutSession('srv-a');
+
+      expect(notifier.isSessionOnline('srv-a'), isFalse);
+      expect(notifier.isSessionOnline('srv-b'), isTrue);
+      final state = container.read(authProvider);
+      expect(state.isAuthenticated, isTrue);
+      expect(state.embyServerUrl, 'http://b.example.com');
+    });
+
+    test('logoutSession 移除当前台后回到未登录，其余槽保留', () async {
+      final notifier = await loginTwoServers();
+
+      await notifier.logoutSession('srv-b');
+
+      expect(container.read(authProvider).isAuthenticated, isFalse);
+      expect(notifier.activeSessionId, isNull);
+      expect(notifier.isSessionOnline('srv-a'), isTrue);
+    });
+
+    test('switchTo 切回已在线台并恢复其凭据', () async {
+      final notifier = await loginTwoServers();
+
+      notifier.switchTo('srv-a');
+
+      expect(notifier.activeSessionId, 'srv-a');
+      final state = container.read(authProvider);
+      expect(state.embyServerUrl, 'http://a.example.com');
+      expect(state.token, 'tok-a');
+      expect(state.user!.id, 'ua');
+    });
+
+    test('switchTo 不存在的槽保持现状', () async {
+      final notifier = await loginTwoServers();
+
+      notifier.switchTo('srv-none');
+
+      expect(notifier.activeSessionId, 'srv-b');
+    });
+  });
 }

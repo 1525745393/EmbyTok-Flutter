@@ -217,12 +217,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// 归一化会话键：优先注册表条目 id；未传 id 时回退服务器地址（去尾部斜杠）。
+  static String _resolveKey({String? serverId, required String url}) =>
+      (serverId != null && serverId.trim().isNotEmpty)
+          ? serverId.trim()
+          : _sessionKey(url);
+
   // 登录：直接调用 Emby 原生 API 并持久化
   Future<void> login(
     String embyServerUrl,
     String username,
     String password, {
     String? backendUrl, // 保留向后兼容
+    String? serverId, // 注册表条目 id；提供时会话按 id 入槽，供多会话隔离
   }) async {
     _loggingIn = true;
     _isLoading = true;
@@ -252,7 +259,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           }));
 
       final session = _VideoSession(
-        id: _sessionKey(embyServerUrl),
+        id: _resolveKey(serverId: serverId, url: embyServerUrl),
         embyServerUrl: embyServerUrl,
         backendUrl: backendUrl,
         user: user,
@@ -333,6 +340,36 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _isLoading = false;
     _error = null;
     state = _derive();
+  }
+
+  /// 当前激活会话槽标识；未登录为 null。供切换、在线态展示与失效定位使用。
+  String? get activeSessionId => _currentId;
+
+  /// 指定槽是否处于在线状态（内存会话存在）。
+  bool isSessionOnline(String key) => _sessions.containsKey(key);
+
+  /// 当前所有在线会话槽标识（不可变）。
+  List<String> onlineSessionIds() => List.unmodifiable(_sessions.keys);
+
+  /// 切换当前激活槽到已在线会话；目标槽不存在时保持现状。
+  void switchTo(String key) {
+    if (!_sessions.containsKey(key)) return;
+    _currentId = key;
+    state = _derive();
+  }
+
+  /// 按槽登出：仅移除目标会话，不影响其他在线会话。
+  ///
+  /// 目标为当前激活槽时，当前态回到未登录。持久化分桶清理在批次 2 接入，
+  /// 本方法先作用于内存会话槽。
+  Future<void> logoutSession(String key) async {
+    _sessions.remove(key);
+    if (_currentId == key) {
+      _currentId = null;
+      _isLoading = false;
+      _error = null;
+      state = _derive();
+    }
   }
 }
 
