@@ -59,6 +59,26 @@ class AuthState {
   }
 }
 
+/// 单个媒体服务器会话（内部多槽模型）。
+///
+/// 阶段 1 内部改造：会话按归属标识存入多槽 map，对外 [AuthState] 仍由当前激活槽
+/// 派生，既有消费点（只读 isAuthenticated/user/backendUrl/embyServerUrl/token）
+/// 透明兼容。阶段 1-B 起归属键切换为注册表条目 id；当前阶段先用服务器地址。
+class _VideoSession {
+  const _VideoSession({
+    required this.id,
+    required this.embyServerUrl,
+    this.backendUrl,
+    this.user,
+    this.token,
+  });
+  final String id;
+  final String embyServerUrl;
+  final String? backendUrl;
+  final User? user;
+  final String? token;
+}
+
 /// 安全存储 Provider：提供 FlutterSecureStorage 实例
 ///
 /// 测试时可 override 为 Mock 实现
@@ -95,6 +115,32 @@ class AuthNotifier extends StateNotifier<AuthState> {
   bool _loggingOut = false;
   /// 登录请求进行中标志：见构造器内 onUnauthorized 回调的说明
   bool _loggingIn = false;
+
+  /// 多会话槽：key 为会话归属标识。阶段 1 内部模型，对外仅暴露当前激活槽派生态。
+  final Map<String, _VideoSession> _sessions = {};
+  /// 当前激活会话槽标识；对外 AuthState 由此槽派生。
+  String? _currentId;
+  /// 跨槽的 UI 瞬态（加载中 / 错误提示），不属于某个会话。
+  bool _isLoading = false;
+  Object? _error;
+
+  /// 由当前激活会话槽派生对外状态；isLoading/error 为跨槽瞬态字段。
+  AuthState _derive() {
+    final s = _sessions[_currentId];
+    return AuthState(
+      isAuthenticated: s != null,
+      user: s?.user,
+      backendUrl: s?.backendUrl,
+      embyServerUrl: s?.embyServerUrl,
+      token: s?.token,
+      isLoading: _isLoading,
+      error: _error,
+    );
+  }
+
+  /// 归一化会话键：去尾部斜杠（与登录入参清理一致）。
+  static String _sessionKey(String serverUrl) =>
+      serverUrl.trim().replaceAll(RegExp(r'/+$'), '');
 
   // 从本地存储恢复登录状态
   Future<void> _loadFromStorage() async {
@@ -153,13 +199,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
 
       if (token != null && token.isNotEmpty && embyServerUrl != null) {
-        state = AuthState(
-          isAuthenticated: true,
-          user: user,
-          backendUrl: userMap?['backend_url'] as String?,
+        final session = _VideoSession(
+          id: _sessionKey(embyServerUrl),
           embyServerUrl: embyServerUrl,
+          backendUrl: userMap?['backend_url'] as String?,
+          user: user,
           token: token,
         );
+        _sessions[session.id] = session;
+        _currentId = session.id;
+        state = _derive();
         AppLogger.info('登录状态恢复成功',
             data: {'userId': user?.id, 'hasToken': true});
       }
@@ -176,7 +225,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String? backendUrl, // 保留向后兼容
   }) async {
     _loggingIn = true;
-    state = state.copyWith(isLoading: true, error: null);
+    _isLoading = true;
+    _error = null;
+    state = _derive();
     try {
       AppLogger.info('开始登录',
           data: {'serverUrl': embyServerUrl, 'username': username});
@@ -187,6 +238,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
 
       // 持久化：敏感信息存储到安全存储，非敏感信息存储到 SharedPreferences
+      // 阶段 1 仍写旧单槽 key（兼容既有恢复/迁移逻辑）；分桶持久化在批次 2 接入。
       await _secureStorage.write(
           key: kStorageKeyAccessToken, value: user.accessToken);
       final prefs = await SharedPreferences.getInstance();
@@ -199,20 +251,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
             'user_name': user.name,
           }));
 
-      state = AuthState(
-        isAuthenticated: true,
-        user: user,
-        backendUrl: backendUrl,
+      final session = _VideoSession(
+        id: _sessionKey(embyServerUrl),
         embyServerUrl: embyServerUrl,
+        backendUrl: backendUrl,
+        user: user,
         token: user.accessToken,
       );
+      _sessions[session.id] = session;
+      _currentId = session.id;
+      _isLoading = false;
+      state = _derive();
       AppLogger.info('登录成功', data: {'userId': user.id, 'userName': user.name});
     } catch (e, stackTrace) {
       AppLogger.error('登录失败', error: e);
-      state = state.copyWith(
-        isLoading: false,
-        error: AppError.wrap(e, stackTrace: stackTrace),
-      );
+      _isLoading = false;
+      _error = AppError.wrap(e, stackTrace: stackTrace);
+      state = _derive();
       rethrow;
     } finally {
       _loggingIn = false;
@@ -247,7 +302,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
       } catch (_) {
         // 存储操作失败不影响主流程，静默处理
       }
-      state = const AuthState();
+      // 批次 1：logout 仍为全局清空（按 id 单台登出在阶段 1-B 接入）。
+      _sessions.clear();
+      _currentId = null;
+      _isLoading = false;
+      _error = null;
+      state = _derive();
     } finally {
       _loggingOut = false;
     }
@@ -255,17 +315,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// 进入本地媒体库模式：注入 mock 登录状态
   void enterLocalMode() {
-    state = const AuthState(
-      isAuthenticated: true,
-      user: User(id: 'local_user', name: '本地用户', accessToken: 'local_token'),
+    const session = _VideoSession(
+      id: 'local',
       embyServerUrl: 'local://',
+      user: User(id: 'local_user', name: '本地用户', accessToken: 'local_token'),
       token: 'local_token',
     );
+    _sessions[session.id] = session;
+    _currentId = session.id;
+    state = _derive();
   }
 
   /// 重置为未登录状态（替代外部直接 .state = const AuthState()）
   void reset() {
-    state = const AuthState();
+    _sessions.clear();
+    _currentId = null;
+    _isLoading = false;
+    _error = null;
+    state = _derive();
   }
 }
 
