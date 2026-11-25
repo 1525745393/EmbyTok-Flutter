@@ -1,3 +1,11 @@
+# [2.404.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.403.1...v2.404.0) (2026-11-25)
+
+
+### Features
+
+* 401 会话失效按当前槽定位，保留其他在线会话 ([7be9e06](https://github.com/1525745393/EmbyTok-Flutter/commit/7be9e06534adb61a969cd7f2d93518a9424a6466))
+* 视频会话支持按 id 多槽隔离，提供按槽登出与切槽能力 ([5ca9af3](https://github.com/1525745393/EmbyTok-Flutter/commit/5ca9af35fdd21786e4a3f4a606c8c5e3650c5de1))
+
 ## [2.403.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.403.0...v2.403.1) (2026-11-23)
 
 
