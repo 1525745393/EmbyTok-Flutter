@@ -1,3 +1,10 @@
+# [2.405.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.404.0...v2.405.0) (2026-11-25)
+
+
+### Features
+
+* 视频会话按 id 分桶持久化，旧单槽迁移落桶并支持回填重挂 ([df6656f](https://github.com/1525745393/EmbyTok-Flutter/commit/df6656fada2048b6401fbc21b0da9a177a0ee3bc))
+
 # [2.404.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.403.1...v2.404.0) (2026-11-25)
 
 
