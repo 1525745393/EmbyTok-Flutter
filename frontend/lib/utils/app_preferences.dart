@@ -563,7 +563,8 @@ class AppPreferencesService {
     final prefs = await SharedPreferences.getInstance();
     // 需要重置的偏好 key 列表：播放/字幕/外观/推荐/媒体库/发现/关注/家长控制/PIN/智能缓存/服务模式等设置类 key；
     // 有意保留：登录与账户（kStorageKeyConfig/User/EmbyServerUrl/ActiveServerId/ServerRegistry/
-    // SavedCredentials/AccessToken/ServerHistory/LastFmApiKey）、观看历史（WatchStats/recent_playbacks）、
+    // SavedCredentials/AccessToken/ServerHistory/LastFmApiKey，以及多会话分桶前缀
+    // embytok_session_* / embytok_access_token_*）、观看历史（WatchStats/recent_playbacks）、
     // 搜索历史/收藏与内容缓存、导航恢复与 UI 会话态（LastPageIndex/LastGridScrollOffset/LastFeedVideoIndex/
     // LastFeedVideoItemId/PlaybackShellPosition/RecommendScrollOffset/RecommendGridColumns/Actors*）、
     // 更新提示状态（UpdateCheckCache/update_shown_ver/update_skipped_ver）与配置标记（*LibraryConfigured）。

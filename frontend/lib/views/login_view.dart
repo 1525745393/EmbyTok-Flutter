@@ -1049,6 +1049,15 @@ class _LoginViewState extends ConsumerState<LoginView> {
           _rememberMe) {
         await bridgeRegistryToAccounts(ref, savedProfile, password);
       }
+      // 视频会话：登录时注册表 id 尚未确定，先用 url 临时槽；条目落定后把当前槽
+      // 重挂到条目 id 槽（内存 + 分桶），避免同一会话遗留 url 键副本。
+      if (savedProfile != null && _serverType != ServerType.synology) {
+        final authNotifier = ref.read(authProvider.notifier);
+        final currentKey = authNotifier.activeSessionId;
+        if (currentKey != null) {
+          await authNotifier.rekeySession(currentKey, savedProfile.id);
+        }
+      }
       if (savedProfile == null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('服务器配置保存失败，可在设置 → 服务器管理中手动添加')),

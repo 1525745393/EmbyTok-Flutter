@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:embytok_flutter/models/models.dart';
 import 'package:embytok_flutter/providers/auth_provider.dart';
 import 'package:embytok_flutter/providers/embytok_service_provider.dart';
+import 'package:embytok_flutter/providers/server_registry_provider.dart';
 import 'package:embytok_flutter/services/api_client.dart';
 import 'package:embytok_flutter/utils/constants.dart';
 
@@ -874,6 +875,202 @@ void main() {
       expect(container.read(authProvider).isAuthenticated, isFalse);
       // 另一台 A 槽不受影响
       expect(notifier.isSessionOnline('srv-a'), isTrue);
+    });
+  });
+
+  group('分桶持久化（阶段 1 批次 2）', () {
+    late MockEmbytokService mockService;
+    late MockFlutterSecureStorage mockSecureStorage;
+    late ProviderContainer container;
+
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+      mockService = MockEmbytokService();
+      mockSecureStorage = MockFlutterSecureStorage();
+    });
+
+    tearDown(() => container.dispose());
+
+    ProviderContainer createContainer() => ProviderContainer(
+          overrides: [
+            embytokServiceProvider.overrideWithValue(mockService),
+            secureStorageProvider.overrideWithValue(mockSecureStorage),
+            authProvider.overrideWith((ref) => AuthNotifier(ref)),
+          ],
+        );
+
+    /// 预置旧单槽（secure token + prefs url/user），可选注册表条目。
+    void primeLegacySlot({
+      required String url,
+      required String username,
+      required String userId,
+      required String token,
+      String? backendUrl,
+      List<Map<String, dynamic>>? registry,
+    }) {
+      mockSecureStorage.setValue(kStorageKeyAccessToken, token);
+      final values = <String, Object>{
+        kStorageKeyEmbyServerUrl: url,
+        kStorageKeyUser: json.encode({
+          'backend_url': backendUrl,
+          'user_id': userId,
+          'user_name': username,
+        }),
+      };
+      if (registry != null) {
+        values[kStorageKeyServerRegistry] = json.encode(registry);
+      }
+      SharedPreferences.setMockInitialValues(values);
+    }
+
+    test('旧单槽恢复后迁移落桶：无匹配条目用归一化 url 键', () async {
+      primeLegacySlot(
+        url: 'http://emby.example.com',
+        username: 'u1',
+        userId: 'uid-1',
+        token: 'tok-1',
+        backendUrl: 'http://backend.example.com',
+      );
+
+      container = createContainer();
+      container.read(authProvider);
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      final state = container.read(authProvider);
+      expect(state.isAuthenticated, true);
+      expect(state.token, 'tok-1');
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.containsKey(sessionPrefKey('http://emby.example.com')), true);
+      expect(
+        mockSecureStorage.getValue(sessionTokenKey('http://emby.example.com')),
+        'tok-1',
+      );
+    });
+
+    test('旧单槽迁移按注册表端点+用户名匹配到条目 id 键', () async {
+      primeLegacySlot(
+        url: 'http://emby.example.com:8096',
+        username: 'u1',
+        userId: 'uid-1',
+        token: 'tok-1',
+        registry: [
+          {
+            'id': 'srv-abc',
+            'kind': 'emby',
+            'url': 'http://emby.example.com:8096',
+            'username': 'u1',
+            'name': 'nas',
+            'lastUsed': '2026-01-01T00:00:00.000',
+          },
+        ],
+      );
+
+      container = createContainer();
+      container.read(authProvider);
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.containsKey(sessionPrefKey('srv-abc')), true);
+      expect(mockSecureStorage.getValue(sessionTokenKey('srv-abc')), 'tok-1');
+      expect(container.read(authProvider).embyServerUrl,
+          'http://emby.example.com:8096');
+    });
+
+    test('损坏的分桶 JSON 跳过且不崩溃', () async {
+      SharedPreferences.setMockInitialValues({
+        sessionPrefKey('srv-bad'): 'not json {{{',
+      });
+
+      container = createContainer();
+      container.read(authProvider);
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      expect(container.read(authProvider).isAuthenticated, false);
+    });
+
+    test('多桶恢复后按激活指针定位当前台', () async {
+      mockSecureStorage.setValue(sessionTokenKey('srv-a'), 'tok-a');
+      mockSecureStorage.setValue(sessionTokenKey('srv-b'), 'tok-b');
+      SharedPreferences.setMockInitialValues({
+        sessionPrefKey('srv-a'): json.encode({
+          'server_url': 'http://a.example.com',
+          'backend_url': null,
+          'user_id': 'ua',
+          'user_name': 'user-a',
+        }),
+        sessionPrefKey('srv-b'): json.encode({
+          'server_url': 'http://b.example.com',
+          'backend_url': null,
+          'user_id': 'ub',
+          'user_name': 'user-b',
+        }),
+        kStorageKeyActiveServerId: 'srv-b',
+      });
+
+      container = createContainer();
+      container.read(authProvider);
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      final notifier = container.read(authProvider.notifier);
+      expect(notifier.onlineSessionIds(), containsAll(['srv-a', 'srv-b']));
+      expect(notifier.activeSessionId, 'srv-b');
+      expect(container.read(authProvider).embyServerUrl, 'http://b.example.com');
+    });
+
+    test('logoutSession 仅删目标桶，另一台桶保留', () async {
+      const a = User(id: 'ua', name: 'user-a', accessToken: 'tok-a');
+      const b = User(id: 'ub', name: 'user-b', accessToken: 'tok-b');
+      when(mockService.login(
+        embyServerUrl: 'http://a.example.com',
+        username: anyNamed('username'),
+        password: anyNamed('password'),
+      )).thenAnswer((_) async => a);
+      when(mockService.login(
+        embyServerUrl: 'http://b.example.com',
+        username: anyNamed('username'),
+        password: anyNamed('password'),
+      )).thenAnswer((_) async => b);
+
+      container = createContainer();
+      await Future.delayed(const Duration(milliseconds: 50));
+      final notifier = container.read(authProvider.notifier);
+      await notifier
+          .login('http://a.example.com', 'user-a', 'pw', serverId: 'srv-a');
+      await notifier
+          .login('http://b.example.com', 'user-b', 'pw', serverId: 'srv-b');
+
+      await notifier.logoutSession('srv-a');
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.containsKey(sessionPrefKey('srv-a')), false);
+      expect(mockSecureStorage.getValue(sessionTokenKey('srv-a')), isNull);
+      expect(prefs.containsKey(sessionPrefKey('srv-b')), true);
+      expect(mockSecureStorage.getValue(sessionTokenKey('srv-b')), 'tok-b');
+    });
+
+    test('rekeySession 把 url 临时槽重挂到 id 槽', () async {
+      const u = User(id: 'uid', name: 'user-a', accessToken: 'tok-1');
+      when(mockService.login(
+        embyServerUrl: 'http://emby.example.com',
+        username: anyNamed('username'),
+        password: anyNamed('password'),
+      )).thenAnswer((_) async => u);
+
+      container = createContainer();
+      await Future.delayed(const Duration(milliseconds: 50));
+      final notifier = container.read(authProvider.notifier);
+      // 未传 serverId → 先用 url 临时槽
+      await notifier.login('http://emby.example.com', 'user-a', 'pw');
+
+      await notifier.rekeySession(notifier.activeSessionId!, 'srv-abc');
+
+      expect(notifier.activeSessionId, 'srv-abc');
+      final prefs = await SharedPreferences.getInstance();
+      expect(
+          prefs.containsKey(sessionPrefKey('http://emby.example.com')), false);
+      expect(prefs.containsKey(sessionPrefKey('srv-abc')), true);
+      expect(mockSecureStorage.getValue(sessionTokenKey('srv-abc')), 'tok-1');
     });
   });
 }

@@ -150,6 +150,18 @@ const String kStorageKeyAccessToken = 'embytok_access_token';
 const String kStorageKeyEmbyServerUrl = 'embytok_emby_server_url';
 const String kStorageKeyUser = 'embytok_user';
 
+// 多会话分桶持久化（阶段 1 批次 2）：会话元信息按槽 key 存 prefs，token 按槽 key 存 secure。
+// 槽 key 优先注册表条目 id，回退归一化服务器地址；旧单槽 key 仍作为当前台兼容镜像保留。
+const String kStorageKeySessionPrefix = 'embytok_session_';
+const String kStorageKeyAccessTokenPrefix = 'embytok_access_token_';
+
+/// 会话元信息（prefs）分桶 key；JSON 口径沿用旧 user 槽：
+/// `server_url / backend_url / user_id / user_name`。
+String sessionPrefKey(String key) => '$kStorageKeySessionPrefix$key';
+
+/// 会话 token（secure）分桶 key。
+String sessionTokenKey(String key) => '$kStorageKeyAccessTokenPrefix$key';
+
 const int kMaxSearchHistory = 10;
 const double kDefaultPlaybackRate = 1.0;
 const double kLongPressPlaybackRate = 2.0;

@@ -12,6 +12,8 @@ import '../utils/constants.dart';
 import '../utils/logger.dart';
 import 'cache_providers.dart';
 import 'embytok_service_provider.dart';
+import 'server_registry_provider.dart'
+    show kStorageKeyServerRegistry, kStorageKeyActiveServerId, sameEndpoint;
 
 // 认证状态类
 class AuthState {
@@ -149,6 +151,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
       AppLogger.debug('从本地存储恢复登录状态');
       final prefs = await SharedPreferences.getInstance();
 
+      // 1. 优先从分桶恢复多会话；桶为空再回退旧单槽（含明文 config 迁移）。
+      await _restoreFromBuckets(prefs);
+      if (_sessions.isNotEmpty) {
+        AppLogger.info('分桶会话恢复成功', data: {'count': _sessions.length});
+        return;
+      }
+
       // 从安全存储读取 token
       String? token;
       try {
@@ -200,8 +209,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
 
       if (token != null && token.isNotEmpty && embyServerUrl != null) {
+        // 旧单槽迁移落桶：优先按注册表端点 + 用户名匹配条目 id，匹配不到用 url 键。
+        final key = _matchRegistryId(prefs, embyServerUrl, user?.name) ??
+            _sessionKey(embyServerUrl);
         final session = _VideoSession(
-          id: _sessionKey(embyServerUrl),
+          id: key,
           embyServerUrl: embyServerUrl,
           backendUrl: userMap?['backend_url'] as String?,
           user: user,
@@ -209,12 +221,143 @@ class AuthNotifier extends StateNotifier<AuthState> {
         );
         _sessions[session.id] = session;
         _currentId = session.id;
+        await _persistSessionBucket(session);
         state = _derive();
         AppLogger.info('登录状态恢复成功',
             data: {'userId': user?.id, 'hasToken': true});
       }
     } catch (e) {
       AppLogger.error('恢复登录状态失败', error: e);
+    }
+  }
+
+  /// 扫描 `embytok_session_*` 分桶重建内存多会话；按激活指针定 current，
+  /// 指针缺失或失效时取唯一槽。损坏桶 / 缺 token / 缺 url 跳过，不崩溃。
+  Future<void> _restoreFromBuckets(SharedPreferences prefs) async {
+    for (final prefKey in prefs.getKeys()) {
+      if (!prefKey.startsWith(kStorageKeySessionPrefix)) continue;
+      final raw = prefs.getString(prefKey);
+      if (raw == null || raw.isEmpty) continue;
+      try {
+        final map = json.decode(raw) as Map<String, dynamic>;
+        final url = map['server_url'] as String?;
+        if (url == null || url.isEmpty) continue;
+        final key = prefKey.substring(kStorageKeySessionPrefix.length);
+        String? token;
+        try {
+          token = await _secureStorage.read(key: sessionTokenKey(key));
+        } catch (_) {
+          // 单个桶读取失败跳过，不影响其他桶
+        }
+        if (token == null || token.isEmpty) continue;
+        final user = User(
+          id: map['user_id'] as String? ?? '',
+          name: map['user_name'] as String? ?? '',
+          accessToken: token,
+        );
+        _sessions[key] = _VideoSession(
+          id: key,
+          embyServerUrl: url,
+          backendUrl: map['backend_url'] as String?,
+          user: user,
+          token: token,
+        );
+      } catch (_) {
+        // 损坏 JSON 桶跳过
+      }
+    }
+    if (_sessions.isEmpty) return;
+    final activeId = prefs.getString(kStorageKeyActiveServerId);
+    if (activeId != null && _sessions.containsKey(activeId)) {
+      _currentId = activeId;
+    } else {
+      _currentId = _sessions.keys.first;
+    }
+    state = _derive();
+  }
+
+  /// 旧单槽迁移时，按 host+端口 + 用户名匹配注册表条目，返回条目 id；未匹配返回 null。
+  String? _matchRegistryId(
+      SharedPreferences prefs, String url, String? username) {
+    if (username == null || username.isEmpty) return null;
+    try {
+      final raw = prefs.getString(kStorageKeyServerRegistry);
+      if (raw == null || raw.isEmpty) return null;
+      final list =
+          (json.decode(raw) as List<dynamic>).whereType<Map<String, dynamic>>();
+      for (final m in list) {
+        final regUrl = m['url'] as String? ?? '';
+        final regUser = m['username'] as String? ?? '';
+        if (regUser == username && sameEndpoint(regUrl, url)) {
+          return m['id'] as String?;
+        }
+      }
+    } catch (_) {
+      // 注册表损坏时回退 url 键
+    }
+    return null;
+  }
+
+  /// 会话元信息 JSON（沿用旧 user 槽口径：user_id/user_name/backend_url）。
+  Map<String, dynamic> _sessionToJson(_VideoSession s) => {
+        'server_url': s.embyServerUrl,
+        'backend_url': s.backendUrl,
+        'user_id': s.user?.id,
+        'user_name': s.user?.name,
+      };
+
+  /// 写会话分桶：prefs 元信息 + secure token。存储失败静默，不影响内存态。
+  Future<void> _persistSessionBucket(_VideoSession s) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(sessionPrefKey(s.id), json.encode(_sessionToJson(s)));
+    } catch (_) {
+      // 存储失败静默处理
+    }
+    try {
+      if (s.token != null && s.token!.isNotEmpty) {
+        await _secureStorage.write(
+            key: sessionTokenKey(s.id), value: s.token!);
+      }
+    } catch (_) {
+      // 存储失败静默处理
+    }
+  }
+
+  /// 删除指定会话分桶（prefs 元信息 + secure token）。
+  Future<void> _deleteSessionBucket(String key) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(sessionPrefKey(key));
+    } catch (_) {
+      // 存储失败静默处理
+    }
+    try {
+      await _secureStorage.delete(key: sessionTokenKey(key));
+    } catch (_) {
+      // 存储失败静默处理
+    }
+  }
+
+  /// 清空所有会话分桶（全局登出 / 重置用）。
+  Future<void> _deleteAllSessionBuckets() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      for (final k in prefs.getKeys().toList()) {
+        if (k.startsWith(kStorageKeySessionPrefix)) await prefs.remove(k);
+      }
+    } catch (_) {
+      // 存储失败静默处理
+    }
+    try {
+      final all = await _secureStorage.readAll();
+      for (final k in all.keys) {
+        if (k.startsWith(kStorageKeyAccessTokenPrefix)) {
+          await _secureStorage.delete(key: k);
+        }
+      }
+    } catch (_) {
+      // 存储失败静默处理
     }
   }
 
@@ -245,8 +388,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         password: password,
       );
 
-      // 持久化：敏感信息存储到安全存储，非敏感信息存储到 SharedPreferences
-      // 阶段 1 仍写旧单槽 key（兼容既有恢复/迁移逻辑）；分桶持久化在批次 2 接入。
+      // 持久化：敏感信息存储到安全存储，非敏感信息存储到 SharedPreferences。
+      // 分桶按槽 key 落桶（多会话恢复用）；旧单槽 key 作为当前台兼容镜像双写，
+      // 待阶段 2 验收后再移除旧单槽写入。
       await _secureStorage.write(
           key: kStorageKeyAccessToken, value: user.accessToken);
       final prefs = await SharedPreferences.getInstance();
@@ -268,6 +412,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       _sessions[session.id] = session;
       _currentId = session.id;
+      await _persistSessionBucket(session);
       _isLoading = false;
       state = _derive();
       AppLogger.info('登录成功', data: {'userId': user.id, 'userName': user.name});
@@ -290,6 +435,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       AppLogger.info('用户登出');
       await _clearLegacySlotStorage();
+      await _deleteAllSessionBuckets();
       await _invalidateMemoryCaches();
       // logout 为全局清空（按 id 单台登出走 logoutSession）。
       _sessions.clear();
@@ -302,9 +448,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  /// 清除旧单槽持久化（secure token + prefs url/user/config）。
+  /// 清除旧单槽兼容镜像持久化（secure token + prefs url/user/config）。
   ///
-  /// 批次 2 会话分桶后改为按 id 清桶；当前旧单槽只存当前会话。
+  /// 分桶为主存储，旧单槽仅作为当前台兼容镜像；全局登出 / 登出当前台时一并清理。
   Future<void> _clearLegacySlotStorage() async {
     try {
       await _secureStorage.delete(key: kStorageKeyAccessToken);
@@ -333,11 +479,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// 401 会话失效：仅移除当前激活槽，其他在线槽保留。
   ///
   /// ApiClient 单例回调不带会话标识，故按 [_currentId] 定位失效条目；
-  /// 旧单槽持久化与内存缓存随当前失效台一并清理（分桶隔离在批次 2 完善）。
+  /// 失效台分桶与旧单槽兼容镜像一并清理，其他在线槽分桶保留。
   Future<void> _expireCurrentSession() async {
     final expiredId = _currentId;
     if (expiredId != null) {
       _sessions.remove(expiredId);
+      await _deleteSessionBucket(expiredId);
     }
     if (_currentId == expiredId) {
       _currentId = null;
@@ -389,16 +536,37 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// 按槽登出：仅移除目标会话，不影响其他在线会话。
   ///
-  /// 目标为当前激活槽时，当前态回到未登录。持久化分桶清理在批次 2 接入，
-  /// 本方法先作用于内存会话槽。
+  /// 删除目标分桶；目标为当前激活槽时一并清旧单槽兼容镜像，避免残留指向已登出台。
   Future<void> logoutSession(String key) async {
     _sessions.remove(key);
+    await _deleteSessionBucket(key);
     if (_currentId == key) {
       _currentId = null;
       _isLoading = false;
       _error = null;
+      await _clearLegacySlotStorage();
       state = _derive();
     }
+  }
+
+  /// 登录后注册表条目 id 确定，把 url 临时槽重挂到 id 槽（内存 + 分桶），
+  /// 避免同一会话遗留 url 键副本。旧键桶删除、新键桶写入；失败不影响内存态。
+  Future<void> rekeySession(String oldKey, String newId) async {
+    if (newId.isEmpty || oldKey == newId) return;
+    final s = _sessions.remove(oldKey);
+    if (s == null) return;
+    final rekeyed = _VideoSession(
+      id: newId,
+      embyServerUrl: s.embyServerUrl,
+      backendUrl: s.backendUrl,
+      user: s.user,
+      token: s.token,
+    );
+    _sessions[newId] = rekeyed;
+    if (_currentId == oldKey) _currentId = newId;
+    state = _derive();
+    await _deleteSessionBucket(oldKey);
+    await _persistSessionBucket(rekeyed);
   }
 }
 
