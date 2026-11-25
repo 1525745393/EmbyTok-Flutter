@@ -1,11 +1,13 @@
 // 服务器切换公共逻辑（登录页「快速切换」与服务器管理页共用）
 //
 // P3 修复（登录界面审查 F3/F4/F7）：两处切换实现此前各自演化——sid 有效性校验、
-// 跨类型对端会话清理、两步验证（OTP）处理都只在 servers_view 一侧修过，导致
-// 登录页快速切换行为不一致（sid 过期假成功、双登录残留、2FA 账号无法切换）。
-// 这里把三件事收敛为单点实现，两个调用方只保留各自的激活状态时序：
+// 两步验证（OTP）处理都只在 servers_view 一侧修过，导致登录页快速切换行为不一致
+// （sid 过期假成功、2FA 账号无法切换）。这里把公共路径收敛为单点实现，
+// 两个调用方只保留各自的激活状态时序：
 //   - 登录页：登录成功后才 touch / setActive（失败保持原服务器激活）；
 //   - 服务器管理页：进入即 touch / setActive（沿用既有语义）。
+//
+// 阶段 1-B 3b-2：跨类型切换不再登出对端会话，对端账号后台保留（多会话并行）。
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,22 +35,6 @@ Future<String?> readSavedServerPassword(
   } catch (e) {
     AppLogger.warn('读取服务器密码失败', data: {'error': e.toString()});
     return null;
-  }
-}
-
-/// 跨类型切换前清理对端会话，避免双登录残留。
-///
-/// 切群晖前清 Emby token、切 Emby/Plex 前清群晖 sid；同类型切换不清理
-/// （新登录会覆盖旧会话）。
-Future<void> purgeCounterpartSession(WidgetRef ref, ServerProfile server) async {
-  if (server.kind == ServerKind.synology) {
-    if (ref.read(authProvider).isAuthenticated) {
-      await ref.read(authProvider.notifier).logout();
-    }
-  } else {
-    if (ref.read(synologyAuthProvider).isLoggedIn) {
-      await ref.read(synologyAuthProvider.notifier).logout();
-    }
   }
 }
 
@@ -231,11 +217,12 @@ enum ServerSwitchOutcome {
 
 /// 统一的注册表服务器切换编排（登录页快速切换 / 服务器管理页共用）。
 ///
-/// 顺序不变量（P1 修复）：**先登录目标成功，再清理对端会话**。
-/// 旧实现先 `purgeCounterpartSession` 再登录目标，目标失败时会把当前可用
-/// 会话一并销毁（用户被踢回登录页）。本函数把顺序收敛为：
+/// 顺序不变量（P1 修复）：**先登录目标成功，再更新激活态**。
+/// 旧实现先清对端会话再登录目标，目标失败时会把当前可用会话一并销毁
+/// （用户被踢回登录页）。本函数把顺序收敛为：
 /// 1. 登录目标（群晖走 sid 恢复 + 校验 + 密码回退 + OTP；视频类读保存密码）；
-/// 2. 成功后才清对端会话、touch/setActive、服务模式联动；
+/// 2. 成功后才 touch/setActive、服务模式联动；**跨类型对端会话保留**
+///    （阶段 1-B 多会话并行，对端会话后台保留，不再跨类型登出）；
 /// 3. 目标登录失败时异常向上抛，对端会话保持不变。
 ///
 /// 视频类无保存密码时返回 [ServerSwitchOutcome.missingPassword]，不抛异常。
@@ -265,8 +252,8 @@ Future<ServerSwitchOutcome> switchRegistryServer(
         );
   }
 
-  // 登录成功后才清理跨类型对端会话；失败时不会执行到这里
-  await purgeCounterpartSession(ref, server);
+  // 登录成功后更新激活态与服务模式联动；跨类型对端会话保留（多会话并行），
+  // 失败时不会执行到这里，对端会话保持不变。
   await ref.read(serverRegistryProvider.notifier).touch(server.id);
   await ref.read(activeServerIdProvider.notifier).setActive(server.id);
 

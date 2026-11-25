@@ -1,11 +1,12 @@
-// 注册表服务器切换编排回归测试（P1-1）
+// 注册表服务器切换编排回归测试（P1-1 / 阶段 1-B 3b-2）
 //
 // 背景：登录页快速切换曾在登录目标之前先清理对端会话，目标登录失败时
 // 当前可用会话已被销毁（用户被踢回登录页）。服务器管理页已修为「先登录
 // 成功再清对端」，本批次把编排收敛到 server_switch_helpers.switchRegistryServer，
 // 本文件固定顺序不变量：
 // - 目标登录失败（无密码 / 抛错）→ 对端会话必须保留、对端 logout 不得被调用；
-// - 目标登录成功 → 才清理对端会话、更新激活态与服务模式。
+// - 目标登录成功 → 仅切激活态与服务模式联动，**保留对端类型会话**（阶段 1-B
+//   多会话并行：对端会话后台保留，不再跨类型登出）。
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -79,6 +80,17 @@ class _FakeSynoAuth extends SynologyAuthNotifier {
   }
 }
 
+/// 群晖 API fake：restoreSession no-op，getGenres 返回空列表视为校验通过。
+class _FakeSynoAudioApi extends SynologyAudioApi {
+  @override
+  void restoreSession(
+      {required String serverUrl, required String sid, String? account}) {}
+
+  @override
+  Future<List<AudioGenre>> getGenres({int offset = 0, int limit = 200}) async =>
+      [];
+}
+
 ServerProfile _profile({
   required String id,
   required ServerKind kind,
@@ -106,6 +118,7 @@ void main() {
     required _FakeSecureStorage storage,
     bool withEmby = false,
     bool withSyno = false,
+    bool withSynoApi = false,
     MockEmbytokService? mockService,
   }) {
     return ProviderScope(
@@ -116,6 +129,9 @@ void main() {
         if (withSyno)
           synologyAuthProvider
               .overrideWith((ref) => synoAuth = _FakeSynoAuth(ref)),
+        if (withSynoApi)
+          synologyAudioApiProvider
+              .overrideWith((ref) => _FakeSynoAudioApi()),
         if (mockService != null)
           embytokServiceProvider.overrideWithValue(mockService),
         serviceModeProvider.overrideWith((ref) => ServiceModeNotifier()),
@@ -199,7 +215,7 @@ void main() {
     expect(capturedRef.read(synologyAuthProvider).isLoggedIn, isTrue);
   });
 
-  testWidgets('成功跨类型切换：清对端群晖会话、更新激活态并联动视频模式',
+  testWidgets('成功跨类型切换：保留对端群晖会话、更新激活态并联动视频模式',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
     final storage = _FakeSecureStorage({
@@ -244,13 +260,61 @@ void main() {
     final outcome = await switchRegistryServer(capturedRef, emby2, storage);
 
     expect(outcome, ServerSwitchOutcome.switched);
-    // 成功后才清理对端群晖会话
-    expect(synoAuth!.logoutCalls, 1);
-    expect(capturedRef.read(synologyAuthProvider).isLoggedIn, isFalse);
+    // 阶段 1-B：跨类型切换保留对端群晖会话，不登出
+    expect(synoAuth!.logoutCalls, 0,
+        reason: '多会话并行下切换到视频不应登出后台群晖会话');
+    expect(capturedRef.read(synologyAuthProvider).isLoggedIn, isTrue);
     // 激活态切到目标
     expect(capturedRef.read(activeServerIdProvider), 'srv_emby2');
     // 模式联动到视频
     expect(capturedRef.read(serviceModeProvider), AppServiceMode.video);
+  });
+
+  testWidgets('成功跨类型切群晖：保留对端 Emby 会话、更新激活态并联动音乐模式',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = _FakeSecureStorage({
+      serverSynoSidKey('srv_nas'): 'sid',
+    });
+
+    await tester.pumpWidget(buildHost(
+      storage: storage,
+      withEmby: true,
+      withSyno: true,
+      withSynoApi: true,
+    ));
+    await tester.pumpAndSettle();
+    capturedRef.read(authProvider);
+    embyAuth!.state = const AuthState(
+      isAuthenticated: true,
+      embyServerUrl: 'http://emby.test:8096',
+      token: 'tok',
+    );
+    await capturedRef
+        .read(serviceModeProvider.notifier)
+        .setMode(AppServiceMode.video);
+
+    await capturedRef.read(serverRegistryProvider.notifier).add(
+          _profile(
+            id: 'srv_nas',
+            kind: ServerKind.synology,
+            url: 'http://nas.test:5000',
+            username: 'nas-user',
+          ),
+        );
+    final nas = capturedRef.read(serverRegistryProvider).single;
+
+    final outcome = await switchRegistryServer(capturedRef, nas, storage);
+
+    expect(outcome, ServerSwitchOutcome.switched);
+    // 阶段 1-B：跨类型切换保留对端 Emby 会话，不登出
+    expect(embyAuth!.logoutCalls, 0,
+        reason: '多会话并行下切换到群晖不应登出后台视频会话');
+    expect(capturedRef.read(authProvider).isAuthenticated, isTrue);
+    // 激活态切到群晖目标
+    expect(capturedRef.read(activeServerIdProvider), 'srv_nas');
+    // 模式联动到音乐
+    expect(capturedRef.read(serviceModeProvider), AppServiceMode.music);
   });
 
   // ---- P1-2：删除注册表服务器时清掉匹配的活会话 ----
