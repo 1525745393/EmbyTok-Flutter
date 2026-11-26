@@ -1,3 +1,10 @@
+# [2.407.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.406.0...v2.407.0) (2026-11-26)
+
+
+### Features
+
+* 群晖会话持久化分桶与旧单槽迁移恢复 ([88d977b](https://github.com/1525745393/EmbyTok-Flutter/commit/88d977b1dcdcffaef2ff77ba996f5f37277337f6))
+
 # [2.406.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.405.0...v2.406.0) (2026-11-26)
 
 
