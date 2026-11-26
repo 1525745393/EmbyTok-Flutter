@@ -1,3 +1,11 @@
+# [2.406.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.405.0...v2.406.0) (2026-11-26)
+
+
+### Features
+
+* 切换列表在线置顶与在线勾选登出隔离 ([1163a9f](https://github.com/1525745393/EmbyTok-Flutter/commit/1163a9f38431a1a0d5dfbf75778ea868682f24c9))
+* 跨类型切换保留对端会话支持多会话并行 ([b296a35](https://github.com/1525745393/EmbyTok-Flutter/commit/b296a35ada9fa968a78085db1325eee8d37d2f9e))
+
 # [2.405.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.404.0...v2.405.0) (2026-11-25)
 
 
