@@ -6,6 +6,8 @@
 //   sid 会话存安全存储（FlutterSecureStorage，替代早期明文存储）
 // - 会话恢复后可直接浏览/播放音乐
 
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -79,6 +81,12 @@ const _kSynoSid = 'synology_sid';
 /// sid 安全存储键（新；旧明文 key 用于迁移）
 const _kSynoSidSecure = 'synology_sid_secure';
 
+/// 分桶持久化前缀：prefs 元信息桶 + secure sid 桶（多会话隔离）。
+const _kSessionPrefix = 'syno_session_';
+
+String _sessionPrefKey(String key) => '$_kSessionPrefix$key';
+String _sessionSidKey(String key) => 'syno_sid_secure_$key';
+
 class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
 
   SynologyAuthNotifier(this._ref) : super(const SynologyAuthState()) {
@@ -127,10 +135,17 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
           ? serverId.trim()
           : '${_sessionKey(url)}::$account';
 
-  /// 从本地存储恢复群晖会话（sid 优先安全存储，旧明文自动迁移）
+  /// 从本地存储恢复群晖会话（分桶优先；旧单槽回退，sid 优先安全存储、旧明文自动迁移）
   Future<void> _restore() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      // 1. 优先分桶恢复多会话；桶为空再回退旧单槽（含明文迁移）。
+      await _restoreFromBuckets(prefs);
+      if (_sessions.isNotEmpty) {
+        AppLogger.info('群晖分桶会话恢复成功', data: {'count': _sessions.length});
+        return;
+      }
+
       final serverUrl = prefs.getString(_kSynoServerUrl);
       final account = prefs.getString(_kSynoAccount);
       // 安全存储优先；无则读旧明文并迁移
@@ -157,12 +172,60 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
         );
         _sessions[session.id] = session;
         _currentId = session.id;
+        await _persistSessionBucket(session);
         state = _derive();
         AppLogger.info('群晖 Audio Station 会话恢复成功');
       }
     } catch (e) {
       AppLogger.error('恢复群晖会话失败', error: e);
     }
+  }
+
+  /// 扫描 `syno_session_*` 分桶重建内存多会话；按凭据层当前账号定 current，
+  /// 无匹配取首槽。损坏桶 / 缺 sid 跳过，不崩溃。
+  Future<void> _restoreFromBuckets(SharedPreferences prefs) async {
+    for (final prefKey in prefs.getKeys()) {
+      if (!prefKey.startsWith(_kSessionPrefix)) continue;
+      final raw = prefs.getString(prefKey);
+      if (raw == null || raw.isEmpty) continue;
+      try {
+        final map = json.decode(raw) as Map<String, dynamic>;
+        final url = map['server_url'] as String?;
+        final account = map['account'] as String? ?? '';
+        if (url == null || url.isEmpty) continue;
+        final key = prefKey.substring(_kSessionPrefix.length);
+        String? sid;
+        try {
+          sid = await _secureStorage.read(key: _sessionSidKey(key));
+        } catch (_) {
+          // 单个桶读取失败跳过，不影响其他桶
+        }
+        if (sid == null || sid.isEmpty) continue;
+        _sessions[key] = _SynoSession(
+          id: key,
+          serverUrl: url,
+          account: account,
+          sid: sid,
+        );
+      } catch (_) {
+        // 损坏 JSON 桶跳过
+      }
+    }
+    if (_sessions.isEmpty) return;
+    final cur = _ref.read(synoAccountsProvider).current;
+    if (cur != null) {
+      for (final s in _sessions.values) {
+        if (s.account == cur.username) {
+          _currentId = s.id;
+          break;
+        }
+      }
+    }
+    _currentId ??= _sessions.keys.first;
+    final active = _sessions[_currentId]!;
+    _api.restoreSession(
+        serverUrl: active.serverUrl, sid: active.sid, account: active.account);
+    state = _derive();
   }
 
   /// 重新从本地存储恢复会话（测试用）
@@ -173,6 +236,69 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
       return await _secureStorage.read(key: _kSynoSidSecure);
     } catch (_) {
       return null;
+    }
+  }
+
+  /// 会话元信息 JSON（server_url + account）。
+  Map<String, dynamic> _sessionToJson(_SynoSession s) => {
+        'server_url': s.serverUrl,
+        'account': s.account,
+      };
+
+  /// 写会话分桶：prefs 元信息 + secure sid。存储失败静默，不影响内存态。
+  Future<void> _persistSessionBucket(_SynoSession s) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+          _sessionPrefKey(s.id), json.encode(_sessionToJson(s)));
+    } catch (_) {
+      // 存储失败静默处理
+    }
+    try {
+      await _secureStorage.write(key: _sessionSidKey(s.id), value: s.sid);
+    } catch (_) {
+      // 存储失败静默处理
+    }
+  }
+
+  /// 删除指定会话分桶（prefs 元信息 + secure sid）。
+  Future<void> _deleteSessionBucket(String key) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_sessionPrefKey(key));
+    } catch (_) {
+      // 存储失败静默处理
+    }
+    try {
+      await _secureStorage.delete(key: _sessionSidKey(key));
+    } catch (_) {
+      // 存储失败静默处理
+    }
+  }
+
+  /// 清空所有会话分桶（全局登出 / 重置用）。
+  ///
+  /// 不依赖 secure 全量遍历（readAll 在未注入存储的测试环境会挂起）：
+  /// 桶键由 prefs 元信息桶前缀推导，再按键删对应 secure sid。
+  Future<void> _deleteAllSessionBuckets() async {
+    final keys = <String>[];
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      for (final k in prefs.getKeys().toList()) {
+        if (k.startsWith(_kSessionPrefix)) {
+          keys.add(k.substring(_kSessionPrefix.length));
+          await prefs.remove(k);
+        }
+      }
+    } catch (_) {
+      // 存储失败静默处理
+    }
+    for (final key in keys) {
+      try {
+        await _secureStorage.delete(key: _sessionSidKey(key));
+      } catch (_) {
+        // 单个桶删除失败跳过，不影响其他桶
+      }
     }
   }
 
@@ -198,6 +324,7 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
       );
       _sessions[session.id] = session;
       _currentId = session.id;
+      await _persistSessionBucket(session);
       state = _derive();
       AppLogger.info('群晖 Audio Station 会话恢复', data: {'account': account});
     } catch (e) {
@@ -242,6 +369,7 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
       );
       _sessions[session.id] = session;
       _currentId = session.id;
+      await _persistSessionBucket(session);
       _isLoading = false;
       state = _derive();
       AppLogger.info('群晖 Audio Station 登录成功', data: {'account': account});
@@ -261,7 +389,11 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
   /// setMode(video) 的模式副作用，切换场景误用会导致服务模式被切走。
   Future<void> clearInvalidSession() async {
     _api.clearSession();
-    _sessions.remove(_currentId);
+    final expiredId = _currentId;
+    if (expiredId != null) {
+      _sessions.remove(expiredId);
+      await _deleteSessionBucket(expiredId);
+    }
     _currentId = null;
     _isLoading = false;
     _error = null;
@@ -294,6 +426,7 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
       // 存储操作失败不影响主流程，静默处理
     }
     await _clearLegacySessionStorage();
+    await _deleteAllSessionBuckets();
     // 全局登出：清空内存所有会话（按单台登出走 logoutSession）。
     _sessions.clear();
     _currentId = null;
@@ -359,6 +492,7 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
   Future<void> logoutSession(String key) async {
     final removed = _sessions.remove(key);
     if (removed == null) return;
+    await _deleteSessionBucket(key);
     if (_currentId == key) {
       _api.clearSession();
       await _clearLegacySessionStorage();

@@ -6,6 +6,8 @@
 // - logoutSession 仅移除目标槽，其他在线槽保留
 // - 持久化旧单槽过渡契约不回退（login/restore 仍写旧单槽 key）
 
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,6 +18,11 @@ import 'package:embytok_flutter/providers/synology_auth_provider.dart';
 import 'package:embytok_flutter/services/synology_audio_api.dart';
 
 import '../mocks/mock_secure_storage.dart';
+
+String _normUrl(String u) => u.trim().replaceAll(RegExp(r'/+$'), '');
+String _slotKey(String url, String account) => '${_normUrl(url)}::$account';
+String _prefKey(String key) => 'syno_session_$key';
+String _sidKey(String key) => 'syno_sid_secure_$key';
 
 /// fake API：login 按账号返回不同 sid；记录最近一次 restoreSession 回填。
 class _FakeSynoApi implements SynologyAudioApi {
@@ -212,6 +219,84 @@ void main() {
 
       expect(auth.onlineSessionIds().length, 1);
       expect(container.read(synologyAuthProvider).account, 'admin');
+    });
+  });
+
+  group('群晖分桶持久化（A2）', () {
+    test('login 写入分桶：prefs 元信息桶 + secure sid 桶，旧单槽镜像双写', () async {
+      final container = buildContainer();
+      addTearDown(container.dispose);
+      final auth = container.read(synologyAuthProvider.notifier);
+
+      await auth.login(
+        serverUrl: 'http://192.168.1.6:5000',
+        account: 'admin',
+        password: 'pw',
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      final key = _slotKey('http://192.168.1.6:5000', 'admin');
+      expect(prefs.containsKey(_prefKey(key)), isTrue);
+      final map =
+          json.decode(prefs.getString(_prefKey(key))!) as Map<String, dynamic>;
+      expect(map['server_url'], 'http://192.168.1.6:5000');
+      expect(map['account'], 'admin');
+      expect(await mockStorage.read(key: _sidKey(key)), 'sid-admin');
+      // 旧单槽过渡镜像仍在
+      expect(prefs.getString('synology_server_url'), 'http://192.168.1.6:5000');
+    });
+
+    test('预置两分桶：启动恢复为两个在线槽', () async {
+      final k1 = _slotKey('http://192.168.1.6:5000', 'admin');
+      final k2 = _slotKey('http://10.0.0.8:5000', 'music');
+      SharedPreferences.setMockInitialValues({
+        _prefKey(k1): json.encode({
+          'server_url': 'http://192.168.1.6:5000',
+          'account': 'admin',
+        }),
+        _prefKey(k2): json.encode({
+          'server_url': 'http://10.0.0.8:5000',
+          'account': 'music',
+        }),
+      });
+      mockStorage.setValue(_sidKey(k1), 'sid-a');
+      mockStorage.setValue(_sidKey(k2), 'sid-m');
+
+      final container = buildContainer();
+      addTearDown(container.dispose);
+      await container.read(synologyAuthProvider.notifier).reloadSid();
+
+      final auth = container.read(synologyAuthProvider.notifier);
+      expect(auth.onlineSessionIds().length, 2);
+      expect(auth.isSessionOnline(k1), isTrue);
+      expect(auth.isSessionOnline(k2), isTrue);
+    });
+
+    test('logoutSession 删除目标分桶，其他分桶保留', () async {
+      final container = buildContainer();
+      addTearDown(container.dispose);
+      final auth = container.read(synologyAuthProvider.notifier);
+
+      await auth.login(
+        serverUrl: 'http://192.168.1.6:5000',
+        account: 'admin',
+        password: 'pw',
+      );
+      await auth.login(
+        serverUrl: 'http://10.0.0.8:5000',
+        account: 'music',
+        password: 'pw',
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      final k1 = _slotKey('http://192.168.1.6:5000', 'admin');
+      final k2 = _slotKey('http://10.0.0.8:5000', 'music');
+      await auth.logoutSession(k1);
+
+      expect(prefs.containsKey(_prefKey(k1)), isFalse);
+      expect(await mockStorage.read(key: _sidKey(k1)), isNull);
+      expect(prefs.containsKey(_prefKey(k2)), isTrue);
+      expect(await mockStorage.read(key: _sidKey(k2)), 'sid-music');
     });
   });
 }
