@@ -220,6 +220,43 @@ void main() {
       expect(auth.onlineSessionIds().length, 1);
       expect(container.read(synologyAuthProvider).account, 'admin');
     });
+
+    test('login 传 serverId：槽键落条目 id，按 id 命中在线', () async {
+      final container = buildContainer();
+      addTearDown(container.dispose);
+      final auth = container.read(synologyAuthProvider.notifier);
+
+      await auth.login(
+        serverUrl: 'http://nas.local:5000',
+        account: 'admin',
+        password: 'pw',
+        serverId: 'srv-x',
+      );
+
+      expect(auth.isSessionOnline('srv-x'), isTrue);
+      expect(auth.onlineSessionIds(), ['srv-x']);
+    });
+
+    test('rekeySession：url 临时槽重挂 id 槽，旧桶删、新桶写', () async {
+      final container = buildContainer();
+      addTearDown(container.dispose);
+      final auth = container.read(synologyAuthProvider.notifier);
+
+      await auth.login(
+        serverUrl: 'http://nas.local:5000',
+        account: 'admin',
+        password: 'pw',
+      );
+      final oldKey = auth.onlineSessionIds().single;
+
+      await auth.rekeySession(oldKey, 'srv-x');
+
+      expect(auth.isSessionOnline('srv-x'), isTrue);
+      expect(auth.isSessionOnline(oldKey), isFalse);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.containsKey('syno_session_$oldKey'), isFalse);
+      expect(prefs.containsKey('syno_session_srv-x'), isTrue);
+    });
   });
 
   group('群晖分桶持久化（A2）', () {

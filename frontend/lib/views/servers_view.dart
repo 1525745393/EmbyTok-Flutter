@@ -40,9 +40,12 @@ class _ServersViewState extends ConsumerState<ServersView> {
     final auth = ref.watch(authProvider);
     final synoAuth = ref.watch(synologyAuthProvider);
     final isVideoOnline = ref.read(authProvider.notifier).isSessionOnline;
+    final isSynoOnline =
+        ref.read(synologyAuthProvider.notifier).isSessionOnline;
 
-    bool onlineOf(ServerProfile s) =>
-        isRegistryServerOnline(s, auth, isVideoOnline, synoAuth);
+    bool onlineOf(ServerProfile s) => isRegistryServerOnline(
+        s, auth, isVideoOnline, synoAuth,
+        isSynoSessionOnline: isSynoOnline);
     // 在线置顶：在线在前（最近使用倒序），未登录在后保持原序
     final sorted = sortServersByOnline(servers, onlineOf);
 

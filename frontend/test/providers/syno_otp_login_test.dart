@@ -63,6 +63,7 @@ class _OtpFakeAuth extends SynologyAuthNotifier {
     required String account,
     required String password,
     String? otpCode,
+    String? serverId,
   }) async {
     loginCalls++;
     lastOtpCode = otpCode;

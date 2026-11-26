@@ -66,6 +66,7 @@ Future<void> loginSynologyTarget(
       serverUrl: server.resolveUrl(),
       account: server.username,
       sid: sid,
+      serverId: server.id,
     );
     // 会话恢复是本地乐观置位，不校验 sid 有效性（NAS 重启/会话过期时
     // 会显示「已切换」实际未登录）；用一次轻量 API 调用验证，失败则清除
@@ -102,12 +103,14 @@ Future<void> loginSynoWithOtp(
   required String account,
   required String password,
   OtpCodeRequester? requestOtp,
+  String? serverId,
 }) async {
   try {
     await notifier.login(
       serverUrl: serverUrl,
       account: account,
       password: password,
+      serverId: serverId,
     );
   } on SynologyOtpRequiredException {
     final code = requestOtp == null ? null : await requestOtp();
@@ -117,6 +120,7 @@ Future<void> loginSynoWithOtp(
       account: account,
       password: password,
       otpCode: code.trim(),
+      serverId: serverId,
     );
   }
 }
@@ -133,6 +137,7 @@ Future<void> _loginWithOtp(
       account: server.username,
       password: password,
       requestOtp: requestOtp,
+      serverId: server.id,
     );
 
 /// 群晖两步验证验证码输入对话框；取消返回 null。
@@ -215,8 +220,9 @@ bool isRegistryServerOnline(
   ServerProfile server,
   AuthState auth,
   bool Function(String sessionKey) isVideoSessionOnline,
-  SynologyAuthState synoAuth,
-) {
+  SynologyAuthState synoAuth, {
+  bool Function(String sessionKey)? isSynoSessionOnline,
+}) {
   switch (server.kind) {
     case ServerKind.emby:
     case ServerKind.jellyfin:
@@ -226,6 +232,9 @@ bool isRegistryServerOnline(
           auth.embyServerUrl != null &&
           hostOf(auth.embyServerUrl!) == hostOf(server.url);
     case ServerKind.synology:
+      if (isSynoSessionOnline != null && isSynoSessionOnline(server.id)) {
+        return true;
+      }
       return synoAuth.isLoggedIn &&
           synoAuth.serverUrl != null &&
           hostOf(synoAuth.serverUrl!) == hostOf(server.url) &&
@@ -270,12 +279,17 @@ Future<void> logoutRegistrySession(WidgetRef ref, ServerProfile server) async {
         await notifier.logoutSession(current);
       }
     case ServerKind.synology:
+      final synoNotifier = ref.read(synologyAuthProvider.notifier);
+      if (synoNotifier.isSessionOnline(server.id)) {
+        await synoNotifier.logoutSession(server.id);
+        return;
+      }
       final syno = ref.read(synologyAuthProvider);
       if (syno.isLoggedIn &&
           syno.serverUrl != null &&
           hostOf(syno.serverUrl!) == hostOf(server.url) &&
           (syno.account == null || syno.account == server.username)) {
-        await ref.read(synologyAuthProvider.notifier).logout();
+        await synoNotifier.logout();
       }
   }
 }

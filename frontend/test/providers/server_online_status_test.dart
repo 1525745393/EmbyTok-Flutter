@@ -102,6 +102,21 @@ void main() {
   });
 
   group('isRegistryServerOnline 群晖', () {
+    test('id 槽在线即判定在线（多槽命中，优先于 host 兜底）', () {
+      final server = _p(
+        id: 'srv_nas',
+        kind: ServerKind.synology,
+        url: 'http://x:5000',
+        username: 'nas-user',
+      );
+      const syno = SynologyAuthState();
+      expect(
+        isRegistryServerOnline(server, const AuthState(), (_) => false, syno,
+            isSynoSessionOnline: (key) => key == 'srv_nas'),
+        isTrue,
+      );
+    });
+
     test('host + 账号匹配判定在线', () {
       final server = _p(
         id: 'srv_nas',
@@ -205,6 +220,27 @@ void main() {
 
       expect(fake!.logoutCalls, 0);
     });
+
+    testWidgets('群晖 id 槽命中走按槽登出，不调全局 logout', (tester) async {
+      _FakeSynoAuth? fake;
+      await tester.pumpWidget(_host([
+        synologyAuthProvider.overrideWith(
+            (ref) => fake = _FakeSynoAuth(ref, onlineKeys: {'srv_nas'})),
+      ]));
+      await tester.pumpAndSettle();
+      capturedRef.read(synologyAuthProvider);
+
+      final server = _p(
+          id: 'srv_nas',
+          kind: ServerKind.synology,
+          url: 'http://192.168.1.30:5000',
+          username: 'nas-user');
+      await logoutRegistrySession(capturedRef, server);
+
+      expect(fake!.removed, ['srv_nas']);
+      expect(fake!.logoutCalls, 0,
+          reason: '按槽登出不应触发全局 logout 的模式回退副作用');
+    });
   });
 }
 
@@ -243,11 +279,23 @@ class _FakeVideoAuth extends AuthNotifier {
   }
 }
 
-/// 群晖认证桩：记录登出调用。
+/// 群晖认证桩：记录登出调用，可模拟多槽在线。
 class _FakeSynoAuth extends SynologyAuthNotifier {
-  _FakeSynoAuth(super.ref);
+  _FakeSynoAuth(super.ref, {Set<String>? onlineKeys})
+      : _onlineKeys = onlineKeys ?? {};
 
+  final Set<String> _onlineKeys;
+  final List<String> removed = [];
   int logoutCalls = 0;
+
+  @override
+  bool isSessionOnline(String key) => _onlineKeys.contains(key);
+
+  @override
+  Future<void> logoutSession(String key) async {
+    _onlineKeys.remove(key);
+    removed.add(key);
+  }
 
   @override
   Future<void> logout() async {

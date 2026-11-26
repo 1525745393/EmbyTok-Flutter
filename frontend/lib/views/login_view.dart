@@ -731,8 +731,11 @@ class _LoginViewState extends ConsumerState<LoginView> {
     final auth = ref.read(authProvider);
     final synoAuth = ref.read(synologyAuthProvider);
     final isVideoOnline = ref.read(authProvider.notifier).isSessionOnline;
-    bool onlineOf(ServerProfile s) =>
-        isRegistryServerOnline(s, auth, isVideoOnline, synoAuth);
+    final isSynoOnline =
+        ref.read(synologyAuthProvider.notifier).isSessionOnline;
+    bool onlineOf(ServerProfile s) => isRegistryServerOnline(
+        s, auth, isVideoOnline, synoAuth,
+        isSynoSessionOnline: isSynoOnline);
     // 在线置顶：在线在前，未登录在后
     final sorted = sortServersByOnline(servers, onlineOf);
     final scheme = Theme.of(context).colorScheme;
@@ -1073,6 +1076,14 @@ class _LoginViewState extends ConsumerState<LoginView> {
         final currentKey = authNotifier.activeSessionId;
         if (currentKey != null) {
           await authNotifier.rekeySession(currentKey, savedProfile.id);
+        }
+      }
+      // 群晖会话同上：条目落定后把 url::account 临时槽重挂到条目 id 槽。
+      if (savedProfile != null && _serverType == ServerType.synology) {
+        final synoNotifier = ref.read(synologyAuthProvider.notifier);
+        final currentKey = synoNotifier.activeSessionId;
+        if (currentKey != null) {
+          await synoNotifier.rekeySession(currentKey, savedProfile.id);
         }
       }
       if (savedProfile == null && mounted) {

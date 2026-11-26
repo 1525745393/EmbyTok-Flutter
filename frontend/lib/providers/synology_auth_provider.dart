@@ -309,6 +309,7 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
     required String serverUrl,
     required String account,
     required String sid,
+    String? serverId, // 注册表条目 id；提供时会话按 id 入槽
   }) async {
     try {
       _api.restoreSession(serverUrl: serverUrl, sid: sid, account: account);
@@ -317,7 +318,7 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
       await prefs.setString(_kSynoAccount, account);
       await _secureStorage.write(key: _kSynoSidSecure, value: sid);
       final session = _SynoSession(
-        id: _resolveKey(url: serverUrl, account: account),
+        id: _resolveKey(serverId: serverId, url: serverUrl, account: account),
         serverUrl: serverUrl,
         account: account,
         sid: sid,
@@ -342,6 +343,7 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
     required String account,
     required String password,
     String? otpCode,
+    String? serverId, // 注册表条目 id；提供时会话按 id 入槽，供多会话隔离
   }) async {
     _isLoading = true;
     _error = null;
@@ -362,7 +364,10 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
       await prefs.remove(_kSynoSid);
 
       final session = _SynoSession(
-        id: _resolveKey(url: _api.serverUrl ?? serverUrl, account: account),
+        id: _resolveKey(
+            serverId: serverId,
+            url: _api.serverUrl ?? serverUrl,
+            account: account),
         serverUrl: _api.serverUrl ?? serverUrl,
         account: account,
         sid: sid,
@@ -501,6 +506,25 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
       _error = null;
     }
     state = _derive();
+  }
+
+  /// 登录后注册表条目 id 确定，把 url 临时槽重挂到 id 槽（内存 + 分桶），
+  /// 避免同一会话遗留 url 键副本。旧键桶删除、新键桶写入；失败不影响内存态。
+  Future<void> rekeySession(String oldKey, String newId) async {
+    if (newId.isEmpty || oldKey == newId) return;
+    final s = _sessions.remove(oldKey);
+    if (s == null) return;
+    final rekeyed = _SynoSession(
+      id: newId,
+      serverUrl: s.serverUrl,
+      account: s.account,
+      sid: s.sid,
+    );
+    _sessions[newId] = rekeyed;
+    if (_currentId == oldKey) _currentId = newId;
+    state = _derive();
+    await _deleteSessionBucket(oldKey);
+    await _persistSessionBucket(rekeyed);
   }
 }
 

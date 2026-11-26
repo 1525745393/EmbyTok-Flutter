@@ -51,6 +51,7 @@ class _RecordingSynologyAuth extends SynologyAuthNotifier {
     required String serverUrl,
     required String account,
     required String sid,
+    String? serverId,
   }) async {
     restoreCalls++;
     state = SynologyAuthState(
@@ -69,6 +70,7 @@ class _RecordingSynologyAuth extends SynologyAuthNotifier {
     required String account,
     required String password,
     String? otpCode,
+    String? serverId,
   }) async {
     loginCalls++;
     otpCodes.add(otpCode);
