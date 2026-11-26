@@ -1,3 +1,10 @@
+# [2.408.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.407.0...v2.408.0) (2026-11-26)
+
+
+### Features
+
+* 群晖会话槽键挂注册表条目 id 并按 id 定位在线与登出 ([aed3a8a](https://github.com/1525745393/EmbyTok-Flutter/commit/aed3a8a2294423b0c0e987b2925782938ba261c3))
+
 # [2.407.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.406.0...v2.407.0) (2026-11-26)
 
 
