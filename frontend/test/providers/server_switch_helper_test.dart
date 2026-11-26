@@ -54,11 +54,32 @@ class _FakeSecureStorage implements FlutterSecureStorage {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-/// 记录 logout 调用的 Emby 认证桩，可预置已登录态
+/// 记录 logout 调用的 Emby 认证桩，可预置已登录态与在线槽。
 class _FakeEmbyAuth extends AuthNotifier {
   _FakeEmbyAuth(super.ref);
 
   int logoutCalls = 0;
+  final Set<String> onlineKeys = <String>{};
+  String? switchedKey;
+  int loginCalls = 0;
+
+  @override
+  bool isSessionOnline(String key) => onlineKeys.contains(key);
+
+  @override
+  void switchTo(String key) {
+    switchedKey = key;
+    state = const AuthState(
+      isAuthenticated: true,
+      embyServerUrl: 'http://emby2.test:8096',
+    );
+  }
+
+  @override
+  Future<void> login(String embyServerUrl, String username, String password,
+      {String? backendUrl, String? serverId}) async {
+    loginCalls++;
+  }
 
   @override
   Future<void> logout() async {
@@ -67,11 +88,50 @@ class _FakeEmbyAuth extends AuthNotifier {
   }
 }
 
-/// 记录 logout 调用的群晖认证桩，可预置已登录态
+/// 记录 logout 调用的群晖认证桩，可预置已登录态与在线槽。
 class _FakeSynoAuth extends SynologyAuthNotifier {
   _FakeSynoAuth(super.ref);
 
   int logoutCalls = 0;
+  final Set<String> onlineKeys = <String>{};
+  String? switchedKey;
+  int restoreCalls = 0;
+  int loginCalls = 0;
+
+  @override
+  bool isSessionOnline(String key) => onlineKeys.contains(key);
+
+  @override
+  void switchTo(String key) {
+    switchedKey = key;
+    state = const SynologyAuthState(
+      isLoggedIn: true,
+      serverUrl: 'http://nas.test:5000',
+      account: 'nas-user',
+      sid: 'sid',
+    );
+  }
+
+  @override
+  Future<void> restoreSession({
+    required String serverUrl,
+    required String account,
+    required String sid,
+    String? serverId,
+  }) async {
+    restoreCalls++;
+  }
+
+  @override
+  Future<void> login({
+    required String serverUrl,
+    required String account,
+    required String password,
+    String? otpCode,
+    String? serverId,
+  }) async {
+    loginCalls++;
+  }
 
   @override
   Future<void> logout() async {
@@ -430,5 +490,71 @@ void main() {
 
     expect(embyAuth!.logoutCalls, 0);
     expect(synoAuth!.logoutCalls, 0);
+  });
+
+  // ---- 阶段 3-A：目标槽已在线时直接切槽，免一次网络登录/恢复 ----
+
+  testWidgets('视频目标已在线：直接切槽，免保存凭据重登', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = _FakeSecureStorage({}); // 无保存密码
+
+    await tester.pumpWidget(buildHost(storage: storage, withEmby: true));
+    await tester.pumpAndSettle();
+    capturedRef.read(authProvider);
+    embyAuth!.onlineKeys.add('srv_emby2');
+
+    await capturedRef.read(serverRegistryProvider.notifier).add(
+          _profile(
+            id: 'srv_emby2',
+            kind: ServerKind.emby,
+            url: 'http://emby2.test:8096',
+            username: 'emby-user2',
+          ),
+        );
+    final target = capturedRef.read(serverRegistryProvider).single;
+
+    final outcome = await switchRegistryServer(capturedRef, target, storage);
+
+    expect(outcome, ServerSwitchOutcome.switched);
+    expect(embyAuth!.loginCalls, 0, reason: '已在线槽不应走密码登录');
+    expect(embyAuth!.switchedKey, 'srv_emby2');
+    expect(capturedRef.read(activeServerIdProvider), 'srv_emby2');
+    expect(capturedRef.read(serviceModeProvider), AppServiceMode.video);
+  });
+
+  testWidgets('群晖目标已在线：直接切槽，免 sid 恢复与密码登录', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = _FakeSecureStorage({});
+
+    await tester.pumpWidget(buildHost(
+      storage: storage,
+      withSyno: true,
+      withSynoApi: true,
+    ));
+    await tester.pumpAndSettle();
+    capturedRef.read(synologyAuthProvider);
+    await capturedRef
+        .read(serviceModeProvider.notifier)
+        .setMode(AppServiceMode.video);
+    synoAuth!.onlineKeys.add('srv_nas');
+
+    await capturedRef.read(serverRegistryProvider.notifier).add(
+          _profile(
+            id: 'srv_nas',
+            kind: ServerKind.synology,
+            url: 'http://nas.test:5000',
+            username: 'nas-user',
+          ),
+        );
+    final target = capturedRef.read(serverRegistryProvider).single;
+
+    final outcome = await switchRegistryServer(capturedRef, target, storage);
+
+    expect(outcome, ServerSwitchOutcome.switched);
+    expect(synoAuth!.restoreCalls, 0, reason: '已在线槽不应走 sid 恢复校验');
+    expect(synoAuth!.loginCalls, 0, reason: '已在线槽不应走密码登录');
+    expect(synoAuth!.switchedKey, 'srv_nas');
+    expect(capturedRef.read(activeServerIdProvider), 'srv_nas');
+    expect(capturedRef.read(serviceModeProvider), AppServiceMode.music);
   });
 }

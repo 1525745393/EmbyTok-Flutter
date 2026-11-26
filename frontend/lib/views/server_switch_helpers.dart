@@ -320,7 +320,22 @@ Future<ServerSwitchOutcome> switchRegistryServer(
   FlutterSecureStorage storage, {
   OtpCodeRequester? requestOtp,
 }) async {
-  if (server.kind == ServerKind.synology) {
+  final synoNotifier = ref.read(synologyAuthProvider.notifier);
+  final videoNotifier = ref.read(authProvider.notifier);
+
+  // 目标槽已在线：直接切到已有会话，免一次保存凭据重登 / sid 恢复校验。
+  // 未在线才走下面的登录或 sid 恢复 + 密码回退路径。
+  final alreadyOnline = server.kind == ServerKind.synology
+      ? synoNotifier.isSessionOnline(server.id)
+      : videoNotifier.isSessionOnline(server.id);
+
+  if (alreadyOnline) {
+    if (server.kind == ServerKind.synology) {
+      synoNotifier.switchTo(server.id);
+    } else {
+      videoNotifier.switchTo(server.id);
+    }
+  } else if (server.kind == ServerKind.synology) {
     await loginSynologyTarget(
       ref,
       server,
