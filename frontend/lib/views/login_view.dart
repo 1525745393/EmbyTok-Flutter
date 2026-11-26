@@ -728,6 +728,13 @@ class _LoginViewState extends ConsumerState<LoginView> {
   void _showAccountSwitcher(BuildContext context, WidgetRef ref) {
     final servers = ref.read(serverRegistryProvider);
     final activeId = ref.read(activeServerIdProvider);
+    final auth = ref.read(authProvider);
+    final synoAuth = ref.read(synologyAuthProvider);
+    final isVideoOnline = ref.read(authProvider.notifier).isSessionOnline;
+    bool onlineOf(ServerProfile s) =>
+        isRegistryServerOnline(s, auth, isVideoOnline, synoAuth);
+    // 在线置顶：在线在前，未登录在后
+    final sorted = sortServersByOnline(servers, onlineOf);
     final scheme = Theme.of(context).colorScheme;
 
     showModalBottomSheet<void>(
@@ -747,15 +754,25 @@ class _LoginViewState extends ConsumerState<LoginView> {
                 child: Text('尚未添加服务器'),
               )
             else
-              ...servers.map((s) {
+              ...sorted.map((s) {
                 final isActive = s.id == activeId;
+                final online = onlineOf(s);
                 return ListTile(
                   leading: Icon(
-                    isActive ? Icons.check_circle : Icons.storage_outlined,
-                    color: isActive ? _successColor(scheme) : null,
+                    isActive
+                        ? Icons.check_circle
+                        : online
+                            ? Icons.check_circle_outline
+                            : Icons.storage_outlined,
+                    color: isActive
+                        ? _successColor(scheme)
+                        : online
+                            ? Colors.green
+                            : null,
                   ),
                   title: Text(s.name),
-                  subtitle: Text('${s.kind.label} · ${s.username}'),
+                  subtitle: Text(
+                      '${s.kind.label} · ${s.username}${online ? ' · 在线' : ''}'),
                   onTap: _switchingQuick
                       ? null
                       : () {
@@ -799,7 +816,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
     try {
       // 编排收敛到 server_switch_helpers.switchRegistryServer：
-      // 先登录目标成功，再清对端会话、更新激活态与服务模式；目标失败时对端保留。
+      // 先登录目标成功，再更新激活态与服务模式联动；对端会话保留，失败时不动。
       final outcome = await switchRegistryServer(
         ref,
         server,

@@ -39,6 +39,12 @@ class _ServersViewState extends ConsumerState<ServersView> {
     final activeId = ref.watch(activeServerIdProvider);
     final auth = ref.watch(authProvider);
     final synoAuth = ref.watch(synologyAuthProvider);
+    final isVideoOnline = ref.read(authProvider.notifier).isSessionOnline;
+
+    bool onlineOf(ServerProfile s) =>
+        isRegistryServerOnline(s, auth, isVideoOnline, synoAuth);
+    // 在线置顶：在线在前（最近使用倒序），未登录在后保持原序
+    final sorted = sortServersByOnline(servers, onlineOf);
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -52,14 +58,17 @@ class _ServersViewState extends ConsumerState<ServersView> {
           : ListView(
               padding: EdgeInsets.fromLTRB(kSpacingLg, kSpacingSm, kSpacingLg, kSpacingXl + MediaQuery.paddingOf(context).bottom),
               children: [
-                for (final server in servers)
+                for (final server in sorted)
                   _ServerCard(
                     server: server,
                     active: server.id == activeId,
-                    isLoggedIn: _isServerLoggedIn(server, auth, synoAuth),
+                    isLoggedIn: onlineOf(server),
                     onTap: _switching
                         ? null
                         : () => _switchServer(context, ref, server),
+                    onToggleOnline: _switching
+                        ? null
+                        : (value) => _toggleOnline(context, ref, server, value),
                     onEdit: () => _showEditSheet(context, ref, server: server),
                     onDelete: () => _confirmDelete(context, ref, server),
                     onSetDefault: () =>
@@ -75,23 +84,40 @@ class _ServersViewState extends ConsumerState<ServersView> {
     );
   }
 
-  bool _isServerLoggedIn(
+  /// 在线开关：取消勾选 = 登出该台会话（仅清会话 token/sid，保留保存的密码/sid）；
+  /// 勾选保持在线——已在线无操作，未登录不自动登录（点行切换凭据登录）。
+  Future<void> _toggleOnline(
+    BuildContext context,
+    WidgetRef ref,
     ServerProfile server,
-    AuthState auth,
-    SynologyAuthState synoAuth,
-  ) {
-    return switch (server.kind) {
-      // batch126-F2 host 精确比较：contains 子串匹配会把
-      // "192.168.1.5" 误命中 "192.168.1.50"，造成未登录误显示已登录
-      // Jellyfin 与 Emby 同源协议，登录态同样由 authProvider 持有
-      ServerKind.emby || ServerKind.jellyfin || ServerKind.plex =>
-          auth.isAuthenticated &&
-          auth.embyServerUrl != null &&
-          hostOf(auth.embyServerUrl!) == hostOf(server.url),
-      ServerKind.synology => synoAuth.isLoggedIn &&
-          synoAuth.serverUrl != null &&
-          hostOf(synoAuth.serverUrl!) == hostOf(server.url),
-    };
+    bool? value,
+  ) async {
+    if (value == true) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('登出服务器'),
+        content: Text(
+            '确定登出「${server.name}」吗？\n将清除当前会话，保存的密码保留，下次可重新登录。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('登出'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await logoutRegistrySession(ref, server);
+    if (context.mounted) {
+      messenger.clearSnackBars();
+      messenger.showSnackBar(SnackBar(content: Text('已登出「${server.name}」')));
+    }
   }
 
   /// 切换激活服务器：用保存的凭据自动登录
@@ -121,7 +147,7 @@ class _ServersViewState extends ConsumerState<ServersView> {
 
     try {
       // 编排收敛到 server_switch_helpers.switchRegistryServer：
-      // 先登录目标成功，再清对端会话、更新激活态与服务模式；目标失败时对端保留。
+      // 先登录目标成功，再更新激活态与服务模式联动；对端会话保留，目标失败时不动。
       final outcome = await switchRegistryServer(
         ref,
         server,
@@ -442,6 +468,7 @@ class _ServerCard extends StatelessWidget {
     required this.active,
     required this.isLoggedIn,
     required this.onTap,
+    required this.onToggleOnline,
     required this.onEdit,
     required this.onDelete,
     required this.onSetDefault,
@@ -451,6 +478,8 @@ class _ServerCard extends StatelessWidget {
   final bool isLoggedIn;
   /// 可空：服务器切换进行中时为 null，行禁用（防并发登录）
   final VoidCallback? onTap;
+  /// 在线开关回调：取消勾选触发登出确认；勾选保持在线；null 时禁用
+  final ValueChanged<bool?>? onToggleOnline;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onSetDefault;
@@ -558,6 +587,10 @@ class _ServerCard extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+              Checkbox(
+                value: isLoggedIn,
+                onChanged: onToggleOnline,
               ),
               IconButton(
                 icon: const Icon(Icons.edit_outlined, size: 20),

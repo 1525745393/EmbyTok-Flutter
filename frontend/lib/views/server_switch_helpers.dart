@@ -206,6 +206,80 @@ Future<void> logoutMatchingSession(WidgetRef ref, ServerProfile server) async {
   }
 }
 
+/// 判断注册表条目当前是否处于在线（已登录）状态。
+///
+/// 视频类（Emby/Jellyfin/Plex）：优先按条目 id 命中多会话槽；未命中时回退
+/// 当前激活槽的 host 匹配（兼容旧 url 槽 / 历史数据）。群晖为单 current 模型，
+/// 按当前群晖会话的 host + 账号匹配。
+bool isRegistryServerOnline(
+  ServerProfile server,
+  AuthState auth,
+  bool Function(String sessionKey) isVideoSessionOnline,
+  SynologyAuthState synoAuth,
+) {
+  switch (server.kind) {
+    case ServerKind.emby:
+    case ServerKind.jellyfin:
+    case ServerKind.plex:
+      if (isVideoSessionOnline(server.id)) return true;
+      return auth.isAuthenticated &&
+          auth.embyServerUrl != null &&
+          hostOf(auth.embyServerUrl!) == hostOf(server.url);
+    case ServerKind.synology:
+      return synoAuth.isLoggedIn &&
+          synoAuth.serverUrl != null &&
+          hostOf(synoAuth.serverUrl!) == hostOf(server.url) &&
+          (synoAuth.account == null || synoAuth.account == server.username);
+  }
+}
+
+/// 列表置顶排序：在线条目在前（组内按最近使用时间倒序），未登录条目在后
+/// 并保持注册表原有相对顺序。纯函数，不改持久化顺序。
+List<ServerProfile> sortServersByOnline(
+  List<ServerProfile> servers,
+  bool Function(ServerProfile server) isOnline,
+) {
+  final online = servers.where(isOnline).toList()
+    ..sort((a, b) => b.lastUsed.compareTo(a.lastUsed));
+  final offline = servers.where((s) => !isOnline(s)).toList();
+  return [...online, ...offline];
+}
+
+/// 取消在线勾选：登出对应会话（仅清会话 token/sid，不删除注册表保存的
+/// 密码/sid；凭据保留以便下次凭保存凭据恢复）。
+///
+/// - 视频类：按条目 id 定位会话槽登出，不影响其他在线槽；id 槽未命中时
+///   兜底登出 host 匹配的当前激活槽；
+/// - 群晖：仅当条目正是当前群晖会话时登出（单 current 模型，非当前条目不动）。
+Future<void> logoutRegistrySession(WidgetRef ref, ServerProfile server) async {
+  switch (server.kind) {
+    case ServerKind.emby:
+    case ServerKind.jellyfin:
+    case ServerKind.plex:
+      final notifier = ref.read(authProvider.notifier);
+      if (notifier.isSessionOnline(server.id)) {
+        await notifier.logoutSession(server.id);
+        return;
+      }
+      final auth = ref.read(authProvider);
+      final current = notifier.activeSessionId;
+      if (current != null &&
+          auth.isAuthenticated &&
+          auth.embyServerUrl != null &&
+          hostOf(auth.embyServerUrl!) == hostOf(server.url)) {
+        await notifier.logoutSession(current);
+      }
+    case ServerKind.synology:
+      final syno = ref.read(synologyAuthProvider);
+      if (syno.isLoggedIn &&
+          syno.serverUrl != null &&
+          hostOf(syno.serverUrl!) == hostOf(server.url) &&
+          (syno.account == null || syno.account == server.username)) {
+        await ref.read(synologyAuthProvider.notifier).logout();
+      }
+  }
+}
+
 /// 注册表服务器切换结果
 enum ServerSwitchOutcome {
   /// 切换成功
