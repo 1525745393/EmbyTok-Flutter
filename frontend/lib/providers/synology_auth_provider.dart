@@ -54,6 +54,23 @@ class SynologyAuthState {
   }
 }
 
+/// 单个群晖会话（内部多槽模型，#170 批次 A1）。
+///
+/// 会话按归属标识存入多槽 map，对外 [SynologyAuthState] 仍由当前激活槽派生，
+/// 既有消费点（isLoggedIn/serverUrl/account/sid/api）透明兼容。
+class _SynoSession {
+  const _SynoSession({
+    required this.id,
+    required this.serverUrl,
+    required this.account,
+    required this.sid,
+  });
+  final String id;
+  final String serverUrl;
+  final String account;
+  final String sid;
+}
+
 /// 会话持久化键
 const _kSynoServerUrl = 'synology_server_url';
 const _kSynoAccount = 'synology_account';
@@ -73,7 +90,42 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
   late final SynologyAudioApi _api;
   late final FlutterSecureStorage _secureStorage;
 
+  /// 多会话槽：key 为会话归属标识。阶段 A1 内部模型，对外仅暴露当前激活槽派生态。
+  final Map<String, _SynoSession> _sessions = {};
+  /// 当前激活会话槽标识；对外 SynologyAuthState 由此槽派生。
+  String? _currentId;
+  /// 跨槽的 UI 瞬态（加载中 / 错误提示），不属于某个会话。
+  bool _isLoading = false;
+  String? _error;
+
   SynologyAudioApi get api => _api;
+
+  /// 由当前激活会话槽派生对外状态；isLoading/error 为跨槽瞬态字段。
+  SynologyAuthState _derive() {
+    final s = _sessions[_currentId];
+    return SynologyAuthState(
+      isLoggedIn: s != null,
+      serverUrl: s?.serverUrl,
+      account: s?.account,
+      sid: s?.sid,
+      isLoading: _isLoading,
+      error: _error,
+    );
+  }
+
+  /// 归一化会话键：去尾部斜杠。
+  static String _sessionKey(String url) =>
+      url.trim().replaceAll(RegExp(r'/+$'), '');
+
+  /// 解析槽键：优先注册表条目 id；未提供时回退 `url::account`。
+  static String _resolveKey({
+    String? serverId,
+    required String url,
+    required String account,
+  }) =>
+      (serverId != null && serverId.trim().isNotEmpty)
+          ? serverId.trim()
+          : '${_sessionKey(url)}::$account';
 
   /// 从本地存储恢复群晖会话（sid 优先安全存储，旧明文自动迁移）
   Future<void> _restore() async {
@@ -97,12 +149,15 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
           sid.isNotEmpty) {
         _api.restoreSession(
             serverUrl: serverUrl, sid: sid, account: account);
-        state = SynologyAuthState(
-          isLoggedIn: true,
+        final session = _SynoSession(
+          id: _resolveKey(url: serverUrl, account: account ?? ''),
           serverUrl: serverUrl,
-          account: account,
+          account: account ?? '',
           sid: sid,
         );
+        _sessions[session.id] = session;
+        _currentId = session.id;
+        state = _derive();
         AppLogger.info('群晖 Audio Station 会话恢复成功');
       }
     } catch (e) {
@@ -135,12 +190,15 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
       await prefs.setString(_kSynoServerUrl, serverUrl);
       await prefs.setString(_kSynoAccount, account);
       await _secureStorage.write(key: _kSynoSidSecure, value: sid);
-      state = SynologyAuthState(
-        isLoggedIn: true,
+      final session = _SynoSession(
+        id: _resolveKey(url: serverUrl, account: account),
         serverUrl: serverUrl,
         account: account,
         sid: sid,
       );
+      _sessions[session.id] = session;
+      _currentId = session.id;
+      state = _derive();
       AppLogger.info('群晖 Audio Station 会话恢复', data: {'account': account});
     } catch (e) {
       AppLogger.error('恢复群晖会话失败', error: e);
@@ -158,7 +216,9 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
     required String password,
     String? otpCode,
   }) async {
-    state = state.copyWith(isLoading: true, error: null);
+    _isLoading = true;
+    _error = null;
+    state = _derive();
     try {
       final sid = await _api.login(
         serverUrl: serverUrl,
@@ -166,26 +226,31 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
         password: password,
         otpCode: otpCode,
       );
-      // 持久化会话（sid 存安全存储；明文旧键清理）
+      // 持久化会话（sid 存安全存储；明文旧键清理）。
+      // 分槽落内存；旧单槽 key 作为当前台兼容镜像双写，待分桶持久化验收后移除。
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_kSynoServerUrl, _api.serverUrl ?? serverUrl);
       await prefs.setString(_kSynoAccount, account);
       await _secureStorage.write(key: _kSynoSidSecure, value: sid);
       await prefs.remove(_kSynoSid);
 
-      state = SynologyAuthState(
-        isLoggedIn: true,
+      final session = _SynoSession(
+        id: _resolveKey(url: _api.serverUrl ?? serverUrl, account: account),
         serverUrl: _api.serverUrl ?? serverUrl,
         account: account,
         sid: sid,
       );
+      _sessions[session.id] = session;
+      _currentId = session.id;
+      _isLoading = false;
+      state = _derive();
       AppLogger.info('群晖 Audio Station 登录成功', data: {'account': account});
     } catch (e, st) {
       AppLogger.error('群晖 Audio Station 登录失败', error: e, stackTrace: st);
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
+      // 登录请求自身失败：保留其他在线槽，仅记录跨槽错误瞬态。
+      _isLoading = false;
+      _error = e.toString();
+      state = _derive();
       rethrow;
     }
   }
@@ -196,7 +261,16 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
   /// setMode(video) 的模式副作用，切换场景误用会导致服务模式被切走。
   Future<void> clearInvalidSession() async {
     _api.clearSession();
-    state = const SynologyAuthState();
+    _sessions.remove(_currentId);
+    _currentId = null;
+    _isLoading = false;
+    _error = null;
+    await _clearLegacySessionStorage();
+    state = _derive();
+  }
+
+  /// 清除旧单槽兼容镜像持久化（prefs url/account/明文 sid + secure sid）。
+  Future<void> _clearLegacySessionStorage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_kSynoServerUrl);
@@ -212,28 +286,20 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
     }
   }
 
-  /// 退出登录
+  /// 退出登录（全局清空所有槽）
   Future<void> logout() async {
     try {
       await _api.logout();
     } catch (_) {
-    // 存储操作失败不影响主流程，静默处理
-  }
-    // 清除持久化（含安全存储 sid）
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_kSynoServerUrl);
-      await prefs.remove(_kSynoAccount);
-      await prefs.remove(_kSynoSid);
-    } catch (_) {
-    // 存储操作失败不影响主流程，静默处理
-  }
-    try {
-      await _secureStorage.delete(key: _kSynoSidSecure);
-    } catch (_) {
-    // 存储操作失败不影响主流程，静默处理
-  }
-    state = const SynologyAuthState();
+      // 存储操作失败不影响主流程，静默处理
+    }
+    await _clearLegacySessionStorage();
+    // 全局登出：清空内存所有会话（按单台登出走 logoutSession）。
+    _sessions.clear();
+    _currentId = null;
+    _isLoading = false;
+    _error = null;
+    state = _derive();
     // 解除群晖当前账号指针（含持久化 current key），避免 accountScopedKey
     // 按陈旧账号分桶；已保存的账号列表与密码保留，不在登出时清除。
     await _ref.read(synoAccountsProvider.notifier).clearCurrent();
@@ -264,6 +330,43 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
       AppLogger.warn('群晖会话自动续期失败', data: {'err': e.toString()});
       return false;
     }
+  }
+
+  /// 当前激活会话槽标识；未登录为 null。
+  String? get activeSessionId => _currentId;
+
+  /// 指定槽是否处于在线状态（内存会话存在）。
+  bool isSessionOnline(String key) => _sessions.containsKey(key);
+
+  /// 当前所有在线会话槽标识（不可变）。
+  List<String> onlineSessionIds() => List.unmodifiable(_sessions.keys);
+
+  /// 切换当前激活槽到已在线会话；目标槽不存在时保持现状。
+  ///
+  /// 切槽时把目标会话回填到 API 单例，避免后续请求携带错 sid/账号。
+  void switchTo(String key) {
+    final s = _sessions[key];
+    if (s == null) return;
+    _currentId = key;
+    _api.restoreSession(
+        serverUrl: s.serverUrl, sid: s.sid, account: s.account);
+    state = _derive();
+  }
+
+  /// 按槽登出：仅移除目标会话，不影响其他在线会话。
+  ///
+  /// 目标为当前激活槽时一并解除 API 绑定与旧单槽持久化；非当前槽仅移除内存。
+  Future<void> logoutSession(String key) async {
+    final removed = _sessions.remove(key);
+    if (removed == null) return;
+    if (_currentId == key) {
+      _api.clearSession();
+      await _clearLegacySessionStorage();
+      _currentId = null;
+      _isLoading = false;
+      _error = null;
+    }
+    state = _derive();
   }
 }
 
