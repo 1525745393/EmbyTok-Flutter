@@ -1,3 +1,10 @@
+# [2.409.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.408.0...v2.409.0) (2026-11-26)
+
+
+### Features
+
+* 已在线服务器条目切换时直接切槽，免保存凭据重登 ([c79c6bc](https://github.com/1525745393/EmbyTok-Flutter/commit/c79c6bc7bdf12eb1e79bd46c26c0f508106d1f81))
+
 # [2.408.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.407.0...v2.408.0) (2026-11-26)
 
 
