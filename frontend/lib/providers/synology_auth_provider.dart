@@ -450,6 +450,8 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
   /// 成功返回 true；无保存密码或登录失败返回 false（调用方应引导手动登录）。
   Future<bool> renewSession() async {
     try {
+      // 未处于在线槽时无可续期对象，避免落无名 url 副本槽。
+      if (_currentId == null) return false;
       final accounts = _ref.read(synoAccountsProvider);
       final cur = accounts.current;
       if (cur == null) return false;
@@ -461,6 +463,8 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
         serverUrl: cur.serverUrl,
         account: cur.username,
         password: pwd,
+        // 沿用当前槽键：续期不落 url::account 副本，避免 id 槽残留过期 sid。
+        serverId: _currentId,
       );
       AppLogger.info('群晖会话已自动续期', data: {'account': cur.username});
       return true;

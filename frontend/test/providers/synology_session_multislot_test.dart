@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:embytok_flutter/providers/auth_provider.dart'
     show secureStorageProvider;
+import 'package:embytok_flutter/providers/syno_accounts_provider.dart';
 import 'package:embytok_flutter/providers/synology_auth_provider.dart';
 import 'package:embytok_flutter/services/synology_audio_api.dart';
 
@@ -256,6 +257,34 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.containsKey('syno_session_$oldKey'), isFalse);
       expect(prefs.containsKey('syno_session_srv-x'), isTrue);
+    });
+
+    test('renewSession 续期沿用当前槽键，不退化出 url 副本槽', () async {
+      final container = buildContainer();
+      addTearDown(container.dispose);
+      final auth = container.read(synologyAuthProvider.notifier);
+
+      await auth.login(
+        serverUrl: 'http://nas.local:5000',
+        account: 'admin',
+        password: 'pw',
+        serverId: 'srv-x',
+      );
+
+      final accounts = container.read(synoAccountsProvider.notifier);
+      final account = await accounts.addAccount(
+        serverUrl: 'http://nas.local:5000',
+        username: 'admin',
+        password: 'pw',
+      );
+      await accounts.setCurrent(account.accountId);
+
+      final renewed = await auth.renewSession();
+
+      expect(renewed, isTrue);
+      expect(auth.onlineSessionIds(), ['srv-x'],
+          reason: '续期不应把 id 槽退化成 url::account 副本');
+      expect(auth.activeSessionId, 'srv-x');
     });
   });
 
