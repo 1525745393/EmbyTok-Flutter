@@ -1,3 +1,10 @@
+## [2.409.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.409.0...v2.409.1) (2026-11-28)
+
+
+### Bug Fixes
+
+* 群晖自动续期沿用当前槽键，避免 id 槽退化出 url 副本 ([490df1f](https://github.com/1525745393/EmbyTok-Flutter/commit/490df1fc20ee60fda02dc38837eadf755c341097))
+
 # [2.409.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.408.0...v2.409.0) (2026-11-26)
 
 
